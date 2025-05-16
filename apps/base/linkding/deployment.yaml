@@ -1,34 +1,89 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: linkding
+  name: linkding                            # Name of the Deployment
 spec:
-  replicas: 1
+  replicas: 1                               # Only one instance of the app
   selector:
     matchLabels:
-      app: linkding
+      app: linkding                         # Match Pods with this label
   template:
     metadata:
       labels:
-        app: linkding
+        app: linkding                       # Label applied to the Pod
     spec:
+      securityContext:                      # Pod-level security settings
+        runAsUser: 33                     # Non-root user ID , this comes from the Dockerfile. www-data is UID 33 tells pod to run as this user 
+        runAsGroup: 33                    # Group ID for the user, which is also www-data
+        fsGroup: 33                       # Group ID for volume access this is also www-data tells pod update the group ownership of the volume to this user
       containers:
         - name: linkding
-          image: sissbruecker/linkding:1.39.1
+          image: sissbruecker/linkding:1.39.1  # Specific version of the app image
           ports:
-            - containerPort: 9090
+            - containerPort: 9090           # Container listens on port 9090
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "250m"
+              memory: "128Mi"               # Minimum memory guaranteed
+              cpu: "250m"                   # Minimum CPU guaranteed
             limits:
-              memory: "256Mi"
-              cpu: "500m"
+              memory: "256Mi"               # Max memory allowed
+              cpu: "500m"                   # Max CPU allowed
+          securityContext:                  # Container-level security settings
+            # runAsNonRoot: true              # Ensure container doesn't run as root
+            allowPrivilegeEscalation: false # Prevent privilege escalation so the user can't gain root access by exploiting vulnerabilities 
+            # capabilities:
+              # drop:
+                # - ALL                       # Drop all capabilities for safety
+            # readOnlyRootFilesystem: true    # Makes root filesystem read-only
           volumeMounts:
             - name: linkding-data
-              mountPath: /etc/linkding/data
-      restartPolicy: Always
+              mountPath: /etc/linkding/data # Mount persistent volume to this path
+      restartPolicy: Always                 # Restart policy for the Pod
       volumes:
         - name: linkding-data
           persistentVolumeClaim:
-            claimName: linkding-data-pvc
+            claimName: linkding-data-pvc    # Reference to existing PVC
+
+
+
+
+
+
+
+
+
+
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: linkding
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: linkding
+#   template:
+#     metadata:
+#       labels:
+#         app: linkding
+#     spec:
+#       containers:
+#         - name: linkding
+#           image: sissbruecker/linkding:1.39.1
+#           ports:
+#             - containerPort: 9090
+#           resources:
+#             requests:
+#               memory: "128Mi"
+#               cpu: "250m"
+#             limits:
+#               memory: "256Mi"
+#               cpu: "500m"
+#           volumeMounts:
+#             - name: linkding-data
+#               mountPath: /etc/linkding/data
+#       restartPolicy: Always
+#       volumes:
+#         - name: linkding-data
+#           persistentVolumeClaim:
+#             claimName: linkding-data-pvc
