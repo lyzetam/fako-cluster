@@ -24,6 +24,13 @@ spec:
         - --config
         - /etc/cloudflared/config/config.yaml
         - run
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
         livenessProbe:
           httpGet:
             # Cloudflared has a /ready endpoint which returns 200 if and only if
@@ -68,7 +75,7 @@ data:
   config.yaml: |
     # Name of the tunnel you want to run
     
-    tunnel: ldpi
+    tunnel: fakocluster
 
     credentials-file: /etc/cloudflared/creds/credentials.json
 
@@ -77,7 +84,7 @@ data:
     no-autoupdate: true
 
     ingress:
-    - hostname: ldpi.mischavandenburg.net
+    - hostname: fakocluster.landryzetam.net
       service: http://linkding:9090
 
     # This rule sends traffic to the built-in hello-world HTTP server. This can help debug connectivity
