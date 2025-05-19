@@ -1,1 +1,8 @@
 notes.txt
+*.txt
+*.log
+*.csv
+*.ts
+*.js
+*.agekey
+test-secret.yaml
