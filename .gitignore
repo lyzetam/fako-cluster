@@ -5,4 +5,4 @@ notes.txt
 *.ts
 *.js
 *.agekey
-test-secret.yaml
+#test-secret.yaml
