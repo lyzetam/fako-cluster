@@ -28,6 +28,11 @@ spec:
             limits:
               memory: "256Mi"               # Max memory allowed
               cpu: "500m"                   # Max CPU allowed
+          envFrom:
+            # - configMapRef:
+            #     name: linkding-configmap
+            - secretRef:
+                name: linkding-container-env
           securityContext:                  # Container-level security settings
             # runAsNonRoot: true              # Ensure container doesn't run as root
             allowPrivilegeEscalation: false # Prevent privilege escalation so the user can't gain root access by exploiting vulnerabilities 
