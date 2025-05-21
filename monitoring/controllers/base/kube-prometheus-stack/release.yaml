@@ -1,0 +1,32 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease #think of this as the helm install command
+metadata:
+  name: kube-prometheus-stack
+  namespace: monitoring
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: kube-prometheus-stack # This is equivalent to helm install [RELEASE_NAME] prometheus-community/kube-prometheus-stack
+      version: "^66.2.0" # This is the version of the chart that it is pinned to, ensuring compatibility while allowing patch upgrades
+      sourceRef:
+        kind: HelmRepository # This is the type of the source
+        name: kube-prometheus-stack # This is the name of the source repo to install line 10
+        namespace: monitoring # This is the namespace of the source
+      interval: 12h
+  install:
+    crds: Create
+  upgrade:
+    crds: CreateReplace
+  # Drift detection ensures that the deployed resources match the desired state defined in the HelmRelease.
+  # When enabled, it detects and reconciles any manual changes made to the resources.
+  driftDetection:
+    mode: enabled
+    ignore:
+      # Ignore "validated" annotation which is not inserted during install
+      - paths: ["/metadata/annotations/prometheus-operator-validated"]
+        target:
+          kind: PrometheusRule
+  values:
+    grafana:
+      adminPassword: "admin"
