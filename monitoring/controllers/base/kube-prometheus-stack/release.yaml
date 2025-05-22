@@ -8,7 +8,7 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack # This is equivalent to helm install [RELEASE_NAME] prometheus-community/kube-prometheus-stack
-      version: "^66.2.0" # This is the version of the chart that it is pinned to, ensuring compatibility while allowing patch upgrades
+      version: "^66.2.0" # This versioning strategy allows patch upgrades for compatibility and stability. It is chosen to ensure we receive non-breaking updates while maintaining consistency with other charts in the project.
       sourceRef:
         kind: HelmRepository # This is the type of the source
         name: kube-prometheus-stack # This is the name of the source repo to install line 10
@@ -21,7 +21,7 @@ spec:
   # Drift detection ensures that the deployed resources match the desired state defined in the HelmRelease.
   # When enabled, it detects and reconciles any manual changes made to the resources.
   driftDetection:
-    mode: enabled
+    mode: enabled # Enabling drift detection ensures that manual changes to resources are reconciled, but it may increase resource usage and is not recommended for environments with frequent manual interventions.
     ignore:
       # Ignore "validated" annotation which is not inserted during install
       - paths: ["/metadata/annotations/prometheus-operator-validated"]
@@ -30,3 +30,31 @@ spec:
   values:
     grafana:
       adminPassword: "admin"
+      ingress:
+        ## If true, Grafana Ingress will be created
+        ##
+        ## Ingress is disabled by default to avoid exposing Grafana publicly.
+        ## Enable this field when you want to expose Grafana via an ingress controller.
+        enabled: true
+
+        ## IngressClassName for Grafana Ingress.
+        ## Should be provided if Ingress is enable.
+        ##
+        ingressClassName: traefik
+
+        ## Hostnames.
+        ## Must be provided if Ingress is enable.
+        ##
+        # hosts:
+        #   - grafana.domain.com
+        hosts:
+          - grafana.landryzetam.net
+        # The path for Grafana ingress is set to `/`. This is a common convention for root-level access,
+        # but it can be customized based on specific requirements of the setup.
+        path: /
+        ## Secret must be manually created in the namespace
+        ## Leave the tls configuration empty if you do not require TLS or customize it as needed for your setup.
+        tls: []
+        # - secretName: grafana-general-tls
+        #   hosts:
+        #   - grafana.example.com
