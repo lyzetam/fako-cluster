@@ -5,7 +5,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: lds.landryzetam.net
+    - host: grafana.landryzetam.net
       http:
         paths:
           - backend:
