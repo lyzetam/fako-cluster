@@ -42,11 +42,7 @@ spec:
         ##
         ingressClassName: traefik
 
-        ## Hostnames.
-        ## Must be provided if Ingress is enable.
-        ##
-        # hosts:
-        #   - grafana.domain.com
+        ## Hostnames Must be provided if Ingress is enable.
         hosts:
           - grafana.landryzetam.net
         # The path for Grafana ingress is set to `/`. This is a common convention for root-level access,
@@ -54,7 +50,14 @@ spec:
         path: /
         ## Secret must be manually created in the namespace
         ## Leave the tls configuration empty if you do not require TLS or customize it as needed for your setup.
-        tls: []
-        # - secretName: grafana-general-tls
-        #   hosts:
-        #   - grafana.example.com
+        tls: 
+          - secretName: grafana-tls-secret
+            hosts:
+              - grafana.landryzetam.net
+            # The secret name for TLS configuration is set to `grafana-tls-secret`.
+            # This should be created in the same namespace as the Grafana installation.
+            # Ensure that the secret contains the necessary TLS certificate and key for secure communication.
+            # The secret must be created manually in the namespace.
+            # This is a common practice to ensure secure communication with Grafana.
+            # Customize the secret name based on your naming conventions or requirements.
+
