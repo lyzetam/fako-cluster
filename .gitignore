@@ -6,3 +6,6 @@ notes.txt
 *.js
 *.agekey
 #test-secret.yaml
+*.pem
+*.crt
+*.key
