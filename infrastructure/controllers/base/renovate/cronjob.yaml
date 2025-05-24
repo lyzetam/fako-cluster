@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: renovate-cronjob
+  namespace: renovate
+spec:
+  schedule: "@hourly"
+  #schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: renovate
+              image: renovate/renovate:latest
+              args:
+                - lyzetam/fako-cluster
+
+              envFrom:
+                - secretRef:
+                    name: renovate-container-env
+                - configMapRef:
+                    name: renovate-configmap
+
+          # The restartPolicy is set to Never because CronJobs are expected to run to completion without restarting.
+          restartPolicy: Never
