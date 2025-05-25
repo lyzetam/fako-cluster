@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: audiobookshelf
+spec:
+  ports:
+    - port: 3005 # Port that the service will expose and corresponds to the port in the deployment and configmap
+      # targetPort: 3005 # Port that the container is listening on
+  selector:
+    app: audiobookshelf # This should match the label in the deployment
+  type: ClusterIP
