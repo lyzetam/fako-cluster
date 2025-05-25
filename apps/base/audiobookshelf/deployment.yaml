@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: audiobookshelf
-          image: ghcr.io/advplyr/audiobookshelf:2.17.2 #hgcr = github container registry is where the image is hosted and where the image is pulled from
+          image: ghcr.io/advplyr/audiobookshelf:2.23.0 #hgcr = github container registry is where the image is hosted and where the image is pulled from
 
           envFrom:
             - configMapRef:
