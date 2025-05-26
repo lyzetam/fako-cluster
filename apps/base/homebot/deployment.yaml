@@ -13,21 +13,39 @@ spec:
       labels:
         app: homebot
     spec:
+      initContainers:
+        # This init container copies the configuration to the persistent volume
+        - name: config-init
+          image: busybox:latest
+          command: ['sh', '-c']
+          args:
+            - |
+              if [ ! -f /config/configuration.yaml ]; then
+                echo "Copying initial configuration..."
+                cp /config-init/configuration.yaml /config/
+              else
+                echo "Configuration already exists, skipping..."
+              fi
+          volumeMounts:
+            - name: config-init
+              mountPath: /config-init
+            - name: homebot-config
+              mountPath: /config
       containers:
         - name: homebot
-          image: ghcr.io/home-assistant/home-assistant:2024.12.3  # Latest stable as of guide
+          image: ghcr.io/home-assistant/home-assistant:2024.12.3
           ports:
             - containerPort: 8123
               protocol: TCP
-          envFrom:
-            - configMapRef:
-                name: homebot-configmap
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: homebot-configmap
+                  key: TZ
           volumeMounts:
             - mountPath: /config
               name: homebot-config
-          # Uncomment if you need privileged mode for certain integrations
-          # securityContext:
-          #   privileged: true
           resources:
             requests:
               memory: "512Mi"
@@ -39,6 +57,9 @@ spec:
         - name: homebot-config
           persistentVolumeClaim:
             claimName: homebot-config
-      # If you need host network mode for device discovery
-      # hostNetwork: true
-      # dnsPolicy: ClusterFirstWithHostNet
+        - name: config-init
+          configMap:
+            name: homebot-configmap
+            items:
+              - key: configuration.yaml
+                path: configuration.yaml
