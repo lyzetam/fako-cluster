@@ -6,16 +6,16 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: homebot.landryzetam.net
+    - host: homebot.landryzetam.net # Ensure this domain is correctly configured in DNS to point to the ingress controller
       http:
         paths:
-          - path: /
+          - path: / # Root path for the application
             pathType: Prefix
             backend:
               service:
                 name: homebot
                 port:
-                  number: 8123
+                  number: 8123 # Home Assistant service
   tls:
     - hosts:
       - homebot.landryzetam.net
