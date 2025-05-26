@@ -16,3 +16,7 @@ spec:
                 name: homebot
                 port:
                   number: 8123
+  tls:
+    - hosts:
+      - homebot.landryzetam.net
+      secretName: homebot-tls-secret
