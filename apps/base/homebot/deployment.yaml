@@ -23,6 +23,11 @@ spec:
               if [ ! -f /config/configuration.yaml ]; then
                 echo "Copying initial configuration..."
                 cp /config-init/configuration.yaml /config/
+                # Create empty include files
+                touch /config/automations.yaml
+                touch /config/scripts.yaml
+                touch /config/scenes.yaml
+                echo "Initial configuration created"
               else
                 echo "Configuration already exists, skipping..."
               fi
