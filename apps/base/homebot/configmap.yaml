@@ -4,10 +4,18 @@ metadata:
   name: homebot-configmap
   namespace: homebot
 data:
-  TZ: "America/New_York" 
+  TZ: "America/New_York"  # Adjust to your timezone
   configuration.yaml: |
-    # Basic Home Assistant configuration
+    # Loads default set of integrations. Do not remove.
     default_config:
+    
+    # Load frontend themes from the themes folder
+    frontend:
+      themes: !include_dir_merge_named themes
+    
+    automation: !include automations.yaml
+    script: !include scripts.yaml
+    scene: !include scenes.yaml
     
     # HTTP configuration for reverse proxy
     http:
@@ -15,7 +23,4 @@ data:
       trusted_proxies:
         - 10.42.0.0/16    # Kubernetes pod network
         - 10.43.0.0/16    # Kubernetes service network
-        - 172.16.0.0/12   # Common Docker/Kubernetes range
         - 127.0.0.1       # Localhost
-      ip_ban_enabled: true
-      login_attempts_threshold: 5

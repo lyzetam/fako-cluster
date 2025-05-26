@@ -3,8 +3,8 @@ kind: Kustomization
 namespace: homebot
 resources:
   - namespace.yaml
-  - configmap.yaml
+  - configmap.yaml  # ConfigMap must be created before Deployment
   - storage.yaml
-  - deployment.yaml
   - service.yaml
+  - deployment.yaml
   - ingress.yaml
