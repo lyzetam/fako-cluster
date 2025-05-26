@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homebot-configmap
+  namespace: homebot
+data:
+  TZ: "America/New_York"  

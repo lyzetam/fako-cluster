@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homebot
+  namespace: homebot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homebot
+  template:
+    metadata:
+      labels:
+        app: homebot
+    spec:
+      containers:
+        - name: homebot
+          image: ghcr.io/home-assistant/home-assistant:2024.12.3  # Latest stable as of guide
+          ports:
+            - containerPort: 8123
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: homebot-configmap
+          volumeMounts:
+            - mountPath: /config
+              name: homebot-config
+          # Uncomment if you need privileged mode for certain integrations
+          # securityContext:
+          #   privileged: true
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+      volumes:
+        - name: homebot-config
+          persistentVolumeClaim:
+            claimName: homebot-config
+      # If you need host network mode for device discovery
+      # hostNetwork: true
+      # dnsPolicy: ClusterFirstWithHostNet
