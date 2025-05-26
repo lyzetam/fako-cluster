@@ -3,8 +3,7 @@ kind: Kustomization
 namespace: homebot
 resources:
   - ../../base/homebot/
-   - homebot-tls-secret.yaml
+  - homebot-tls-secret.yaml
 
 
 
-  
