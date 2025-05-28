@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: openwakeword
+  namespace: openwakeword
+spec:
+  ports:
+    - port: 10400
+      targetPort: 10400
+      protocol: TCP
+      name: wyoming
+  selector:
+    app: openwakeword
+  type: ClusterIP

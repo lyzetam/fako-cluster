@@ -7,6 +7,7 @@ resources:
   - ollama-webui
   - whisper
   - piper
+  - openwakeword
   # - homebot
 
 
