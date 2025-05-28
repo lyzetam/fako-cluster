@@ -22,14 +22,11 @@ spec:
           args:
             - "--uri"
             - "tcp://0.0.0.0:10400"
-            - "--preload-model"
-            - "alexa"
-            - "--preload-model"
-            - "hey_mycroft"
-            - "--preload-model"
-            - "hey_jarvis"
             - "--models-dir"
             - "/data"
+          env:
+            - name: WYOMING_OPENWAKEWORD_URI
+              value: "tcp://0.0.0.0:10400"
           volumeMounts:
             - mountPath: /data
               name: openwakeword-models
@@ -55,4 +52,3 @@ spec:
         - name: openwakeword-models
           persistentVolumeClaim:
             claimName: openwakeword-models
-            
