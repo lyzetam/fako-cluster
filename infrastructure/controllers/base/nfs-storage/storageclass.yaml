@@ -1,3 +1,14 @@
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: nfs-csi
+# provisioner: nfs.csi.k8s.io
+# parameters:
+#   server: "10.85.30.125"
+#   share: "/volume1/k8s-storage"
+# reclaimPolicy: Retain
+# allowVolumeExpansion: true
+
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -8,3 +19,13 @@ parameters:
   share: "/volume1/k8s-storage"
 reclaimPolicy: Retain
 allowVolumeExpansion: true
+mountOptions:
+  - nfsvers=3
+  - proto=tcp
+  - hard
+  - intr
+  - nolock
+  - rsize=1048576
+  - wsize=1048576
+  - timeo=600
+  - retrans=2
