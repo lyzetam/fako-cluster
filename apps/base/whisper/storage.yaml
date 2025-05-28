@@ -1,3 +1,16 @@
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: whisper-models
+#   namespace: whisper
+# spec:
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 10Gi  # Whisper models can be large
+
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -6,6 +19,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: nfs-csi
   resources:
     requests:
       storage: 10Gi  # Whisper models can be large
