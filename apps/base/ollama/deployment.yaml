@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+        - name: ollama
+          image: ollama/ollama:0.1.38  # Latest as of May 2025
+          ports:
+            - containerPort: 11434
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: ollama-configmap
+          volumeMounts:
+            - mountPath: /root/.ollama
+              name: ollama-models
+          resources:
+            requests:
+              memory: "4Gi"      # Minimum for small models
+              cpu: "2000m"       # 2 CPUs
+            limits:
+              memory: "8Gi"      # Adjust based on your node capacity
+              cpu: "4000m"       # 4 CPUs
+          # Optional: Enable GPU support if you have NVIDIA GPUs
+          # Requires NVIDIA device plugin installed on cluster
+          # resources:
+          #   limits:
+          #     nvidia.com/gpu: 1
+      volumes:
+        - name: ollama-models
+          persistentVolumeClaim:
+            claimName: ollama-models
