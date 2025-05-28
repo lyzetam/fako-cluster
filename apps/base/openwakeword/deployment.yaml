@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openwakeword
+  namespace: openwakeword
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openwakeword
+  template:
+    metadata:
+      labels:
+        app: openwakeword
+    spec:
+      containers:
+        - name: openwakeword
+          image: rhasspy/wyoming-openwakeword:latest
+          ports:
+            - containerPort: 10400
+              protocol: TCP
+          args:
+            - "--uri"
+            - "tcp://0.0.0.0:10400"
+            - "--preload-model"
+            - "alexa"
+            - "--preload-model"
+            - "hey_mycroft"
+            - "--preload-model"
+            - "hey_jarvis"
+            - "--data-dir"
+            - "/data"
+            - "--download-dir"
+            - "/data"
+          volumeMounts:
+            - mountPath: /data
+              name: openwakeword-models
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          # Health checks
+          livenessProbe:
+            tcpSocket:
+              port: 10400
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 10400
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: openwakeword-models
+          persistentVolumeClaim:
+            claimName: openwakeword-models
