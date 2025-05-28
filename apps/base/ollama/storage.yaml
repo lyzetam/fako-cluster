@@ -1,3 +1,15 @@
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: ollama-models
+#   namespace: ollama
+# spec:
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 50Gi  # Adjust based on model sizes
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -6,6 +18,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: nfs-csi
   resources:
     requests:
-      storage: 50Gi  # Adjust based on model sizes
+      storage: 50Gi  # Large storage for AI models

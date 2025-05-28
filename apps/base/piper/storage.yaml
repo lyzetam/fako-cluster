@@ -1,3 +1,15 @@
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: piper-models
+#   namespace: piper
+# spec:
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 5Gi  # For voice models
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -6,6 +18,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: nfs-csi
   resources:
     requests:
       storage: 5Gi  # For voice models
