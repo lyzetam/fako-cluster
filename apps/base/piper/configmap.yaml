@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: piper-configmap
+  namespace: piper
+data:
+  # Default voice model
+  DEFAULT_VOICE: "en_US-amy-medium"

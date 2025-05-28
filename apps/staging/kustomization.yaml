@@ -5,6 +5,8 @@ resources:
   - audiobookshelf
   - ollama
   - ollama-webui
+  - whisper
+  - piper
   # - homebot
 
 
