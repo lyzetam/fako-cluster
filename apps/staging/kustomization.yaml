@@ -4,6 +4,7 @@ resources:
   - linkding
   - audiobookshelf
   - ollama
+  - ollama-webui
   # - homebot
 
 
