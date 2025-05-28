@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: piper
+  namespace: piper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: piper
+  template:
+    metadata:
+      labels:
+        app: piper
+    spec:
+      containers:
+        - name: piper
+          image: rhasspy/wyoming-piper:latest
+          ports:
+            - containerPort: 10200
+              protocol: TCP
+          args:
+            - "--voice"
+            - "en_US-amy-medium"
+            - "--uri"
+            - "tcp://0.0.0.0:10200"
+            - "--data-dir"
+            - "/data"
+            - "--download-dir"
+            - "/data"
+            - "--max-piper-procs"
+            - "2"
+          volumeMounts:
+            - mountPath: /data
+              name: piper-models
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+      volumes:
+        - name: piper-models
+          persistentVolumeClaim:
+            claimName: piper-models
