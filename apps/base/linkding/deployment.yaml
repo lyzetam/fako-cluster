@@ -47,7 +47,7 @@ spec:
       volumes:
         - name: linkding-data
           persistentVolumeClaim:
-            claimName: linkding-data-pvc    # Reference to existing PVC
+            claimName: linkding-data-nfs-pvc    # Reference to existing PVC
 
 
 
