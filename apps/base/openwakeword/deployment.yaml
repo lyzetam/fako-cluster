@@ -28,9 +28,7 @@ spec:
             - "hey_mycroft"
             - "--preload-model"
             - "hey_jarvis"
-            - "--data-dir"
-            - "/data"
-            - "--download-dir"
+            - "--models-dir"
             - "/data"
           volumeMounts:
             - mountPath: /data
@@ -57,3 +55,4 @@ spec:
         - name: openwakeword-models
           persistentVolumeClaim:
             claimName: openwakeword-models
+            
