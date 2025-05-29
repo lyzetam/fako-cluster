@@ -1,3 +1,4 @@
+# apps/base/piper/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,20 +16,24 @@ spec:
     spec:
       containers:
         - name: piper
-          image: rhasspy/wyoming-piper:latest
+          image: rhasspy/wyoming-piper:1.5.0  # Pin to specific version to avoid issues
           ports:
             - containerPort: 10200
               protocol: TCP
+          command:
+            - python3
+            - -m
+            - wyoming_piper
           args:
-            - "--voice"
+            - --voice
             - "en_US-amy-medium"
-            - "--uri"
+            - --uri
             - "tcp://0.0.0.0:10200"
-            - "--data-dir"
+            - --data-dir
             - "/data"
-            - "--download-dir"
+            - --download-dir
             - "/data"
-            - "--max-piper-procs"
+            - --max-piper-procs
             - "2"
           volumeMounts:
             - mountPath: /data
@@ -40,6 +45,17 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
+          # Health checks for Wyoming protocol
+          livenessProbe:
+            tcpSocket:
+              port: 10200
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: 10200
+            initialDelaySeconds: 10
+            periodSeconds: 10
       volumes:
         - name: piper-models
           persistentVolumeClaim:
