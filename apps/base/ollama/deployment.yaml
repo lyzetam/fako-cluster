@@ -1,4 +1,3 @@
-# apps/base/ollama/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,11 +28,11 @@ spec:
               name: ollama-models
           resources:
             requests:
-              memory: "6Gi"
-              cpu: "2000m"
+              memory: "8Gi"
+              cpu: "3000m"
             limits:
-              memory: "12Gi"
-              cpu: "4000m"
+              memory: "16Gi"
+              cpu: "6000m"
           # Health checks
           livenessProbe:
             httpGet:
@@ -82,6 +81,18 @@ spec:
                   ollama pull llama2:7b-chat && echo "✅ llama2:7b-chat downloaded" || echo "❌ llama2:7b-chat failed"
                 fi
                 
+                # Check if llama3.2:3b exists
+                if ! echo "$CURRENT_MODELS" | grep -q "llama3.2:3b"; then
+                  echo "Downloading llama3.2:3b..."
+                  ollama pull llama3.2:3b && echo "✅ llama3.2:3b downloaded" || echo "❌ llama3.2:3b failed"
+                fi
+                
+                # Check if phi3:mini exists
+                if ! echo "$CURRENT_MODELS" | grep -q "phi3:mini"; then
+                  echo "Downloading phi3:mini..."
+                  ollama pull phi3:mini && echo "✅ phi3:mini downloaded" || echo "❌ phi3:mini failed"
+                fi
+                
                 # Show final model list
                 echo "Current models:"
                 ollama list || echo "Failed to list models"
@@ -94,11 +105,11 @@ spec:
               name: ollama-models
           resources:
             requests:
-              memory: "1Gi"
-              cpu: "500m"
-            limits:
               memory: "2Gi"
               cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
       volumes:
         - name: ollama-models
           persistentVolumeClaim:
