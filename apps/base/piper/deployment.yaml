@@ -15,31 +15,24 @@ spec:
     spec:
       containers:
         - name: piper
-          image: rhasspy/wyoming-piper:latest  # Use latest like the working example
+          image: rhasspy/wyoming-piper:latest  # Use the exact same image from tutorial
+          args:
+            - --voice
+            - en_US-lessac-medium  # Same voice as tutorial
           ports:
             - containerPort: 10200
               protocol: TCP
-          # Use Wyoming Piper exactly like the working Docker example
-          args:
-            - --voice
-            - "en_US-lessac-medium"  # Use lessac-medium like the working example
-            - --uri
-            - "tcp://0.0.0.0:10200"
-            - --data-dir
-            - "/data"
-            - --download-dir
-            - "/data"
           volumeMounts:
             - mountPath: /data
-              name: piper-models
+              name: piper-data
           resources:
             requests:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "500m"
             limits:
-              memory: "1Gi"
+              memory: "2Gi"
               cpu: "1000m"
-          # Health checks for Wyoming protocol
+          # Health checks
           livenessProbe:
             tcpSocket:
               port: 10200
@@ -51,6 +44,6 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
       volumes:
-        - name: piper-models
+        - name: piper-data
           persistentVolumeClaim:
-            claimName: piper-models
+            claimName: piper-data
