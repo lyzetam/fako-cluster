@@ -1,0 +1,14 @@
+# apps/base/openwakeword/nodeport-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: openwakeword-nodeport
+  namespace: openwakeword
+spec:
+  type: NodePort
+  ports:
+    - port: 10400
+      targetPort: 10400
+      nodePort: 30400  # External port
+  selector:
+    app: openwakeword
