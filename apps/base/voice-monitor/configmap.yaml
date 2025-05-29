@@ -6,5 +6,5 @@ metadata:
 data:
   REFRESH_INTERVAL: "30"
   FLASK_PORT: "8080"
-  PROMETHEUS_URL: "http://prometheus.monitoring.svc.cluster.local:9090"
-  HOME_ASSISTANT_URL: "http://homeassistant.default.svc.cluster.local:8123"
+  PROMETHEUS_URL: "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
+  # ENABLE_KUBECTL_TOP: "true"
