@@ -18,6 +18,9 @@ spec:
         # Download models on startup with latest Ollama
         - name: model-downloader
           image: ollama/ollama:latest  # Use latest instead of 0.1.38
+          securityContext:
+            runAsUser: 0  # Run as root to match main container
+            runAsGroup: 0
           command: ["/bin/sh"]
           args:
             - -c
@@ -60,6 +63,9 @@ spec:
       containers:
         - name: ollama
           image: ollama/ollama:latest  # Use latest instead of 0.1.38
+          securityContext:
+            runAsUser: 0  # Ensure main container also runs as root
+            runAsGroup: 0
           ports:
             - containerPort: 11434
               protocol: TCP
@@ -71,11 +77,11 @@ spec:
               name: ollama-models
           resources:
             requests:
-              memory: "8Gi"
-              cpu: "4000m"
+              memory: "6Gi"
+              cpu: "2000m"
             limits:
               memory: "12Gi"
-              cpu: "6000m"
+              cpu: "4000m"
           # Health checks
           livenessProbe:
             httpGet:
@@ -95,3 +101,104 @@ spec:
         - name: ollama-models
           persistentVolumeClaim:
             claimName: ollama-models
+
+
+
+
+# # apps/base/ollama/deployment.yaml
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: ollama
+#   namespace: ollama
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: ollama
+#   template:
+#     metadata:
+#       labels:
+#         app: ollama
+#     spec:
+#       initContainers:
+#         # Download models on startup with latest Ollama
+#         - name: model-downloader
+#           image: ollama/ollama:latest  # Use latest instead of 0.1.38
+#           command: ["/bin/sh"]
+#           args:
+#             - -c
+#             - |
+#               echo "Starting Ollama server in background..."
+#               ollama serve &
+#               OLLAMA_PID=$!
+              
+#               echo "Waiting for Ollama to be ready..."
+#               sleep 15
+              
+#               # Try downloading models that are most compatible
+#               echo "Downloading small models..."
+              
+#               # Try tinyllama first (smallest, most compatible)
+#               ollama pull tinyllama && echo "✅ tinyllama downloaded" || echo "❌ tinyllama failed"
+              
+#               # Try llama2 (very stable)
+#               ollama pull llama2:7b-chat && echo "✅ llama2:7b-chat downloaded" || echo "❌ llama2:7b-chat failed"
+              
+#               # Try newer models if the others worked
+#               ollama pull llama3.2:1b && echo "✅ llama3.2:1b downloaded" || echo "❌ llama3.2:1b failed"
+              
+#               echo "Final model list:"
+#               ollama list
+              
+#               echo "Stopping background server..."
+#               kill $OLLAMA_PID || true
+#               wait $OLLAMA_PID || true
+#           volumeMounts:
+#             - mountPath: /root/.ollama
+#               name: ollama-models
+#           resources:
+#             requests:
+#               memory: "4Gi"
+#               cpu: "1000m"
+#             limits:
+#               memory: "8Gi"
+#               cpu: "2000m"
+#       containers:
+#         - name: ollama
+#           image: ollama/ollama:latest  # Use latest instead of 0.1.38
+#           ports:
+#             - containerPort: 11434
+#               protocol: TCP
+#           envFrom:
+#             - configMapRef:
+#                 name: ollama-configmap
+#           volumeMounts:
+#             - mountPath: /root/.ollama
+#               name: ollama-models
+#           resources:
+#             requests:
+#               memory: "8Gi"
+#               cpu: "4000m"
+#             limits:
+#               memory: "12Gi"
+#               cpu: "6000m"
+#           # Health checks
+#           livenessProbe:
+#             httpGet:
+#               path: /api/tags
+#               port: 11434
+#             initialDelaySeconds: 60  # Give more time for models to load
+#             periodSeconds: 30
+#             timeoutSeconds: 10
+#           readinessProbe:
+#             httpGet:
+#               path: /api/tags
+#               port: 11434
+#             initialDelaySeconds: 30
+#             periodSeconds: 10
+#             timeoutSeconds: 5
+#       volumes:
+#         - name: ollama-models
+#           persistentVolumeClaim:
+#             claimName: ollama-models
