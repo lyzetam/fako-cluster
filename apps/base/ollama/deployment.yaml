@@ -27,10 +27,10 @@ spec:
               name: ollama-models
           resources:
             requests:
-              memory: "4Gi"      # Minimum for small models
+              memory: "6Gi"      # Minimum for small models
               cpu: "2000m"       # 2 CPUs
             limits:
-              memory: "8Gi"      # Adjust based on your node capacity
+              memory: "12Gi"      # Adjust based on your node capacity
               cpu: "4000m"       # 4 CPUs
           # Optional: Enable GPU support if you have NVIDIA GPUs
           # Requires NVIDIA device plugin installed on cluster
