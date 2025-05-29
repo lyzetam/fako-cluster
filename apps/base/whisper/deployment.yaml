@@ -1,4 +1,4 @@
-# apps/base/whisper/deployment.yaml (Wyoming version)
+# apps/base/whisper/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,45 +16,73 @@ spec:
     spec:
       containers:
         - name: whisper
-          image: rhasspy/wyoming-whisper:latest  # Wyoming protocol version
+          image: rhasspy/wyoming-whisper:latest
           ports:
-            - containerPort: 10300  # Wyoming protocol port
+            - containerPort: 10300
               protocol: TCP
           args:
             - "--model"
-            - "base"  # tiny, base, small, medium, large
+            - "base"  # Keeping base model 
+            - "--language"
+            - "en"    # Skip language detection for faster processing
             - "--uri"
             - "tcp://0.0.0.0:10300"
             - "--data-dir"
             - "/data"
             - "--download-dir"
             - "/data"
+            - "--device"
+            - "cpu"
+            - "--compute-type"
+            - "int8"  # Use int8 quantization for faster CPU inference
+            - "--beam-size"
+            - "5"     # Default beam size for accuracy
+            - "--vad"
+            - "silero" # Voice activity detection to reduce processing
+          env:
+            - name: OMP_NUM_THREADS
+              value: "4"  # Optimize OpenMP threads
+            - name: OPENBLAS_NUM_THREADS
+              value: "4"
+            - name: MKL_NUM_THREADS
+              value: "4"
           volumeMounts:
             - mountPath: /data
               name: whisper-models
+              subPath: whisper-models  # Use subPath for better NFS performance
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "1000m"
+              memory: "4Gi"    # Increased for base model
+              cpu: "3000m"     # Increased CPU request
             limits:
-              memory: "4Gi"
-              cpu: "2000m"
-          # Health checks for Wyoming protocol
+              memory: "6Gi"    # Higher limit for base model
+              cpu: "6000m"     # Allow burst to 6 cores
+          # Startup probe for model download
+          startupProbe:
+            tcpSocket:
+              port: 10300
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30  # Allow 5 minutes for model download
           livenessProbe:
             tcpSocket:
               port: 10300
             initialDelaySeconds: 60
-            periodSeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 10
           readinessProbe:
             tcpSocket:
               port: 10300
             initialDelaySeconds: 10
-            periodSeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
       volumes:
         - name: whisper-models
           persistentVolumeClaim:
             claimName: whisper-models
 
+
+# # apps/base/whisper/deployment.yaml (Wyoming version)
 # apiVersion: apps/v1
 # kind: Deployment
 # metadata:
@@ -72,17 +100,21 @@ spec:
 #     spec:
 #       containers:
 #         - name: whisper
-#           image: onerahmet/openai-whisper-asr-webservice:latest  # or latest for GPU: onerahmet/openai-whisper-asr-webservice:latest-gpu 
+#           image: rhasspy/wyoming-whisper:latest  # Wyoming protocol version
 #           ports:
-#             - containerPort: 9000
+#             - containerPort: 10300  # Wyoming protocol port
 #               protocol: TCP
-#           env:
-#             - name: ASR_MODEL
-#               value: "base"  # tiny, base, small, medium, large
-#             - name: ASR_ENGINE
-#               value: "openai_whisper"
+#           args:
+#             - "--model"
+#             - "base"  # tiny, base, small, medium, large
+#             - "--uri"
+#             - "tcp://0.0.0.0:10300"
+#             - "--data-dir"
+#             - "/data"
+#             - "--download-dir"
+#             - "/data"
 #           volumeMounts:
-#             - mountPath: /data/whisper
+#             - mountPath: /data
 #               name: whisper-models
 #           resources:
 #             requests:
@@ -91,8 +123,17 @@ spec:
 #             limits:
 #               memory: "4Gi"
 #               cpu: "2000m"
-#             # Uncomment for GPU support
-#             # nvidia.com/gpu: 1
+#           # Health checks for Wyoming protocol
+#           livenessProbe:
+#             tcpSocket:
+#               port: 10300
+#             initialDelaySeconds: 60
+#             periodSeconds: 30
+#           readinessProbe:
+#             tcpSocket:
+#               port: 10300
+#             initialDelaySeconds: 10
+#             periodSeconds: 5
 #       volumes:
 #         - name: whisper-models
 #           persistentVolumeClaim:

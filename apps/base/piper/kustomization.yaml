@@ -1,3 +1,4 @@
+# apps/base/piper/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: piper
@@ -5,6 +6,8 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - storage.yaml
+  - cache-storage.yaml  # Added cache storage
   - deployment.yaml
   - service.yaml
   - nodeport-service.yaml
+  - hpa.yaml           # Added HPA
