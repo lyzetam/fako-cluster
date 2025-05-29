@@ -16,15 +16,13 @@ spec:
     spec:
       containers:
         - name: piper
-          image: rhasspy/wyoming-piper:1.5.0  # Pin to specific version to avoid issues
+          image: rhasspy/wyoming-piper:1.5.0
           ports:
             - containerPort: 10200
               protocol: TCP
-          command:
-            - python3
-            - -m
-            - wyoming_piper
           args:
+            - --piper
+            - "/usr/local/bin/piper"
             - --voice
             - "en_US-amy-medium"
             - --uri
