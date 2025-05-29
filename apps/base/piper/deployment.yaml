@@ -1,3 +1,4 @@
+# apps/base/piper/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,7 +19,7 @@ spec:
           image: rhasspy/wyoming-piper:latest
           args:
             - --voice
-            - en_US-lessac-low  # Use low for faster synthesis
+            - en_US-lessac-medium
           ports:
             - containerPort: 10200
               protocol: TCP
@@ -27,11 +28,11 @@ spec:
               name: piper-data
           resources:
             requests:
-              memory: "1Gi"
-              cpu: "1500m"
-            limits:
               memory: "2Gi"
-              cpu: "3000m"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
           livenessProbe:
             tcpSocket:
               port: 10200
@@ -46,125 +47,3 @@ spec:
         - name: piper-data
           persistentVolumeClaim:
             claimName: piper-data
-
-# # apps/base/piper/deployment.yaml
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: piper
-#   namespace: piper
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: piper
-#   template:
-#     metadata:
-#       labels:
-#         app: piper
-#     spec:
-#       containers:
-#         - name: piper
-#           image: rhasspy/wyoming-piper:latest
-#           args:
-#             - --voice
-#             - en_US-lessac-medium  # Keeping medium quality 
-#             - --max-piper-procs
-#             - "2"                  # Allow parallel processing
-#             - --update-voices     # Auto-download voices
-#             - --debug             # Enable debug logging
-#             # - --cuda              # Enable CUDA if available (falls back to CPU)
-#             - --download-dir
-#             - "/data"
-#           ports:
-#             - containerPort: 10200
-#               protocol: TCP
-#           env:
-#             - name: OMP_NUM_THREADS
-#               value: "2"  # Optimize OpenMP threads
-#           volumeMounts:
-#             - mountPath: /data
-#               name: piper-data
-#               subPath: piper-data  # Use subPath for better NFS performance
-#           resources:
-#             requests:
-#               memory: "1Gi"
-#               cpu: "1500m"     # Increased CPU
-#             limits:
-#               memory: "2Gi"
-#               cpu: "3000m"     # Allow burst to 3 cores
-#           # Startup probe for voice download
-#           startupProbe:
-#             tcpSocket:
-#               port: 10200
-#             initialDelaySeconds: 10
-#             periodSeconds: 10
-#             failureThreshold: 30  # Allow 5 minutes for voice download
-#           livenessProbe:
-#             tcpSocket:
-#               port: 10200
-#             initialDelaySeconds: 30
-#             periodSeconds: 60
-#             timeoutSeconds: 10
-#           readinessProbe:
-#             tcpSocket:
-#               port: 10200
-#             initialDelaySeconds: 10
-#             periodSeconds: 10
-#             timeoutSeconds: 5
-#       volumes:
-#         - name: piper-data
-#           persistentVolumeClaim:
-#             claimName: piper-data
-
-
-
-# # apiVersion: apps/v1
-# # kind: Deployment
-# # metadata:
-# #   name: piper
-# #   namespace: piper
-# # spec:
-# #   replicas: 1
-# #   selector:
-# #     matchLabels:
-# #       app: piper
-# #   template:
-# #     metadata:
-# #       labels:
-# #         app: piper
-# #     spec:
-# #       containers:
-# #         - name: piper
-# #           image: rhasspy/wyoming-piper:latest  # Use the exact same image from tutorial
-# #           args:
-# #             - --voice
-# #             - en_US-lessac-medium  # Same voice as tutorial
-# #           ports:
-# #             - containerPort: 10200
-# #               protocol: TCP
-# #           volumeMounts:
-# #             - mountPath: /data
-# #               name: piper-data
-# #           resources:
-# #             requests:
-# #               memory: "1Gi"
-# #               cpu: "500m"
-# #             limits:
-# #               memory: "2Gi"
-# #               cpu: "1000m"
-# #           # Health checks
-# #           livenessProbe:
-# #             tcpSocket:
-# #               port: 10200
-# #             initialDelaySeconds: 30
-# #             periodSeconds: 30
-# #           readinessProbe:
-# #             tcpSocket:
-# #               port: 10200
-# #             initialDelaySeconds: 10
-# #             periodSeconds: 10
-# #       volumes:
-# #         - name: piper-data
-# #           persistentVolumeClaim:
-# #             claimName: piper-data

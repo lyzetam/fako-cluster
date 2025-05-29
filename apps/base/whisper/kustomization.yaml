@@ -5,7 +5,6 @@ namespace: whisper
 resources:
   - namespace.yaml
   - storage.yaml
-  # - cache-storage.yaml  # Added cache storage
   - deployment.yaml
   - service.yaml
   - nodeport-service.yaml
