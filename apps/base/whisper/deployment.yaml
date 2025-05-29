@@ -1,3 +1,4 @@
+# apps/base/whisper/deployment.yaml (Wyoming version)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,17 +16,21 @@ spec:
     spec:
       containers:
         - name: whisper
-          image: onerahmet/openai-whisper-asr-webservice:latest  # or latest for GPU: onerahmet/openai-whisper-asr-webservice:latest-gpu 
+          image: rhasspy/wyoming-whisper:latest  # Wyoming protocol version
           ports:
-            - containerPort: 9000
+            - containerPort: 10300  # Wyoming protocol port
               protocol: TCP
-          env:
-            - name: ASR_MODEL
-              value: "base"  # tiny, base, small, medium, large
-            - name: ASR_ENGINE
-              value: "openai_whisper"
+          args:
+            - "--model"
+            - "base"  # tiny, base, small, medium, large
+            - "--uri"
+            - "tcp://0.0.0.0:10300"
+            - "--data-dir"
+            - "/data"
+            - "--download-dir"
+            - "/data"
           volumeMounts:
-            - mountPath: /data/whisper
+            - mountPath: /data
               name: whisper-models
           resources:
             requests:
@@ -34,9 +39,61 @@ spec:
             limits:
               memory: "4Gi"
               cpu: "2000m"
-            # Uncomment for GPU support
-            # nvidia.com/gpu: 1
+          # Health checks for Wyoming protocol
+          livenessProbe:
+            tcpSocket:
+              port: 10300
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: 10300
+            initialDelaySeconds: 10
+            periodSeconds: 5
       volumes:
         - name: whisper-models
           persistentVolumeClaim:
             claimName: whisper-models
+
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: whisper
+#   namespace: whisper
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: whisper
+#   template:
+#     metadata:
+#       labels:
+#         app: whisper
+#     spec:
+#       containers:
+#         - name: whisper
+#           image: onerahmet/openai-whisper-asr-webservice:latest  # or latest for GPU: onerahmet/openai-whisper-asr-webservice:latest-gpu 
+#           ports:
+#             - containerPort: 9000
+#               protocol: TCP
+#           env:
+#             - name: ASR_MODEL
+#               value: "base"  # tiny, base, small, medium, large
+#             - name: ASR_ENGINE
+#               value: "openai_whisper"
+#           volumeMounts:
+#             - mountPath: /data/whisper
+#               name: whisper-models
+#           resources:
+#             requests:
+#               memory: "2Gi"
+#               cpu: "1000m"
+#             limits:
+#               memory: "4Gi"
+#               cpu: "2000m"
+#             # Uncomment for GPU support
+#             # nvidia.com/gpu: 1
+#       volumes:
+#         - name: whisper-models
+#           persistentVolumeClaim:
+#             claimName: whisper-models
