@@ -37,8 +37,8 @@ spec:
             - "int8"  # Use int8 quantization for faster CPU inference
             - "--beam-size"
             - "5"     # Default beam size for accuracy
-            - "--vad"
-            - "silero" # Voice activity detection to reduce processing
+            # - "--vad"
+            # - "silero" # Voice activity detection to reduce processing
           env:
             - name: OMP_NUM_THREADS
               value: "4"  # Optimize OpenMP threads
