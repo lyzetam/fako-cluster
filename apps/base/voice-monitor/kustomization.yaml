@@ -5,7 +5,7 @@ namespace: voice-monitor
 resources:
   - namespace.yaml
   - rbac.yaml
-  - configmap.yaml
+  # - configmap.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
