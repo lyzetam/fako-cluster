@@ -24,7 +24,7 @@ spec:
             - "2"                  # Allow parallel processing
             - --update-voices     # Auto-download voices
             - --debug             # Enable debug logging
-            - --cuda              # Enable CUDA if available (falls back to CPU)
+            # - --cuda              # Enable CUDA if available (falls back to CPU)
             - --download-dir
             - "/data"
           ports:
