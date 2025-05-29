@@ -15,9 +15,9 @@ spec:
         app: ollama
     spec:
       initContainers:
-        # Download models on startup
+        # Download models on startup with latest Ollama
         - name: model-downloader
-          image: ollama/ollama:0.1.38
+          image: ollama/ollama:latest  # Use latest instead of 0.1.38
           command: ["/bin/sh"]
           args:
             - -c
@@ -27,18 +27,26 @@ spec:
               OLLAMA_PID=$!
               
               echo "Waiting for Ollama to be ready..."
-              sleep 10
+              sleep 15
               
-              echo "Downloading models..."
-              ollama pull llama3.2:1b
-              ollama pull llama3.2:3b
+              # Try downloading models that are most compatible
+              echo "Downloading small models..."
               
-              echo "Models downloaded successfully"
+              # Try tinyllama first (smallest, most compatible)
+              ollama pull tinyllama && echo "✅ tinyllama downloaded" || echo "❌ tinyllama failed"
+              
+              # Try llama2 (very stable)
+              ollama pull llama2:7b-chat && echo "✅ llama2:7b-chat downloaded" || echo "❌ llama2:7b-chat failed"
+              
+              # Try newer models if the others worked
+              ollama pull llama3.2:1b && echo "✅ llama3.2:1b downloaded" || echo "❌ llama3.2:1b failed"
+              
+              echo "Final model list:"
               ollama list
               
               echo "Stopping background server..."
-              kill $OLLAMA_PID
-              wait $OLLAMA_PID
+              kill $OLLAMA_PID || true
+              wait $OLLAMA_PID || true
           volumeMounts:
             - mountPath: /root/.ollama
               name: ollama-models
@@ -51,7 +59,7 @@ spec:
               cpu: "2000m"
       containers:
         - name: ollama
-          image: ollama/ollama:0.1.38
+          image: ollama/ollama:latest  # Use latest instead of 0.1.38
           ports:
             - containerPort: 11434
               protocol: TCP
@@ -63,70 +71,27 @@ spec:
               name: ollama-models
           resources:
             requests:
-              memory: "6Gi"
-              cpu: "2000m"
+              memory: "8Gi"
+              cpu: "4000m"
             limits:
               memory: "12Gi"
-              cpu: "4000m"
+              cpu: "6000m"
           # Health checks
           livenessProbe:
             httpGet:
               path: /api/tags
               port: 11434
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60  # Give more time for models to load
             periodSeconds: 30
+            timeoutSeconds: 10
           readinessProbe:
             httpGet:
               path: /api/tags
               port: 11434
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
       volumes:
         - name: ollama-models
           persistentVolumeClaim:
             claimName: ollama-models
-
-
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: ollama
-#   namespace: ollama
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: ollama
-#   template:
-#     metadata:
-#       labels:
-#         app: ollama
-#     spec:
-#       containers:
-#         - name: ollama
-#           image: ollama/ollama:0.1.38  # Latest as of May 2025
-#           ports:
-#             - containerPort: 11434
-#               protocol: TCP
-#           envFrom:
-#             - configMapRef:
-#                 name: ollama-configmap
-#           volumeMounts:
-#             - mountPath: /root/.ollama
-#               name: ollama-models
-#           resources:
-#             requests:
-#               memory: "6Gi"      # Minimum for small models
-#               cpu: "2000m"       # 2 CPUs
-#             limits:
-#               memory: "12Gi"      # Adjust based on your node capacity
-#               cpu: "4000m"       # 4 CPUs
-#           # Optional: Enable GPU support if you have NVIDIA GPUs
-#           # Requires NVIDIA device plugin installed on cluster
-#           # resources:
-#           #   limits:
-#           #     nvidia.com/gpu: 1
-#       volumes:
-#         - name: ollama-models
-#           persistentVolumeClaim:
-#             claimName: ollama-models
