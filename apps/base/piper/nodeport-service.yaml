@@ -1,0 +1,14 @@
+# apps/base/piper/nodeport-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: piper-nodeport
+  namespace: piper
+spec:
+  type: NodePort
+  ports:
+    - port: 10200
+      targetPort: 10200
+      nodePort: 30200  # External port
+  selector:
+    app: piper
