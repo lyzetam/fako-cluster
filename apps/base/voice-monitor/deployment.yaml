@@ -17,7 +17,7 @@ spec:
       serviceAccountName: voice-monitor
       containers:
         - name: voice-monitor
-          image: python:3.11-slim
+          image: python:3.13-slim
           ports:
             - containerPort: 8080
               protocol: TCP
