@@ -1,3 +1,46 @@
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: ollama-webui
+#   namespace: ollama-webui
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: ollama-webui
+#   template:
+#     metadata:
+#       labels:
+#         app: ollama-webui
+#     spec:
+#       containers:
+#         - name: ollama-webui
+#           image: ghcr.io/open-webui/open-webui:latest
+#           ports:
+#             - containerPort: 8080
+#               protocol: TCP
+#           envFrom:
+#             - configMapRef:
+#                 name: ollama-webui-configmap
+#           env:
+#             - name: OLLAMA_BASE_URL
+#               value: "http://ollama.ollama.svc.cluster.local:11434"  # Full FQDN for cross-namespace
+#           volumeMounts:
+#             - mountPath: /app/backend/data
+#               name: webui-data
+#           resources:
+#             requests:
+#               memory: "1Gi"
+#               cpu: "500m"
+#             limits:
+#               memory: "2Gi"
+#               cpu: "1000m"
+#       volumes:
+#         - name: webui-data
+#           persistentVolumeClaim:
+#             claimName: ollama-webui-data
+
+# # apps/base/ollama-webui/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,6 +56,11 @@ spec:
       labels:
         app: ollama-webui
     spec:
+      # Add security context for NFS permissions
+      securityContext:
+        fsGroup: 0  # Root group to match NFS permissions
+        runAsUser: 0  # Root user for NFS write access
+        runAsGroup: 0
       containers:
         - name: ollama-webui
           image: ghcr.io/open-webui/open-webui:latest
@@ -24,7 +72,7 @@ spec:
                 name: ollama-webui-configmap
           env:
             - name: OLLAMA_BASE_URL
-              value: "http://ollama.ollama.svc.cluster.local:11434"  # Full FQDN for cross-namespace
+              value: "http://ollama.ollama.svc.cluster.local:11434"
           volumeMounts:
             - mountPath: /app/backend/data
               name: webui-data
@@ -35,6 +83,15 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "1000m"
+          # Add startup probe for database initialization
+          startupProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
       volumes:
         - name: webui-data
           persistentVolumeClaim:
