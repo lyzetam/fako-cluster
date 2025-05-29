@@ -12,6 +12,10 @@ spec:
     metadata:
       labels:
         app: voice-monitor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: voice-monitor
       containers:
@@ -26,13 +30,7 @@ spec:
             name: voice-monitor-config
         env:
         - name: ENABLE_KUBECTL_TOP
-          value: "true"  # Enable kubectl top for better metrics
-        - name: HOME_ASSISTANT_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: voice-monitor-secrets
-              key: home-assistant-token
-              optional: true
+          value: "true"
         resources:
           requests:
             memory: "128Mi"
@@ -42,13 +40,13 @@ spec:
             cpu: "500m"
         livenessProbe:
           httpGet:
-            path: /api/metrics
+            path: /health
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
           httpGet:
-            path: /api/metrics
+            path: /health
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 10
