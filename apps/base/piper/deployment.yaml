@@ -22,7 +22,7 @@ spec:
               protocol: TCP
           args:
             - --piper
-            - "/usr/local/bin/piper"
+            - "/usr/bin/piper"
             - --voice
             - "en_US-amy-medium"
             - --uri
