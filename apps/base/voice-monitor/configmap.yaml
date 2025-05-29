@@ -1,0 +1,433 @@
+# apps/base/voice-monitor/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: voice-monitor-configmap
+  namespace: voice-monitor
+data:
+  monitor.py: |
+    import time
+    import json
+    import subprocess
+    import threading
+    from datetime import datetime
+    from flask import Flask, jsonify, render_template_string
+    from kubernetes import client, config
+    import requests
+    import socket
+    
+    app = Flask(__name__)
+    
+    # Global data store
+    metrics_data = {
+        'timestamp': None,
+        'pods': {},
+        'response_times': {},
+        'resource_usage': {},
+        'errors': [],
+        'recommendations': []
+    }
+    
+    # Load Kubernetes config
+    try:
+        config.load_incluster_config()
+    except:
+        config.load_kube_config()
+    
+    v1 = client.CoreV1Api()
+    apps_v1 = client.AppsV1Api()
+    
+    def test_component_response(host, port, timeout=5):
+        """Test response time of a component"""
+        start_time = time.time()
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(timeout)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            if result == 0:
+                return time.time() - start_time
+            return None
+        except:
+            return None
+    
+    def get_pod_metrics():
+        """Get pod status and resource usage"""
+        pods_info = {}
+        namespaces = ['whisper', 'piper', 'openwakeword', 'homebot']
+        
+        for ns in namespaces:
+            try:
+                pods = v1.list_namespaced_pod(namespace=ns)
+                for pod in pods.items:
+                    pod_name = pod.metadata.name
+                    pods_info[f"{ns}/{pod_name}"] = {
+                        'namespace': ns,
+                        'name': pod_name,
+                        'status': pod.status.phase,
+                        'node': pod.spec.node_name,
+                        'ready': all(c.ready for c in pod.status.container_statuses or []),
+                        'restarts': sum(c.restart_count for c in pod.status.container_statuses or [])
+                    }
+            except Exception as e:
+                metrics_data['errors'].append(f"Error getting pods in {ns}: {str(e)}")
+        
+        return pods_info
+    
+    def get_resource_usage():
+        """Get resource usage via metrics API"""
+        try:
+            # Try to get metrics using kubectl top
+            result = subprocess.run(
+                ['kubectl', 'top', 'pods', '-A', '--no-headers'],
+                capture_output=True, text=True, timeout=10
+            )
+            
+            if result.returncode == 0:
+                usage = {}
+                for line in result.stdout.strip().split('\n'):
+                    parts = line.split()
+                    if len(parts) >= 4:
+                        namespace = parts[0]
+                        pod = parts[1]
+                        cpu = parts[2]
+                        memory = parts[3]
+                        
+                        if namespace in ['whisper', 'piper', 'openwakeword', 'homebot']:
+                            usage[f"{namespace}/{pod}"] = {
+                                'cpu': cpu,
+                                'memory': memory
+                            }
+                return usage
+        except Exception as e:
+            metrics_data['errors'].append(f"Error getting resource usage: {str(e)}")
+        return {}
+    
+    def test_response_times():
+        """Test response times for each component"""
+        components = {
+            'whisper': {'port': 30300, 'service': 'whisper-nodeport'},
+            'piper': {'port': 30200, 'service': 'piper-nodeport'},
+            'openwakeword': {'port': 30400, 'service': 'openwakeword-nodeport'}
+        }
+        
+        response_times = {}
+        
+        for name, info in components.items():
+            try:
+                # Try to get node IP from service
+                svc = v1.read_namespaced_service(
+                    name=info['service'], 
+                    namespace=name
+                )
+                
+                # Get any node IP
+                nodes = v1.list_node()
+                if nodes.items:
+                    node_ip = nodes.items[0].status.addresses[0].address
+                    response_time = test_component_response(node_ip, info['port'])
+                    response_times[name] = {
+                        'time': response_time,
+                        'status': 'ok' if response_time else 'timeout'
+                    }
+            except Exception as e:
+                response_times[name] = {
+                    'time': None,
+                    'status': 'error',
+                    'error': str(e)
+                }
+        
+        return response_times
+    
+    def generate_recommendations():
+        """Generate optimization recommendations"""
+        recommendations = []
+        
+        # Check Whisper model
+        try:
+            deployment = apps_v1.read_namespaced_deployment(
+                name='whisper', namespace='whisper'
+            )
+            containers = deployment.spec.template.spec.containers
+            
+            for container in containers:
+                if container.args and '--model' in container.args:
+                    model_idx = container.args.index('--model')
+                    if model_idx + 1 < len(container.args):
+                        model = container.args[model_idx + 1]
+                        if model != 'tiny':
+                            recommendations.append({
+                                'severity': 'high',
+                                'component': 'whisper',
+                                'issue': f'Using {model} model',
+                                'recommendation': 'Switch to tiny model for better performance'
+                            })
+            
+            # Check resource limits
+            for container in containers:
+                if container.resources and container.resources.limits:
+                    cpu_limit = container.resources.limits.get('cpu', '0')
+                    if cpu_limit.endswith('m'):
+                        cpu_value = int(cpu_limit[:-1])
+                        if cpu_value < 2000:
+                            recommendations.append({
+                                'severity': 'medium',
+                                'component': 'whisper',
+                                'issue': f'Low CPU limit ({cpu_limit})',
+                                'recommendation': 'Increase CPU limit to at least 2000m'
+                            })
+        except Exception as e:
+            pass
+        
+        # Check response times
+        for component, data in metrics_data.get('response_times', {}).items():
+            if data.get('time') and data['time'] > 1.0:
+                recommendations.append({
+                    'severity': 'high',
+                    'component': component,
+                    'issue': f'Slow response time ({data["time"]:.2f}s)',
+                    'recommendation': 'Check component logs and resource allocation'
+                })
+        
+        return recommendations
+    
+    def collect_metrics():
+        """Collect all metrics"""
+        global metrics_data
+        
+        while True:
+            try:
+                new_data = {
+                    'timestamp': datetime.now().isoformat(),
+                    'pods': get_pod_metrics(),
+                    'response_times': test_response_times(),
+                    'resource_usage': get_resource_usage(),
+                    'errors': [],
+                    'recommendations': []
+                }
+                
+                new_data['recommendations'] = generate_recommendations()
+                metrics_data = new_data
+                
+            except Exception as e:
+                metrics_data['errors'].append(f"Collection error: {str(e)}")
+            
+            time.sleep(30)  # Collect every 30 seconds
+    
+    @app.route('/')
+    def index():
+        return render_template_string(HTML_TEMPLATE)
+    
+    @app.route('/api/metrics')
+    def get_metrics():
+        return jsonify(metrics_data)
+    
+    HTML_TEMPLATE = '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Voice Pipeline Monitor</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background-color: #f5f5f5;
+            }
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            .header {
+                background-color: #2196F3;
+                color: white;
+                padding: 20px;
+                border-radius: 5px;
+                margin-bottom: 20px;
+            }
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+                margin-bottom: 20px;
+            }
+            .card {
+                background-color: white;
+                border-radius: 5px;
+                padding: 20px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card h3 {
+                margin-top: 0;
+                color: #333;
+            }
+            .status-ok { color: #4CAF50; }
+            .status-error { color: #f44336; }
+            .status-warning { color: #ff9800; }
+            .metric {
+                display: flex;
+                justify-content: space-between;
+                padding: 5px 0;
+                border-bottom: 1px solid #eee;
+            }
+            .metric:last-child {
+                border-bottom: none;
+            }
+            .recommendation {
+                padding: 10px;
+                margin: 5px 0;
+                border-radius: 3px;
+            }
+            .rec-high {
+                background-color: #ffebee;
+                border-left: 3px solid #f44336;
+            }
+            .rec-medium {
+                background-color: #fff3e0;
+                border-left: 3px solid #ff9800;
+            }
+            .timestamp {
+                color: #666;
+                font-size: 0.9em;
+            }
+            .refresh-btn {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 3px;
+                cursor: pointer;
+            }
+            .refresh-btn:hover {
+                background-color: #45a049;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Voice Pipeline Monitor</h1>
+                <p class="timestamp">Last updated: <span id="timestamp">-</span></p>
+                <button class="refresh-btn" onclick="fetchMetrics()">Refresh</button>
+            </div>
+            
+            <div class="grid">
+                <div class="card">
+                    <h3>Component Status</h3>
+                    <div id="pod-status"></div>
+                </div>
+                
+                <div class="card">
+                    <h3>Response Times</h3>
+                    <div id="response-times"></div>
+                </div>
+                
+                <div class="card">
+                    <h3>Resource Usage</h3>
+                    <div id="resource-usage"></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Recommendations</h3>
+                <div id="recommendations"></div>
+            </div>
+            
+            <div class="card">
+                <h3>Errors</h3>
+                <div id="errors"></div>
+            </div>
+        </div>
+        
+        <script>
+            function formatTime(seconds) {
+                if (!seconds) return 'N/A';
+                return seconds.toFixed(3) + 's';
+            }
+            
+            function fetchMetrics() {
+                fetch('/api/metrics')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update timestamp
+                        document.getElementById('timestamp').textContent = 
+                            data.timestamp ? new Date(data.timestamp).toLocaleString() : '-';
+                        
+                        // Update pod status
+                        const podStatus = document.getElementById('pod-status');
+                        podStatus.innerHTML = '';
+                        Object.entries(data.pods || {}).forEach(([key, pod]) => {
+                            const status = pod.ready ? 'ok' : 'error';
+                            podStatus.innerHTML += `
+                                <div class="metric">
+                                    <span>${pod.namespace}/${pod.name}</span>
+                                    <span class="status-${status}">
+                                        ${pod.status} (${pod.node})
+                                    </span>
+                                </div>`;
+                        });
+                        
+                        // Update response times
+                        const responseTimes = document.getElementById('response-times');
+                        responseTimes.innerHTML = '';
+                        Object.entries(data.response_times || {}).forEach(([component, info]) => {
+                            const status = info.status === 'ok' ? 'ok' : 'error';
+                            responseTimes.innerHTML += `
+                                <div class="metric">
+                                    <span>${component}</span>
+                                    <span class="status-${status}">
+                                        ${formatTime(info.time)}
+                                    </span>
+                                </div>`;
+                        });
+                        
+                        // Update resource usage
+                        const resourceUsage = document.getElementById('resource-usage');
+                        resourceUsage.innerHTML = '';
+                        Object.entries(data.resource_usage || {}).forEach(([key, usage]) => {
+                            resourceUsage.innerHTML += `
+                                <div class="metric">
+                                    <span>${key}</span>
+                                    <span>CPU: ${usage.cpu} | Mem: ${usage.memory}</span>
+                                </div>`;
+                        });
+                        
+                        // Update recommendations
+                        const recommendations = document.getElementById('recommendations');
+                        recommendations.innerHTML = '';
+                        (data.recommendations || []).forEach(rec => {
+                            recommendations.innerHTML += `
+                                <div class="recommendation rec-${rec.severity}">
+                                    <strong>${rec.component}:</strong> ${rec.issue}<br>
+                                    <em>→ ${rec.recommendation}</em>
+                                </div>`;
+                        });
+                        
+                        // Update errors
+                        const errors = document.getElementById('errors');
+                        errors.innerHTML = '';
+                        (data.errors || []).forEach(error => {
+                            errors.innerHTML += `<div class="status-error">${error}</div>`;
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching metrics:', error);
+                    });
+            }
+            
+            // Fetch metrics on load and every 30 seconds
+            fetchMetrics();
+            setInterval(fetchMetrics, 30000);
+        </script>
+    </body>
+    </html>
+    '''
+    
+    if __name__ == '__main__':
+        # Start metrics collection in background
+        collector_thread = threading.Thread(target=collect_metrics)
+        collector_thread.daemon = True
+        collector_thread.start()
+        
+        # Start Flask app
+        app.run(host='0.0.0.0', port=8080, debug=False)
