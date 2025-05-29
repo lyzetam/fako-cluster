@@ -60,21 +60,31 @@ spec:
               echo "Model manager starting..."
               sleep 30  # Wait for main Ollama to be ready
               
-              # Download models using the main container's Ollama API
+              # Set Ollama host to connect to main container
+              export OLLAMA_HOST=http://localhost:11434
+              
+              # Download models using Ollama CLI
               while true; do
                 echo "Checking if models need to be downloaded..."
                 
+                # Get current models list
+                CURRENT_MODELS=$(ollama list 2>/dev/null || echo "")
+                
                 # Check if tinyllama exists
-                if ! curl -s http://localhost:11434/api/tags | grep -q "tinyllama"; then
+                if ! echo "$CURRENT_MODELS" | grep -q "tinyllama"; then
                   echo "Downloading tinyllama..."
-                  curl -X POST http://localhost:11434/api/pull -d '{"name":"tinyllama"}'
+                  ollama pull tinyllama && echo "✅ tinyllama downloaded" || echo "❌ tinyllama failed"
                 fi
                 
-                # Check if llama2 exists
-                if ! curl -s http://localhost:11434/api/tags | grep -q "llama2:7b-chat"; then
+                # Check if llama2 exists  
+                if ! echo "$CURRENT_MODELS" | grep -q "llama2:7b-chat"; then
                   echo "Downloading llama2:7b-chat..."
-                  curl -X POST http://localhost:11434/api/pull -d '{"name":"llama2:7b-chat"}'
+                  ollama pull llama2:7b-chat && echo "✅ llama2:7b-chat downloaded" || echo "❌ llama2:7b-chat failed"
                 fi
+                
+                # Show final model list
+                echo "Current models:"
+                ollama list || echo "Failed to list models"
                 
                 echo "Model check complete. Sleeping for 10 minutes..."
                 sleep 600  # Check every 10 minutes
