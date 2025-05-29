@@ -22,66 +22,128 @@ spec:
               protocol: TCP
           args:
             - "--model"
-            - "base"  # Keeping base model 
+            - "tiny"  # Switch to tiny for MUCH faster performance
             - "--language"
-            - "en"    # Skip language detection for faster processing
+            - "en"
             - "--uri"
             - "tcp://0.0.0.0:10300"
             - "--data-dir"
             - "/data"
             - "--download-dir"
             - "/data"
-            - "--device"
-            - "cpu"
-            - "--compute-type"
-            - "int8"  # Use int8 quantization for faster CPU inference
-            - "--beam-size"
-            - "5"     # Default beam size for accuracy
-            # - "--vad"
-            # - "silero" # Voice activity detection to reduce processing
-          env:
-            - name: OMP_NUM_THREADS
-              value: "4"  # Optimize OpenMP threads
-            - name: OPENBLAS_NUM_THREADS
-              value: "4"
-            - name: MKL_NUM_THREADS
-              value: "4"
           volumeMounts:
             - mountPath: /data
               name: whisper-models
-              subPath: whisper-models  # Use subPath for better NFS performance
           resources:
             requests:
-              memory: "4Gi"    # Increased for base model
-              cpu: "3000m"     # Increased CPU request
+              memory: "2Gi"  # Tiny model needs less
+              cpu: "2000m"
             limits:
-              memory: "6Gi"    # Higher limit for base model
-              cpu: "6000m"     # Allow burst to 6 cores
-          # Startup probe for model download
-          startupProbe:
-            tcpSocket:
-              port: 10300
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            failureThreshold: 30  # Allow 5 minutes for model download
+              memory: "4Gi"
+              cpu: "4000m"
           livenessProbe:
             tcpSocket:
               port: 10300
             initialDelaySeconds: 60
-            periodSeconds: 60
-            timeoutSeconds: 10
+            periodSeconds: 30
           readinessProbe:
             tcpSocket:
               port: 10300
             initialDelaySeconds: 10
             periodSeconds: 10
-            timeoutSeconds: 5
       volumes:
         - name: whisper-models
           persistentVolumeClaim:
             claimName: whisper-models
 
 
+###optimized version for Wyoming protocol with base model but slow"
+# # apps/base/whisper/deployment.yaml
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: whisper
+#   namespace: whisper
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: whisper
+#   template:
+#     metadata:
+#       labels:
+#         app: whisper
+#     spec:
+#       containers:
+#         - name: whisper
+#           image: rhasspy/wyoming-whisper:latest
+#           ports:
+#             - containerPort: 10300
+#               protocol: TCP
+#           args:
+#             - "--model"
+#             - "base"  # Keeping base model 
+#             - "--language"
+#             - "en"    # Skip language detection for faster processing
+#             - "--uri"
+#             - "tcp://0.0.0.0:10300"
+#             - "--data-dir"
+#             - "/data"
+#             - "--download-dir"
+#             - "/data"
+#             - "--device"
+#             - "cpu"
+#             - "--compute-type"
+#             - "int8"  # Use int8 quantization for faster CPU inference
+#             - "--beam-size"
+#             - "5"     # Default beam size for accuracy
+#             # - "--vad"
+#             # - "silero" # Voice activity detection to reduce processing
+#           env:
+#             - name: OMP_NUM_THREADS
+#               value: "4"  # Optimize OpenMP threads
+#             - name: OPENBLAS_NUM_THREADS
+#               value: "4"
+#             - name: MKL_NUM_THREADS
+#               value: "4"
+#           volumeMounts:
+#             - mountPath: /data
+#               name: whisper-models
+#               subPath: whisper-models  # Use subPath for better NFS performance
+#           resources:
+#             requests:
+#               memory: "4Gi"    # Increased for base model
+#               cpu: "3000m"     # Increased CPU request
+#             limits:
+#               memory: "6Gi"    # Higher limit for base model
+#               cpu: "6000m"     # Allow burst to 6 cores
+#           # Startup probe for model download
+#           startupProbe:
+#             tcpSocket:
+#               port: 10300
+#             initialDelaySeconds: 10
+#             periodSeconds: 10
+#             failureThreshold: 30  # Allow 5 minutes for model download
+#           livenessProbe:
+#             tcpSocket:
+#               port: 10300
+#             initialDelaySeconds: 60
+#             periodSeconds: 60
+#             timeoutSeconds: 10
+#           readinessProbe:
+#             tcpSocket:
+#               port: 10300
+#             initialDelaySeconds: 10
+#             periodSeconds: 10
+#             timeoutSeconds: 5
+#       volumes:
+#         - name: whisper-models
+#           persistentVolumeClaim:
+#             claimName: whisper-models
+
+
+
+##Original non optimizated version for Wyoming protocol
 # # apps/base/whisper/deployment.yaml (Wyoming version)
 # apiVersion: apps/v1
 # kind: Deployment
