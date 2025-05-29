@@ -1,0 +1,14 @@
+
+# apps/base/whisper/cache-storage.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: whisper-cache
+  namespace: whisper
+spec:
+  accessModes:
+    - ReadWriteMany  # Allow multiple pods to cache
+  storageClassName: nfs-csi
+  resources:
+    requests:
+      storage: 5Gi  # Cache for processed audio
