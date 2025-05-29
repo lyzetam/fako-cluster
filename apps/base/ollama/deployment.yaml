@@ -17,7 +17,7 @@ spec:
       initContainers:
         # Download models on startup
         - name: model-downloader
-          image: ollama/ollama:0.1.38
+          image: ollama/ollama:0.8.0
           command: ["/bin/sh"]
           args:
             - -c
@@ -51,7 +51,7 @@ spec:
               cpu: "2000m"
       containers:
         - name: ollama
-          image: ollama/ollama:0.1.38
+          image: ollama/ollama:0.8.0
           ports:
             - containerPort: 11434
               protocol: TCP
