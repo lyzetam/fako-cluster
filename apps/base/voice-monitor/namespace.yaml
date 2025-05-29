@@ -1,0 +1,7 @@
+# apps/base/voice-monitor/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: voice-monitor
+
+  

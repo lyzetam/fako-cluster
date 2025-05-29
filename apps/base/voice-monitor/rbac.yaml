@@ -1,0 +1,34 @@
+# apps/base/voice-monitor/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: voice-monitor
+  namespace: voice-monitor
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: voice-monitor
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: voice-monitor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: voice-monitor
+subjects:
+  - kind: ServiceAccount
+    name: voice-monitor
+    namespace: voice-monitor

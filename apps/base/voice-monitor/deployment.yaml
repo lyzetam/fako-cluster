@@ -1,0 +1,48 @@
+# apps/base/voice-monitor/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voice-monitor
+  namespace: voice-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voice-monitor
+  template:
+    metadata:
+      labels:
+        app: voice-monitor
+    spec:
+      serviceAccountName: voice-monitor
+      containers:
+        - name: voice-monitor
+          image: python:3.11-slim
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              pip install flask kubernetes requests
+              apt-get update && apt-get install -y curl
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x kubectl && mv kubectl /usr/local/bin/
+              python /app/monitor.py
+          volumeMounts:
+            - name: monitor-script
+              mountPath: /app
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+      volumes:
+        - name: monitor-script
+          configMap:
+            name: voice-monitor-configmap
