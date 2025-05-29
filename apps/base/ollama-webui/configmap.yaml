@@ -5,7 +5,7 @@ metadata:
   namespace: ollama-webui
 data:
   OLLAMA_BASE_URL: "http://ollama.ollama.svc.cluster.local:11434"  # Cross-namespace service
-  ENABLE_SIGNUP: "true"  # Set to false after creating your account
+  ENABLE_SIGNUP: "false"  # Set to false after creating your account
   DEFAULT_MODELS: "llama3.2"  # Comma-separated list
   WEBUI_NAME: "HomeLab AI"
   WEBUI_URL: "https://ai.landryzetam.net"
