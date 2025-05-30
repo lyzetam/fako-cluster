@@ -1,4 +1,5 @@
 # apps/base/ollama/deployment-gpu.yaml
+# Updated to NOT request GPU - let Whisper have it
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,42 +16,28 @@ spec:
         app: ollama-gpu
     spec:
       nodeSelector:
-        accelerator: amd-gpu
+        # Still use the high-performance node, but don't request GPU
         kubernetes.io/hostname: pgbee
       containers:
         - name: ollama
-          image: ollama/ollama:rocm
+          image: ollama/ollama:latest  # Use regular image, not rocm
           ports:
             - containerPort: 11434
               protocol: TCP
           envFrom:
             - configMapRef:
                 name: ollama-configmap
-          env:
-            - name: ROCR_VISIBLE_DEVICES
-              value: "0"
-            - name: HSA_OVERRIDE_GFX_VERSION
-              value: "9.0.0"
-            - name: HIP_VISIBLE_DEVICES
-              value: "0"
-            - name: OLLAMA_GPU_OVERHEAD
-              value: "0"
-            - name: OLLAMA_MAX_LOADED_MODELS
-              value: "1"
           volumeMounts:
             - mountPath: /root/.ollama
               name: ollama-models
-            - mountPath: /dev/dri
-              name: dri-devices
           resources:
             requests:
               memory: "8Gi"
               cpu: "4000m"
-              amd.com/gpu: 1  # Request GPU
+              # NO GPU REQUEST - Let Whisper have it
             limits:
               memory: "16Gi"
               cpu: "8000m"
-              amd.com/gpu: 1  # Limit GPU
           livenessProbe:
             httpGet:
               path: /api/tags
@@ -68,7 +55,7 @@ spec:
         
         # Model manager sidecar
         - name: model-manager
-          image: ollama/ollama:rocm
+          image: ollama/ollama:latest
           command: ["/bin/sh"]
           args:
             - -c
@@ -78,12 +65,11 @@ spec:
               
               export OLLAMA_HOST=http://localhost:11434
               
-              # Download APU-optimized models
-              echo "Downloading models optimized for AMD APU..."
+              # Download CPU-optimized smaller models
+              echo "Downloading CPU-optimized models..."
               
               ollama pull phi3:mini || echo "Failed to pull phi3:mini"
               ollama pull tinyllama || echo "Failed to pull tinyllama"
-              ollama pull llama3.2:1b || echo "Failed to pull llama3.2:1b"
               
               echo "Available models:"
               ollama list
@@ -107,7 +93,3 @@ spec:
         - name: ollama-models
           persistentVolumeClaim:
             claimName: ollama-models
-        - name: dri-devices
-          hostPath:
-            path: /dev/dri
-            type: Directory
