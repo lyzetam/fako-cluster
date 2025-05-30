@@ -25,7 +25,7 @@ spec:
               protocol: TCP
           args:
             - "--model"
-            - "small"  # Better model for GPU
+            - "small"
             - "--uri"
             - "tcp://0.0.0.0:10300"
             - "--data-dir"
@@ -33,7 +33,7 @@ spec:
             - "--download-dir"
             - "/data"
             - "--device"
-            - "cuda"  # Try CUDA/ROCm acceleration
+            - "cuda"  # Will work with ROCm
           volumeMounts:
             - mountPath: /data
               name: whisper-models
@@ -43,11 +43,11 @@ spec:
             requests:
               memory: "4Gi"
               cpu: "2000m"
-              amd.com/gpu: 1
+              amd.com/gpu: 1  # Request GPU
             limits:
               memory: "8Gi"
               cpu: "4000m"
-              amd.com/gpu: 1
+              amd.com/gpu: 1  # Limit GPU
           env:
             # ROCm environment variables
             - name: ROCR_VISIBLE_DEVICES
@@ -61,16 +61,10 @@ spec:
               value: "max_split_size_mb:512"
             - name: MIOPEN_DISABLE_CACHE
               value: "1"
-          securityContext:
-            privileged: false
-            capabilities:
-              add:
-              - SYS_ADMIN
-              - SYS_PTRACE
           livenessProbe:
             tcpSocket:
               port: 10300
-            initialDelaySeconds: 120  # More time for model loading
+            initialDelaySeconds: 120
             periodSeconds: 30
             timeoutSeconds: 10
           readinessProbe:
@@ -84,7 +78,7 @@ spec:
               port: 10300
             initialDelaySeconds: 10
             periodSeconds: 10
-            failureThreshold: 30  # 5 minutes to start
+            failureThreshold: 30
       volumes:
         - name: whisper-models
           persistentVolumeClaim:
