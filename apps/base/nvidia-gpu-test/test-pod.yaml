@@ -1,0 +1,52 @@
+# apps/base/nvidia-gpu-test/test-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nvidia-gpu-test
+  namespace: nvidia-gpu-test
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    kubernetes.io/hostname: playground
+    nvidia.com/gpu: "true"
+  containers:
+  - name: cuda-test
+    image: nvidia/cuda:11.8.0-base-ubuntu22.04
+    command:
+    - bash
+    - -c
+    - |
+      echo "=== NVIDIA GPU Test Pod ==="
+      echo "Date: $(date)"
+      echo ""
+      
+      echo "=== NVIDIA SMI Output ==="
+      nvidia-smi || echo "nvidia-smi not available"
+      echo ""
+      
+      echo "=== CUDA Device Query ==="
+      if [ -f /usr/local/cuda/samples/1_Utilities/deviceQuery/deviceQuery ]; then
+        /usr/local/cuda/samples/1_Utilities/deviceQuery/deviceQuery
+      else
+        echo "CUDA samples not installed"
+      fi
+      echo ""
+      
+      echo "=== Environment Variables ==="
+      env | grep -E "(CUDA|NVIDIA|GPU)" | sort
+      echo ""
+      
+      echo "=== PCI Devices ==="
+      apt-get update && apt-get install -y pciutils 2>/dev/null
+      lspci | grep -i nvidia || echo "No NVIDIA devices found in lspci"
+      echo ""
+      
+      echo "=== /dev/nvidia* devices ==="
+      ls -la /dev/nvidia* 2>/dev/null || echo "No /dev/nvidia* devices found"
+      echo ""
+      
+      echo "Test complete. Keeping pod alive for debugging..."
+      sleep 3600
+    resources:
+      limits:
+        nvidia.com/gpu: 1
