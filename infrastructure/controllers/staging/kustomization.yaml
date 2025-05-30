@@ -3,4 +3,4 @@ kind: Kustomization
 resources:
   - renovate
   - nfs-storage
-  - nvidia-device-plugin
+  # - nvidia-device-plugin

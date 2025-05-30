@@ -5,8 +5,9 @@ resources:
   - namespace.yaml
   - storage.yaml
   - deployment.yaml
-  - deployment-gpu.yaml  # Add this
+  # - deployment-gpu.yaml  
   - service.yaml
-  - service-gpu.yaml     # Add this
+  # - service-gpu.yaml    
   - nodeport-service.yaml
   - hpa.yaml
+  - deployment-optimized-cpu.yaml
