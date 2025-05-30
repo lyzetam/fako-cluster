@@ -1,26 +1,22 @@
+# apps/staging/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  # - linkding
-  # - audiobookshelf
-  # - ollama
-  # - ollama-webui
-  # - whisper
-  # - piper
-  # - openwakeword
-  # - voice-monitor
-  # - homebot
+  # Core applications
+  - linkding
+  - audiobookshelf
+  - homebot
   
-#   # GPU diagnostics and verification
-#   - verify-gpu-node
-#   - gpu-diagnostics
-#   - gpu-status
-#   - gpu-test
+  # AI/ML stack with GPU support
+  - ollama
+  - ollama-webui
+  - whisper
+  - piper
+  - openwakeword
+  - voice-monitor
   
-#   # Patches to fix node names from pgbee to playground
-# patchesStrategicMerge:
-#   - playground-node-patch.yaml
-
- # NVIDIA GPU test
+  # GPU resources and testing
   - nvidia-gpu-test
-  - cleanup-amd-gpu 
+  
+  # Cleanup old resources (run once)
+  - cleanup-old-gpu

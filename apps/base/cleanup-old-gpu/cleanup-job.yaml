@@ -1,0 +1,67 @@
+# apps/base/cleanup-old-gpu/cleanup-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cleanup-old-gpu-resources
+  namespace: cleanup-jobs
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: cleanup-admin
+      restartPolicy: Never
+      containers:
+      - name: cleanup
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "=== Starting Old GPU Resource Cleanup ==="
+          
+          # Remove old AMD GPU labels from playground node
+          echo "Removing old AMD GPU labels from playground node..."
+          kubectl label nodes playground accelerator- --overwrite 2>/dev/null || true
+          kubectl label nodes playground gpu.type- --overwrite 2>/dev/null || true
+          kubectl label nodes playground gpu.model- --overwrite 2>/dev/null || true
+          kubectl label nodes playground hardware.tier- --overwrite 2>/dev/null || true
+          
+          # Remove gpu-worker label from pgbee node
+          echo "Removing gpu-worker label from pgbee node..."
+          kubectl label nodes pgbee node-role.kubernetes.io/gpu-worker- --overwrite 2>/dev/null || true
+          
+          # Delete old AMD GPU resources
+          echo "Deleting old AMD GPU DaemonSet..."
+          kubectl delete daemonset -n gpu-system amd-gpu-device-plugin --force --grace-period=0 2>/dev/null || true
+          
+          # Delete pods using old GPU resources
+          echo "Deleting pods requesting old GPU resources..."
+          kubectl get pods -A -o json | jq -r '.items[] | select(.spec.containers[]?.resources.requests."amd.com/gpu" or .spec.containers[]?.resources.limits."amd.com/gpu") | "\(.metadata.namespace) \(.metadata.name)"' | while read ns pod; do
+            if [ -n "$ns" ] && [ -n "$pod" ]; then
+              echo "Deleting pod $ns/$pod"
+              kubectl delete pod -n $ns $pod --force --grace-period=0 2>/dev/null || true
+            fi
+          done
+          
+          # Delete old GPU namespaces
+          echo "Deleting old GPU namespaces..."
+          for ns in gpu-system gpu-test gpu-diagnostics gpu-status verify-gpu-node; do
+            kubectl delete namespace $ns --force --grace-period=0 2>/dev/null || true
+          done
+          
+          # Apply proper NVIDIA labels to playground node
+          echo "Applying proper NVIDIA labels to playground node..."
+          kubectl label nodes playground nvidia.com/gpu=true --overwrite
+          kubectl label nodes playground gpu.nvidia.present=true --overwrite
+          kubectl label nodes playground node-role.kubernetes.io/gpu-worker=true --overwrite
+          kubectl label nodes playground accelerator=nvidia-gpu --overwrite
+          
+          echo "=== Old GPU Resource Cleanup Complete ==="
+          
+          # Show final node status
+          echo ""
+          echo "=== Final playground node status ==="
+          kubectl get nodes playground --show-labels | grep -E "(nvidia|gpu)"
+          echo ""
+          echo "=== GPU Resources Available ==="
+          kubectl describe node playground | grep -A 5 "Allocatable:" | grep nvidia || echo "No NVIDIA GPU resources found"

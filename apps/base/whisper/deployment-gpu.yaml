@@ -14,9 +14,14 @@ spec:
       labels:
         app: whisper-gpu
     spec:
+      runtimeClassName: nvidia  # Use NVIDIA runtime
       nodeSelector:
-        accelerator: amd-gpu
         kubernetes.io/hostname: playground
+        nvidia.com/gpu: "true"
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
       containers:
         - name: whisper
           image: rhasspy/wyoming-whisper:latest
@@ -25,34 +30,32 @@ spec:
               protocol: TCP
           args:
             - "--model"
-            - "base"  # Use smaller model for better performance
+            - "base"  # Good balance of speed and accuracy for GT 1030
             - "--uri"
             - "tcp://0.0.0.0:10300"
             - "--data-dir"
             - "/data"
             - "--download-dir"
             - "/data"
-            # Remove --device cuda - it's for NVIDIA only!
-            # Let Whisper auto-detect or use CPU
+            - "--language"
+            - "en"
+            - "--beam-size"
+            - "1"  # Faster inference for limited GPU
           volumeMounts:
             - mountPath: /data
               name: whisper-models
-            - mountPath: /dev/dri
-              name: dri-devices
           resources:
             requests:
-              memory: "4Gi"
-              cpu: "4000m"  # Increase CPU since we can't use GPU acceleration
-              amd.com/gpu: 1  # Still request GPU resource for scheduling
+              memory: "2Gi"
+              cpu: "1000m"
+              nvidia.com/gpu: 1
             limits:
-              memory: "8Gi"
-              cpu: "8000m"  # More CPU
-              amd.com/gpu: 1
+              memory: "4Gi"
+              cpu: "2000m"
+              nvidia.com/gpu: 1
           env:
-            # Remove CUDA/ROCm env vars - they're causing issues
-            # Whisper will use CPU with OpenBLAS optimization
-            - name: OMP_NUM_THREADS
-              value: "8"  # Use multiple threads for CPU inference
+            - name: CUDA_VISIBLE_DEVICES
+              value: "0"
           livenessProbe:
             tcpSocket:
               port: 10300
@@ -75,7 +78,3 @@ spec:
         - name: whisper-models
           persistentVolumeClaim:
             claimName: whisper-models
-        - name: dri-devices
-          hostPath:
-            path: /dev/dri
-            type: Directory

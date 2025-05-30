@@ -1,5 +1,8 @@
+
+# apps/staging/cleanup-old-gpu/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: cleanup-jobs
 resources:
-  - ../../base/cleanup-amd-gpu/ 
+  - ../../base/cleanup-old-gpu/
+  
