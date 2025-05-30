@@ -1,9 +1,0 @@
-# apps/base/gpu-test/kustomization.yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: gpu-test
-resources:
-  - ../../base/gpu-test/
-
-
-

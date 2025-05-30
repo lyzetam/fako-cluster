@@ -1,5 +1,0 @@
-# apps/base/gpu-diagnostics/namespace.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: gpu-diagnostics
