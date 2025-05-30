@@ -1,4 +1,3 @@
-# apps/base/whisper/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: whisper
@@ -6,6 +5,8 @@ resources:
   - namespace.yaml
   - storage.yaml
   - deployment.yaml
+  - deployment-gpu.yaml  # Add this
   - service.yaml
+  - service-gpu.yaml     # Add this
   - nodeport-service.yaml
-  - hpa.yaml           # Added HPA
+  - hpa.yaml
