@@ -1,0 +1,53 @@
+# infrastructure/controllers/base/nvidia-gpu/gpu-node-exporter.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gpu-node-exporter
+  namespace: nvidia-device-plugin
+  labels:
+    app: gpu-node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: gpu-node-exporter
+  template:
+    metadata:
+      labels:
+        app: gpu-node-exporter
+    spec:
+      hostPID: true
+      hostNetwork: true
+      nodeSelector:
+        kubernetes.io/hostname: playground  # Only run on playground node
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: gpu-exporter
+        image: nvidia/dcgm-exporter:3.3.0-3.2.0-ubuntu22.04
+        ports:
+        - name: metrics
+          containerPort: 9400
+          hostPort: 9400
+        securityContext:
+          privileged: true
+        env:
+        - name: DCGM_EXPORTER_LISTEN
+          value: ":9400"
+        - name: DCGM_EXPORTER_KUBERNETES
+          value: "true"
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
