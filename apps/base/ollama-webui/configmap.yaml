@@ -1,23 +1,12 @@
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: ollama-webui-configmap
-#   namespace: ollama-webui
-# data:
-#   OLLAMA_BASE_URL: "http://ollama.ollama.svc.cluster.local:11434"  # Cross-namespace service
-#   ENABLE_SIGNUP: "false"  # Set to false after creating your account
-#   DEFAULT_MODELS: "llama3.2"  # Comma-separated list
-#   WEBUI_NAME: "HomeLab AI"
-#   WEBUI_URL: "https://ai.landryzetam.net"
-
+# apps/base/ollama-webui/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ollama-webui-configmap-gpu
+  name: ollama-webui-configmap
   namespace: ollama-webui
 data:
-  OLLAMA_BASE_URL: "http://ollama-gpu.ollama.svc.cluster.local:11434"  # Point to GPU service
-  ENABLE_SIGNUP: "false"
-  DEFAULT_MODELS: "phi3:mini,tinyllama"  # APU-friendly models
-  WEBUI_NAME: "HomeLab AI (GPU)"
+  OLLAMA_BASE_URL: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+  ENABLE_SIGNUP: "true"
+  DEFAULT_MODELS: "phi3:mini,tinyllama"
+  WEBUI_NAME: "HomeLab AI"
   WEBUI_URL: "https://ai.landryzetam.net"
