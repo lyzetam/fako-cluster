@@ -1,4 +1,3 @@
-# infrastructure/controllers/base/nvidia-gpu/node-labeler.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -33,13 +32,14 @@ metadata:
   name: label-nvidia-gpu-nodes
   namespace: nvidia-device-plugin
 spec:
+  backoffLimit: 3
   template:
     spec:
       serviceAccountName: nvidia-node-labeler
       restartPolicy: OnFailure
       containers:
       - name: labeler
-        image: bitnami/kubectl:latest
+        image: bitnami/kubectl:1.29
         command:
         - /bin/bash
         - -c
@@ -47,14 +47,27 @@ spec:
           #!/bin/bash
           set -e
           
-          echo "=== Labeling playground node for NVIDIA GPU support ==="
+          NODE_NAME="playground"
+          echo "=== Labeling ${NODE_NAME} node for NVIDIA GPU support ==="
+          
+          # Check if node exists
+          if ! kubectl get node ${NODE_NAME} > /dev/null 2>&1; then
+            echo "Error: Node ${NODE_NAME} not found in cluster"
+            kubectl get nodes
+            exit 1
+          fi
           
           # Apply NVIDIA GPU labels
-          kubectl label nodes playground nvidia.com/gpu=true --overwrite
-          kubectl label nodes playground accelerator=nvidia-gpu --overwrite
-          kubectl label nodes playground gpu.nvidia.present=true --overwrite
+          kubectl label nodes ${NODE_NAME} nvidia.com/gpu=true --overwrite
+          kubectl label nodes ${NODE_NAME} accelerator=nvidia-gpu --overwrite
+          kubectl label nodes ${NODE_NAME} gpu.nvidia.present=true --overwrite
+          kubectl label nodes ${NODE_NAME} feature.node.kubernetes.io/pci-10de.present=true --overwrite
           
           echo "Node labels applied successfully"
           echo ""
-          echo "Current node labels:"
-          kubectl get nodes playground --show-labels
+          echo "Current ${NODE_NAME} node labels:"
+          kubectl get nodes ${NODE_NAME} --show-labels | grep nvidia
+          
+          echo ""
+          echo "Checking for GPU resources on ${NODE_NAME}:"
+          kubectl describe node ${NODE_NAME} | grep -A 5 "Allocatable:" || true

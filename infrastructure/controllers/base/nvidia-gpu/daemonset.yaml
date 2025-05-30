@@ -1,4 +1,3 @@
-# infrastructure/controllers/base/nvidia-gpu/daemonset.yaml
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -10,6 +9,8 @@ spec:
       name: nvidia-device-plugin-ds
   updateStrategy:
     type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   template:
     metadata:
       labels:
@@ -19,16 +20,22 @@ spec:
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule
+      - key: CriticalAddonsOnly
+        operator: Exists
       nodeSelector:
         nvidia.com/gpu: "true"
-        kubernetes.io/hostname: playground  # Only run on playground node  # Only run on nodes with NVIDIA GPUs
+        kubernetes.io/hostname: playground  # Hardcoded to playground node
       priorityClassName: "system-node-critical"
       containers:
-      - image: nvcr.io/nvidia/k8s-device-plugin:v0.14.5
+      - image: nvcr.io/nvidia/k8s-device-plugin:v0.15.0
         name: nvidia-device-plugin-ctr
         env:
           - name: FAIL_ON_INIT_ERROR
             value: "false"
+          - name: MPS_ROOT
+            value: "/tmp/nvidia-mps"
+          - name: NVIDIA_MIG_MONITOR_DEVICES
+            value: "all"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -36,7 +43,36 @@ spec:
         volumeMounts:
         - name: device-plugin
           mountPath: /var/lib/kubelet/device-plugins
+        - name: nvidia-mps
+          mountPath: /tmp/nvidia-mps
+        resources:
+          requests:
+            cpu: 50m
+            memory: 10Mi
+          limits:
+            cpu: 50m
+            memory: 20Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
       volumes:
       - name: device-plugin
         hostPath:
           path: /var/lib/kubelet/device-plugins
+      - name: nvidia-mps
+        hostPath:
+          path: /tmp/nvidia-mps
+          type: DirectoryOrCreate
