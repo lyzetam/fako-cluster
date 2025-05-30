@@ -1,11 +1,10 @@
+# apps/base/audiobookshelf/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: linkding
+namespace: audiobookshelf  
 resources:
   - namespace.yaml
   - deployment.yaml
   - storage.yaml
   - service.yaml
   - configmap.yaml
-
-
