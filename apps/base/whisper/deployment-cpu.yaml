@@ -1,8 +1,8 @@
-# apps/base/whisper/deployment-gpu.yaml
+# apps/base/whisper/deployment-cpu.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: whisper-gpu
+  name: whisper-gpu  # Keep same name for compatibility
   namespace: whisper
 spec:
   replicas: 1
@@ -15,8 +15,7 @@ spec:
         app: whisper-gpu
     spec:
       nodeSelector:
-        accelerator: amd-gpu
-        kubernetes.io/hostname: pgbee
+        kubernetes.io/hostname: pgbee  # Still use high-performance node
       containers:
         - name: whisper
           image: rhasspy/wyoming-whisper:latest
@@ -25,44 +24,43 @@ spec:
               protocol: TCP
           args:
             - "--model"
-            - "base"  # Use smaller model for better performance
+            - "tiny"  # Smallest model for best CPU performance
             - "--uri"
             - "tcp://0.0.0.0:10300"
             - "--data-dir"
             - "/data"
             - "--download-dir"
             - "/data"
-            # Remove --device cuda - it's for NVIDIA only!
-            # Let Whisper auto-detect or use CPU
+            - "--language"
+            - "en"  # Specify language for better performance
+            - "--beam-size"
+            - "1"  # Faster inference
           volumeMounts:
             - mountPath: /data
               name: whisper-models
-            - mountPath: /dev/dri
-              name: dri-devices
           resources:
             requests:
-              memory: "4Gi"
-              cpu: "4000m"  # Increase CPU since we can't use GPU acceleration
-              amd.com/gpu: 1  # Still request GPU resource for scheduling
+              memory: "2Gi"
+              cpu: "4000m"
+              # No GPU request
             limits:
-              memory: "8Gi"
-              cpu: "8000m"  # More CPU
-              amd.com/gpu: 1
+              memory: "4Gi"
+              cpu: "8000m"
           env:
-            # Remove CUDA/ROCm env vars - they're causing issues
-            # Whisper will use CPU with OpenBLAS optimization
             - name: OMP_NUM_THREADS
-              value: "8"  # Use multiple threads for CPU inference
+              value: "8"
+            - name: MKL_NUM_THREADS
+              value: "8"
           livenessProbe:
             tcpSocket:
               port: 10300
-            initialDelaySeconds: 120
+            initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10
           readinessProbe:
             tcpSocket:
               port: 10300
-            initialDelaySeconds: 30
+            initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 5
           startupProbe:
@@ -70,12 +68,8 @@ spec:
               port: 10300
             initialDelaySeconds: 10
             periodSeconds: 10
-            failureThreshold: 30
+            failureThreshold: 20
       volumes:
         - name: whisper-models
           persistentVolumeClaim:
             claimName: whisper-models
-        - name: dri-devices
-          hostPath:
-            path: /dev/dri
-            type: Directory
