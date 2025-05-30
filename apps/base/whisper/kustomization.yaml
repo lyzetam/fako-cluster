@@ -7,6 +7,6 @@ resources:
   - deployment.yaml
   - deployment-optimized-cpu.yaml
   - service.yaml
-  - service-optimized-cpu.yaml
+  - service-cpu-optimized.yaml
   - nodeport-service.yaml
   - hpa.yaml
