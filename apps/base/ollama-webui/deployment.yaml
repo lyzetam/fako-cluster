@@ -40,7 +40,8 @@
 #           persistentVolumeClaim:
 #             claimName: ollama-webui-data
 
-# # apps/base/ollama-webui/deployment.yaml
+
+# apps/base/ollama-webui/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -56,10 +57,9 @@ spec:
       labels:
         app: ollama-webui
     spec:
-      # Add security context for NFS permissions
       securityContext:
-        fsGroup: 0  # Root group to match NFS permissions
-        runAsUser: 0  # Root user for NFS write access
+        fsGroup: 0
+        runAsUser: 0
         runAsGroup: 0
       containers:
         - name: ollama-webui
@@ -69,10 +69,10 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: ollama-webui-configmap
+                name: ollama-webui-configmap-gpu  # Fixed to use GPU configmap
           env:
             - name: OLLAMA_BASE_URL
-              value: "http://ollama.ollama.svc.cluster.local:11434"
+              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"  # Point to GPU service
           volumeMounts:
             - mountPath: /app/backend/data
               name: webui-data
@@ -83,7 +83,6 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "1000m"
-          # Add startup probe for database initialization
           startupProbe:
             httpGet:
               path: /

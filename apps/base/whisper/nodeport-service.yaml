@@ -13,6 +13,7 @@
 #   selector:
 #     app: whisper
 
+# apps/base/whisper/nodeport-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -23,6 +24,6 @@ spec:
   ports:
     - port: 10300
       targetPort: 10300
-      nodePort: 30300  # External port
+      nodePort: 30300
   selector:
-    app: whisper-optimized  # Point to optimized deployment
+    app: whisper-gpu  # Fixed to match GPU deployment

@@ -32,16 +32,10 @@ spec:
       priorityClassName: system-node-critical
       containers:
       - name: amd-gpu-device-plugin
-        # Use the correct image without the 'v' prefix and specific patch version
         image: rocm/k8s-device-plugin:latest
-        # image: rocm/k8s-device-plugin:1.25.2.6
         imagePullPolicy: IfNotPresent
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop: ["ALL"]
-          runAsNonRoot: true
-          runAsUser: 1000
+        # Remove the security context that was causing issues
+        # The plugin needs to run with default permissions
         volumeMounts:
         - name: device-plugin
           mountPath: /var/lib/kubelet/device-plugins
