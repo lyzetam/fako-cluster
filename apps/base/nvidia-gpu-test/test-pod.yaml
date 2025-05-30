@@ -11,7 +11,7 @@ spec:
     nvidia.com/gpu: "true"
   containers:
   - name: cuda-test
-    image: nvidia/cuda:11.8.0-base-ubuntu22.04
+    image: nvidia/cuda:12.9.0-base-ubuntu22.04
     command:
     - bash
     - -c
