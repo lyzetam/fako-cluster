@@ -6,7 +6,7 @@ metadata:
   namespace: ollama-webui
 data:
   OLLAMA_BASE_URL: "http://ollama-gpu.ollama.svc.cluster.local:11434"
-  ENABLE_SIGNUP: "true"
+  ENABLE_SIGNUP: "false"
   DEFAULT_MODELS: "phi3:mini,tinyllama"
   WEBUI_NAME: "HomeLab AI"
   WEBUI_URL: "https://ai.landryzetam.net"
