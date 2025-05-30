@@ -1,20 +1,22 @@
+# apps/base/whisper/deployment-gpu.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: whisper-optimized
+  name: whisper-gpu
   namespace: whisper
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: whisper-optimized
+      app: whisper-gpu
   template:
     metadata:
       labels:
-        app: whisper-optimized
+        app: whisper-gpu
     spec:
       nodeSelector:
-        kubernetes.io/hostname: pgbee  # Pin to the powerful Ryzen node
+        accelerator: amd-gpu
+        kubernetes.io/hostname: pgbee  # Pin to GPU node
       containers:
         - name: whisper
           image: rhasspy/wyoming-whisper:latest
@@ -23,7 +25,7 @@ spec:
               protocol: TCP
           args:
             - "--model"
-            - "base"  # or "small" - test performance
+            - "base"
             - "--uri"
             - "tcp://0.0.0.0:10300"
             - "--data-dir"
@@ -31,22 +33,25 @@ spec:
             - "--download-dir"
             - "/data"
             - "--device"
-            - "cpu"  # Explicitly use CPU
-            - "--compute-type"
-            - "int8"  # Use INT8 quantization for faster CPU inference
+            - "auto"  # Let it detect available GPU/CPU
           volumeMounts:
             - mountPath: /data
               name: whisper-models
+            - mountPath: /dev/dri
+              name: dri-devices
           resources:
             requests:
               memory: "4Gi"
-              cpu: "4000m"  # Request 4 CPU cores
+              cpu: "2000m"
             limits:
               memory: "8Gi"
-              cpu: "8000m"  # Allow up to 8 cores
+              cpu: "4000m"
+              amd.com/gpu: 1  # Request GPU access
           env:
-            - name: OMP_NUM_THREADS
-              value: "8"  # Use all 8 cores for OpenMP
+            - name: ROCR_VISIBLE_DEVICES
+              value: "0"
+            - name: HSA_OVERRIDE_GFX_VERSION
+              value: "9.0.0"  # For Renoir APU compatibility
           livenessProbe:
             tcpSocket:
               port: 10300
@@ -55,9 +60,12 @@ spec:
           readinessProbe:
             tcpSocket:
               port: 10300
-            initialDelaySeconds: 10
-            periodSeconds: 5
+            initialDelaySeconds: 15
+            periodSeconds: 10
       volumes:
         - name: whisper-models
           persistentVolumeClaim:
             claimName: whisper-models
+        - name: dri-devices
+          hostPath:
+            path: /dev/dri
