@@ -1,46 +1,3 @@
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: ollama-webui
-#   namespace: ollama-webui
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: ollama-webui
-#   template:
-#     metadata:
-#       labels:
-#         app: ollama-webui
-#     spec:
-#       containers:
-#         - name: ollama-webui
-#           image: ghcr.io/open-webui/open-webui:latest
-#           ports:
-#             - containerPort: 8080
-#               protocol: TCP
-#           envFrom:
-#             - configMapRef:
-#                 name: ollama-webui-configmap
-#           env:
-#             - name: OLLAMA_BASE_URL
-#               value: "http://ollama.ollama.svc.cluster.local:11434"  # Full FQDN for cross-namespace
-#           volumeMounts:
-#             - mountPath: /app/backend/data
-#               name: webui-data
-#           resources:
-#             requests:
-#               memory: "1Gi"
-#               cpu: "500m"
-#             limits:
-#               memory: "2Gi"
-#               cpu: "1000m"
-#       volumes:
-#         - name: webui-data
-#           persistentVolumeClaim:
-#             claimName: ollama-webui-data
-
-
 # apps/base/ollama-webui/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -69,10 +26,10 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: ollama-webui-configmap-gpu  # Fixed to use GPU configmap
+                name: ollama-webui-configmap  # Fixed: Use consistent name
           env:
             - name: OLLAMA_BASE_URL
-              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"  # Point to GPU service
+              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
           volumeMounts:
             - mountPath: /app/backend/data
               name: webui-data
@@ -83,6 +40,20 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
           startupProbe:
             httpGet:
               path: /
