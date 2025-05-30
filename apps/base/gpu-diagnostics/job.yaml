@@ -11,7 +11,7 @@ spec:
       serviceAccountName: gpu-diagnostics
       restartPolicy: Never
       nodeSelector:
-        kubernetes.io/hostname: pgbee
+        kubernetes.io/hostname: playground  # Fixed to match actual node name
       containers:
       - name: diagnostics
         image: busybox:latest

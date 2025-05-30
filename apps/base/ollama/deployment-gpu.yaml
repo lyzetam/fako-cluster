@@ -15,7 +15,7 @@ spec:
     spec:
       nodeSelector:
         # Still use the high-performance node, but don't request GPU
-        kubernetes.io/hostname: pgbee
+        kubernetes.io/hostname: playground 
       containers:
         - name: ollama
           image: ollama/ollama:latest  # Use regular image, not rocm

@@ -17,3 +17,6 @@ resources:
   - gpu-status
   - gpu-test
   
+  # Patches to fix node names from pgbee to playground
+patchesStrategicMerge:
+  - playground-node-patch.yaml
