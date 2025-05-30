@@ -10,6 +10,10 @@ resources:
   - openwakeword
   - voice-monitor
   # - homebot
-
-
+  
+  # GPU diagnostics and verification
+  - verify-gpu-node
+  - gpu-diagnostics
+  - gpu-status
+  - gpu-test
   

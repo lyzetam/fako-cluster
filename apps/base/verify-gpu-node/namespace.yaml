@@ -1,0 +1,5 @@
+# apps/base/verify-gpu-node/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: verify-gpu-node
