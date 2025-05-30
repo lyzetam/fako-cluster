@@ -1,6 +1,0 @@
-# apps/staging/verify-gpu-node/kustomization.yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: verify-gpu-node
-resources:
-  - ../../base/verify-gpu-node/
