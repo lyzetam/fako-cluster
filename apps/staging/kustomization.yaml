@@ -16,7 +16,7 @@ resources:
   - voice-monitor
   
   # GPU resources and testing
-  - nvidia-gpu-test
+  # - nvidia-gpu-test
   
   # Cleanup old resources (run once)
   - cleanup-old-gpu
