@@ -1,0 +1,60 @@
+# infrastructure/controllers/base/nvidia-gpu/node-labeler.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nvidia-node-labeler
+  namespace: nvidia-device-plugin
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nvidia-node-labeler
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nvidia-node-labeler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nvidia-node-labeler
+subjects:
+- kind: ServiceAccount
+  name: nvidia-node-labeler
+  namespace: nvidia-device-plugin
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: label-nvidia-gpu-nodes
+  namespace: nvidia-device-plugin
+spec:
+  template:
+    spec:
+      serviceAccountName: nvidia-node-labeler
+      restartPolicy: OnFailure
+      containers:
+      - name: labeler
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          #!/bin/bash
+          set -e
+          
+          echo "=== Labeling playground node for NVIDIA GPU support ==="
+          
+          # Apply NVIDIA GPU labels
+          kubectl label nodes playground nvidia.com/gpu=true --overwrite
+          kubectl label nodes playground accelerator=nvidia-gpu --overwrite
+          kubectl label nodes playground gpu.nvidia.present=true --overwrite
+          
+          echo "Node labels applied successfully"
+          echo ""
+          echo "Current node labels:"
+          kubectl get nodes playground --show-labels
