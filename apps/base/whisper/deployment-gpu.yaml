@@ -16,7 +16,7 @@ spec:
     spec:
       nodeSelector:
         accelerator: amd-gpu
-        kubernetes.io/hostname: pgbee  # Pin to GPU node
+        kubernetes.io/hostname: pgbee
       containers:
         - name: whisper
           image: rhasspy/wyoming-whisper:latest
@@ -25,7 +25,7 @@ spec:
               protocol: TCP
           args:
             - "--model"
-            - "base"
+            - "small"  # Better model for GPU
             - "--uri"
             - "tcp://0.0.0.0:10300"
             - "--data-dir"
@@ -33,7 +33,7 @@ spec:
             - "--download-dir"
             - "/data"
             - "--device"
-            - "auto"  # Let it detect available GPU/CPU
+            - "cuda"  # Try CUDA/ROCm acceleration
           volumeMounts:
             - mountPath: /data
               name: whisper-models
@@ -43,25 +43,48 @@ spec:
             requests:
               memory: "4Gi"
               cpu: "2000m"
+              amd.com/gpu: 1
             limits:
               memory: "8Gi"
               cpu: "4000m"
-              amd.com/gpu: 1  # Request GPU access
+              amd.com/gpu: 1
           env:
+            # ROCm environment variables
             - name: ROCR_VISIBLE_DEVICES
               value: "0"
             - name: HSA_OVERRIDE_GFX_VERSION
-              value: "9.0.0"  # For Renoir APU compatibility
+              value: "9.0.0"
+            - name: HIP_VISIBLE_DEVICES
+              value: "0"
+            # PyTorch ROCm settings
+            - name: PYTORCH_HIP_ALLOC_CONF
+              value: "max_split_size_mb:512"
+            - name: MIOPEN_DISABLE_CACHE
+              value: "1"
+          securityContext:
+            privileged: false
+            capabilities:
+              add:
+              - SYS_ADMIN
+              - SYS_PTRACE
           livenessProbe:
             tcpSocket:
               port: 10300
-            initialDelaySeconds: 60
+            initialDelaySeconds: 120  # More time for model loading
             periodSeconds: 30
+            timeoutSeconds: 10
           readinessProbe:
             tcpSocket:
               port: 10300
-            initialDelaySeconds: 15
+            initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
+          startupProbe:
+            tcpSocket:
+              port: 10300
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30  # 5 minutes to start
       volumes:
         - name: whisper-models
           persistentVolumeClaim:
@@ -69,3 +92,4 @@ spec:
         - name: dri-devices
           hostPath:
             path: /dev/dri
+            type: Directory

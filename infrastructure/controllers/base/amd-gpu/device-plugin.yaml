@@ -1,3 +1,4 @@
+# infrastructure/controllers/base/amd-gpu/device-plugin.yaml
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -26,29 +27,21 @@ spec:
       - key: amd.com/gpu
         operator: Exists
         effect: NoSchedule
-      # Only run on nodes with AMD GPU label
       nodeSelector:
         accelerator: amd-gpu
       priorityClassName: system-node-critical
       containers:
       - name: amd-gpu-device-plugin
-        # Using the latest stable version
-        image: rocm/k8s-device-plugin:v1.31.0.6
+        # Use the correct image without the 'v' prefix and specific patch version
+        image: rocm/k8s-device-plugin:latest
+        # image: rocm/k8s-device-plugin:1.25.2.6
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop: ["ALL"]
-        env:
-        - name: NODE_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-        # For APU/integrated graphics
-        - name: GPU_DEVICE_PATH
-          value: "/dev/dri"
-        - name: HSA_ENABLE_INTERRUPT
-          value: "0"
+          runAsNonRoot: true
+          runAsUser: 1000
         volumeMounts:
         - name: device-plugin
           mountPath: /var/lib/kubelet/device-plugins
@@ -57,9 +50,6 @@ spec:
           readOnly: true
         - name: dev-dri
           mountPath: /dev/dri
-          readOnly: true
-        - name: dev-kfd
-          mountPath: /dev/kfd
           readOnly: true
       volumes:
       - name: device-plugin
@@ -74,7 +64,3 @@ spec:
         hostPath:
           path: /dev/dri
           type: Directory
-      - name: dev-kfd
-        hostPath:
-          path: /dev/kfd
-          type: CharDevice
