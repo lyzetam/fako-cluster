@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisper-optimized
+  namespace: whisper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: whisper-optimized
+  template:
+    metadata:
+      labels:
+        app: whisper-optimized
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: pgbee  # Pin to the powerful Ryzen node
+      containers:
+        - name: whisper
+          image: rhasspy/wyoming-whisper:latest
+          ports:
+            - containerPort: 10300
+              protocol: TCP
+          args:
+            - "--model"
+            - "base"  # or "small" - test performance
+            - "--uri"
+            - "tcp://0.0.0.0:10300"
+            - "--data-dir"
+            - "/data"
+            - "--download-dir"
+            - "/data"
+            - "--device"
+            - "cpu"  # Explicitly use CPU
+            - "--compute-type"
+            - "int8"  # Use INT8 quantization for faster CPU inference
+          volumeMounts:
+            - mountPath: /data
+              name: whisper-models
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "4000m"  # Request 4 CPU cores
+            limits:
+              memory: "8Gi"
+              cpu: "8000m"  # Allow up to 8 cores
+          env:
+            - name: OMP_NUM_THREADS
+              value: "8"  # Use all 8 cores for OpenMP
+          livenessProbe:
+            tcpSocket:
+              port: 10300
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: 10300
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: whisper-models
+          persistentVolumeClaim:
+            claimName: whisper-models
