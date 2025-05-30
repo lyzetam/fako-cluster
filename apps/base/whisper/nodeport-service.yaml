@@ -1,14 +1,23 @@
-# apps/base/whisper/nodeport-service.yaml
+# # apps/base/whisper/nodeport-service.yaml
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: whisper-nodeport
+#   namespace: whisper
+# spec:
+#   type: NodePort
+#   ports:
+#     - port: 10300
+#       targetPort: 10300
+#       nodePort: 30300  # External port
+#   selector:
+#     app: whisper
+
 apiVersion: v1
 kind: Service
 metadata:
   name: whisper-nodeport
   namespace: whisper
 spec:
-  type: NodePort
-  ports:
-    - port: 10300
-      targetPort: 10300
-      nodePort: 30300  # External port
   selector:
-    app: whisper
+    app: whisper-optimized  # Point to optimized deployment
