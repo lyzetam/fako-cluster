@@ -1,0 +1,51 @@
+# apps/base/gpu-test/test-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-test-pod
+  namespace: gpu-test
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    kubernetes.io/hostname: pgbee
+    accelerator: amd-gpu
+  containers:
+  - name: gpu-test
+    image: ubuntu:22.04
+    command:
+    - /bin/bash
+    - -c
+    - |
+      echo "=== GPU Test Pod Starting ==="
+      apt-get update && apt-get install -y pciutils
+      
+      echo "=== Checking GPU Resources ==="
+      echo "AMD GPU Resource allocated: ${AMD_GPU_COUNT:-Not allocated}"
+      
+      echo "=== PCI Devices ==="
+      lspci | grep -E "(VGA|Display|AMD)"
+      
+      echo "=== DRI Devices ==="
+      ls -la /dev/dri/ || echo "No DRI devices found"
+      
+      echo "=== Environment Variables ==="
+      env | grep -E "(GPU|AMD|ROCM|HIP)" || echo "No GPU env vars found"
+      
+      echo "=== Test Complete - Sleeping for debugging ==="
+      sleep 3600
+    resources:
+      limits:
+        amd.com/gpu: 1
+      requests:
+        amd.com/gpu: 1
+    env:
+    - name: AMD_GPU_COUNT
+      value: "1"
+    volumeMounts:
+    - name: dri-devices
+      mountPath: /dev/dri
+  volumes:
+  - name: dri-devices
+    hostPath:
+      path: /dev/dri
+      type: Directory
