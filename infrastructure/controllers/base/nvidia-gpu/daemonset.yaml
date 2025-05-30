@@ -20,10 +20,11 @@ spec:
         operator: Exists
         effect: NoSchedule
       nodeSelector:
-        nvidia.com/gpu: "true"  # Only run on nodes with NVIDIA GPUs
+        nvidia.com/gpu: "true"
+        kubernetes.io/hostname: playground  # Only run on playground node  # Only run on nodes with NVIDIA GPUs
       priorityClassName: "system-node-critical"
       containers:
-      - image: nvcr.io/nvidia/k8s-device-plugin:latest
+      - image: nvcr.io/nvidia/k8s-device-plugin:v0.14.5
         name: nvidia-device-plugin-ctr
         env:
           - name: FAIL_ON_INIT_ERROR
