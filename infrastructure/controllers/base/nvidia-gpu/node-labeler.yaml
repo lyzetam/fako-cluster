@@ -39,7 +39,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: labeler
-        image: bitnami/kubectl:1.29
+        image: bitnami/kubectl:1.33
         command:
         - /bin/bash
         - -c
