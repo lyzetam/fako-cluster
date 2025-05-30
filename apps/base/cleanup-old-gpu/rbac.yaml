@@ -1,4 +1,4 @@
-# apps/base/cleanup-amd-gpu/rbac.yaml
+# apps/base/cleanup-old-gpu/rbac.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
