@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: amd-apu-config
+  namespace: gpu-system
+data:
+  # AMD Renoir APU specific settings
+  gpu-type: "integrated"
+  device-name: "AMD Radeon Graphics (renoir)"
+  compute-units: "8"
+  max-frequency: "2000"
+  opencl-version: "1.1"
+  # Environment variables for containers
+  HSA_OVERRIDE_GFX_VERSION: "9.0.0"  # Renoir is gfx90c
+  ROCR_VISIBLE_DEVICES: "0"
+  # OpenCL settings
+  AMD_OCL_BUILD_OPTIONS: "-O3"
+  GPU_MAX_ALLOC_PERCENT: "100"
+  GPU_FORCE_64BIT_PTR: "1"
