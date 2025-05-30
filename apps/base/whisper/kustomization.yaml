@@ -4,7 +4,7 @@ namespace: whisper
 resources:
   - namespace.yaml
   - storage.yaml
-  - deployment.yaml
+  # - deployment.yaml
   - deployment-optimized-cpu.yaml
   - service.yaml
   - service-cpu-optimized.yaml
