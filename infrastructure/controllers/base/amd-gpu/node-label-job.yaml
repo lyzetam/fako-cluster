@@ -1,0 +1,52 @@
+# infrastructure/controllers/base/amd-gpu/node-label-job.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-labeler
+  namespace: gpu-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-labeler
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: node-labeler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: node-labeler
+subjects:
+- kind: ServiceAccount
+  name: node-labeler
+  namespace: gpu-system
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: label-gpu-nodes
+  namespace: gpu-system
+spec:
+  template:
+    spec:
+      serviceAccountName: node-labeler
+      restartPolicy: OnFailure
+      containers:
+      - name: labeler
+        image: bitnami/kubectl:latest
+        command: ["/bin/bash"]
+        args: ["/scripts/label-nodes.sh"]
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: node-labels-script
+          defaultMode: 0755
