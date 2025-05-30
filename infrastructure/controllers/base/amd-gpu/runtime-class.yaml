@@ -11,6 +11,3 @@ scheduling:
   - key: amd.com/gpu
     operator: Exists
     effect: NoSchedule
-  - key: high-performance
-    operator: Exists
-    effect: PreferNoSchedule

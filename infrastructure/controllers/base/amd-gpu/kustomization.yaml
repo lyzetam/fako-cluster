@@ -5,7 +5,5 @@ namespace: gpu-system
 resources:
   - namespace.yaml
   - runtime-class.yaml
-  - apu-config.yaml
-  - node-labels-configmap.yaml
-  - node-label-job.yaml
+  - node-labeler.yaml
   - device-plugin.yaml
