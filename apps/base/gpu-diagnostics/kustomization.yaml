@@ -1,0 +1,8 @@
+# apps/base/gpu-diagnostics/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: gpu-diagnostics
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - job.yaml
