@@ -1,5 +1,3 @@
-# apps/base/ollama/deployment-gpu.yaml
-# Updated to NOT request GPU - let Whisper have it
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -70,6 +68,10 @@ spec:
               
               ollama pull phi3:mini || echo "Failed to pull phi3:mini"
               ollama pull tinyllama || echo "Failed to pull tinyllama"
+              ollama pull llama3.2:3b || echo "Failed to pull llama3.2:3b"
+              ollama pull llama3.2:1b || echo "Failed to pull llama3.2:1b"
+              ollama pull llama3:8b || echo "Failed to pull llama3:8b"
+              echo "Model download complete."
               
               echo "Available models:"
               ollama list
