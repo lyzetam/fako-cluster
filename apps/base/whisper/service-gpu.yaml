@@ -9,6 +9,7 @@ spec:
     - port: 10300
       targetPort: 10300
       protocol: TCP
+      name: wyoming
   selector:
     app: whisper-gpu
   type: ClusterIP

@@ -16,11 +16,10 @@ spec:
     spec:
       nodeSelector:
         accelerator: amd-gpu
-        kubernetes.io/hostname: pgbee  # Pin to GPU node
+        kubernetes.io/hostname: pgbee
       containers:
-        # Main Ollama container with GPU support
         - name: ollama
-          image: ollama/ollama:latest
+          image: ollama/ollama:rocm
           ports:
             - containerPort: 11434
               protocol: TCP
@@ -31,9 +30,13 @@ spec:
             - name: ROCR_VISIBLE_DEVICES
               value: "0"
             - name: HSA_OVERRIDE_GFX_VERSION
-              value: "9.0.0"  # For Renoir APU
+              value: "9.0.0"
+            - name: HIP_VISIBLE_DEVICES
+              value: "0"
             - name: OLLAMA_GPU_OVERHEAD
-              value: "0"  # Minimize GPU memory overhead
+              value: "0"
+            - name: OLLAMA_MAX_LOADED_MODELS
+              value: "1"
           volumeMounts:
             - mountPath: /root/.ollama
               name: ollama-models
@@ -43,11 +46,17 @@ spec:
             requests:
               memory: "8Gi"
               cpu: "4000m"
+              amd.com/gpu: 1
             limits:
               memory: "16Gi"
               cpu: "8000m"
-              amd.com/gpu: 1  # Request GPU access
-          # Health checks
+              amd.com/gpu: 1
+          securityContext:
+            privileged: false
+            capabilities:
+              add:
+              - SYS_ADMIN
+              - SYS_PTRACE
           livenessProbe:
             httpGet:
               path: /api/tags
@@ -65,37 +74,31 @@ spec:
         
         # Model manager sidecar
         - name: model-manager
-          image: ollama/ollama:latest
+          image: ollama/ollama:rocm
           command: ["/bin/sh"]
           args:
             - -c
             - |
               echo "Model manager starting..."
-              sleep 30  # Wait for main Ollama to be ready
+              sleep 60  # Wait for main Ollama to be ready
               
               export OLLAMA_HOST=http://localhost:11434
               
+              # Download APU-optimized models
+              echo "Downloading models optimized for AMD APU..."
+              
+              # Try to pull models, with error handling
+              ollama pull phi3:mini || echo "Failed to pull phi3:mini"
+              ollama pull tinyllama || echo "Failed to pull tinyllama"
+              ollama pull llama3.2:1b || echo "Failed to pull llama3.2:1b"
+              
+              echo "Available models:"
+              ollama list
+              
+              # Keep container alive
               while true; do
-                echo "Checking if models need to be downloaded..."
-                
-                CURRENT_MODELS=$(ollama list 2>/dev/null || echo "")
-                
-                # Download smaller models suitable for APU
-                if ! echo "$CURRENT_MODELS" | grep -q "phi3:mini"; then
-                  echo "Downloading phi3:mini..."
-                  ollama pull phi3:mini && echo "✅ phi3:mini downloaded" || echo "❌ phi3:mini failed"
-                fi
-                
-                if ! echo "$CURRENT_MODELS" | grep -q "tinyllama"; then
-                  echo "Downloading tinyllama..."
-                  ollama pull tinyllama && echo "✅ tinyllama downloaded" || echo "❌ tinyllama failed"
-                fi
-                
-                echo "Current models:"
-                ollama list || echo "Failed to list models"
-                
-                echo "Model check complete. Sleeping for 10 minutes..."
                 sleep 600
+                echo "Model manager heartbeat..."
               done
           volumeMounts:
             - mountPath: /root/.ollama
@@ -114,3 +117,4 @@ spec:
         - name: dri-devices
           hostPath:
             path: /dev/dri
+            type: Directory

@@ -1,4 +1,4 @@
-# infrastructure/controllers/base/amd-gpu/node-label-job.yaml
+# infrastructure/controllers/base/amd-gpu/node-labeler.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -40,13 +40,20 @@ spec:
       containers:
       - name: labeler
         image: bitnami/kubectl:latest
-        command: ["/bin/bash"]
-        args: ["/scripts/label-nodes.sh"]
-        volumeMounts:
-        - name: script
-          mountPath: /scripts
-      volumes:
-      - name: script
-        configMap:
-          name: node-labels-script
-          defaultMode: 0755
+        command:
+        - /bin/bash
+        - -c
+        - |
+          #!/bin/bash
+          set -e
+          
+          echo "Labeling pgbee node for GPU support..."
+          
+          # Apply all necessary labels
+          kubectl label nodes pgbee accelerator=amd-gpu --overwrite
+          kubectl label nodes pgbee gpu.type=amd-apu --overwrite
+          kubectl label nodes pgbee gpu.model=renoir --overwrite
+          kubectl label nodes pgbee hardware.tier=high-performance --overwrite
+          
+          echo "Node labels applied successfully"
+          kubectl get nodes pgbee --show-labels
