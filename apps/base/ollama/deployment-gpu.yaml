@@ -46,17 +46,11 @@ spec:
             requests:
               memory: "8Gi"
               cpu: "4000m"
-              amd.com/gpu: 1
+              amd.com/gpu: 1  # Request GPU
             limits:
               memory: "16Gi"
               cpu: "8000m"
-              amd.com/gpu: 1
-          securityContext:
-            privileged: false
-            capabilities:
-              add:
-              - SYS_ADMIN
-              - SYS_PTRACE
+              amd.com/gpu: 1  # Limit GPU
           livenessProbe:
             httpGet:
               path: /api/tags
@@ -80,14 +74,13 @@ spec:
             - -c
             - |
               echo "Model manager starting..."
-              sleep 60  # Wait for main Ollama to be ready
+              sleep 60
               
               export OLLAMA_HOST=http://localhost:11434
               
               # Download APU-optimized models
               echo "Downloading models optimized for AMD APU..."
               
-              # Try to pull models, with error handling
               ollama pull phi3:mini || echo "Failed to pull phi3:mini"
               ollama pull tinyllama || echo "Failed to pull tinyllama"
               ollama pull llama3.2:1b || echo "Failed to pull llama3.2:1b"
