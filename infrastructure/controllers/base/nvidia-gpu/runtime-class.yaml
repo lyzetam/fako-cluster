@@ -3,3 +3,8 @@ kind: RuntimeClass
 metadata:
   name: nvidia
 handler: nvidia
+scheduling:
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule

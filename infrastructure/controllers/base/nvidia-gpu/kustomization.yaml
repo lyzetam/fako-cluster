@@ -1,3 +1,4 @@
+# infrastructure/controllers/base/nvidia-gpu/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: nvidia-device-plugin
@@ -6,3 +7,6 @@ resources:
   - node-labeler.yaml
   - daemonset.yaml
   - runtime-class.yaml
+  - resource-quota.yaml
+  - monitoring.yaml
+  - gpu-node-exporter.yaml
