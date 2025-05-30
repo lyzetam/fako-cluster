@@ -1,0 +1,11 @@
+# infrastructure/controllers/base/amd-gpu/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: gpu-system
+resources:
+  - namespace.yaml
+  - runtime-class.yaml
+  - apu-config.yaml
+  - node-labels-configmap.yaml
+  - node-label-job.yaml
+  - device-plugin.yaml

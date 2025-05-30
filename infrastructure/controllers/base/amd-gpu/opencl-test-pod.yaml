@@ -1,0 +1,40 @@
+# infrastructure/controllers/base/amd-gpu/opencl-test-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: opencl-test
+  namespace: gpu-system
+spec:
+  nodeSelector:
+    accelerator: amd-gpu
+    kubernetes.io/hostname: pgbee
+  containers:
+  - name: opencl-test
+    image: ubuntu:24.04
+    command: ["/bin/bash"]
+    args: 
+    - -c
+    - |
+      apt-get update && apt-get install -y clinfo ocl-icd-opencl-dev
+      echo "=== OpenCL Device Info ==="
+      clinfo | grep -E "Platform Name|Device Name|Max compute units|Max clock frequency|Global memory size"
+      echo "=== Testing OpenCL access ==="
+      ls -la /dev/dri/
+      echo "=== Complete ==="
+      sleep 3600
+    resources:
+      limits:
+        amd.com/gpu: 1
+    securityContext:
+      privileged: false
+      capabilities:
+        add:
+        - SYS_RAWIO
+    volumeMounts:
+    - name: dri
+      mountPath: /dev/dri
+  volumes:
+  - name: dri
+    hostPath:
+      path: /dev/dri
+  restartPolicy: Never
