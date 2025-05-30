@@ -30,7 +30,7 @@ subjects:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: label-gpu-nodes
+  name: label-gpu-nodes-v2
   namespace: gpu-system
 spec:
   template:
@@ -47,13 +47,13 @@ spec:
           #!/bin/bash
           set -e
           
-          echo "Labeling pgbee node for GPU support..."
+          echo "Labeling playground node for GPU support..."
           
-          # Apply all necessary labels
-          kubectl label nodes pgbee accelerator=amd-gpu --overwrite
-          kubectl label nodes pgbee gpu.type=amd-apu --overwrite
-          kubectl label nodes pgbee gpu.model=renoir --overwrite
-          kubectl label nodes pgbee hardware.tier=high-performance --overwrite
+          # Apply all necessary labels to the playground node
+          kubectl label nodes playground accelerator=amd-gpu --overwrite
+          kubectl label nodes playground gpu.type=amd-apu --overwrite
+          kubectl label nodes playground gpu.model=renoir --overwrite
+          kubectl label nodes playground hardware.tier=high-performance --overwrite
           
           echo "Node labels applied successfully"
-          kubectl get nodes pgbee --show-labels
+          kubectl get nodes playground --show-labels

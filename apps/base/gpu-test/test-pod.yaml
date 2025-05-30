@@ -7,7 +7,7 @@ metadata:
 spec:
   restartPolicy: Never
   nodeSelector:
-    kubernetes.io/hostname: pgbee
+    kubernetes.io/hostname: playground  # Fixed to match actual node name
     accelerator: amd-gpu
   containers:
   - name: gpu-test

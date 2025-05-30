@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: verify-pgbee-node
+  name: verify-playground-node
   namespace: verify-gpu-node
 spec:
   ttlSecondsAfterFinished: 3600
@@ -17,7 +17,7 @@ spec:
         - /bin/bash
         - -c
         - |
-          echo "=== Verifying pgbee Node in Cluster ==="
+          echo "=== Verifying playground Node in Cluster ==="
           echo "Date: $(date)"
           echo ""
           
@@ -25,30 +25,30 @@ spec:
           kubectl get nodes -o wide
           echo ""
           
-          echo "=== Checking if pgbee exists ==="
-          if kubectl get node pgbee >/dev/null 2>&1; then
-            echo "✅ Node pgbee found in cluster!"
+          echo "=== Checking if playground exists ==="
+          if kubectl get node playground >/dev/null 2>&1; then
+            echo "✅ Node playground found in cluster!"
             echo ""
             
             echo "=== Node Details ==="
-            kubectl describe node pgbee | head -50
+            kubectl describe node playground | head -50
             echo ""
             
             echo "=== Node Conditions ==="
-            kubectl get node pgbee -o json | jq '.status.conditions'
+            kubectl get node playground -o json | jq '.status.conditions'
             echo ""
             
             echo "=== Node System Info ==="
-            kubectl get node pgbee -o json | jq '.status.nodeInfo'
+            kubectl get node playground -o json | jq '.status.nodeInfo'
           else
-            echo "❌ Node pgbee NOT found in cluster!"
+            echo "❌ Node playground NOT found in cluster!"
             echo ""
             echo "Please verify:"
             echo "1. The node name is correct"
             echo "2. The k3s agent is running on the node"
             echo "3. Network connectivity between nodes"
             echo ""
-            echo "Run this on pgbee node to check agent status:"
+            echo "Run this on playground node to check agent status:"
             echo "sudo systemctl status k3s-agent"
           fi
           

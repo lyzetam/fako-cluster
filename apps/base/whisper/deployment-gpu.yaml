@@ -16,7 +16,7 @@ spec:
     spec:
       nodeSelector:
         accelerator: amd-gpu
-        kubernetes.io/hostname: pgbee
+        kubernetes.io/hostname: playground
       containers:
         - name: whisper
           image: rhasspy/wyoming-whisper:latest
