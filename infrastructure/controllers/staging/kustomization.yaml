@@ -3,4 +3,4 @@ kind: Kustomization
 resources:
   - renovate
   - nfs-storage
-  - amd-gpu
+  - nvidia-gpu
