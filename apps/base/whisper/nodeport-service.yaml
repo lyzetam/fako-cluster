@@ -19,5 +19,10 @@ metadata:
   name: whisper-nodeport
   namespace: whisper
 spec:
+  type: NodePort
+  ports:
+    - port: 10300
+      targetPort: 10300
+      nodePort: 30300  # External port
   selector:
     app: whisper-optimized  # Point to optimized deployment
