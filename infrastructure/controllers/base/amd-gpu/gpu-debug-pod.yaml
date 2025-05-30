@@ -1,0 +1,60 @@
+# infrastructure/controllers/base/amd-gpu/gpu-debug-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-debug
+  namespace: gpu-system
+spec:
+  nodeSelector:
+    accelerator: amd-gpu
+    kubernetes.io/hostname: pgbee
+  containers:
+  - name: gpu-debug
+    image: rocm/rocm-terminal:latest
+    command: ["/bin/bash"]
+    args: 
+    - -c
+    - |
+      echo "=== GPU Debug Information ==="
+      echo "Kernel version: $(uname -r)"
+      echo "Available devices in /dev/dri:"
+      ls -la /dev/dri/ || echo "No DRI devices"
+      echo ""
+      echo "Available devices in /dev/kfd:"
+      ls -la /dev/kfd || echo "No KFD device"
+      echo ""
+      echo "ROCm Info:"
+      rocminfo || echo "rocminfo not available"
+      echo ""
+      echo "OpenCL platforms:"
+      clinfo || echo "clinfo not available"
+      echo ""
+      echo "AMD GPU device plugin resources:"
+      echo "Expected resource: amd.com/gpu"
+      echo ""
+      echo "Keeping pod alive for debugging..."
+      sleep 3600
+    resources:
+      limits:
+        amd.com/gpu: 1
+    securityContext:
+      privileged: true  # Needed for full GPU access debugging
+    volumeMounts:
+    - name: dri
+      mountPath: /dev/dri
+    - name: kfd  
+      mountPath: /dev/kfd
+    - name: sys
+      mountPath: /sys
+      readOnly: true
+  volumes:
+  - name: dri
+    hostPath:
+      path: /dev/dri
+  - name: kfd
+    hostPath:
+      path: /dev/kfd
+  - name: sys
+    hostPath:
+      path: /sys
+  restartPolicy: Never
