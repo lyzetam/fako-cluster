@@ -8,11 +8,11 @@ resources:
   - homebot
   
   # AI/ML stack with GPU support
-  - ollama
-  - ollama-webui
-  - whisper
-  - piper
-  - openwakeword
+  # - ollama
+  # - ollama-webui
+  # - whisper
+  # - piper
+  # - openwakeword
   - voice-monitor
   
   # GPU resources and testing
