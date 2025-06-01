@@ -1,4 +1,4 @@
-# apps/base/whisper/deployment-gpu-fixed.yaml
+# apps/base/whisper/deployment-gpu-working.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,35 +22,143 @@ spec:
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule
+      initContainers:
+      # Install wyoming-whisper in a CUDA container
+      - name: install-whisper
+        image: nvidia/cuda:12.2-cudnn8-runtime-ubuntu22.04
+        command:
+          - /bin/bash
+          - -c
+          - |
+            apt-get update && apt-get install -y python3-pip python3-dev git
+            pip3 install --upgrade pip
+            pip3 install wyoming-faster-whisper==2.0.0
+            # Copy installed files to shared volume
+            cp -r /usr/local/lib/python3.*/dist-packages/* /whisper-install/
+            cp /usr/local/bin/wyoming-faster-whisper /whisper-install/ || true
+        volumeMounts:
+        - name: whisper-install
+          mountPath: /whisper-install
+        resources:
+          limits:
+            nvidia.com/gpu: 1
       containers:
         - name: whisper
-          # Try version 2.0.0 which might have better compatibility
-          image: rhasspy/wyoming-whisper:2.0.0
+          # Use CUDA base image that matches your driver
+          image: nvidia/cuda:12.2-cudnn8-runtime-ubuntu22.04
+          ports:
+            - containerPort: 10300
+              protocol: TCP
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # Install Python and required packages
+              apt-get update && apt-get install -y python3 python3-pip ffmpeg
+              
+              # Copy whisper installation from init container
+              cp -r /whisper-install/* /usr/local/lib/python3.10/dist-packages/ || true
+              
+              # Install any missing dependencies
+              pip3 install wyoming-faster-whisper==2.0.0 || true
+              
+              # Run whisper
+              python3 -m wyoming_faster_whisper \
+                --uri tcp://0.0.0.0:10300 \
+                --model small \
+                --data-dir /data \
+                --download-dir /data \
+                --language en \
+                --beam-size 5 \
+                --device cuda
+          volumeMounts:
+            - mountPath: /data
+              name: whisper-models
+            - mountPath: /whisper-install
+              name: whisper-install
+          resources:
+            requests:
+              memory: "3Gi"
+              cpu: "1000m"
+              nvidia.com/gpu: 1
+            limits:
+              memory: "6Gi"
+              cpu: "2000m"
+              nvidia.com/gpu: 1
+          env:
+            - name: CUDA_VISIBLE_DEVICES
+              value: "0"
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: "compute,utility"
+          livenessProbe:
+            tcpSocket:
+              port: 10300
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            tcpSocket:
+              port: 10300
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+      volumes:
+        - name: whisper-models
+          persistentVolumeClaim:
+            claimName: whisper-models
+        - name: whisper-install
+          emptyDir: {}
+
+---
+# Alternative: Use a pre-built Whisper image that works
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisper-gpu-alt
+  namespace: whisper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: whisper-gpu-alt
+  template:
+    metadata:
+      labels:
+        app: whisper-gpu-alt
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector:
+        kubernetes.io/hostname: playground
+        nvidia.com/gpu: "true"
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+        - name: whisper
+          # Use a custom Whisper build with Wyoming protocol
+          image: docker.io/jmtatsch/wyoming-faster-whisper:latest
           ports:
             - containerPort: 10300
               protocol: TCP
           args:
             - "--model"
-            - "small"  # RTX 3050 can handle small model easily
+            - "small"
             - "--uri"
             - "tcp://0.0.0.0:10300"
             - "--data-dir"
             - "/data"
-            - "--download-dir"
-            - "/data"
             - "--language"
             - "en"
-            - "--beam-size"
-            - "5"
             - "--device"
             - "cuda"
           volumeMounts:
             - mountPath: /data
               name: whisper-models
-            # Mount NVIDIA libraries from host
-            - mountPath: /usr/local/nvidia
-              name: nvidia-libs
-              readOnly: true
           resources:
             requests:
               memory: "2Gi"
@@ -63,36 +171,7 @@ spec:
           env:
             - name: CUDA_VISIBLE_DEVICES
               value: "0"
-            - name: NVIDIA_VISIBLE_DEVICES
-              value: "all"
-            - name: NVIDIA_DRIVER_CAPABILITIES
-              value: "compute,utility"
-            # Add library paths
-            - name: LD_LIBRARY_PATH
-              value: "/usr/local/nvidia/lib64:/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
-            # Force using system cuDNN
-            - name: CUDNN_PATH
-              value: "/usr/local/cuda"
-          livenessProbe:
-            tcpSocket:
-              port: 10300
-            initialDelaySeconds: 120
-            periodSeconds: 30
-            timeoutSeconds: 10
-            failureThreshold: 5
-          readinessProbe:
-            tcpSocket:
-              port: 10300
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 5
       volumes:
         - name: whisper-models
           persistentVolumeClaim:
             claimName: whisper-models
-        # Mount NVIDIA libraries from host
-        - name: nvidia-libs
-          hostPath:
-            path: /usr/lib/x86_64-linux-gnu
-            type: Directory
