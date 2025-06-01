@@ -20,30 +20,7 @@ resources:
   # - node-labeling   # Node labeling job
   
   # Cleanup old resources (run once)
-  - gpu-cleanup      # Add this line
-  - whisper-debug
+  # - gpu-cleanup      # Add this line
+  # - whisper-debug
 
 
-
-# # apps/staging/kustomization.yaml
-# apiVersion: kustomize.config.k8s.io/v1beta1
-# kind: Kustomization
-# resources:
-#   # Core applications
-#   - linkding
-#   - audiobookshelf
-#   - homebot
-  
-#   # AI/ML stack with GPU support
-#   # - ollama
-#   # - ollama-webui
-#   # - whisper
-#   # - piper
-#   # - openwakeword
-#   - voice-monitor
-  
-#   # GPU resources and testing
-#   # - nvidia-gpu-test
-  
-#   # Cleanup old resources (run once)
-#   - cleanup-old-gpu
