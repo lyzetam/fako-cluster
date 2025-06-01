@@ -51,11 +51,11 @@ spec:
             requests:
               memory: "8Gi"
               cpu: "2000m"
-              nvidia.com/gpu: 1  # Request GPU
+              # nvidia.com/gpu: 1  # Request GPU
             limits:
               memory: "16Gi"
               cpu: "4000m"
-              nvidia.com/gpu: 1  # Limit to 1 GPU
+              # nvidia.com/gpu: 1  # Limit to 1 GPU
           livenessProbe:
             httpGet:
               path: /api/tags
