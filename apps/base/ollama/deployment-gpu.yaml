@@ -13,29 +13,48 @@ spec:
       labels:
         app: ollama-gpu
     spec:
+      # CRITICAL: Use NVIDIA runtime for GPU support
+      runtimeClassName: nvidia
+      
       nodeSelector:
-        # Still use the high-performance node, but don't request GPU
-        kubernetes.io/hostname: playground 
+        kubernetes.io/hostname: playground
+        nvidia.com/gpu: "true"
+      
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      
       containers:
         - name: ollama
-          image: ollama/ollama:latest  # Use regular image, not rocm
+          # Use the GPU-enabled Ollama image
+          image: ollama/ollama:latest
           ports:
             - containerPort: 11434
               protocol: TCP
           envFrom:
             - configMapRef:
                 name: ollama-configmap
+          env:
+            # Ensure GPU is visible
+            - name: CUDA_VISIBLE_DEVICES
+              value: "0"
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: "compute,utility"
           volumeMounts:
             - mountPath: /root/.ollama
               name: ollama-models
           resources:
             requests:
               memory: "8Gi"
-              cpu: "4000m"
-              # NO GPU REQUEST - Let Whisper have it
+              cpu: "2000m"
+              nvidia.com/gpu: 1  # Request GPU
             limits:
               memory: "16Gi"
-              cpu: "8000m"
+              cpu: "4000m"
+              nvidia.com/gpu: 1  # Limit to 1 GPU
           livenessProbe:
             httpGet:
               path: /api/tags
@@ -51,7 +70,7 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
         
-        # Model manager sidecar
+        # Model manager sidecar - no GPU needed
         - name: model-manager
           image: ollama/ollama:latest
           command: ["/bin/sh"]
@@ -63,16 +82,17 @@ spec:
               
               export OLLAMA_HOST=http://localhost:11434
               
-              # Download CPU-optimized smaller models
-              echo "Downloading CPU-optimized models..."
+              # Download GPU-optimized models
+              echo "Downloading GPU-optimized models..."
               
-              ollama pull phi3:mini || echo "Failed to pull phi3:mini"
-              ollama pull tinyllama || echo "Failed to pull tinyllama"
+              # GPU-optimized models
               ollama pull llama3.2:3b || echo "Failed to pull llama3.2:3b"
               ollama pull llama3.2:1b || echo "Failed to pull llama3.2:1b"
               ollama pull llama3:8b || echo "Failed to pull llama3:8b"
-              echo "Model download complete."
+              ollama pull mistral:7b || echo "Failed to pull mistral:7b"
+              ollama pull phi3:medium || echo "Failed to pull phi3:medium"
               
+              echo "Model download complete."
               echo "Available models:"
               ollama list
               
@@ -95,3 +115,103 @@ spec:
         - name: ollama-models
           persistentVolumeClaim:
             claimName: ollama-models
+
+
+
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: ollama-gpu
+#   namespace: ollama
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: ollama-gpu
+#   template:
+#     metadata:
+#       labels:
+#         app: ollama-gpu
+#     spec:
+#       nodeSelector:
+#         # Still use the high-performance node, but don't request GPU
+#         kubernetes.io/hostname: playground 
+#       containers:
+#         - name: ollama
+#           image: ollama/ollama:latest  # Use regular image, not rocm
+#           ports:
+#             - containerPort: 11434
+#               protocol: TCP
+#           envFrom:
+#             - configMapRef:
+#                 name: ollama-configmap
+#           volumeMounts:
+#             - mountPath: /root/.ollama
+#               name: ollama-models
+#           resources:
+#             requests:
+#               memory: "8Gi"
+#               cpu: "4000m"
+#               # NO GPU REQUEST - Let Whisper have it
+#             limits:
+#               memory: "16Gi"
+#               cpu: "8000m"
+#           livenessProbe:
+#             httpGet:
+#               path: /api/tags
+#               port: 11434
+#             initialDelaySeconds: 60
+#             periodSeconds: 30
+#             timeoutSeconds: 10
+#           readinessProbe:
+#             httpGet:
+#               path: /api/tags
+#               port: 11434
+#             initialDelaySeconds: 30
+#             periodSeconds: 10
+#             timeoutSeconds: 5
+        
+#         # Model manager sidecar
+#         - name: model-manager
+#           image: ollama/ollama:latest
+#           command: ["/bin/sh"]
+#           args:
+#             - -c
+#             - |
+#               echo "Model manager starting..."
+#               sleep 60
+              
+#               export OLLAMA_HOST=http://localhost:11434
+              
+#               # Download CPU-optimized smaller models
+#               echo "Downloading CPU-optimized models..."
+              
+#               ollama pull phi3:mini || echo "Failed to pull phi3:mini"
+#               ollama pull tinyllama || echo "Failed to pull tinyllama"
+#               ollama pull llama3.2:3b || echo "Failed to pull llama3.2:3b"
+#               ollama pull llama3.2:1b || echo "Failed to pull llama3.2:1b"
+#               ollama pull llama3:8b || echo "Failed to pull llama3:8b"
+#               echo "Model download complete."
+              
+#               echo "Available models:"
+#               ollama list
+              
+#               # Keep container alive
+#               while true; do
+#                 sleep 600
+#                 echo "Model manager heartbeat..."
+#               done
+#           volumeMounts:
+#             - mountPath: /root/.ollama
+#               name: ollama-models
+#           resources:
+#             requests:
+#               memory: "1Gi"
+#               cpu: "500m"
+#             limits:
+#               memory: "2Gi"
+#               cpu: "1000m"
+#       volumes:
+#         - name: ollama-models
+#           persistentVolumeClaim:
+#             claimName: ollama-models
