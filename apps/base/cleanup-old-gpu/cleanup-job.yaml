@@ -55,6 +55,10 @@ spec:
           kubectl label nodes playground gpu.nvidia.present=true --overwrite
           kubectl label nodes playground node-role.kubernetes.io/gpu-worker=true --overwrite
           kubectl label nodes playground accelerator=nvidia-gpu --overwrite
+          kubectl label nodes playground hardware.tier=gpu --overwrite
+          kubectl label nodes playground voice-pipeline=enabled --overwrite
+          kubectl label nodes playground node-type=gpu-compute --overwrite
+          kubectl label nodes playground feature.node.kubernetes.io/pci-10de.present=true --overwrite
           
           echo "=== Old GPU Resource Cleanup Complete ==="
           
