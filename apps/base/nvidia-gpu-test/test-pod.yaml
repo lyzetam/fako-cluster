@@ -14,56 +14,51 @@ spec:
   - key: nvidia.com/gpu
     operator: Exists
     effect: NoSchedule
-  containers:
+containers:
   - name: cuda-test
     image: nvidia/cuda:12.2-base-ubuntu22.04
     command:
-    - bash
-    - -c
-    - |
-      echo "=== NVIDIA GPU Test Pod ==="
-      echo "Date: $(date)"
-      echo "Node: $(hostname)"
-      echo ""
-      
-      echo "=== NVIDIA SMI Output ==="
-      nvidia-smi || echo "nvidia-smi not available"
-      echo ""
-      
-      echo "=== CUDA Device Query ==="
-      if command -v nvcc >/dev/null 2>&1; then
-        nvcc --version
-      else
-        echo "NVCC not available in this image"
-      fi
-      echo ""
-      
-      echo "=== Environment Variables ==="
-      env | grep -E "(CUDA|NVIDIA|GPU)" | sort
-      echo ""
-      
-      echo "=== PCI Devices ==="
-      apt-get update -qq && apt-get install -y pciutils 2>/dev/null
-      lspci | grep -i nvidia || echo "No NVIDIA devices found in lspci"
-      echo ""
-      
-      echo "=== /dev/nvidia* devices ==="
-      ls -la /dev/nvidia* 2>/dev/null || echo "No /dev/nvidia* devices found"
-      echo ""
-      
-      echo "=== GPU Memory Info ==="
-      nvidia-smi --query-gpu=memory.total,memory.used,memory.free --format=csv,noheader,nounits 2>/dev/null || echo "Could not query GPU memory"
-      echo ""
-      
-      echo "=== Runtime Information ==="
-      echo "Container Runtime: $(cat /proc/1/cgroup | head -1)"
-      echo "NVIDIA Runtime Test: SUCCESS"
-      echo ""
-      
-      echo "Test complete. Pod will remain running for debugging..."
-      sleep 3600
-    resources:
-      limits:
-        nvidia.com/gpu: 1
-      requests:
-        nvidia.com/gpu: 1
+      - /bin/bash
+      - -c
+      - |
+        echo "=== NVIDIA GPU Test Pod ==="
+        echo "Date: $(date)"
+        echo "Node: $(hostname)"
+        echo ""
+        
+        echo "=== NVIDIA SMI Output ==="
+        nvidia-smi || echo "nvidia-smi not available"
+        echo ""
+        
+        echo "=== CUDA Device Query ==="
+        if command -v nvcc >/dev/null 2>&1; then
+          nvcc --version
+        else
+          echo "NVCC not available in this image"
+        fi
+        echo ""
+        
+        echo "=== Environment Variables ==="
+        env | grep -E "(CUDA|NVIDIA|GPU)" | sort
+        echo ""
+        
+        echo "=== PCI Devices ==="
+        apt-get update -qq && apt-get install -y pciutils 2>/dev/null
+        lspci | grep -i nvidia || echo "No NVIDIA devices found in lspci"
+        echo ""
+        
+        echo "=== /dev/nvidia* devices ==="
+        ls -la /dev/nvidia* 2>/dev/null || echo "No /dev/nvidia* devices found"
+        echo ""
+        
+        echo "=== GPU Memory Info ==="
+        nvidia-smi --query-gpu=memory.total,memory.used,memory.free --format=csv,noheader,nounits 2>/dev/null || echo "Could not query GPU memory"
+        echo ""
+        
+        echo "=== Runtime Information ==="
+        echo "Container Runtime: $(cat /proc/1/cgroup | head -1)"
+        echo "NVIDIA Runtime Test: SUCCESS"
+        echo ""
+        
+        echo "Test complete. Pod will remain running for debugging..."
+        sleep 3600
