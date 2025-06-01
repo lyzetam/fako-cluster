@@ -116,6 +116,19 @@ spec:
             echo "✓ Labels applied to $node"
           }
           
+          # Remove GPU labels from non-GPU nodes
+          remove_gpu_labels() {
+            local node=$1
+            echo "Removing GPU labels from node: $node"
+            
+            kubectl label nodes "$node" nvidia.com/gpu- --overwrite 2>/dev/null || true
+            kubectl label nodes "$node" accelerator- --overwrite 2>/dev/null || true
+            kubectl label nodes "$node" gpu.nvidia.present- --overwrite 2>/dev/null || true
+            kubectl label nodes "$node" node-role.kubernetes.io/gpu-worker- --overwrite 2>/dev/null || true
+            
+            echo "✓ GPU labels removed from $node"
+          }
+          
           # Get current nodes
           echo "Current cluster nodes:"
           kubectl get nodes -o wide
@@ -129,12 +142,13 @@ spec:
             echo "WARNING: playground node not found!"
           fi
           
-          # Check pgbee node and remove old labels if needed
-          if kubectl get node pgbee > /dev/null 2>&1; then
-            echo "Found pgbee node - removing any old GPU labels..."
-            kubectl label nodes pgbee node-role.kubernetes.io/gpu-worker- --overwrite 2>/dev/null || true
-            echo "✓ Cleaned pgbee node"
-          fi
+          # Remove GPU labels from non-GPU nodes
+          for node in pgbee pgmac01 pgmac02 pglenovo01 pglenovo02 thinkpad01 zz-macbookpro; do
+            if kubectl get node $node > /dev/null 2>&1; then
+              echo "Found $node - removing any GPU labels..."
+              remove_gpu_labels $node
+            fi
+          done
           
           # Final verification
           echo ""

@@ -17,7 +17,7 @@ spec:
       labels:
         name: nvidia-device-plugin-ds
     spec:
-      # ADD THE NVIDIA RUNTIME CLASS - THIS WAS THE KEY FIX!
+      # CRITICAL: Only run on nodes with the nvidia runtime configured
       runtimeClassName: nvidia
       tolerations:
       - key: nvidia.com/gpu
@@ -25,9 +25,18 @@ spec:
         effect: NoSchedule
       - key: CriticalAddonsOnly
         operator: Exists
+      # CRITICAL: Only run on nodes with NVIDIA GPU
       nodeSelector:
         nvidia.com/gpu: "true"
-        kubernetes.io/hostname: playground  # Targeting playground node
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - playground
       priorityClassName: "system-node-critical"
       containers:
       - image: nvcr.io/nvidia/k8s-device-plugin:v0.15.0
@@ -36,25 +45,26 @@ spec:
           - name: FAIL_ON_INIT_ERROR
             value: "false"
           - name: MPS_ROOT
-            value: "/tmp/nvidia-mps"
+            value: "/run/nvidia/mps"
           - name: NVIDIA_MIG_MONITOR_DEVICES
             value: "all"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop: ["ALL"]
+          privileged: true  # Required for device access
         volumeMounts:
         - name: device-plugin
           mountPath: /var/lib/kubelet/device-plugins
         - name: nvidia-mps
-          mountPath: /tmp/nvidia-mps
+          mountPath: /run/nvidia/mps
         resources:
           requests:
             cpu: 50m
             memory: 10Mi
           limits:
-            cpu: 50m
-            memory: 20Mi
+            cpu: 100m
+            memory: 50Mi
         livenessProbe:
           httpGet:
             path: /healthz
@@ -75,7 +85,8 @@ spec:
       - name: device-plugin
         hostPath:
           path: /var/lib/kubelet/device-plugins
+          type: DirectoryOrCreate
       - name: nvidia-mps
         hostPath:
-          path: /tmp/nvidia-mps
+          path: /run/nvidia/mps
           type: DirectoryOrCreate
