@@ -1,3 +1,4 @@
+# infrastructure/controllers/base/nvidia-gpu/runtime-class.yaml
 apiVersion: node.k8s.io/v1
 kind: RuntimeClass
 metadata:
@@ -8,3 +9,5 @@ scheduling:
   - key: nvidia.com/gpu
     operator: Exists
     effect: NoSchedule
+  nodeSelector:
+    nvidia.com/gpu: "true"

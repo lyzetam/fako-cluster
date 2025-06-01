@@ -1,3 +1,4 @@
+# apps/base/node-labeling/label-nodes-job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -18,11 +19,16 @@ spec:
         - |
           echo "=== Node Labeling for Voice Pipeline ==="
           
-          # Label playground as GPU node
-          echo "Labeling playground node..."
+          # Label playground as GPU node with ALL required labels
+          echo "Labeling playground node with complete GPU labels..."
           kubectl label nodes playground hardware.tier=gpu --overwrite
           kubectl label nodes playground node-type=gpu-compute --overwrite
           kubectl label nodes playground voice-pipeline=enabled --overwrite
+          kubectl label nodes playground nvidia.com/gpu=true --overwrite
+          kubectl label nodes playground gpu.nvidia.present=true --overwrite
+          kubectl label nodes playground node-role.kubernetes.io/gpu-worker=true --overwrite
+          kubectl label nodes playground accelerator=nvidia-gpu --overwrite
+          kubectl label nodes playground feature.node.kubernetes.io/pci-10de.present=true --overwrite
           
           # Label high-performance nodes
           for node in pgbee pgmac01 pgmac02; do
