@@ -4,3 +4,4 @@ resources:
   - renovate
   - nfs-storage
   - nvidia-gpu
+  - cluster-diagnostics

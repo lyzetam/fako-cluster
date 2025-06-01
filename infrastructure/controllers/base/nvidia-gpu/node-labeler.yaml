@@ -1,22 +1,41 @@
+# infrastructure/controllers/base/nvidia-gpu/node-labeler-updated.yaml
+# This is an updated version of the node-labeler.yaml that provides more comprehensive
+# GPU node detection and labeling capabilities
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: nvidia-node-labeler
   namespace: nvidia-device-plugin
+  labels:
+    app.kubernetes.io/name: nvidia-node-labeler
+    app.kubernetes.io/part-of: nvidia-gpu-infrastructure
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: nvidia-node-labeler
+  labels:
+    app.kubernetes.io/name: nvidia-node-labeler
+    app.kubernetes.io/part-of: nvidia-gpu-infrastructure
 rules:
 - apiGroups: [""]
   resources: ["nodes"]
   verbs: ["get", "list", "patch", "update"]
+- apiGroups: [""]
+  resources: ["nodes/status"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: nvidia-node-labeler
+  labels:
+    app.kubernetes.io/name: nvidia-node-labeler
+    app.kubernetes.io/part-of: nvidia-gpu-infrastructure
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -31,15 +50,54 @@ kind: Job
 metadata:
   name: label-nvidia-gpu-nodes
   namespace: nvidia-device-plugin
+  labels:
+    app.kubernetes.io/name: nvidia-node-labeler
+    app.kubernetes.io/part-of: nvidia-gpu-infrastructure
+  annotations:
+    description: "Labels nodes with NVIDIA GPUs for device plugin deployment"
 spec:
+  # Clean up after 5 minutes
+  ttlSecondsAfterFinished: 300
+  
+  # Retry up to 3 times
   backoffLimit: 3
+  
+  # Job timeout
+  activeDeadlineSeconds: 600
+  
   template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nvidia-node-labeler
+        app.kubernetes.io/part-of: nvidia-gpu-infrastructure
     spec:
       serviceAccountName: nvidia-node-labeler
       restartPolicy: OnFailure
+      
+      # Run on control plane to avoid GPU node issues
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+        
       containers:
       - name: labeler
         image: bitnami/kubectl:1.29
+        imagePullPolicy: IfNotPresent
+        
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+            
         command:
         - /bin/bash
         - -c
@@ -47,27 +105,51 @@ spec:
           #!/bin/bash
           set -e
           
-          NODE_NAME="playground"
-          echo "=== Labeling ${NODE_NAME} node for NVIDIA GPU support ==="
+          echo "=== NVIDIA GPU Node Labeling Job ==="
+          echo "Date: $(date)"
+          echo ""
           
-          # Check if node exists
-          if ! kubectl get node ${NODE_NAME} > /dev/null 2>&1; then
-            echo "Error: Node ${NODE_NAME} not found in cluster"
-            kubectl get nodes
-            exit 1
+          # Function to label a node
+          label_node() {
+            local node=$1
+            echo "Labeling node: $node"
+            
+            # Apply all GPU-related labels
+            kubectl label nodes "$node" nvidia.com/gpu=true --overwrite
+            kubectl label nodes "$node" accelerator=nvidia-gpu --overwrite
+            kubectl label nodes "$node" gpu.nvidia.present=true --overwrite
+            kubectl label nodes "$node" feature.node.kubernetes.io/pci-10de.present=true --overwrite
+            kubectl label nodes "$node" node-role.kubernetes.io/gpu-worker=true --overwrite
+            kubectl label nodes "$node" hardware.tier=gpu --overwrite
+            
+            echo "✓ Labels applied to $node"
+          }
+          
+          # Get current nodes
+          echo "Current cluster nodes:"
+          kubectl get nodes -o wide
+          echo ""
+          
+          # Label playground node (from your config)
+          if kubectl get node playground > /dev/null 2>&1; then
+            echo "Found playground node - applying GPU labels..."
+            label_node playground
+          else
+            echo "WARNING: playground node not found!"
           fi
           
-          # Apply NVIDIA GPU labels
-          kubectl label nodes ${NODE_NAME} nvidia.com/gpu=true --overwrite
-          kubectl label nodes ${NODE_NAME} accelerator=nvidia-gpu --overwrite
-          kubectl label nodes ${NODE_NAME} gpu.nvidia.present=true --overwrite
-          kubectl label nodes ${NODE_NAME} feature.node.kubernetes.io/pci-10de.present=true --overwrite
+          # Check pgbee node and remove old labels if needed
+          if kubectl get node pgbee > /dev/null 2>&1; then
+            echo "Found pgbee node - removing any old GPU labels..."
+            kubectl label nodes pgbee node-role.kubernetes.io/gpu-worker- --overwrite 2>/dev/null || true
+            echo "✓ Cleaned pgbee node"
+          fi
           
-          echo "Node labels applied successfully"
+          # Final verification
           echo ""
-          echo "Current ${NODE_NAME} node labels:"
-          kubectl get nodes ${NODE_NAME} --show-labels | grep nvidia
+          echo "=== Verification ==="
+          echo "GPU-labeled nodes:"
+          kubectl get nodes -l nvidia.com/gpu=true --show-labels | grep -E "(nvidia|gpu)" || echo "No GPU labels found"
           
           echo ""
-          echo "Checking for GPU resources on ${NODE_NAME}:"
-          kubectl describe node ${NODE_NAME} | grep -A 5 "Allocatable:" || true
+          echo "=== Job completed successfully ==="

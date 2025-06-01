@@ -1,0 +1,6 @@
+# infrastructure/controllers/staging/cluster-diagnostics/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cluster-diagnostics
+resources:
+  - ../../base/cluster-diagnostics/

@@ -1,0 +1,8 @@
+# infrastructure/controllers/base/cluster-diagnostics/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cluster-diagnostics
+  labels:
+    app.kubernetes.io/name: cluster-diagnostics
+    app.kubernetes.io/component: infrastructure
