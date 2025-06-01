@@ -19,35 +19,61 @@ spec:
         - |
           echo "=== Node Labeling for Voice Pipeline ==="
           
+          # Function to safely apply label
+          apply_label() {
+            local node=$1
+            local label=$2
+            echo -n "  Applying $label to $node: "
+            if kubectl label nodes "$node" "$label" --overwrite 2>&1; then
+              echo "✓"
+            else
+              echo "✗ (may already exist)"
+            fi
+          }
+          
           # Label playground as GPU node with ALL required labels
           echo "Labeling playground node with complete GPU labels..."
-          kubectl label nodes playground hardware.tier=gpu --overwrite
-          kubectl label nodes playground node-type=gpu-compute --overwrite
-          kubectl label nodes playground voice-pipeline=enabled --overwrite
-          kubectl label nodes playground nvidia.com/gpu=true --overwrite
-          kubectl label nodes playground gpu.nvidia.present=true --overwrite
-          kubectl label nodes playground node-role.kubernetes.io/gpu-worker=true --overwrite
-          kubectl label nodes playground accelerator=nvidia-gpu --overwrite
-          kubectl label nodes playground feature.node.kubernetes.io/pci-10de.present=true --overwrite
+          if kubectl get node playground > /dev/null 2>&1; then
+            apply_label playground "hardware.tier=gpu"
+            apply_label playground "node-type=gpu-compute"
+            apply_label playground "voice-pipeline=enabled"
+            apply_label playground "nvidia.com/gpu=true"
+            apply_label playground "gpu.nvidia.present=true"
+            apply_label playground "node-role.kubernetes.io/gpu-worker=true"
+            apply_label playground "accelerator=nvidia-gpu"
+            apply_label playground "feature.node.kubernetes.io/pci-10de.present=true"
+          else
+            echo "ERROR: playground node not found!"
+          fi
           
           # Label high-performance nodes
+          echo -e "\nLabeling high-performance nodes..."
           for node in pgbee pgmac01 pgmac02; do
             if kubectl get node $node > /dev/null 2>&1; then
               echo "Labeling $node as high-performance..."
-              kubectl label nodes $node hardware.tier=high-performance --overwrite
-              kubectl label nodes $node voice-pipeline=enabled --overwrite
+              apply_label $node "hardware.tier=high-performance"
+              apply_label $node "voice-pipeline=enabled"
             fi
           done
           
           # Label standard nodes
+          echo -e "\nLabeling standard nodes..."
           for node in pglenovo01 pglenovo02 thinkpad01; do
             if kubectl get node $node > /dev/null 2>&1; then
               echo "Labeling $node as standard..."
-              kubectl label nodes $node hardware.tier=standard --overwrite
+              apply_label $node "hardware.tier=standard"
             fi
           done
           
           # Show results
           echo ""
-          echo "=== Node Labels ==="
-          kubectl get nodes --show-labels
+          echo "=== Final Node Labels Summary ==="
+          echo ""
+          echo "GPU Node (playground):"
+          kubectl get node playground --show-labels | grep -E "(nvidia|gpu|voice)" || echo "playground node not found"
+          echo ""
+          echo "High-Performance Nodes:"
+          kubectl get nodes -l hardware.tier=high-performance --show-labels | grep voice-pipeline || echo "No high-performance nodes labeled"
+          echo ""
+          echo "All Nodes:"
+          kubectl get nodes -L hardware.tier,voice-pipeline,nvidia.com/gpu
