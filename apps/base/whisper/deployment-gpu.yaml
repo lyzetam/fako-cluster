@@ -10,7 +10,7 @@ spec:
     matchLabels:
       app: whisper-gpu
   strategy:
-    type: Recreate  # Important for GPU resources
+    type: RollingUpdate  # Important for GPU resources
   template:
     metadata:
       labels:
