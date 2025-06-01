@@ -16,11 +16,11 @@ resources:
   
   # GPU resources and testing
   # - nvidia-gpu-test # Re-enable for verification
-  - gpu-verification # New verification job
+  # - gpu-verification # New verification job
   # - node-labeling   # Node labeling job
   
   # Cleanup old resources (run once)
-  # - cleanup-old-gpu  # Comment out after first run
+  - cleanup-old-gpu  # Comment out after first run
 
 
 
