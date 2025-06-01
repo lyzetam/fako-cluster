@@ -1,4 +1,3 @@
-# apps/staging/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
@@ -8,15 +7,42 @@ resources:
   - homebot
   
   # AI/ML stack with GPU support
-  # - ollama
-  # - ollama-webui
-  # - whisper
-  # - piper
-  # - openwakeword
+  - ollama          # Re-enable with GPU support
+  - ollama-webui    # Re-enable
+  - whisper         # Re-enable with GPU
+  - piper           # Re-enable
+  - openwakeword    # Re-enable
   - voice-monitor
   
   # GPU resources and testing
-  # - nvidia-gpu-test
+  - nvidia-gpu-test # Re-enable for verification
+  - gpu-verification # New verification job
+  - node-labeling   # Node labeling job
   
   # Cleanup old resources (run once)
-  - cleanup-old-gpu
+  # - cleanup-old-gpu  # Comment out after first run
+
+
+
+# # apps/staging/kustomization.yaml
+# apiVersion: kustomize.config.k8s.io/v1beta1
+# kind: Kustomization
+# resources:
+#   # Core applications
+#   - linkding
+#   - audiobookshelf
+#   - homebot
+  
+#   # AI/ML stack with GPU support
+#   # - ollama
+#   # - ollama-webui
+#   # - whisper
+#   # - piper
+#   # - openwakeword
+#   - voice-monitor
+  
+#   # GPU resources and testing
+#   # - nvidia-gpu-test
+  
+#   # Cleanup old resources (run once)
+#   - cleanup-old-gpu
