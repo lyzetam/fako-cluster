@@ -21,4 +21,4 @@ spec:
   storageClassName: nfs-csi
   resources:
     requests:
-      storage: 2Gi  # For wake word models
+      storage: 5Gi  # For wake word models
