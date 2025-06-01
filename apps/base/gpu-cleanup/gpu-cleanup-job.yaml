@@ -1,0 +1,82 @@
+# apps/base/gpu-cleanup/gpu-cleanup-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gpu-cleanup
+  namespace: cleanup-jobs
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: cleanup-admin
+      restartPolicy: Never
+      containers:
+      - name: cleanup
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "=== GPU Resource Cleanup ==="
+          echo "Date: $(date)"
+          echo ""
+          
+          # 1. Show current GPU status
+          echo "1. Current GPU Resource Status:"
+          echo "==============================="
+          kubectl describe node playground | grep -A10 "Allocated resources:" || echo "Node not found"
+          echo ""
+          
+          # 2. Find all pods using GPU
+          echo "2. Pods currently using GPU:"
+          echo "============================"
+          kubectl get pods -A -o json | jq -r '.items[] | select(.spec.containers[]?.resources.requests."nvidia.com/gpu" or .spec.containers[]?.resources.limits."nvidia.com/gpu") | "\(.metadata.namespace)/\(.metadata.name) - Status: \(.status.phase)"' || echo "No GPU pods found"
+          echo ""
+          
+          # 3. Clean up failed/stuck Whisper pods
+          echo "3. Cleaning up Whisper namespace:"
+          echo "================================="
+          # Delete specific stuck pods
+          kubectl delete pod -n whisper whisper-gpu-9dd97fb4-zz997 --force --grace-period=0 2>/dev/null || echo "Pod already gone"
+          kubectl delete pod -n whisper whisper-gpu-alt-75944557f7-dhm2j --force --grace-period=0 2>/dev/null || echo "Pod already gone"
+          
+          # Delete the alternative deployment
+          kubectl delete deployment -n whisper whisper-gpu-alt --force --grace-period=0 2>/dev/null || echo "Alt deployment already gone"
+          
+          # Scale down whisper-gpu to 0 then back to 1
+          echo "Restarting whisper-gpu deployment..."
+          kubectl scale deployment -n whisper whisper-gpu --replicas=0
+          sleep 5
+          kubectl scale deployment -n whisper whisper-gpu --replicas=1
+          
+          # 4. Check NVIDIA device plugin
+          echo ""
+          echo "4. NVIDIA Device Plugin Status:"
+          echo "==============================="
+          kubectl get pods -n nvidia-device-plugin -o wide
+          
+          # Restart device plugin if needed
+          echo "Restarting NVIDIA device plugin..."
+          kubectl rollout restart daemonset -n nvidia-device-plugin nvidia-device-plugin-daemonset 2>/dev/null || echo "Using alternative name..."
+          kubectl rollout restart daemonset -n nvidia-device-plugin nvidia-device-plugin-daemonset-noruntime 2>/dev/null || true
+          
+          # 5. Wait and verify
+          echo ""
+          echo "5. Waiting for cleanup to complete..."
+          sleep 10
+          
+          # 6. Final status
+          echo ""
+          echo "6. Final GPU Status:"
+          echo "==================="
+          echo "GPU Capacity:"
+          kubectl get node playground -o jsonpath='{.status.capacity.nvidia\.com/gpu}' || echo "0"
+          echo ""
+          echo "GPU Allocatable:"  
+          kubectl get node playground -o jsonpath='{.status.allocatable.nvidia\.com/gpu}' || echo "0"
+          echo ""
+          echo "Current GPU allocations:"
+          kubectl get pods -A -o custom-columns='NAMESPACE:.metadata.namespace,NAME:.metadata.name,GPU:.spec.containers[*].resources.requests.nvidia\.com/gpu,STATUS:.status.phase,NODE:.spec.nodeName' | grep -v '<none>' | grep -v 'GPU' || echo "No GPU allocations"
+          
+          echo ""
+          echo "=== GPU Cleanup Complete ==="
