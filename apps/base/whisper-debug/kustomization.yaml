@@ -5,3 +5,4 @@ kind: Kustomization
 namespace: cleanup-jobs
 resources:
   - whisper-debug-job.yaml
+  - namespace.yaml
