@@ -1,4 +1,4 @@
-# apps/base/whisper/deployment-gpu.yaml
+# apps/base/whisper/deployment-gpu-fixed.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,7 +14,7 @@ spec:
       labels:
         app: whisper-gpu
     spec:
-      runtimeClassName: nvidia  # Use NVIDIA runtime
+      runtimeClassName: nvidia
       nodeSelector:
         kubernetes.io/hostname: playground
         nvidia.com/gpu: "true"
@@ -24,13 +24,14 @@ spec:
         effect: NoSchedule
       containers:
         - name: whisper
-          image: rhasspy/wyoming-whisper:latest
+          # Try version 2.0.0 which might have better compatibility
+          image: rhasspy/wyoming-whisper:2.0.0
           ports:
             - containerPort: 10300
               protocol: TCP
           args:
             - "--model"
-            - "base"  # Good balance for GT 1030
+            - "small"  # RTX 3050 can handle small model easily
             - "--uri"
             - "tcp://0.0.0.0:10300"
             - "--data-dir"
@@ -40,12 +41,16 @@ spec:
             - "--language"
             - "en"
             - "--beam-size"
-            - "1"
+            - "5"
             - "--device"
-            - "cuda"  # Force CUDA device
+            - "cuda"
           volumeMounts:
             - mountPath: /data
               name: whisper-models
+            # Mount NVIDIA libraries from host
+            - mountPath: /usr/local/nvidia
+              name: nvidia-libs
+              readOnly: true
           resources:
             requests:
               memory: "2Gi"
@@ -62,25 +67,32 @@ spec:
               value: "all"
             - name: NVIDIA_DRIVER_CAPABILITIES
               value: "compute,utility"
+            # Add library paths
+            - name: LD_LIBRARY_PATH
+              value: "/usr/local/nvidia/lib64:/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+            # Force using system cuDNN
+            - name: CUDNN_PATH
+              value: "/usr/local/cuda"
           livenessProbe:
             tcpSocket:
               port: 10300
             initialDelaySeconds: 120
             periodSeconds: 30
             timeoutSeconds: 10
+            failureThreshold: 5
           readinessProbe:
             tcpSocket:
               port: 10300
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
-          startupProbe:
-            tcpSocket:
-              port: 10300
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            failureThreshold: 30
+            failureThreshold: 5
       volumes:
         - name: whisper-models
           persistentVolumeClaim:
             claimName: whisper-models
+        # Mount NVIDIA libraries from host
+        - name: nvidia-libs
+          hostPath:
+            path: /usr/lib/x86_64-linux-gnu
+            type: Directory
