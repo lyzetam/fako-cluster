@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: label-nodes-for-voice-pipeline
+  namespace: node-labeling
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: node-labeler
+      restartPolicy: Never
+      containers:
+      - name: labeler
+        image: bitnami/kubectl:1.29
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "=== Node Labeling for Voice Pipeline ==="
+          
+          # Label playground as GPU node
+          echo "Labeling playground node..."
+          kubectl label nodes playground hardware.tier=gpu --overwrite
+          kubectl label nodes playground node-type=gpu-compute --overwrite
+          kubectl label nodes playground voice-pipeline=enabled --overwrite
+          
+          # Label high-performance nodes
+          for node in pgbee pgmac01 pgmac02; do
+            if kubectl get node $node > /dev/null 2>&1; then
+              echo "Labeling $node as high-performance..."
+              kubectl label nodes $node hardware.tier=high-performance --overwrite
+              kubectl label nodes $node voice-pipeline=enabled --overwrite
+            fi
+          done
+          
+          # Label standard nodes
+          for node in pglenovo01 pglenovo02 thinkpad01; do
+            if kubectl get node $node > /dev/null 2>&1; then
+              echo "Labeling $node as standard..."
+              kubectl label nodes $node hardware.tier=standard --overwrite
+            fi
+          done
+          
+          # Show results
+          echo ""
+          echo "=== Node Labels ==="
+          kubectl get nodes --show-labels
