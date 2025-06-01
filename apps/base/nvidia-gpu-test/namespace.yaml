@@ -1,6 +1,0 @@
-
-# apps/base/nvidia-gpu-test/namespace.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: nvidia-gpu-test
