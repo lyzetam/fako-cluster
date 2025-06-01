@@ -1,12 +1,9 @@
+# # apps/base/ollama-webui/ingress.yaml
 # apiVersion: networking.k8s.io/v1
 # kind: Ingress
 # metadata:
 #   name: ollama-webui
 #   namespace: ollama-webui
-#   annotations:
-#     # WebSocket support for real-time chat
-#     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-#     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 # spec:
 #   ingressClassName: traefik
 #   rules:
@@ -21,7 +18,7 @@
 #                 port:
 #                   number: 8080
 
-# apps/base/ollama-webui/ingress.yaml
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -29,6 +26,10 @@ metadata:
   namespace: ollama-webui
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+      - ai.landryzetam.net
+      secretName: ollama-webui-tls-secret
   rules:
     - host: ai.landryzetam.net
       http:
