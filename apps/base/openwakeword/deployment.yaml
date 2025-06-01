@@ -14,6 +14,7 @@ spec:
         app: openwakeword
     spec:
       containers:
+        # Main OpenWakeWord container
         - name: openwakeword
           image: rhasspy/wyoming-openwakeword:latest
           ports:
@@ -24,6 +25,12 @@ spec:
             - "tcp://0.0.0.0:10400"
             - "--models-dir"
             - "/data"
+            - "--preload-model"
+            - "alexa"
+            - "--preload-model" 
+            - "hey_jarvis"
+            - "--preload-model"
+            - "hey_mycroft"
           env:
             - name: WYOMING_OPENWAKEWORD_URI
               value: "tcp://0.0.0.0:10400"
@@ -41,14 +48,99 @@ spec:
           livenessProbe:
             tcpSocket:
               port: 10400
-            initialDelaySeconds: 30
-            periodSeconds: 10
+            initialDelaySeconds: 60  # Allow time for sidecar to download models
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
           readinessProbe:
             tcpSocket:
               port: 10400
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            tcpSocket:
+              port: 10400
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12  # Allow up to 2 minutes for startup
+
+        # Model manager sidecar
+        - name: model-manager
+          image: busybox:latest
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              echo "Model manager starting..."
+              
+              # Function to download a model if it doesn't exist
+              download_model() {
+                local model_name="$1"
+                local model_url="$2"
+                local model_path="/data/${model_name}"
+                
+                if [ ! -f "$model_path" ]; then
+                  echo "Downloading ${model_name}..."
+                  wget -O "$model_path" "$model_url" && echo "✅ ${model_name} downloaded" || echo "❌ ${model_name} failed"
+                else
+                  echo "✅ ${model_name} already exists"
+                fi
+              }
+              
+              # Base URL for OpenWakeWord models
+              BASE_URL="https://github.com/dscripka/openWakeWord/raw/main/openwakeword/resources/models"
+              
+              # Create models directory
+              mkdir -p /data
+              
+              # Initial model download
+              echo "Checking and downloading required models..."
+              
+              # Core models (required)
+              download_model "melspectrogram.tflite" "${BASE_URL}/melspectrogram.tflite"
+              download_model "embedding_model.tflite" "${BASE_URL}/embedding_model.tflite"
+              
+              # Wake word models
+              download_model "alexa.tflite" "${BASE_URL}/alexa.tflite"
+              download_model "hey_jarvis.tflite" "${BASE_URL}/hey_jarvis.tflite"
+              download_model "hey_mycroft.tflite" "${BASE_URL}/hey_mycroft.tflite"
+              
+              # Optional additional models
+              download_model "ok_nabu.tflite" "${BASE_URL}/ok_nabu.tflite"
+              download_model "hey_rhasspy.tflite" "${BASE_URL}/hey_rhasspy.tflite"
+              
+              echo "Initial model check complete."
+              echo "Available models:"
+              ls -la /data/
+              
+              # Continuous monitoring loop
+              while true; do
+                echo "Model manager heartbeat - $(date)"
+                
+                # Check if any models are missing and re-download
+                download_model "melspectrogram.tflite" "${BASE_URL}/melspectrogram.tflite"
+                download_model "embedding_model.tflite" "${BASE_URL}/embedding_model.tflite"
+                download_model "alexa.tflite" "${BASE_URL}/alexa.tflite"
+                download_model "hey_jarvis.tflite" "${BASE_URL}/hey_jarvis.tflite"
+                download_model "hey_mycroft.tflite" "${BASE_URL}/hey_mycroft.tflite"
+                
+                # Sleep for 10 minutes before next check
+                sleep 600
+              done
+          volumeMounts:
+            - mountPath: /data
+              name: openwakeword-models
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
       volumes:
         - name: openwakeword-models
           persistentVolumeClaim:
-            claimName: openwakeword-models
+            claimName: openwakeword-models  # Using your existing PVC
