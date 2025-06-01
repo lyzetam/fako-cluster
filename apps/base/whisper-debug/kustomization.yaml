@@ -1,6 +1,7 @@
+
 # apps/base/whisper-debug/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: whisper-debug
+namespace: cleanup-jobs
 resources:
   - whisper-debug-job.yaml
