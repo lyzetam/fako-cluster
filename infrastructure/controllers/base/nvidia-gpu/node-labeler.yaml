@@ -1,7 +1,4 @@
 # infrastructure/controllers/base/nvidia-gpu/node-labeler-updated.yaml
-# This is an updated version of the node-labeler.yaml that provides more comprehensive
-# GPU node detection and labeling capabilities
-
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -53,16 +50,9 @@ metadata:
   labels:
     app.kubernetes.io/name: nvidia-node-labeler
     app.kubernetes.io/part-of: nvidia-gpu-infrastructure
-  annotations:
-    description: "Labels nodes with NVIDIA GPUs for device plugin deployment"
 spec:
-  # Clean up after 5 minutes
   ttlSecondsAfterFinished: 300
-  
-  # Retry up to 3 times
   backoffLimit: 3
-  
-  # Job timeout
   activeDeadlineSeconds: 600
   
   template:
@@ -74,7 +64,6 @@ spec:
       serviceAccountName: nvidia-node-labeler
       restartPolicy: OnFailure
       
-      # Run on control plane to avoid GPU node issues
       nodeSelector:
         node-role.kubernetes.io/control-plane: "true"
       tolerations:
@@ -121,6 +110,8 @@ spec:
             kubectl label nodes "$node" feature.node.kubernetes.io/pci-10de.present=true --overwrite
             kubectl label nodes "$node" node-role.kubernetes.io/gpu-worker=true --overwrite
             kubectl label nodes "$node" hardware.tier=gpu --overwrite
+            kubectl label nodes "$node" voice-pipeline=enabled --overwrite
+            kubectl label nodes "$node" node-type=gpu-compute --overwrite
             
             echo "✓ Labels applied to $node"
           }
