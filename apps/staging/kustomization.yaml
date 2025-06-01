@@ -20,7 +20,8 @@ resources:
   # - node-labeling   # Node labeling job
   
   # Cleanup old resources (run once)
-  - cleanup-old-gpu  # Comment out after first run
+  - gpu-cleanup      # Add this line
+  - whisper-debug
 
 
 
