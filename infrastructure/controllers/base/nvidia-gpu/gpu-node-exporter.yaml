@@ -19,6 +19,7 @@ spec:
       hostNetwork: true
       nodeSelector:
         kubernetes.io/hostname: playground  # Only run on playground node
+        nvidia.com/gpu: "true"
       tolerations:
       - key: nvidia.com/gpu
         operator: Exists
