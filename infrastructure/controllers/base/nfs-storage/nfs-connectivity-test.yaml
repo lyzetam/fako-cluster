@@ -1,0 +1,154 @@
+# infrastructure/controllers/base/nfs-storage/nfs-connectivity-test.yaml
+# Test job to validate NFS server connectivity before deploying applications
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nfs-test-script
+  namespace: nfs-system
+  labels:
+    app.kubernetes.io/name: nfs-connectivity-test
+    app.kubernetes.io/part-of: nfs-storage
+data:
+  test-nfs.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Configuration
+    NFS_SERVER="***NFS-IP-REMOVED***"
+    NFS_PATH="/volume1/k8s-storage"
+    NFS_VERSION="3"
+    
+    echo "========================================="
+    echo "NFS Connectivity Test"
+    echo "========================================="
+    echo "Date: $(date)"
+    echo "NFS Server: $NFS_SERVER"
+    echo "NFS Path: $NFS_PATH"
+    echo "NFS Version: $NFS_VERSION"
+    echo "========================================="
+    echo ""
+    
+    # Test 1: Network Connectivity
+    echo "Test 1: Network Connectivity"
+    if ping -c 3 -W 2 $NFS_SERVER > /dev/null 2>&1; then
+      echo "✓ Can reach NFS server"
+      ping -c 3 $NFS_SERVER
+    else
+      echo "✗ Cannot ping NFS server (ICMP might be blocked)"
+    fi
+    echo ""
+    
+    # Test 2: Port Check
+    echo "Test 2: NFS Port Check"
+    if timeout 2 bash -c "echo >/dev/tcp/$NFS_SERVER/2049" 2>/dev/null; then
+      echo "✓ Port 2049 (NFS) is open"
+    else
+      echo "✗ Port 2049 (NFS) is closed or filtered"
+    fi
+    echo ""
+    
+    # Test 3: Show Mount
+    echo "Test 3: Checking NFS Exports"
+    if command -v showmount > /dev/null 2>&1; then
+      showmount -e $NFS_SERVER 2>/dev/null || echo "✗ Could not list exports"
+    else
+      echo "Installing nfs-common..."
+      apt-get update -qq > /dev/null 2>&1
+      apt-get install -y nfs-common > /dev/null 2>&1
+      showmount -e $NFS_SERVER 2>/dev/null || echo "✗ Could not list exports"
+    fi
+    echo ""
+    
+    # Test 4: Mount Test
+    echo "Test 4: Mount Test"
+    MOUNT_POINT="/mnt/nfs-test"
+    mkdir -p $MOUNT_POINT
+    
+    if mount -t nfs -o vers=$NFS_VERSION,nolock $NFS_SERVER:$NFS_PATH $MOUNT_POINT 2>/tmp/mount-error.log; then
+      echo "✓ Mount successful!"
+      
+      # Test write
+      TEST_FILE="$MOUNT_POINT/test-$(date +%s).txt"
+      if echo "NFS write test at $(date)" > $TEST_FILE 2>/dev/null; then
+        echo "✓ Write test successful"
+        rm -f $TEST_FILE
+      else
+        echo "✗ Write test failed - check permissions"
+      fi
+      
+      # Show info
+      df -h $MOUNT_POINT
+      
+      # Unmount
+      umount $MOUNT_POINT
+      echo "✓ Unmount successful"
+    else
+      echo "✗ Mount failed!"
+      cat /tmp/mount-error.log
+      exit 1
+    fi
+    
+    echo ""
+    echo "========================================="
+    echo "✓ All NFS tests completed successfully!"
+    echo "========================================="
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nfs-connectivity-test
+  namespace: nfs-system
+  labels:
+    app.kubernetes.io/name: nfs-connectivity-test
+    app.kubernetes.io/part-of: nfs-storage
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 0
+  
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nfs-connectivity-test
+        app.kubernetes.io/part-of: nfs-storage
+    spec:
+      restartPolicy: Never
+      
+      containers:
+      - name: nfs-test
+        image: ubuntu:22.04
+        imagePullPolicy: IfNotPresent
+        
+        securityContext:
+          privileged: true
+          runAsUser: 0
+          
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+            
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Install required packages
+          apt-get update -qq > /dev/null 2>&1
+          apt-get install -y nfs-common iputils-ping > /dev/null 2>&1
+          
+          # Run test script
+          /scripts/test-nfs.sh
+          
+        volumeMounts:
+        - name: test-script
+          mountPath: /scripts
+          readOnly: true
+          
+      volumes:
+      - name: test-script
+        configMap:
+          name: nfs-test-script
+          defaultMode: 0755
