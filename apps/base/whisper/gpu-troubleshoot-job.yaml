@@ -23,7 +23,7 @@ spec:
       
       containers:
       - name: troubleshoot
-        image: nvidia/cuda:12.2.0-cudnn8-devel-ubuntu22.04
+        image: nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
         command:
         - /bin/bash
         - -c
