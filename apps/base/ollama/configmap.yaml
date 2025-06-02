@@ -1,9 +1,28 @@
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: ollama-configmap
+#   namespace: ollama
+# data:
+#   OLLAMA_HOST: "0.0.0.0"  # Listen on all interfaces
+#   OLLAMA_ORIGINS: "*"     # Allow all origins (restrict in production)
+#   OLLAMA_MODELS: "/models" # Model storage path
+
+
+# apps/base/ollama/configmap-optimized.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ollama-configmap
   namespace: ollama
 data:
-  OLLAMA_HOST: "0.0.0.0"  # Listen on all interfaces
-  OLLAMA_ORIGINS: "*"     # Allow all origins (restrict in production)
-  OLLAMA_MODELS: "/models" # Model storage path
+  OLLAMA_HOST: "0.0.0.0"
+  OLLAMA_ORIGINS: "*"
+  OLLAMA_MODELS: "/models"
+  # Performance optimizations for Ryzen 7 5825U
+  OLLAMA_DEBUG: "false"
+  OLLAMA_FLASH_ATTENTION: "true"  # Enable flash attention for faster inference
+  OLLAMA_NOHISTORY: "false"  # Keep conversation history
+  # CPU-specific optimizations
+  GOARCH: "amd64"
+  GOOS: "linux"
