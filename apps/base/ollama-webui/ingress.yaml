@@ -1,24 +1,3 @@
-# # apps/base/ollama-webui/ingress.yaml
-# apiVersion: networking.k8s.io/v1
-# kind: Ingress
-# metadata:
-#   name: ollama-webui
-#   namespace: ollama-webui
-# spec:
-#   ingressClassName: traefik
-#   rules:
-#     - host: ai.landryzetam.net
-#       http:
-#         paths:
-#           - path: /
-#             pathType: Prefix
-#             backend:
-#               service:
-#                 name: ollama-webui
-#                 port:
-#                   number: 8080
-
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
