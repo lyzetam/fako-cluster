@@ -1,4 +1,4 @@
-# apps/base/whisper/deployment-gpu.yaml
+# apps/base/whisper/deployment-gpu-pytorch.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,6 +26,78 @@ spec:
         effect: NoSchedule
       priorityClassName: system-cluster-critical
       
+      initContainers:
+      # Setup CUDA libraries using PyTorch image
+      - name: cuda-setup
+        image: pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Setting up CUDA libraries from PyTorch image..."
+          
+          # Create directories
+          mkdir -p /cuda-libs/{lib64,lib,bin}
+          
+          # Copy all CUDA-related libraries
+          echo "Copying CUDA libraries..."
+          
+          # From conda environment
+          cp -Lr /opt/conda/lib/libcudnn* /cuda-libs/lib64/ 2>/dev/null || true
+          cp -Lr /opt/conda/lib/libcublas* /cuda-libs/lib64/ 2>/dev/null || true
+          cp -Lr /opt/conda/lib/libcudart* /cuda-libs/lib64/ 2>/dev/null || true
+          cp -Lr /opt/conda/lib/libnccl* /cuda-libs/lib64/ 2>/dev/null || true
+          
+          # From system
+          cp -Lr /usr/local/cuda/lib64/* /cuda-libs/lib64/ 2>/dev/null || true
+          cp -Lr /usr/lib/x86_64-linux-gnu/libcud* /cuda-libs/lib64/ 2>/dev/null || true
+          
+          # Check what we have
+          echo "Available cuDNN libraries:"
+          ls -la /cuda-libs/lib64/*cudnn* | head -20
+          
+          # Create version symlinks
+          cd /cuda-libs/lib64/
+          # Find any cudnn library and create all possible symlinks
+          for lib in libcudnn*.so.*; do
+            if [ -f "$lib" ]; then
+              # Extract version numbers
+              base_name=$(echo $lib | grep -o 'libcudnn[^.]*')
+              echo "Creating symlinks for $lib (base: $base_name)"
+              
+              # Create comprehensive symlinks
+              ln -sf "$lib" "${base_name}.so" || true
+              ln -sf "$lib" "${base_name}.so.8" || true
+              ln -sf "$lib" "${base_name}.so.9" || true
+              ln -sf "$lib" "${base_name}_ops.so" || true
+              ln -sf "$lib" "${base_name}_ops.so.9" || true
+              ln -sf "$lib" "${base_name}_ops.so.9.1" || true
+              ln -sf "$lib" "${base_name}_ops.so.9.1.0" || true
+              
+              # If it's the main cudnn lib, create ops variants
+              if [[ "$base_name" == "libcudnn" ]]; then
+                ln -sf "$lib" "libcudnn_ops.so" || true
+                ln -sf "$lib" "libcudnn_ops.so.9" || true
+                ln -sf "$lib" "libcudnn_ops.so.9.1" || true
+                ln -sf "$lib" "libcudnn_ops.so.9.1.0" || true
+              fi
+            fi
+          done
+          
+          echo "Final library check:"
+          ls -la /cuda-libs/lib64/*cudnn* | head -30
+          echo "Total libraries: $(ls /cuda-libs/lib64/ | wc -l)"
+        volumeMounts:
+        - mountPath: /cuda-libs
+          name: cuda-libs
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      
       containers:
       # Main Whisper container
       - name: whisper
@@ -49,8 +121,9 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: whisper-models
-        - mountPath: /usr/local/cuda-libs
+        - mountPath: /opt/cuda-libs
           name: cuda-libs
+          readOnly: true
         resources:
           requests:
             memory: "4Gi"
@@ -68,7 +141,9 @@ spec:
         - name: NVIDIA_DRIVER_CAPABILITIES
           value: "compute,utility"
         - name: LD_LIBRARY_PATH
-          value: "/usr/local/cuda-libs/lib64:/usr/local/cuda-libs/lib:$LD_LIBRARY_PATH"
+          value: "/opt/cuda-libs/lib64:/opt/cuda-libs/lib:/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+        - name: LD_PRELOAD
+          value: "/opt/cuda-libs/lib64/libcudnn.so.8"
         livenessProbe:
           tcpSocket:
             port: 10300
@@ -84,87 +159,6 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 10
       
-      # CUDA library provider sidecar
-      - name: cuda-provider
-        image: nvidia/cuda:12.2.0-cudnn8-runtime-ubuntu22.04
-        command:
-        - /bin/bash
-        - -c
-        - |
-          echo "CUDA Library Provider Started"
-          echo "Installing additional cuDNN libraries..."
-          
-          # Update and install the exact cuDNN version needed
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            libcudnn8=8.9.7.29-1+cuda12.2 \
-            libcudnn8-dev=8.9.7.29-1+cuda12.2 \
-            cuda-cudart-12-2 \
-            libcublas-12-2 \
-            libcublaslt-12-2
-          
-          # Also install cuDNN 9 for compatibility
-          wget https://developer.download.nvidia.com/compute/cudnn/9.0.0/local_installers/cudnn-local-repo-ubuntu2204-9.0.0_1.0-1_amd64.deb
-          dpkg -i cudnn-local-repo-ubuntu2204-9.0.0_1.0-1_amd64.deb
-          cp /var/cudnn-local-repo-ubuntu2204-9.0.0/cudnn-*-keyring.gpg /usr/share/keyrings/
-          apt-get update
-          apt-get install -y libcudnn9-cuda-12 || true
-          
-          echo "Creating library directory structure..."
-          mkdir -p /cuda-libs/{lib64,lib,bin}
-          
-          # Copy ALL CUDA libraries
-          echo "Copying CUDA libraries..."
-          cp -Lr /usr/local/cuda/* /cuda-libs/ 2>/dev/null || true
-          cp -Lr /usr/lib/x86_64-linux-gnu/libcud* /cuda-libs/lib64/ 2>/dev/null || true
-          cp -Lr /usr/lib/x86_64-linux-gnu/libnccl* /cuda-libs/lib64/ 2>/dev/null || true
-          
-          # Create symbolic links for different versions
-          cd /cuda-libs/lib64/
-          for lib in libcudnn*.so.*; do
-            if [ -f "$lib" ]; then
-              base=$(echo $lib | sed 's/\.so\..*//')
-              ln -sf "$lib" "$base.so" 2>/dev/null || true
-              ln -sf "$lib" "$base.so.9" 2>/dev/null || true
-              ln -sf "$lib" "$base.so.9.1" 2>/dev/null || true
-              ln -sf "$lib" "$base.so.9.1.0" 2>/dev/null || true
-            fi
-          done
-          
-          # Specifically handle cudnn_ops
-          if ls libcudnn_ops*.so* 1> /dev/null 2>&1; then
-            echo "Found cudnn_ops libraries:"
-            ls -la libcudnn_ops*
-          else
-            echo "Creating cudnn_ops symlinks from libcudnn..."
-            ln -sf libcudnn.so.8 libcudnn_ops.so.9.1.0 2>/dev/null || true
-            ln -sf libcudnn.so.8 libcudnn_ops.so.9.1 2>/dev/null || true
-            ln -sf libcudnn.so.8 libcudnn_ops.so.9 2>/dev/null || true
-            ln -sf libcudnn.so.8 libcudnn_ops.so 2>/dev/null || true
-          fi
-          
-          echo "Available CUDA libraries:"
-          ls -la /cuda-libs/lib64/ | grep -E "(cuda|cudnn)" | head -30
-          
-          echo "Checking for cudnn_ops specifically:"
-          ls -la /cuda-libs/lib64/*cudnn_ops* 2>/dev/null || echo "No cudnn_ops found"
-          
-          # Keep container running
-          while true; do
-            sleep 3600
-            echo "CUDA provider heartbeat at $(date)"
-          done
-        volumeMounts:
-        - mountPath: /cuda-libs
-          name: cuda-libs
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "200m"
-      
       volumes:
       - name: whisper-models
         persistentVolumeClaim:
@@ -172,6 +166,9 @@ spec:
       - name: cuda-libs
         emptyDir:
           sizeLimit: 5Gi
+          
+
+
 
 # # apps/base/whisper/deployment-gpu.yaml
 # apiVersion: apps/v1
@@ -261,22 +258,68 @@ spec:
       
 #       # CUDA library provider sidecar
 #       - name: cuda-provider
-#         image: nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+#         image: nvidia/cuda:12.2.0-cudnn8-runtime-ubuntu22.04
 #         command:
 #         - /bin/bash
 #         - -c
 #         - |
 #           echo "CUDA Library Provider Started"
-#           echo "Providing CUDA libraries to shared volume..."
+#           echo "Installing additional cuDNN libraries..."
           
-#           # Copy CUDA libraries to shared volume
-#           cp -r /usr/local/cuda/* /cuda-libs/ 2>/dev/null || true
-#           cp -r /usr/lib/x86_64-linux-gnu/libcudnn* /cuda-libs/lib64/ 2>/dev/null || true
-#           cp -r /usr/lib/x86_64-linux-gnu/libcublas* /cuda-libs/lib64/ 2>/dev/null || true
-#           cp -r /usr/lib/x86_64-linux-gnu/libnccl* /cuda-libs/lib64/ 2>/dev/null || true
+#           # Update and install the exact cuDNN version needed
+#           apt-get update
+#           apt-get install -y --no-install-recommends \
+#             libcudnn8=8.9.7.29-1+cuda12.2 \
+#             libcudnn8-dev=8.9.7.29-1+cuda12.2 \
+#             cuda-cudart-12-2 \
+#             libcublas-12-2 \
+#             libcublaslt-12-2
           
-#           echo "CUDA libraries copied. Available libraries:"
-#           ls -la /cuda-libs/lib64/ | grep -E "(cuda|cudnn|cublas)" | head -20
+#           # Also install cuDNN 9 for compatibility
+#           wget https://developer.download.nvidia.com/compute/cudnn/9.0.0/local_installers/cudnn-local-repo-ubuntu2204-9.0.0_1.0-1_amd64.deb
+#           dpkg -i cudnn-local-repo-ubuntu2204-9.0.0_1.0-1_amd64.deb
+#           cp /var/cudnn-local-repo-ubuntu2204-9.0.0/cudnn-*-keyring.gpg /usr/share/keyrings/
+#           apt-get update
+#           apt-get install -y libcudnn9-cuda-12 || true
+          
+#           echo "Creating library directory structure..."
+#           mkdir -p /cuda-libs/{lib64,lib,bin}
+          
+#           # Copy ALL CUDA libraries
+#           echo "Copying CUDA libraries..."
+#           cp -Lr /usr/local/cuda/* /cuda-libs/ 2>/dev/null || true
+#           cp -Lr /usr/lib/x86_64-linux-gnu/libcud* /cuda-libs/lib64/ 2>/dev/null || true
+#           cp -Lr /usr/lib/x86_64-linux-gnu/libnccl* /cuda-libs/lib64/ 2>/dev/null || true
+          
+#           # Create symbolic links for different versions
+#           cd /cuda-libs/lib64/
+#           for lib in libcudnn*.so.*; do
+#             if [ -f "$lib" ]; then
+#               base=$(echo $lib | sed 's/\.so\..*//')
+#               ln -sf "$lib" "$base.so" 2>/dev/null || true
+#               ln -sf "$lib" "$base.so.9" 2>/dev/null || true
+#               ln -sf "$lib" "$base.so.9.1" 2>/dev/null || true
+#               ln -sf "$lib" "$base.so.9.1.0" 2>/dev/null || true
+#             fi
+#           done
+          
+#           # Specifically handle cudnn_ops
+#           if ls libcudnn_ops*.so* 1> /dev/null 2>&1; then
+#             echo "Found cudnn_ops libraries:"
+#             ls -la libcudnn_ops*
+#           else
+#             echo "Creating cudnn_ops symlinks from libcudnn..."
+#             ln -sf libcudnn.so.8 libcudnn_ops.so.9.1.0 2>/dev/null || true
+#             ln -sf libcudnn.so.8 libcudnn_ops.so.9.1 2>/dev/null || true
+#             ln -sf libcudnn.so.8 libcudnn_ops.so.9 2>/dev/null || true
+#             ln -sf libcudnn.so.8 libcudnn_ops.so 2>/dev/null || true
+#           fi
+          
+#           echo "Available CUDA libraries:"
+#           ls -la /cuda-libs/lib64/ | grep -E "(cuda|cudnn)" | head -30
+          
+#           echo "Checking for cudnn_ops specifically:"
+#           ls -la /cuda-libs/lib64/*cudnn_ops* 2>/dev/null || echo "No cudnn_ops found"
           
 #           # Keep container running
 #           while true; do
@@ -301,3 +344,132 @@ spec:
 #       - name: cuda-libs
 #         emptyDir:
 #           sizeLimit: 5Gi
+
+# # # apps/base/whisper/deployment-gpu.yaml
+# # apiVersion: apps/v1
+# # kind: Deployment
+# # metadata:
+# #   name: whisper-gpu
+# #   namespace: whisper
+# # spec:
+# #   replicas: 1
+# #   selector:
+# #     matchLabels:
+# #       app: whisper-gpu
+# #   strategy:
+# #     type: RollingUpdate
+# #   template:
+# #     metadata:
+# #       labels:
+# #         app: whisper-gpu
+# #     spec:
+# #       runtimeClassName: nvidia
+# #       nodeSelector:
+# #         kubernetes.io/hostname: playground
+# #         nvidia.com/gpu: "true"
+# #       tolerations:
+# #       - key: nvidia.com/gpu
+# #         operator: Exists
+# #         effect: NoSchedule
+# #       priorityClassName: system-cluster-critical
+      
+# #       containers:
+# #       # Main Whisper container
+# #       - name: whisper
+# #         image: rhasspy/wyoming-whisper:latest
+# #         ports:
+# #         - containerPort: 10300
+# #           protocol: TCP
+# #         args:
+# #         - "--model"
+# #         - "small"
+# #         - "--uri"
+# #         - "tcp://0.0.0.0:10300"
+# #         - "--data-dir"
+# #         - "/data"
+# #         - "--download-dir"
+# #         - "/data"
+# #         - "--device"
+# #         - "cuda"
+# #         - "--compute-type"
+# #         - "float16"
+# #         volumeMounts:
+# #         - mountPath: /data
+# #           name: whisper-models
+# #         - mountPath: /usr/local/cuda-libs
+# #           name: cuda-libs
+# #         resources:
+# #           requests:
+# #             memory: "4Gi"
+# #             cpu: "1000m"
+# #             nvidia.com/gpu: 1
+# #           limits:
+# #             memory: "8Gi"
+# #             cpu: "2000m"
+# #             nvidia.com/gpu: 1
+# #         env:
+# #         - name: CUDA_VISIBLE_DEVICES
+# #           value: "0"
+# #         - name: NVIDIA_VISIBLE_DEVICES
+# #           value: "all"
+# #         - name: NVIDIA_DRIVER_CAPABILITIES
+# #           value: "compute,utility"
+# #         - name: LD_LIBRARY_PATH
+# #           value: "/usr/local/cuda-libs/lib64:/usr/local/cuda-libs/lib:$LD_LIBRARY_PATH"
+# #         livenessProbe:
+# #           tcpSocket:
+# #             port: 10300
+# #           initialDelaySeconds: 180
+# #           periodSeconds: 30
+# #           timeoutSeconds: 10
+# #           failureThreshold: 5
+# #         readinessProbe:
+# #           tcpSocket:
+# #             port: 10300
+# #           initialDelaySeconds: 120
+# #           periodSeconds: 10
+# #           timeoutSeconds: 5
+# #           failureThreshold: 10
+      
+# #       # CUDA library provider sidecar
+# #       - name: cuda-provider
+# #         image: nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+# #         command:
+# #         - /bin/bash
+# #         - -c
+# #         - |
+# #           echo "CUDA Library Provider Started"
+# #           echo "Providing CUDA libraries to shared volume..."
+          
+# #           # Copy CUDA libraries to shared volume
+# #           cp -r /usr/local/cuda/* /cuda-libs/ 2>/dev/null || true
+# #           cp -r /usr/lib/x86_64-linux-gnu/libcudnn* /cuda-libs/lib64/ 2>/dev/null || true
+# #           cp -r /usr/lib/x86_64-linux-gnu/libcublas* /cuda-libs/lib64/ 2>/dev/null || true
+# #           cp -r /usr/lib/x86_64-linux-gnu/libnccl* /cuda-libs/lib64/ 2>/dev/null || true
+          
+# #           echo "CUDA libraries copied. Available libraries:"
+# #           ls -la /cuda-libs/lib64/ | grep -E "(cuda|cudnn|cublas)" | head -20
+          
+# #           # Keep container running
+# #           while true; do
+# #             sleep 3600
+# #             echo "CUDA provider heartbeat at $(date)"
+# #           done
+# #         volumeMounts:
+# #         - mountPath: /cuda-libs
+# #           name: cuda-libs
+# #         resources:
+# #           requests:
+# #             memory: "256Mi"
+# #             cpu: "100m"
+# #           limits:
+# #             memory: "512Mi"
+# #             cpu: "200m"
+      
+# #       volumes:
+# #       - name: whisper-models
+# #         persistentVolumeClaim:
+# #           claimName: whisper-models
+# #       - name: cuda-libs
+# #         emptyDir:
+# #           sizeLimit: 5Gi
