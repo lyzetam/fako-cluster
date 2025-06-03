@@ -4,7 +4,7 @@ kind: Kustomization
 namespace: nvidia-device-plugin
 resources:
   - namespace.yaml
-  - node-labeler.yaml  # Updated labeler with better detection
+  # - node-labeler.yaml  # Updated labeler with better detection
   - runtime-installer.yaml     # Ensures NVIDIA runtime is configured
   - daemonset.yaml            # Device plugin daemonset
   - runtime-class.yaml        # RuntimeClass for GPU workloads
