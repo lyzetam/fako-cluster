@@ -1,0 +1,5 @@
+# infrastructure/controllers/base/k8s-backup/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backup-system
