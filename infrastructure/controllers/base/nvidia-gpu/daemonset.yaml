@@ -49,7 +49,7 @@ spec:
           - name: NVIDIA_MIG_MONITOR_DEVICES
             value: "all"
         securityContext:
-          allowPrivilegeEscalation: false
+          # allowPrivilegeEscalation: false
           capabilities:
             drop: ["ALL"]
           privileged: true  # Required for device access
