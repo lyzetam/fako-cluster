@@ -1,0 +1,43 @@
+# infrastructure/controllers/base/k8s-backup/backup-pvc-data.yaml
+# Optional: CronJob to backup PVC data
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-pvc-data
+  namespace: backup-system
+spec:
+  schedule: "0 4 * * *"  # 4 AM daily
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: rsync
+            image: instrumentisto/rsync-ssh:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting PVC data backup"
+              DATE=$(date +%Y%m%d-%H%M%S)
+              
+              # Mount points for PVCs you want to backup
+              # Add logic here to rsync PVC data to NFS backup location
+              
+              echo "PVC backup completed"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+            # Add your PVC mounts here
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 1000m
+                memory: 1Gi
+          restartPolicy: OnFailure
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: backup-storage

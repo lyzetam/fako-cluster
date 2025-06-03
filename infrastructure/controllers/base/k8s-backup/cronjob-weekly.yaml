@@ -1,0 +1,47 @@
+# infrastructure/controllers/base/k8s-backup/cronjob-weekly.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: k8s-backup-weekly
+  namespace: backup-system
+spec:
+  schedule: "0 3 * * 0"  # 3 AM Sunday
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: backup-sa
+          containers:
+          - name: backup
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Weekly backup with PVC data export
+              export BACKUP_DIR="/backups/weekly"
+              export NAMESPACES="$(kubectl get ns -o name | cut -d/ -f2 | grep -v kube- | tr '\n' ' ')"
+              /scripts/backup.sh
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+            - name: backup-storage
+              mountPath: /backups
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+          restartPolicy: OnFailure
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: backup-storage

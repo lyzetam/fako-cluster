@@ -1,0 +1,45 @@
+# infrastructure/controllers/base/k8s-backup/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: k8s-backup-daily
+  namespace: backup-system
+spec:
+  schedule: "0 2 * * *"  # 2 AM daily
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: backup-sa
+          containers:
+          - name: backup
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/bash
+            - /scripts/backup.sh
+            env:
+            - name: NAMESPACES
+              value: "default flux-system renovate nfs-system nvidia-device-plugin"  # Add your namespaces
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+            - name: backup-storage
+              mountPath: /backups
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+          restartPolicy: OnFailure
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: backup-storage
