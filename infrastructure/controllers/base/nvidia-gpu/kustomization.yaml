@@ -10,4 +10,4 @@ resources:
   - runtime-class.yaml        # RuntimeClass for GPU workloads
   - resource-quota.yaml       # Resource limits
   - monitoring.yaml           # Metrics service
-  - gpu-node-exporter.yaml    # GPU metrics exporter
+  # - gpu-node-exporter.yaml    # GPU metrics exporter
