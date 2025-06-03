@@ -4,6 +4,8 @@ resources:
   - renovate
   - nfs-storage
   - nvidia-gpu
+  - velero
+  
   
 
   
