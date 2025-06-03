@@ -6,4 +6,4 @@ resources:
   - nfs-backup-pv.yaml
   - repository.yaml
   - release.yaml
-  - backup-schedule.yaml
+  # - backup-schedule.yaml
