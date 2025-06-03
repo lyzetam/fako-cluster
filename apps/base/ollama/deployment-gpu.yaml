@@ -52,11 +52,11 @@ spec:
         
         resources:
           requests:
-            memory: "10Gi"  # Safe with 17GB available
-            cpu: "6000m"    # 6 CPU cores requested
+            memory: "16Gi"  # Safe with 17GB available
+            cpu: "8000m"    # 8 CPU cores requested
           limits:
-            memory: "16Gi"  # 16GB limit
-            cpu: "10000m"   # 10 CPU cores max
+            memory: "28Gi"  # 28GB limit, leaving room 4GB for other processes
+            cpu: "12000m"   # 12 CPU cores max
         
         livenessProbe:
           httpGet:
@@ -100,33 +100,38 @@ spec:
           echo "=== Small Models (1-4B) ==="
           ollama pull tinyllama || echo "Failed tinyllama"
           ollama pull phi3:mini || echo "Failed phi3:mini"
-          ollama pull phi3:medium-128k-instruct-q5_K_M || echo "Failed phi3:medium"
-          ollama pull gemma2:2b || echo "Failed gemma2:2b"
-          ollama pull llama3.2:1b || echo "Failed llama3.2:1b"
+          # ollama pull phi3:medium-128k-instruct-q5_K_M || echo "Failed phi3:medium"
+          # ollama pull gemma2:2b || echo "Failed gemma2:2b"
+          # ollama pull llama3.2:1b || echo "Failed llama3.2:1b"
           
           # Medium models (7-8B)
           echo ""
           echo "=== Medium Models (7-8B) ==="
-          ollama pull llama3.1:8b-instruct-q5_K_M || echo "Failed llama3.1:8b"
-          ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed mistral:7b"
-          ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed qwen2.5:7b-q5"
-          ollama pull qwen2.5:7b-instruct-q4_K_M || echo "Failed qwen2.5:7b-q4"
+          # ollama pull llama3.1:8b-instruct-q5_K_M || echo "Failed llama3.1:8b"
+          # ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed mistral:7b"
+          # ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed qwen2.5:7b-q5"
+          # ollama pull qwen2.5:7b-instruct-q4_K_M || echo "Failed qwen2.5:7b-q4"
+          ollama pull llama3.3:latest || echo "Failed llama3.3 70B"
+          ollama pull llama3.2:latest || echo "Failed llama3.2"
+          
           
           # Specialized models
           echo ""
           echo "=== Specialized Models ==="
-          ollama pull codellama:7b-instruct-q5_K_M || echo "Failed codellama:7b"
-          ollama pull codellama:13b-instruct-q4_K_M || echo "Failed codellama:13b"
+          # ollama pull codellama:7b-instruct-q5_K_M || echo "Failed codellama:7b"
+          # ollama pull codellama:13b-instruct-q4_K_M || echo "Failed codellama:13b"
           
           # Larger models
           echo ""
           echo "=== Larger Models (13B+) ==="
-          ollama pull llama2:13b-chat-q4_K_M || echo "Failed llama2:13b"
+          # ollama pull llama2:13b-chat-q4_K_M || echo "Failed llama2:13b"
+          ollama pull deepseek-r1:14b || echo "Failed deepseek-r1:14b"
+          ollama pull phi-4:latest || echo "Failed phi-4"
           
           # Optional very large model
-          echo ""
-          echo "=== Optional Large Model ==="
-          ollama pull mixtral:8x7b-instruct-v0.1-q2_K || echo "Failed mixtral (expected)"
+          # echo ""
+          # echo "=== Optional Large Model ==="
+          # ollama pull mixtral:8x7b-instruct-v0.1-q2_K || echo "Failed mixtral (expected)"
           
           echo ""
           echo "Model download complete. Available models:"
@@ -142,413 +147,14 @@ spec:
           name: ollama-models
         resources:
           requests:
-            memory: "512Mi"  # Reduced
-            cpu: "250m"      # Reduced
+            memory: "1Gi"  
+            cpu: "500m"     
           limits:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "2Gi"
+            cpu: "1000m"
       
       volumes:
       - name: ollama-models
         persistentVolumeClaim:
           claimName: ollama-models
 
-
-
-# # apps/base/ollama/deployment-cpu-realistic.yaml
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: ollama-gpu
-#   namespace: ollama
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: ollama-gpu
-#   template:
-#     metadata:
-#       labels:
-#         app: ollama-gpu
-#     spec:
-#       # Target pgbee node
-#       nodeSelector:
-#         kubernetes.io/hostname: pgbee
-      
-#       containers:
-#       - name: ollama
-#         image: ollama/ollama:latest
-#         ports:
-#         - containerPort: 11434
-#           protocol: TCP
-#         envFrom:
-#         - configMapRef:
-#             name: ollama-configmap
-#         env:
-#         # Force CPU mode
-#         - name: CUDA_VISIBLE_DEVICES
-#           value: ""
-        
-#         # Realistic CPU settings for shared node
-#         - name: OLLAMA_NUM_PARALLEL
-#           value: "3"  # 3 concurrent requests
-#         - name: OLLAMA_NUM_THREAD
-#           value: "10"  # Use 10 threads
-#         - name: OLLAMA_MAX_LOADED_MODELS
-#           value: "3"  # Keep 3 models in memory
-#         - name: GOMAXPROCS
-#           value: "10"
-        
-#         # Memory management
-#         - name: OLLAMA_KEEP_ALIVE
-#           value: "15m"  # Keep models loaded for 15 minutes
-        
-#         volumeMounts:
-#         - mountPath: /root/.ollama
-#           name: ollama-models
-        
-#         resources:
-#           requests:
-#             memory: "10Gi"  # Safe with 17GB available
-#             cpu: "6000m"    # 6 CPU cores requested
-#           limits:
-#             memory: "16Gi"  # 16GB limit
-#             cpu: "10000m"   # 10 CPU cores max
-        
-#         livenessProbe:
-#           httpGet:
-#             path: /api/tags
-#             port: 11434
-#           initialDelaySeconds: 60
-#           periodSeconds: 30
-#           timeoutSeconds: 10
-#         readinessProbe:
-#           httpGet:
-#             path: /api/tags
-#             port: 11434
-#           initialDelaySeconds: 30
-#           periodSeconds: 10
-#           timeoutSeconds: 5
-      
-#       # Smaller model manager
-#       - name: model-manager
-#         image: ollama/ollama:latest
-#         command: ["/bin/sh"]
-#         args:
-#         - -c
-#         - |
-#           echo "Model manager starting..."
-#           sleep 60
-          
-#           export OLLAMA_HOST=http://localhost:11434
-          
-#           echo "Downloading optimized models for constrained resources..."
-          
-#           # High quality models that fit in available memory
-          
-#            # Best 7B models with good quantization
-#             ollama pull llama3.1:8b-instruct-q5_K_M || echo "Failed to pull llama3.1"
-#             ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed to pull mistral"
-            
-#             # Excellent coding model: Codellama 7B is optimized for coding tasks, offering high accuracy and efficiency in code generation and understanding, while being lightweight enough to run on constrained resources.
-#             ollama pull codellama:7b-instruct-q5_K_M || echo "Failed to pull codellama"
-            
-#             # Fast high-quality model
-#             ollama pull qwen2.5:7b-instruct-q4_K_M || echo "Failed to pull qwen2.5"
-            
-#             # Keep one small fast model
-#             ollama pull phi3:medium-128k-instruct-q5_K_M || echo "Failed to pull phi3"
-
-#             # Excellent 7B models - these will run well on your CPU
-#             ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed to pull qwen2.5"
-            
-#             # Try some 13B models with Q4 quantization
-#             ollama pull llama2:13b-chat-q4_K_M || echo "Failed to pull llama2:13b-chat-q4_K_M"
-#             ollama pull codellama:13b-instruct-q4_K_M || echo "Failed to pull codellama"
-            
-#             # For comparison, keep a fast small model optimized for speed and low memory usage, suitable for constrained environments.
-#             ollama pull phi3:medium-instruct-q5_K_M || echo "Failed to pull phi3"
-            
-#             # Optional: Try Mixtral 8x7B with heavy quantization (needs ~26GB)
-#             # Suitable for scenarios requiring high-quality outputs from multiple models combined, such as ensemble learning or complex decision-making tasks.
-#             ollama pull mixtral:8x7b-instruct-v0.1-q2_K || echo "Failed - too large"       echo "Model download complete."
-          
-#           echo "Available models:"
-#           ollama list
-          
-#           while true; do
-#             sleep 600
-#             echo "Model manager heartbeat..."
-#           done
-        
-#         volumeMounts:
-#         - mountPath: /root/.ollama
-#           name: ollama-models
-#         resources:
-#           requests:
-#             memory: "512Mi"  # Reduced
-#             cpu: "250m"      # Reduced
-#           limits:
-#             memory: "1Gi"
-#             cpu: "500m"
-      
-#       volumes:
-#       - name: ollama-models
-#         persistentVolumeClaim:
-#           claimName: ollama-models
-
-
-
-
-
-# # # apps/base/ollama/deployment-cpu-maximized.yaml
-# # apiVersion: apps/v1
-# # kind: Deployment
-# # metadata:
-# #   name: ollama-gpu  # Keep name for compatibility
-# #   namespace: ollama
-# # spec:
-# #   replicas: 1
-# #   selector:
-# #     matchLabels:
-# #       app: ollama-gpu
-# #   template:
-# #     metadata:
-# #       labels:
-# #         app: ollama-gpu
-# #     spec:
-# #       # Specifically target pgbee node
-# #       nodeSelector:
-# #         kubernetes.io/hostname: pgbee
-      
-# #       containers:
-# #       - name: ollama
-# #         image: ollama/ollama:latest
-# #         ports:
-# #         - containerPort: 11434
-# #           protocol: TCP
-# #         envFrom:
-# #         - configMapRef:
-# #             name: ollama-configmap
-# #         env:
-# #         # Force CPU mode
-# #         - name: CUDA_VISIBLE_DEVICES
-# #           value: ""
-        
-# #         # Maximize CPU performance for Ryzen 7 5825U
-# #         - name: OLLAMA_NUM_PARALLEL
-# #           value: "4"  # Handle 4 concurrent requests
-# #         - name: OLLAMA_NUM_THREAD
-# #           value: "16"  # Use all 16 threads
-# #         - name: OLLAMA_MAX_LOADED_MODELS
-# #           value: "3"  # Keep 3 models in memory
-# #         - name: GOMAXPROCS
-# #           value: "16"  # Go runtime threads
-        
-# #         # Memory management
-# #         - name: OLLAMA_KEEP_ALIVE
-# #           value: "30m"  # Keep models loaded for 30 minutes
-# #         - name: OLLAMA_GPU_OVERHEAD
-# #           value: "0"  # No GPU overhead
-        
-# #         volumeMounts:
-# #         - mountPath: /root/.ollama
-# #           name: ollama-models
-        
-# #         resources:
-# #           requests:
-# #             memory: "10Gi"  # Half of available RAM
-# #             cpu: "6000m"    # 12 CPU cores reserved
-# #           limits:
-# #             memory: "16Gi"   # Leave 4GB for system
-# #             cpu: "10000m"    # All 16 threads available
-        
-# #         # Add CPU affinity for better performance
-# #         securityContext:
-# #           allowPrivilegeEscalation: false
-# #           capabilities:
-# #             add:
-# #             - SYS_NICE  # Allow CPU affinity
-        
-# #         livenessProbe:
-# #           httpGet:
-# #             path: /api/tags
-# #             port: 11434
-# #           initialDelaySeconds: 60
-# #           periodSeconds: 30
-# #         readinessProbe:
-# #           httpGet:
-# #             path: /api/tags
-# #             port: 11434
-# #           initialDelaySeconds: 30
-# #           periodSeconds: 10
-      
-# #       # Model manager - High quality models for 32GB RAM
-# #       - name: model-manager
-# #         image: ollama/ollama:latest
-# #         command: ["/bin/sh"]
-# #         args:
-# #         - -c
-# #         - |
-# #           echo "Model manager starting..."
-# #           sleep 60
-          
-# #           export OLLAMA_HOST=http://localhost:11434
-          
-# #           echo "Downloading high-quality models for 32GB RAM system..."
-          
-# #           # With 32GB RAM, you can run much larger models!
-          
-# #           # Excellent 7B models - these will run well on your CPU
-# #           ollama pull llama3.1:8b-instruct-q5_K_M || echo "Failed to pull llama3.1:8b"
-# #           ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed to pull mistral"
-# #           ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed to pull qwen2.5"
-          
-# #           # Try some 13B models with Q4 quantization
-# #           ollama pull llama2:13b-chat-q4_K_M || echo "Failed to pull llama2:13b"
-# #           ollama pull codellama:13b-instruct-q4_K_M || echo "Failed to pull codellama"
-          
-# #           # For comparison, keep a fast small model
-# #           ollama pull phi3:medium-instruct-q5_K_M || echo "Failed to pull phi3"
-          
-# #           # Optional: Try Mixtral 8x7B with heavy quantization (needs ~26GB)
-# #           ollama pull mixtral:8x7b-instruct-v0.1-q2_K || echo "Failed - too large"
-          
-# #           echo "Model download complete."
-# #           echo "Available models:"
-# #           ollama list
-          
-# #           # Show model sizes
-# #           echo ""
-# #           echo "Model memory usage:"
-# #           ollama ps
-          
-# #           while true; do
-# #             sleep 600
-# #             echo "Model manager heartbeat..."
-# #           done
-        
-# #         volumeMounts:
-# #         - mountPath: /root/.ollama
-# #           name: ollama-models
-# #         resources:
-# #           requests:
-# #             memory: "2Gi"
-# #             cpu: "1000m"
-# #           limits:
-# #             memory: "4Gi"
-# #             cpu: "2000m"
-      
-# #       volumes:
-# #       - name: ollama-models
-# #         persistentVolumeClaim:
-# #           claimName: ollama-models
-
-
-
-
-
-# # # # apps/base/ollama/deployment-cpu.yaml
-# # # apiVersion: apps/v1
-# # # kind: Deployment
-# # # metadata:
-# # #   name: ollama-gpu  # Keep the same name for compatibility
-# # #   namespace: ollama
-# # # spec:
-# # #   replicas: 1
-# # #   selector:
-# # #     matchLabels:
-# # #       app: ollama-gpu
-# # #   template:
-# # #     metadata:
-# # #       labels:
-# # #         app: ollama-gpu
-# # #     spec:
-# # #       # Use any high-performance node, not specifically the GPU node
-# # #       nodeSelector:
-# # #         hardware.tier: high-performance
-      
-# # #       containers:
-# # #         - name: ollama
-# # #           image: ollama/ollama:latest
-# # #           ports:
-# # #             - containerPort: 11434
-# # #               protocol: TCP
-# # #           envFrom:
-# # #             - configMapRef:
-# # #                 name: ollama-configmap
-# # #           env:
-# # #             # Force CPU mode
-# # #             - name: CUDA_VISIBLE_DEVICES
-# # #               value: ""
-# # #           volumeMounts:
-# # #             - mountPath: /root/.ollama
-# # #               name: ollama-models
-# # #           resources:
-# # #             requests:
-# # #               memory: "8Gi"
-# # #               cpu: "4000m"
-# # #               # NO GPU REQUEST
-# # #             limits:
-# # #               memory: "16Gi"
-# # #               cpu: "8000m"
-# # #               # NO GPU LIMIT
-# # #           livenessProbe:
-# # #             httpGet:
-# # #               path: /api/tags
-# # #               port: 11434
-# # #             initialDelaySeconds: 60
-# # #             periodSeconds: 30
-# # #             timeoutSeconds: 10
-# # #           readinessProbe:
-# # #             httpGet:
-# # #               path: /api/tags
-# # #               port: 11434
-# # #             initialDelaySeconds: 30
-# # #             periodSeconds: 10
-# # #             timeoutSeconds: 5
-        
-# # #         # Model manager sidecar - no GPU needed
-# # #         - name: model-manager
-# # #           image: ollama/ollama:latest
-# # #           command: ["/bin/sh"]
-# # #           args:
-# # #             - -c
-# # #             - |
-# # #               echo "Model manager starting..."
-# # #               sleep 60
-              
-# # #               export OLLAMA_HOST=http://localhost:11434
-              
-# # #               # Download CPU-optimized models
-# # #               echo "Downloading CPU-optimized models..."
-              
-# # #               # Smaller models that work well on CPU
-# # #               ollama pull tinyllama || echo "Failed to pull tinyllama"
-# # #               ollama pull phi3:mini || echo "Failed to pull phi3:mini"
-# # #               ollama pull llama3.2:1b || echo "Failed to pull llama3.2:1b"
-# # #               ollama pull gemma2:2b || echo "Failed to pull gemma2:2b"
-              
-# # #               echo "Model download complete."
-# # #               echo "Available models:"
-# # #               ollama list
-              
-# # #               # Keep container alive
-# # #               while true; do
-# # #                 sleep 600
-# # #                 echo "Model manager heartbeat..."
-# # #               done
-# # #           volumeMounts:
-# # #             - mountPath: /root/.ollama
-# # #               name: ollama-models
-# # #           resources:
-# # #             requests:
-# # #               memory: "1Gi"
-# # #               cpu: "500m"
-# # #             limits:
-# # #               memory: "2Gi"
-# # #               cpu: "1000m"
-# # #       volumes:
-# # #         - name: ollama-models
-# # #           persistentVolumeClaim:
-# # #             claimName: ollama-models
