@@ -1,0 +1,28 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-backup
+  namespace: velero
+spec:
+  schedule: "0 2 * * *"  # 2 AM daily
+  template:
+    ttl: 720h0m0s  # Keep backups for 30 days
+    includeClusterResources: true
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: weekly-full-backup
+  namespace: velero
+spec:
+  schedule: "0 3 * * 0"  # 3 AM every Sunday
+  template:
+    ttl: 2160h0m0s  # Keep for 90 days
+    includeClusterResources: true
+    defaultVolumesToFsBackup: true
+    storageLocation: default
+    labelSelector:
+      matchLabels:
+        backup: include
