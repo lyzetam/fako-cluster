@@ -9,4 +9,5 @@ resources:
   - rbac.yaml
   - cronjob.yaml
   - cronjob-weekly.yaml
+  - etcd-backup-cronjob.yaml
   # - backup-pvc-data.yaml  # Enable if you want PVC data backups

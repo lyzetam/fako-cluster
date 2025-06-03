@@ -1,0 +1,153 @@
+# infrastructure/controllers/base/k8s-backup/etcd-backup-cronjob.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: etcd-backup-script
+  namespace: backup-system
+data:
+  backup-etcd.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "=== ETCD Backup Script ==="
+    echo "Date: $(date)"
+    
+    BACKUP_DIR="/backups/etcd"
+    DATE=$(date +%Y%m%d-%H%M%S)
+    BACKUP_PATH="$BACKUP_DIR/$DATE"
+    
+    mkdir -p "$BACKUP_PATH"
+    
+    # Find etcd pod
+    ETCD_POD=$(kubectl get pods -n kube-system -l component=etcd -o jsonpath='{.items[0].metadata.name}')
+    
+    if [ -z "$ETCD_POD" ]; then
+      echo "ERROR: No etcd pod found!"
+      exit 1
+    fi
+    
+    echo "Found etcd pod: $ETCD_POD"
+    
+    # Backup etcd
+    echo "Creating etcd snapshot..."
+    kubectl exec -n kube-system "$ETCD_POD" -- etcdctl \
+      --endpoints=https://127.0.0.1:2379 \
+      --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+      --cert=/etc/kubernetes/pki/etcd/server.crt \
+      --key=/etc/kubernetes/pki/etcd/server.key \
+      snapshot save /tmp/etcd-snapshot.db
+    
+    # Copy snapshot from pod
+    kubectl cp -n kube-system "$ETCD_POD":/tmp/etcd-snapshot.db "$BACKUP_PATH/etcd-snapshot.db"
+    
+    # Verify snapshot
+    echo "Verifying snapshot..."
+    kubectl exec -n kube-system "$ETCD_POD" -- etcdctl \
+      --endpoints=https://127.0.0.1:2379 \
+      --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+      --cert=/etc/kubernetes/pki/etcd/server.crt \
+      --key=/etc/kubernetes/pki/etcd/server.key \
+      snapshot status /tmp/etcd-snapshot.db
+    
+    # Clean up
+    kubectl exec -n kube-system "$ETCD_POD" -- rm -f /tmp/etcd-snapshot.db
+    
+    # Create metadata
+    cat > "$BACKUP_PATH/backup-info.txt" <<EOF
+    ETCD Backup
+    Date: $DATE
+    Cluster: $(kubectl config current-context)
+    ETCD Pod: $ETCD_POD
+    Snapshot: etcd-snapshot.db
+    EOF
+    
+    # Cleanup old backups (keep 30 days)
+    find "$BACKUP_DIR" -maxdepth 1 -type d -mtime +30 -exec rm -rf {} \; 2>/dev/null || true
+    
+    echo "ETCD backup completed: $BACKUP_PATH"
+    ls -la "$BACKUP_PATH/"
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etcd-backup
+  namespace: backup-system
+spec:
+  schedule: "30 2 * * *"  # 2:30 AM daily (after k8s backup)
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: etcd-backup-sa
+          hostNetwork: true  # Required to access etcd
+          containers:
+          - name: etcd-backup
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/bash
+            - /scripts/backup-etcd.sh
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+            - name: backup-storage
+              mountPath: /backups
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi
+          restartPolicy: OnFailure
+          nodeSelector:
+            node-role.kubernetes.io/control-plane: "true"
+          tolerations:
+          - key: node-role.kubernetes.io/control-plane
+            operator: Exists
+            effect: NoSchedule
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: etcd-backup-script
+              defaultMode: 0755
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: backup-storage
+
+---
+# Additional RBAC for etcd access
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: etcd-backup-sa
+  namespace: backup-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: etcd-backup-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/exec"]
+  verbs: ["get", "list", "create"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: etcd-backup-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: etcd-backup-role
+subjects:
+- kind: ServiceAccount
+  name: etcd-backup-sa
+  namespace: backup-system
