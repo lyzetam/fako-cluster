@@ -1,0 +1,16 @@
+# infrastructure/controllers/base/k8s-backup/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-storage
+  namespace: backup-system
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Gi
+  volumeName: velero-backup-pv  # Reuse your existing PV
+  storageClassName: ""
+
+  

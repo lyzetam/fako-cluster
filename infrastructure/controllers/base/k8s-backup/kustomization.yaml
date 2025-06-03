@@ -1,0 +1,11 @@
+# infrastructure/controllers/base/k8s-backup/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - nfs-backup-pvc.yaml
+  - configmap.yaml
+  - rbac.yaml
+  - cronjob.yaml
+  - cronjob-weekly.yaml
+  # - backup-pvc-data.yaml  # Enable if you want PVC data backups
