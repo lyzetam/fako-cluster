@@ -9,4 +9,4 @@ spec:
   storageClassName: nfs-csi
   resources:
     requests:
-      storage: 50Gi  # Large storage for AI models
+      storage: 200Gi  # Large storage for AI models
