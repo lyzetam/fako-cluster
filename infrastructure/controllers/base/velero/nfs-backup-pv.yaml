@@ -24,3 +24,4 @@ spec:
     requests:
       storage: 500Gi
   volumeName: velero-backup-pv
+  storageClassName: ""
