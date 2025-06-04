@@ -1,23 +1,3 @@
-# # apps/base/ollama-webui/configmap.yaml
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: ollama-webui-configmap
-#   namespace: ollama-webui
-# data:
-#   OLLAMA_BASE_URL: "http://10.85.30.220:52415" #"http://ollama-gpu.ollama.svc.cluster.local:11434"
-#   ENABLE_SIGNUP: "true"
-#   # DEFAULT_MODELS: "phi3:mini,tinyllama"
-#   WEBUI_NAME: "HomeLab AI"
-#   WEBUI_URL: "https://ai.landryzetam.net"
-#   # Add these to fix signup issues
-#   # WEBUI_AUTH: "false"  # Disable auth temporarily to create first user
-#   DEFAULT_USER_ROLE: "user"
-#   ENABLE_COMMUNITY_SHARING: "false"
-#   ENABLE_MODEL_FILTER: "false"
-#   USER_PERMISSIONS_CHAT_DELETION: "true"
-
-
 # apps/base/ollama-webui/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -25,17 +5,112 @@ metadata:
   name: ollama-webui-configmap
   namespace: ollama-webui
 data:
-  OLLAMA_BASE_URL: "http://10.85.30.220:52415" # Your exo endpoint
-  ENABLE_SIGNUP: "true"
-  WEBUI_NAME: "HomeLab AI"
+  # Point to exo's OpenAI-compatible API
+  OLLAMA_BASE_URL: ""  # Leave empty when using OpenAI mode
+  OPENAI_API_BASE: "http://10.85.30.220:52415/v1"
+  OPENAI_API_KEY: "dummy"  # exo doesn't require authentication
+  
+  # Use OpenAI API mode
+  WEBUI_NAME: "HomeLab AI (exo cluster)"
   WEBUI_URL: "https://ai.landryzetam.net"
-  # User settings
+  
+  # Model configuration
+  DEFAULT_MODELS: "llama-3.1-8b"  # The model running on exo
+  ENABLE_OPENAI_API: "true"  # Enable OpenAI compatibility
+  
+  # Authentication settings
+  WEBUI_AUTH: "true"
+  ENABLE_SIGNUP: "true"
   DEFAULT_USER_ROLE: "user"
+  WEBUI_SESSION_LIFETIME: "2592000"
+  
+  # User permissions
+  USER_PERMISSIONS_CHAT_DELETION: "true"
   ENABLE_COMMUNITY_SHARING: "false"
   ENABLE_MODEL_FILTER: "false"
-  USER_PERMISSIONS_CHAT_DELETION: "true"
-  # Admin creation settings
-  WEBUI_AUTH: "true"  # Keep auth enabled
-  ENABLE_ADMIN_CREATION: "true"  # Allow first user to become admin
-  # Optional: Set a signup key if you want to restrict who can sign up
-  # WEBUI_SECRET_KEY: "your-secret-key-here"
+
+
+
+# # # apps/base/ollama-webui/configmap.yaml
+# # apiVersion: v1
+# # kind: ConfigMap
+# # metadata:
+# #   name: ollama-webui-configmap
+# #   namespace: ollama-webui
+# # data:
+# #   OLLAMA_BASE_URL: "http://10.85.30.220:52415" #"http://ollama-gpu.ollama.svc.cluster.local:11434"
+# #   ENABLE_SIGNUP: "true"
+# #   # DEFAULT_MODELS: "phi3:mini,tinyllama"
+# #   WEBUI_NAME: "HomeLab AI"
+# #   WEBUI_URL: "https://ai.landryzetam.net"
+# #   # Add these to fix signup issues
+# #   # WEBUI_AUTH: "false"  # Disable auth temporarily to create first user
+# #   DEFAULT_USER_ROLE: "user"
+# #   ENABLE_COMMUNITY_SHARING: "false"
+# #   ENABLE_MODEL_FILTER: "false"
+# #   USER_PERMISSIONS_CHAT_DELETION: "true"
+
+
+# # # apps/base/ollama-webui/configmap.yaml
+# # apiVersion: v1
+# # kind: ConfigMap
+# # metadata:
+# #   name: ollama-webui-configmap
+# #   namespace: ollama-webui
+# # data:
+# #   OLLAMA_BASE_URL: "http://10.85.30.220:52415" # Your exo endpoint
+# #   ENABLE_SIGNUP: "true"
+# #   WEBUI_NAME: "HomeLab AI"
+# #   WEBUI_URL: "https://ai.landryzetam.net"
+# #   # User settings
+# #   DEFAULT_USER_ROLE: "user"
+# #   ENABLE_COMMUNITY_SHARING: "false"
+# #   ENABLE_MODEL_FILTER: "false"
+# #   USER_PERMISSIONS_CHAT_DELETION: "true"
+# #   # Admin creation settings
+# #   WEBUI_AUTH: "true"  # Keep auth enabled
+# #   ENABLE_ADMIN_CREATION: "true"  # Allow first user to become admin
+# #   # Optional: Set a signup key if you want to restrict who can sign up
+# #   # WEBUI_SECRET_KEY: "your-secret-key-here"
+
+
+# # apps/base/ollama-webui/configmap.yaml
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: ollama-webui-configmap
+#   namespace: ollama-webui
+# data:
+#   OLLAMA_BASE_URL: "http://10.85.30.220:52415"
+#   WEBUI_NAME: "HomeLab AI"
+#   WEBUI_URL: "https://ai.landryzetam.net"
+  
+#   # Authentication settings
+#   WEBUI_AUTH: "true"  # Keep authentication enabled
+  
+#   # Signup settings - Allow anyone to create an account
+#   ENABLE_SIGNUP: "true"
+  
+#   # IMPORTANT: New users will be regular users, NOT admins
+#   DEFAULT_USER_ROLE: "user"  # This ensures new signups are NOT admins
+  
+#   # Optional: If you want to prevent users from becoming admins
+#   ENABLE_ADMIN_CREATION: "false"  # Prevents new users from becoming admin
+  
+#   # User permissions for regular users
+#   USER_PERMISSIONS_CHAT_DELETION: "true"  # Users can delete their own chats
+#   ENABLE_COMMUNITY_SHARING: "false"  # Users cannot share chats publicly
+#   ENABLE_MODEL_FILTER: "false"  # Users can access all available models
+  
+#   # Optional settings you might want to configure:
+  
+#   # Limit models for regular users (uncomment to use)
+#   # DEFAULT_MODELS: "llama3.2:3b,deepseek-r1:8b"  # Only these models for users
+#   # ADMIN_MODELS: "*"  # Admins can access all models
+  
+#   # Rate limiting (uncomment to use)
+#   # ENABLE_RATE_LIMIT: "true"
+#   # RATE_LIMIT_REQUESTS: "100"  # Requests per minute per user
+  
+#   # Session timeout (uncomment to use)
+#   WEBUI_SESSION_LIFETIME: "86400"  # 24 hours in seconds
