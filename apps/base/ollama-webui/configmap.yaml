@@ -1,16 +1,3 @@
-# # apps/base/ollama-webui/configmap.yaml
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: ollama-webui-configmap
-#   namespace: ollama-webui
-# data:
-#   OLLAMA_BASE_URL: "http://ollama-gpu.ollama.svc.cluster.local:11434"
-#   ENABLE_SIGNUP: "true"
-#   DEFAULT_MODELS: "phi3:mini,tinyllama"
-#   WEBUI_NAME: "HomeLab AI"
-#   WEBUI_URL: "https://ai.landryzetam.net"
-
 # apps/base/ollama-webui/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -18,9 +5,9 @@ metadata:
   name: ollama-webui-configmap
   namespace: ollama-webui
 data:
-  OLLAMA_BASE_URL: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+  OLLAMA_BASE_URL: "http://10.85.30.220:52415" #"http://ollama-gpu.ollama.svc.cluster.local:11434"
   ENABLE_SIGNUP: "true"
-  DEFAULT_MODELS: "phi3:mini,tinyllama"
+  # DEFAULT_MODELS: "phi3:mini,tinyllama"
   WEBUI_NAME: "HomeLab AI"
   WEBUI_URL: "https://ai.landryzetam.net"
   # Add these to fix signup issues
