@@ -29,7 +29,7 @@ spec:
                 name: ollama-webui-configmap  # Fixed: Use consistent name
           env:
             - name: OLLAMA_BASE_URL
-              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+              value: "http://***NFS-IP-REMOVED***:52415" #"http://ollama-gpu.ollama.svc.cluster.local:11434"
           volumeMounts:
             - mountPath: /app/backend/data
               name: webui-data
