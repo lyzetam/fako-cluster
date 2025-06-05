@@ -12,25 +12,25 @@ spec:
       targetPort: 52415
       protocol: TCP
 ---
-# Alternative: Using Endpoints directly for more control
-apiVersion: v1
-kind: Service
-metadata:
-  name: exo-openai-endpoint
-  namespace: ollama
-spec:
-  ports:
-    - port: 52415
-      targetPort: 52415
-      protocol: TCP
----
-apiVersion: v1
-kind: Endpoints
-metadata:
-  name: exo-openai-endpoint
-  namespace: ollama
-subsets:
-  - addresses:
-      - ip: 10.85.30.220
-    ports:
-      - port: 52415
+# # Alternative: Using Endpoints directly for more control
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: exo-openai-endpoint
+#   namespace: ollama
+# spec:
+#   ports:
+#     - port: 52415
+#       targetPort: 52415
+#       protocol: TCP
+# ---
+# apiVersion: v1
+# kind: Endpoints
+# metadata:
+#   name: exo-openai-endpoint
+#   namespace: ollama
+# subsets:
+#   - addresses:
+#       - ip: 10.85.30.220
+#     ports:
+#       - port: 52415
