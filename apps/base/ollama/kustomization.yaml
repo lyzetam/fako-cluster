@@ -9,4 +9,4 @@ resources:
   # - deployment-gpu.yaml
   # - service-gpu.yaml
   # - ingress.yaml
-  # - nodeport-service.yaml
+  - nodeport-service.yaml

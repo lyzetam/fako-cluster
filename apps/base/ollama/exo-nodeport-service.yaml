@@ -16,35 +16,58 @@ spec:
       protocol: TCP
       name: openai-api
   selector:
-    # This won't select any pods since we're using ExternalName
-    # Instead, we'll use endpoints to route to external service
-    app: exo-openai-proxy
----
-# Create a headless service that we can control with endpoints
-apiVersion: v1
-kind: Service
-metadata:
-  name: exo-openai-proxy
-  namespace: ollama
-  labels:
-    app: exo-openai-proxy
-spec:
-  ports:
-    - port: 52415
-      targetPort: 52415
-      protocol: TCP
-      name: openai-api
-  # No selector - we'll manually manage endpoints
----
-# Manual endpoints pointing to external Ollama cluster
-apiVersion: v1
-kind: Endpoints
-metadata:
-  name: exo-openai-proxy
-  namespace: ollama
-subsets:
-  - addresses:
-      - ip: ***NFS-IP-REMOVED***  # external Ollama cluster IP
-    ports:
-      - port: 52415
-        name: openai-api
+    # This will route to the same endpoint as exo-openai-endpoint
+    app: exo-openai-endpoint
+
+
+
+# # apps/base/ollama/exo-nodeport-service.yaml
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: exo-openai-nodeport
+#   namespace: ollama
+#   labels:
+#     app: exo-openai
+#     component: external-access
+# spec:
+#   type: NodePort
+#   ports:
+#     - port: 52415
+#       targetPort: 52415
+#       nodePort: 32415  # External port for Home Assistant and other integrations
+#       protocol: TCP
+#       name: openai-api
+#   selector:
+#     # This won't select any pods since we're using ExternalName
+#     # Instead, we'll use endpoints to route to external service
+#     app: exo-openai-proxy
+# ---
+# # Create a headless service that we can control with endpoints
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: exo-openai-proxy
+#   namespace: ollama
+#   labels:
+#     app: exo-openai-proxy
+# spec:
+#   ports:
+#     - port: 52415
+#       targetPort: 52415
+#       protocol: TCP
+#       name: openai-api
+#   # No selector - we'll manually manage endpoints
+# ---
+# # Manual endpoints pointing to external Ollama cluster
+# apiVersion: v1
+# kind: Endpoints
+# metadata:
+#   name: exo-openai-proxy
+#   namespace: ollama
+# subsets:
+#   - addresses:
+#       - ip: ***NFS-IP-REMOVED***  # external Ollama cluster IP
+#     ports:
+#       - port: 52415
+#         name: openai-api
