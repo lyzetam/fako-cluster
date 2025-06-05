@@ -1,4 +1,4 @@
-# apps/base/ollama/ollama-proxy-external.yaml
+# apps/base/ollama/ollama-proxy-fixed.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,7 +7,7 @@ metadata:
 data:
   nginx.conf: |
     worker_processes 1;
-    error_log /dev/stderr info;
+    error_log /dev/stderr debug;  # Enable debug logging
     
     events {
       worker_connections 1024;
@@ -17,79 +17,152 @@ data:
       access_log /dev/stdout;
       
       upstream exo_backend {
-        server ***NFS-IP-REMOVED***:52415;  # Direct IP to your exo cluster
+        server ***NFS-IP-REMOVED***:52415;
       }
+      
+      # Log format to debug requests
+      log_format detailed '$remote_addr - $remote_user [$time_local] '
+                         '"$request" $status $body_bytes_sent '
+                         '"$http_user_agent" "$request_body"';
       
       server {
         listen 11434;
+        access_log /dev/stdout detailed;
         
-        # List models endpoint - /api/tags
+        # Enable request body logging for debugging
+        client_body_buffer_size 1M;
+        client_max_body_size 50M;
+        
+        # Root endpoint - health check
+        location = / {
+          add_header Content-Type application/json;
+          return 200 '{"status": "Ollama proxy running", "version": "0.1.48"}';
+        }
+        
+        # List models endpoint - this is what HA checks first!
         location = /api/tags {
           proxy_pass http://exo_backend/v1/models;
           proxy_set_header Host $host;
           proxy_set_header Accept application/json;
           
-          # Transform the response
-          sub_filter_types application/json;
-          sub_filter '"data":' '"models":';
-          sub_filter '"id":' '"name":';
+          # Buffer the response so we can modify it
+          proxy_buffering on;
+          proxy_buffer_size 4k;
+          proxy_buffers 8 4k;
+          
+          # Transform OpenAI response to Ollama format
+          sub_filter_types application/json text/plain;
           sub_filter_once off;
+          
+          # Transform the JSON structure
+          sub_filter '{"object":"list","data":[' '{"models":[';
+          sub_filter '"id":"' '"name":"';
+          sub_filter '"created":' '"modified_at":';
+          sub_filter '"owned_by":"' '"details":{"format":"gguf","family":"';
+          sub_filter '"}' '","parameter_size":"8B","quantization_level":"Q4_0"}}';
+        }
+        
+        # Alternative tags endpoint
+        location = /api/tags/ {
+          proxy_pass http://exo_backend/v1/models;
+          proxy_set_header Host $host;
+          proxy_set_header Accept application/json;
+          
+          sub_filter_types application/json text/plain;
+          sub_filter_once off;
+          sub_filter '{"object":"list","data":[' '{"models":[';
+          sub_filter '"id":"' '"name":"';
         }
         
         # Generate endpoint
         location = /api/generate {
-          proxy_method POST;
+          if ($request_method = OPTIONS) {
+            add_header Access-Control-Allow-Origin *;
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+            add_header Access-Control-Allow-Headers "Authorization, Content-Type";
+            return 204;
+          }
+          
           proxy_pass http://exo_backend/v1/completions;
+          proxy_method POST;
           proxy_set_header Host $host;
           proxy_set_header Content-Type application/json;
           proxy_read_timeout 300s;
-          proxy_connect_timeout 30s;
+          
+          # Log the request body for debugging
+          access_log /dev/stdout detailed;
         }
         
         # Chat endpoint
         location = /api/chat {
-          proxy_method POST;
+          if ($request_method = OPTIONS) {
+            add_header Access-Control-Allow-Origin *;
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+            add_header Access-Control-Allow-Headers "Authorization, Content-Type";
+            return 204;
+          }
+          
           proxy_pass http://exo_backend/v1/chat/completions;
+          proxy_method POST;
           proxy_set_header Host $host;
           proxy_set_header Content-Type application/json;
           proxy_read_timeout 300s;
-          proxy_connect_timeout 30s;
         }
         
-        # Pull endpoint (fake - returns success)
-        location ~ ^/api/pull {
-          return 200 '{"status": "success", "digest": "sha256:dummy", "total": 100, "completed": 100}';
-          add_header Content-Type application/json;
-        }
-        
-        # Show model info
-        location ~ ^/api/show {
-          return 200 '{"license": "Apache 2.0", "modelfile": "FROM llama3.1", "parameters": "temperature 0.7"}';
-          add_header Content-Type application/json;
-        }
-        
-        # Version endpoint
+        # Version endpoint - HA might check this
         location = /api/version {
-          return 200 '{"version": "0.1.0"}';
           add_header Content-Type application/json;
+          return 200 '{"version":"0.1.48"}';
         }
         
-        # Health check
-        location = / {
-          return 200 '{"status": "Ollama proxy running", "exo_backend": "***NFS-IP-REMOVED***:52415"}';
+        # Show endpoint - returns model details
+        location ~ ^/api/show {
           add_header Content-Type application/json;
+          return 200 '{"license":"Apache 2.0","modelfile":"FROM llama3","parameters":"temperature 0.7\nstop [INST]","template":"{{ .Prompt }}","details":{"format":"gguf","family":"llama","families":["llama"],"parameter_size":"8B","quantization_level":"Q4_0"}}';
         }
         
-        # CORS headers for external access
-        location ~* {
-          add_header Access-Control-Allow-Origin "*";
-          add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
-          add_header Access-Control-Allow-Headers "Authorization, Content-Type";
-          
-          if ($request_method = OPTIONS) {
-            return 204;
-          }
+        # Pull endpoint - fake success
+        location ~ ^/api/pull {
+          add_header Content-Type application/json;
+          return 200 '{"status":"success","digest":"sha256:dummy","total":100,"completed":100}';
         }
+        
+        # Copy endpoint
+        location = /api/copy {
+          add_header Content-Type application/json;
+          return 200 '{"status":"success"}';
+        }
+        
+        # Delete endpoint
+        location = /api/delete {
+          add_header Content-Type application/json;
+          return 200 '{"status":"success"}';
+        }
+        
+        # List running models
+        location = /api/ps {
+          add_header Content-Type application/json;
+          return 200 '{"models":[]}';
+        }
+        
+        # Embeddings endpoint
+        location = /api/embeddings {
+          proxy_pass http://exo_backend/v1/embeddings;
+          proxy_method POST;
+          proxy_set_header Host $host;
+          proxy_set_header Content-Type application/json;
+        }
+        
+        # Default handler for any other API calls
+        location /api/ {
+          add_header Content-Type application/json;
+          return 404 '{"error":"Not implemented: $request_uri"}';
+        }
+        
+        # CORS headers for all responses
+        add_header Access-Control-Allow-Origin * always;
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
       }
     }
 ---
@@ -122,11 +195,11 @@ spec:
               subPath: nginx.conf
           resources:
             requests:
-              memory: "32Mi"
-              cpu: "25m"
-            limits:
               memory: "64Mi"
               cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
           livenessProbe:
             httpGet:
               path: /
@@ -161,7 +234,6 @@ spec:
     app: ollama-proxy
   type: ClusterIP
 ---
-# NodePort service for external access
 apiVersion: v1
 kind: Service
 metadata:
@@ -174,7 +246,7 @@ spec:
   ports:
     - port: 11434
       targetPort: 11434
-      nodePort: 31434  # External port
+      nodePort: 31434
       protocol: TCP
       name: ollama-api
   selector:
