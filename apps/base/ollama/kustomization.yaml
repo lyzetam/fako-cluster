@@ -6,3 +6,6 @@ resources:
   - exo-service.yaml
   - exo-nodeport-service.yaml
   - ollama-proxy-external.yaml # This file contains the Ollama proxy service configuration
+  - ollama-proxy-nodejs.yaml # This file contains the Ollama proxy deployment configuration
+
+  
