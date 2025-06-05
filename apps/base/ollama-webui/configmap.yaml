@@ -5,18 +5,26 @@ metadata:
   name: ollama-webui-configmap
   namespace: ollama-webui
 data:
-  # Point to exo's OpenAI-compatible API
-  OLLAMA_BASE_URL: ""  # Leave empty when using OpenAI mode
-  OPENAI_API_BASE: "http://10.85.30.220:52415/v1"
-  OPENAI_API_KEY: "dummy"  # exo doesn't require authentication
+  # Disable Ollama API completely
+  ENABLE_OLLAMA_API: "false"
+  OLLAMA_BASE_URL: ""
+  OLLAMA_API_BASE_URL: ""
   
-  # Use OpenAI API mode
+  # Enable OpenAI API mode - now using Kubernetes service
+  ENABLE_OPENAI_API: "true"
+  OPENAI_API_BASE_URL: "http://exo-openai.ollama.svc.cluster.local:52415/v1"
+  OPENAI_API_KEY: "dummy"
+  OPENAI_API_BASE_URLS: "http://exo-openai.ollama.svc.cluster.local:52415/v1"
+  OPENAI_API_KEYS: "dummy"
+  
+  # WebUI configuration
   WEBUI_NAME: "HomeLab AI (exo cluster)"
-  WEBUI_URL: "https://ai.landryzetam.net"
+  WEBUI_URL: ""
   
   # Model configuration
-  DEFAULT_MODELS: '["llama-3.1-8b"]'  # The model running on exo
-  ENABLE_OPENAI_API: "true"  # Enable OpenAI compatibility
+  DEFAULT_MODELS: "llama-3.1-8b"
+  MODEL_FILTER_ENABLED: "false"
+  ENABLE_MODEL_FILTER: "false"
   
   # Authentication settings
   WEBUI_AUTH: "true"
@@ -27,8 +35,44 @@ data:
   # User permissions
   USER_PERMISSIONS_CHAT_DELETION: "true"
   ENABLE_COMMUNITY_SHARING: "false"
-  ENABLE_MODEL_FILTER: "false"
+  
+  # Disable features that don't work with OpenAI API
+  ENABLE_IMAGE_GENERATION: "false"
+  ENABLE_RAG_WEB_SEARCH: "false"
+  
+  # Logging
+  WEBUI_LOG_LEVEL: "INFO"
 
-  # Security headers for HTTPS
-  # WEBUI_COOKIE_SECURE: "true"  # Force secure cookies
-  # WEBUI_SESSION_SECURE: "true"  # Force secure sessions
+
+
+# # apps/base/ollama-webui/configmap.yaml
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: ollama-webui-configmap
+#   namespace: ollama-webui
+# data:
+#   # Point to exo's OpenAI-compatible API
+#   OLLAMA_BASE_URL: ""  # Leave empty when using OpenAI mode
+#   OPENAI_API_BASE: "http://10.85.30.220:52415/v1"
+#   OPENAI_API_KEY: "dummy"  # exo doesn't require authentication
+  
+#   # Use OpenAI API mode
+#   WEBUI_NAME: "HomeLab AI (exo cluster)"
+#   WEBUI_URL: "https://ai.landryzetam.net"
+  
+#   # Model configuration
+#   DEFAULT_MODELS: '["llama-3.1-8b"]'  # The model running on exo
+#   ENABLE_OPENAI_API: "true"  # Enable OpenAI compatibility
+  
+#   # Authentication settings
+#   WEBUI_AUTH: "true"
+#   ENABLE_SIGNUP: "true"
+#   DEFAULT_USER_ROLE: "user"
+#   WEBUI_SESSION_LIFETIME: "2592000"
+  
+#   # User permissions
+#   USER_PERMISSIONS_CHAT_DELETION: "true"
+#   ENABLE_COMMUNITY_SHARING: "false"
+#   ENABLE_MODEL_FILTER: "false"
+
