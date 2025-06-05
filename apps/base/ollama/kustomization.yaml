@@ -3,9 +3,10 @@ kind: Kustomization
 namespace: ollama
 resources:
   - namespace.yaml
-  - configmap.yaml
-  - storage.yaml
-  - deployment-gpu.yaml
-  - service-gpu.yaml
-  - ingress.yaml
-  - nodeport-service.yaml
+  - exo-service.yaml
+  # - configmap.yaml
+  # - storage.yaml
+  # - deployment-gpu.yaml
+  # - service-gpu.yaml
+  # - ingress.yaml
+  # - nodeport-service.yaml
