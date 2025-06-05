@@ -63,7 +63,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     # Reference middleware in kube-system namespace (where Traefik is installed)
-    traefik.ingress.kubernetes.io/router.middlewares: kube-system-security-headers@kubernetescrd,kube-system-redirect-https@kubernetescrd
+    # traefik.ingress.kubernetes.io/router.middlewares: kube-system-security-headers@kubernetescrd,kube-system-redirect-https@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:

@@ -5,5 +5,5 @@ resources:
   - nfs-storage
   - nvidia-gpu
   - k8s-backup
-  - traefik-middleware
+  # - traefik-middleware
 
