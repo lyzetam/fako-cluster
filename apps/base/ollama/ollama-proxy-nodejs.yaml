@@ -1,0 +1,312 @@
+# apps/base/ollama/ollama-proxy-nodejs.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-proxy-nodejs
+  namespace: ollama
+data:
+  server.js: |
+    const http = require('http');
+    const url = require('url');
+    
+    const EXO_HOST = '10.85.30.220';
+    const EXO_PORT = 52415;
+    const PROXY_PORT = 11434;
+    
+    // Simple request handler
+    function makeRequest(options, postData = null) {
+      return new Promise((resolve, reject) => {
+        const req = http.request(options, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              resolve({ status: res.statusCode, data: JSON.parse(data) });
+            } catch (e) {
+              resolve({ status: res.statusCode, data: data });
+            }
+          });
+        });
+        req.on('error', reject);
+        if (postData) req.write(postData);
+        req.end();
+      });
+    }
+    
+    const server = http.createServer(async (req, res) => {
+      console.log(`${req.method} ${req.url}`);
+      
+      // CORS headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      
+      const parsedUrl = url.parse(req.url, true);
+      
+      // Health check
+      if (parsedUrl.pathname === '/') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'Ollama proxy running', version: '0.1.48' }));
+        return;
+      }
+      
+      // List models - THIS IS THE CRITICAL ENDPOINT
+      if (parsedUrl.pathname === '/api/tags') {
+        try {
+          const result = await makeRequest({
+            hostname: EXO_HOST,
+            port: EXO_PORT,
+            path: '/v1/models',
+            method: 'GET'
+          });
+          
+          // Transform OpenAI format to Ollama format
+          const ollamaResponse = {
+            models: result.data.data.map(model => ({
+              name: model.id,
+              model: model.id,
+              modified_at: new Date().toISOString(),
+              size: 4000000000, // 4GB estimate
+              digest: `sha256:${Buffer.from(model.id).toString('hex').substring(0, 12)}`,
+              details: {
+                parent_model: '',
+                format: 'gguf',
+                family: model.id.split('-')[0],
+                families: [model.id.split('-')[0]],
+                parameter_size: model.id.includes('70b') ? '70B' : 
+                               model.id.includes('32b') ? '32B' : 
+                               model.id.includes('14b') ? '14B' : 
+                               model.id.includes('8b') ? '8B' : 
+                               model.id.includes('7b') ? '7B' : 
+                               model.id.includes('3b') ? '3B' : '1B',
+                quantization_level: model.id.includes('3bit') ? 'Q3_K' : 
+                                   model.id.includes('6bit') ? 'Q6_K' : 
+                                   model.id.includes('8bit') ? 'Q8_0' : 'Q4_0'
+              }
+            }))
+          };
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(ollamaResponse));
+        } catch (error) {
+          console.error('Error fetching models:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to fetch models' }));
+        }
+        return;
+      }
+      
+      // Version endpoint
+      if (parsedUrl.pathname === '/api/version') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ version: '0.1.48' }));
+        return;
+      }
+      
+      // Generate endpoint
+      if (parsedUrl.pathname === '/api/generate' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+          try {
+            const requestData = JSON.parse(body);
+            const openAiRequest = {
+              model: requestData.model || 'llama-3.1-8b',
+              prompt: requestData.prompt,
+              max_tokens: 1000,
+              temperature: requestData.options?.temperature || 0.7,
+              stream: false
+            };
+            
+            const result = await makeRequest({
+              hostname: EXO_HOST,
+              port: EXO_PORT,
+              path: '/v1/completions',
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            }, JSON.stringify(openAiRequest));
+            
+            // Transform response
+            const ollamaResponse = {
+              model: requestData.model,
+              created_at: new Date().toISOString(),
+              response: result.data.choices?.[0]?.text || '',
+              done: true,
+              context: [],
+              total_duration: 1000000000,
+              load_duration: 100000000,
+              prompt_eval_count: requestData.prompt.length,
+              prompt_eval_duration: 100000000,
+              eval_count: result.data.choices?.[0]?.text?.length || 0,
+              eval_duration: 800000000
+            };
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(ollamaResponse));
+          } catch (error) {
+            console.error('Error in generate:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Generation failed' }));
+          }
+        });
+        return;
+      }
+      
+      // Chat endpoint
+      if (parsedUrl.pathname === '/api/chat' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+          try {
+            const requestData = JSON.parse(body);
+            const result = await makeRequest({
+              hostname: EXO_HOST,
+              port: EXO_PORT,
+              path: '/v1/chat/completions',
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            }, JSON.stringify({
+              model: requestData.model || 'llama-3.1-8b',
+              messages: requestData.messages,
+              stream: false
+            }));
+            
+            const ollamaResponse = {
+              model: requestData.model,
+              created_at: new Date().toISOString(),
+              message: {
+                role: 'assistant',
+                content: result.data.choices?.[0]?.message?.content || ''
+              },
+              done: true,
+              total_duration: 1000000000,
+              load_duration: 100000000,
+              prompt_eval_count: 100,
+              prompt_eval_duration: 100000000,
+              eval_count: 100,
+              eval_duration: 800000000
+            };
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(ollamaResponse));
+          } catch (error) {
+            console.error('Error in chat:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Chat failed' }));
+          }
+        });
+        return;
+      }
+      
+      // Show endpoint
+      if (parsedUrl.pathname.startsWith('/api/show')) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          license: 'Apache 2.0',
+          modelfile: 'FROM llama3',
+          parameters: 'temperature 0.7',
+          template: '{{ .Prompt }}',
+          details: {
+            parent_model: '',
+            format: 'gguf',
+            family: 'llama',
+            families: ['llama'],
+            parameter_size: '8B',
+            quantization_level: 'Q4_0'
+          }
+        }));
+        return;
+      }
+      
+      // Default 404
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Not found' }));
+    });
+    
+    server.listen(PROXY_PORT, () => {
+      console.log(`Ollama proxy listening on port ${PROXY_PORT}`);
+      console.log(`Proxying to exo cluster at ${EXO_HOST}:${EXO_PORT}`);
+    });
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-proxy
+  namespace: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama-proxy
+  template:
+    metadata:
+      labels:
+        app: ollama-proxy
+    spec:
+      containers:
+        - name: proxy
+          image: node:20-alpine
+          command: ["node", "/app/server.js"]
+          ports:
+            - containerPort: 11434
+          volumeMounts:
+            - name: app
+              mountPath: /app
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 11434
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/version
+              port: 11434
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: app
+          configMap:
+            name: ollama-proxy-nodejs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-proxy
+  namespace: ollama
+spec:
+  ports:
+    - port: 11434
+      targetPort: 11434
+      protocol: TCP
+  selector:
+    app: ollama-proxy
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-proxy-external
+  namespace: ollama
+spec:
+  type: NodePort
+  ports:
+    - port: 11434
+      targetPort: 11434
+      nodePort: 31434
+      protocol: TCP
+  selector:
+    app: ollama-proxy
