@@ -4,9 +4,4 @@ namespace: ollama
 resources:
   - namespace.yaml
   - exo-service.yaml
-  # - configmap.yaml
-  # - storage.yaml
-  # - deployment-gpu.yaml
-  # - service-gpu.yaml
-  # - ingress.yaml
   - nodeport-service.yaml
