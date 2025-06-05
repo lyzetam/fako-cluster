@@ -1,0 +1,181 @@
+# apps/base/ollama/ollama-proxy-external.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-proxy-config
+  namespace: ollama
+data:
+  nginx.conf: |
+    worker_processes 1;
+    error_log /dev/stderr info;
+    
+    events {
+      worker_connections 1024;
+    }
+    
+    http {
+      access_log /dev/stdout;
+      
+      upstream exo_backend {
+        server ***NFS-IP-REMOVED***:52415;  # Direct IP to your exo cluster
+      }
+      
+      server {
+        listen 11434;
+        
+        # List models endpoint - /api/tags
+        location = /api/tags {
+          proxy_pass http://exo_backend/v1/models;
+          proxy_set_header Host $host;
+          proxy_set_header Accept application/json;
+          
+          # Transform the response
+          sub_filter_types application/json;
+          sub_filter '"data":' '"models":';
+          sub_filter '"id":' '"name":';
+          sub_filter_once off;
+        }
+        
+        # Generate endpoint
+        location = /api/generate {
+          proxy_method POST;
+          proxy_pass http://exo_backend/v1/completions;
+          proxy_set_header Host $host;
+          proxy_set_header Content-Type application/json;
+          proxy_read_timeout 300s;
+          proxy_connect_timeout 30s;
+        }
+        
+        # Chat endpoint
+        location = /api/chat {
+          proxy_method POST;
+          proxy_pass http://exo_backend/v1/chat/completions;
+          proxy_set_header Host $host;
+          proxy_set_header Content-Type application/json;
+          proxy_read_timeout 300s;
+          proxy_connect_timeout 30s;
+        }
+        
+        # Pull endpoint (fake - returns success)
+        location ~ ^/api/pull {
+          return 200 '{"status": "success", "digest": "sha256:dummy", "total": 100, "completed": 100}';
+          add_header Content-Type application/json;
+        }
+        
+        # Show model info
+        location ~ ^/api/show {
+          return 200 '{"license": "Apache 2.0", "modelfile": "FROM llama3.1", "parameters": "temperature 0.7"}';
+          add_header Content-Type application/json;
+        }
+        
+        # Version endpoint
+        location = /api/version {
+          return 200 '{"version": "0.1.0"}';
+          add_header Content-Type application/json;
+        }
+        
+        # Health check
+        location = / {
+          return 200 '{"status": "Ollama proxy running", "exo_backend": "***NFS-IP-REMOVED***:52415"}';
+          add_header Content-Type application/json;
+        }
+        
+        # CORS headers for external access
+        location ~* {
+          add_header Access-Control-Allow-Origin "*";
+          add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+          add_header Access-Control-Allow-Headers "Authorization, Content-Type";
+          
+          if ($request_method = OPTIONS) {
+            return 204;
+          }
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-proxy
+  namespace: ollama
+  labels:
+    app: ollama-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama-proxy
+  template:
+    metadata:
+      labels:
+        app: ollama-proxy
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 11434
+              name: ollama-api
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 11434
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 11434
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: ollama-proxy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-proxy
+  namespace: ollama
+  labels:
+    app: ollama-proxy
+spec:
+  ports:
+    - port: 11434
+      targetPort: 11434
+      protocol: TCP
+      name: ollama-api
+  selector:
+    app: ollama-proxy
+  type: ClusterIP
+---
+# NodePort service for external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-proxy-external
+  namespace: ollama
+  labels:
+    app: ollama-proxy
+spec:
+  type: NodePort
+  ports:
+    - port: 11434
+      targetPort: 11434
+      nodePort: 31434  # External port
+      protocol: TCP
+      name: ollama-api
+  selector:
+    app: ollama-proxy
