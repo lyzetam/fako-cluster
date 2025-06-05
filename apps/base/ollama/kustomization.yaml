@@ -4,4 +4,4 @@ namespace: ollama
 resources:
   - namespace.yaml
   - exo-service.yaml
-  - nodeport-service.yaml
+  - exo-nodeport-service.yaml
