@@ -18,7 +18,7 @@ data:
     # Set environment variables
     os.environ["OPENAI_API_KEY"] = "dummy"
     os.environ["LITELLM_MASTER_KEY"] = "sk-1022"
-    os.environ["DATABASE_URL"] = "postgresql://litellm:litellm-secret-password@postgres:5432/litellm"
+    os.environ["DATABASE_URL"] = "postgresql://litellm:litellm-secret-password@postgres-service:5432/litellm"
     os.environ["STORE_MODEL_IN_DB"] = "True"
     os.environ["UI_USERNAME"] = "admin"
     os.environ["UI_PASSWORD"] = "admin123"

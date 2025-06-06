@@ -25,7 +25,7 @@ spec:
           mountPath: /app
         env:
         - name: DATABASE_URL
-          value: "postgresql://litellm:litellm-secret-password@postgres:5432/litellm"
+          value: "postgresql://litellm:litellm-secret-password@postgres-service:5432/litellm"
         - name: LITELLM_MASTER_KEY
           value: "sk-1022"
         - name: STORE_MODEL_IN_DB

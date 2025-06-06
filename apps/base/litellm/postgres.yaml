@@ -65,7 +65,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: postgres-service  # Changed from 'postgres' to 'postgres-service'
   namespace: litellm
 spec:
   selector:
