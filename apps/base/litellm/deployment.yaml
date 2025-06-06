@@ -36,8 +36,8 @@ spec:
             # Disable all database features
             - name: STORE_MODEL_IN_DB
               value: "False"
-            - name: DISABLE_SPEND_LOGS
-              value: "True"
+            # - name: DISABLE_SPEND_LOGS
+            #   value: "False"
             - name: DISABLE_MASTER_KEY_HASH_STORAGE
               value: "True"
             - name: DISABLE_RESET_BUDGET
