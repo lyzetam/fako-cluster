@@ -7,6 +7,7 @@ metadata:
   labels:
     app: litellm
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: litellm
@@ -17,23 +18,47 @@ spec:
     spec:
       containers:
       - name: litellm
-        image: ghcr.io/berriai/litellm:main-v1.35.8  # Using a specific older version
+        image: ghcr.io/berriai/litellm:main-stable
         ports:
         - containerPort: 4000
+        env:
+        - name: LITELLM_MASTER_KEY
+          value: "sk-1022"
+        - name: OPENAI_API_KEY
+          value: "dummy"
+        - name: DATABASE_URL
+          value: ""
+        - name: STORE_MODEL_IN_DB
+          value: "False"
         volumeMounts:
         - name: config-volume
           mountPath: /app/proxy_server_config.yaml
           subPath: config.yaml
-        envFrom:
-        - secretRef:
-            name: litellm-secrets
         resources:
           requests:
             memory: "512Mi"
             cpu: "250m"
           limits:
             memory: "1Gi"
-            cpu: "1000m"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer sk-1022"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer sk-1022"
+          initialDelaySeconds: 30
+          periodSeconds: 10
       volumes:
         - name: config-volume
           configMap:
