@@ -1,16 +1,28 @@
-# apps/base/litellm/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: litellm-service
+  name: postgres
   namespace: litellm
-  labels:
-    app: litellm
 spec:
-  ports:
-    - port: 4000
-      targetPort: 4000
-      protocol: TCP
   selector:
-    app: litellm
-  type: ClusterIP
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+# # apps/base/litellm/service.yaml
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: litellm-service
+#   namespace: litellm
+#   labels:
+#     app: litellm
+# spec:
+#   ports:
+#     - port: 4000
+#       targetPort: 4000
+#       protocol: TCP
+#   selector:
+#     app: litellm
+#   type: ClusterIP
