@@ -11,9 +11,9 @@ data:
     import sys
     import time
     
-    # Install specific version of litellm with proxy dependencies and postgres
+    # Install specific version of litellm with proxy dependencies and database tools
     print("Installing LiteLLM with proxy dependencies...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0", "psycopg2-binary"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0", "psycopg2-binary", "prisma"])
     
     # Set environment variables
     os.environ["OPENAI_API_KEY"] = "dummy"
@@ -37,7 +37,6 @@ data:
         "--port", "4000",
         "--telemetry", "False"
     ])
-
 
 # # # apps/base/litellm/configmap.yaml
 # # apiVersion: v1
