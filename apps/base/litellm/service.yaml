@@ -1,8 +1,11 @@
+# apps/base/litellm/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: litellm
+  name: litellm-service
   namespace: litellm
+  labels:
+    app: litellm
 spec:
   ports:
     - port: 4000
