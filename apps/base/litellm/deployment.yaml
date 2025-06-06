@@ -1,4 +1,32 @@
-# apps/base/litellm/deployment-simple.yaml
+# apps/base/litellm/working-deployment.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: litellm-run-script
+  namespace: litellm
+data:
+  run.py: |
+    import os
+    import subprocess
+    import sys
+    
+    # Install specific version of litellm without database dependencies
+    print("Installing LiteLLM...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm==1.35.0"])
+    
+    # Set environment variables
+    os.environ["OPENAI_API_KEY"] = "dummy"
+    os.environ["LITELLM_MASTER_KEY"] = "sk-1022"
+    
+    # Start litellm with correct arguments
+    print("Starting LiteLLM...")
+    subprocess.run([
+        "litellm",
+        "--model", "openai/llama-3.1-8b",
+        "--api_base", "http://***NFS-IP-REMOVED***:52415/v1",
+        "--port", "4000"
+    ])
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,26 +44,13 @@ spec:
     spec:
       containers:
       - name: litellm
-        image: ghcr.io/berriai/litellm:main-stable
+        image: python:3.11-slim
         ports:
         - containerPort: 4000
-        env:
-        - name: LITELLM_MASTER_KEY
-          value: "sk-1022"
-        - name: OPENAI_API_KEY
-          value: "dummy"
-        command:
-        - litellm
-        - --model
-        - openai/llama-3.1-8b
-        - --api_base
-        - http://***NFS-IP-REMOVED***:52415/v1
-        - --api_key
-        - dummy
-        - --port
-        - "4000"
-        - --alias
-        - llama3
+        command: ["python", "/app/run.py"]
+        volumeMounts:
+        - name: script
+          mountPath: /app
         resources:
           requests:
             memory: "512Mi"
@@ -44,12 +59,26 @@ spec:
             memory: "1Gi"
             cpu: "500m"
         livenessProbe:
-          tcpSocket:
+          httpGet:
+            path: /health
             port: 4000
-          initialDelaySeconds: 30
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer sk-1022"
+          initialDelaySeconds: 90
           periodSeconds: 30
+          timeoutSeconds: 10
         readinessProbe:
-          tcpSocket:
+          httpGet:
+            path: /health
             port: 4000
-          initialDelaySeconds: 10
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer sk-1022"
+          initialDelaySeconds: 60
           periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: script
+        configMap:
+          name: litellm-run-script
