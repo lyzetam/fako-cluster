@@ -1,11 +1,9 @@
-# apps/base/litellm/deployment.yaml
+# apps/base/litellm/deployment-simple.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: litellm-deployment
   namespace: litellm
-  labels:
-    app: litellm
 spec:
   replicas: 1
   selector:
@@ -26,14 +24,18 @@ spec:
           value: "sk-1022"
         - name: OPENAI_API_KEY
           value: "dummy"
-        - name: DATABASE_URL
-          value: ""
-        - name: STORE_MODEL_IN_DB
-          value: "False"
-        volumeMounts:
-        - name: config-volume
-          mountPath: /app/proxy_server_config.yaml
-          subPath: config.yaml
+        command:
+        - litellm
+        - --model
+        - openai/llama-3.1-8b
+        - --api_base
+        - http://10.85.30.220:52415/v1
+        - --api_key
+        - dummy
+        - --port
+        - "4000"
+        - --alias
+        - llama3
         resources:
           requests:
             memory: "512Mi"
@@ -42,24 +44,12 @@ spec:
             memory: "1Gi"
             cpu: "500m"
         livenessProbe:
-          httpGet:
-            path: /health
+          tcpSocket:
             port: 4000
-            httpHeaders:
-            - name: Authorization
-              value: "Bearer sk-1022"
-          initialDelaySeconds: 60
+          initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
-          httpGet:
-            path: /health
+          tcpSocket:
             port: 4000
-            httpHeaders:
-            - name: Authorization
-              value: "Bearer sk-1022"
-          initialDelaySeconds: 30
+          initialDelaySeconds: 10
           periodSeconds: 10
-      volumes:
-        - name: config-volume
-          configMap:
-            name: litellm-config-file
