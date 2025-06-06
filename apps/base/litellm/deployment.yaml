@@ -26,14 +26,19 @@ spec:
             - name: config-volume
               mountPath: /app/proxy_server_config.yaml
               subPath: config.yaml
+            - name: data
+              mountPath: /app/data
+          envFrom:
+            - secretRef:
+                name: litellm-secrets
           env:
-            - name: LITELLM_MASTER_KEY
-              value: "sk-1234"
+            # Non-secret environment variables
+            - name: PORT
+              value: "4000"
+            - name: STORE_MODEL_IN_DB
+              value: "True"
             - name: LITELLM_LOG
               value: "INFO"
-            # Disable auth for testing
-            - name: LITELLM_GENERAL_SETTINGS
-              value: '{"master_key": null}'
           resources:
             requests:
               memory: "512Mi"
@@ -43,15 +48,21 @@ spec:
               cpu: "1000m"
           livenessProbe:
             httpGet:
-              path: /
+              path: /health
               port: 4000
+              httpHeaders:
+                - name: Authorization
+                  value: "Bearer sk-1234"
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 10
           readinessProbe:
             httpGet:
-              path: /
+              path: /health
               port: 4000
+              httpHeaders:
+                - name: Authorization
+                  value: "Bearer sk-1234"
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
@@ -59,6 +70,9 @@ spec:
         - name: config-volume
           configMap:
             name: litellm-config-file
+        - name: data
+          emptyDir: {}  # For SQLite database
+
 
 
 # # apps/base/litellm/deployment.yaml
@@ -91,9 +105,12 @@ spec:
 #               subPath: config.yaml
 #           env:
 #             - name: LITELLM_MASTER_KEY
-#               value: "sk-1234"  # Or use secretRef
+#               value: "sk-1234"
 #             - name: LITELLM_LOG
 #               value: "INFO"
+#             # Disable auth for testing
+#             - name: LITELLM_GENERAL_SETTINGS
+#               value: '{"master_key": null}'
 #           resources:
 #             requests:
 #               memory: "512Mi"
@@ -103,14 +120,14 @@ spec:
 #               cpu: "1000m"
 #           livenessProbe:
 #             httpGet:
-#               path: /health
+#               path: /
 #               port: 4000
 #             initialDelaySeconds: 30
 #             periodSeconds: 30
 #             timeoutSeconds: 10
 #           readinessProbe:
 #             httpGet:
-#               path: /health
+#               path: /
 #               port: 4000
 #             initialDelaySeconds: 10
 #             periodSeconds: 10
@@ -119,3 +136,4 @@ spec:
 #         - name: config-volume
 #           configMap:
 #             name: litellm-config-file
+
