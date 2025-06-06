@@ -19,6 +19,14 @@ spec:
       containers:
         - name: litellm
           image: ghcr.io/berriai/litellm:main-stable
+          command: ["litellm"]
+          args:
+            - "--config"
+            - "/app/proxy_server_config.yaml"
+            - "--port"
+            - "4000"
+            - "--num_workers"
+            - "1"
           ports:
             - containerPort: 4000
               protocol: TCP
@@ -26,17 +34,11 @@ spec:
             - name: config-volume
               mountPath: /app/proxy_server_config.yaml
               subPath: config.yaml
-            - name: data
-              mountPath: /app/data
-          envFrom:
-            - secretRef:
-                name: litellm-secrets
           env:
-            # Non-secret environment variables
-            - name: PORT
-              value: "4000"
+            - name: LITELLM_MASTER_KEY
+              value: "sk-1234"
             - name: STORE_MODEL_IN_DB
-              value: "True"
+              value: "False"
             - name: LITELLM_LOG
               value: "INFO"
           resources:
@@ -70,8 +72,82 @@ spec:
         - name: config-volume
           configMap:
             name: litellm-config-file
-        - name: data
-          emptyDir: {}  # For SQLite database
+
+
+# # apps/base/litellm/deployment.yaml
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: litellm-deployment
+#   namespace: litellm
+#   labels:
+#     app: litellm
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: litellm
+#   template:
+#     metadata:
+#       labels:
+#         app: litellm
+#     spec:
+#       containers:
+#         - name: litellm
+#           image: ghcr.io/berriai/litellm:main-stable
+#           ports:
+#             - containerPort: 4000
+#               protocol: TCP
+#           volumeMounts:
+#             - name: config-volume
+#               mountPath: /app/proxy_server_config.yaml
+#               subPath: config.yaml
+#             - name: data
+#               mountPath: /app/data
+#           envFrom:
+#             - secretRef:
+#                 name: litellm-secrets
+#           env:
+#             # Non-secret environment variables
+#             - name: PORT
+#               value: "4000"
+#             - name: STORE_MODEL_IN_DB
+#               value: "True"
+#             - name: LITELLM_LOG
+#               value: "INFO"
+#           resources:
+#             requests:
+#               memory: "512Mi"
+#               cpu: "250m"
+#             limits:
+#               memory: "1Gi"
+#               cpu: "1000m"
+#           livenessProbe:
+#             httpGet:
+#               path: /health
+#               port: 4000
+#               httpHeaders:
+#                 - name: Authorization
+#                   value: "Bearer sk-1234"
+#             initialDelaySeconds: 30
+#             periodSeconds: 30
+#             timeoutSeconds: 10
+#           readinessProbe:
+#             httpGet:
+#               path: /health
+#               port: 4000
+#               httpHeaders:
+#                 - name: Authorization
+#                   value: "Bearer sk-1234"
+#             initialDelaySeconds: 10
+#             periodSeconds: 10
+#             timeoutSeconds: 5
+#       volumes:
+#         - name: config-volume
+#           configMap:
+#             name: litellm-config-file
+#         - name: data
+#           emptyDir: {}  # For SQLite database
 
 
 
