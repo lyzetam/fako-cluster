@@ -10,9 +10,9 @@ data:
     import subprocess
     import sys
     
-    # Install specific version of litellm without database dependencies
-    print("Installing LiteLLM...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm==1.35.0"])
+    # Install specific version of litellm with proxy dependencies
+    print("Installing LiteLLM with proxy dependencies...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0"])
     
     # Set environment variables
     os.environ["OPENAI_API_KEY"] = "dummy"
