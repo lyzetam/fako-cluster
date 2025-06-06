@@ -389,7 +389,7 @@ spec:
     spec:
       containers:
         - name: proxy
-          image: node:20-alpine
+          image: node:24-alpine
           command: ["node", "/app/server.js"]
           ports:
             - containerPort: 11434
