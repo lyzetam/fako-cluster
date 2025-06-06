@@ -1,34 +1,34 @@
-# apps/base/litellm/deployment-no-db.yaml
+# apps/base/litellm/working-deployment-no-db.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: litellm-config
+  name: litellm-run-script
   namespace: litellm
 data:
-  config.yaml: |
-    model_list:
-      - model_name: llama-3.1-8b
-        litellm_params:
-          model: openai/llama-3.1-8b
-          api_base: http://***NFS-IP-REMOVED***:52415/v1
-          api_key: dummy
-      - model_name: llama3
-        litellm_params:
-          model: openai/llama-3.1-8b
-          api_base: http://***NFS-IP-REMOVED***:52415/v1
-          api_key: dummy
+  run.py: |
+    import os
+    import subprocess
+    import sys
     
-    general_settings:
-      master_key: sk-1022
-      disable_spend_logs: true
-  
-  run.sh: |
-    #!/bin/bash
-    echo "Installing older LiteLLM without DB requirements..."
-    pip install --no-cache-dir 'litellm[proxy]==0.1.590'
+    # Install specific version of litellm with proxy dependencies
+    print("Installing LiteLLM with proxy dependencies...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0"])
     
-    echo "Starting LiteLLM..."
-    exec litellm --config /app/config.yaml --port 4000
+    # Set environment variables
+    os.environ["OPENAI_API_KEY"] = "dummy"
+    os.environ["LITELLM_MASTER_KEY"] = "sk-1022"
+    os.environ["STORE_MODEL_IN_DB"] = "False"
+    os.environ["DISABLE_SPEND_LOGS"] = "True"
+    
+    # Start litellm with correct arguments and config
+    print("Starting LiteLLM...")
+    subprocess.run([
+        "litellm",
+        "--model", "openai/llama-3.1-8b",
+        "--api_base", "http://***NFS-IP-REMOVED***:52415/v1",
+        "--port", "4000",
+        "--telemetry", "False"
+    ])
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,19 +50,16 @@ spec:
         image: python:3.11-slim
         ports:
         - containerPort: 4000
-        command: ["/bin/bash", "/app/run.sh"]
+        command: ["python", "/app/run.py"]
         volumeMounts:
-        - name: config
+        - name: script
           mountPath: /app
         env:
-        - name: OPENAI_API_KEY
-          value: "dummy"
-        - name: LITELLM_MASTER_KEY
-          value: "sk-1022"
-        - name: LITELLM_SALT_KEY
-          value: "sk-1234567890"
+        # Additional env vars to disable DB
+        - name: STORE_MODEL_IN_DB
+          value: "False"
         - name: DISABLE_SPEND_LOGS
-          value: "true"
+          value: "True"
         resources:
           requests:
             memory: "512Mi"
@@ -71,20 +68,29 @@ spec:
             memory: "1Gi"
             cpu: "500m"
         livenessProbe:
-          tcpSocket:
+          httpGet:
+            path: /health
             port: 4000
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer sk-1022"
           initialDelaySeconds: 90
           periodSeconds: 30
+          timeoutSeconds: 10
         readinessProbe:
-          tcpSocket:
+          httpGet:
+            path: /health
             port: 4000
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer sk-1022"
           initialDelaySeconds: 60
           periodSeconds: 10
+          timeoutSeconds: 5
       volumes:
-      - name: config
+      - name: script
         configMap:
-          name: litellm-config
-          defaultMode: 0755
+          name: litellm-run-script
 
 # # apps/base/litellm/working-deployment.yaml
 # apiVersion: v1
