@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm-nodeport
+  namespace: litellm
+spec:
+  type: NodePort
+  ports:
+    - port: 4000
+      targetPort: 4000
+      nodePort: 30400  # Choose an available port
+      protocol: TCP
+      name: litellm-api
+  selector:
+    app: litellm
