@@ -1,4 +1,4 @@
-# apps/base/litellm/deployment-simple.yaml
+# apps/base/litellm/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,7 +7,6 @@ metadata:
   labels:
     app: litellm
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: litellm
@@ -17,44 +16,25 @@ spec:
         app: litellm
     spec:
       containers:
-        - name: litellm
-          image: ghcr.io/berriai/litellm:main-stable
-          ports:
-            - containerPort: 4000
-              protocol: TCP
-          env:
-            - name: LITELLM_MASTER_KEY
-              value: "sk-1022"
-            - name: OPENAI_API_KEY
-              value: "dummy"
-          # Run litellm directly with model configuration
-          args:
-            - "--model"
-            - "openai/llama-3.1-8b"
-            - "--api_base"
-            - "http://10.85.30.220:52415/v1"
-            - "--api_key"
-            - "dummy"
-            - "--port"
-            - "4000"
-            - "--alias"
-            - "llama3"
-            - "--add_function_to_prompt"
-            - "--drop_params"
-          resources:
-            requests:
-              memory: "512Mi"
-              cpu: "250m"
-            limits:
-              memory: "1Gi"
-              cpu: "1000m"
-          livenessProbe:
-            tcpSocket:
-              port: 4000
-            initialDelaySeconds: 30
-            periodSeconds: 30
-          readinessProbe:
-            tcpSocket:
-              port: 4000
-            initialDelaySeconds: 10
-            periodSeconds: 10
+      - name: litellm
+        image: ghcr.io/berriai/litellm:main-v1.35.8  # Using a specific older version
+        ports:
+        - containerPort: 4000
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/proxy_server_config.yaml
+          subPath: config.yaml
+        envFrom:
+        - secretRef:
+            name: litellm-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: litellm-config-file

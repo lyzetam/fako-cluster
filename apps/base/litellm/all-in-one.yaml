@@ -1,0 +1,82 @@
+# apps/base/litellm/all-in-one.yaml
+# This is a complete working deployment in one file
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: litellm-config-file
+  namespace: litellm
+data:
+  config.yaml: |
+    model_list: 
+      - model_name: llama-3.1-8b
+        litellm_params:
+          model: openai/llama-3.1-8b
+          api_base: http://10.85.30.220:52415/v1
+          api_key: dummy
+      - model_name: llama3
+        litellm_params:
+          model: openai/llama-3.1-8b
+          api_base: http://10.85.30.220:52415/v1
+          api_key: dummy
+    
+    general_settings:
+      master_key: sk-1022
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm-deployment
+  namespace: litellm
+  labels:
+    app: litellm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: litellm
+  template:
+    metadata:
+      labels:
+        app: litellm
+    spec:
+      containers:
+      - name: litellm
+        # Using an older version that doesn't require database
+        image: ghcr.io/berriai/litellm:main-v1.0.0
+        ports:
+        - containerPort: 4000
+        env:
+        - name: LITELLM_MASTER_KEY
+          value: "sk-1022"
+        - name: OPENAI_API_KEY
+          value: "dummy"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+        command: ["litellm"]
+        args: ["--config", "/app/config.yaml", "--port", "4000"]
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: litellm-config-file
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm-service
+  namespace: litellm
+spec:
+  selector:
+    app: litellm
+  ports:
+    - port: 4000
+      targetPort: 4000
+  type: ClusterIP

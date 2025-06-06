@@ -6,120 +6,14 @@ metadata:
   namespace: litellm
 data:
   config.yaml: |
-    model_list:
-      # Main model configuration for exo cluster
+    model_list: 
       - model_name: llama-3.1-8b
         litellm_params:
           model: openai/llama-3.1-8b
           api_base: http://10.85.30.220:52415/v1
-          api_key: dummy
-      
-      # Shorter alias for convenience
+          api_key: os.environ/DUMMY_API_KEY
       - model_name: llama3
         litellm_params:
           model: openai/llama-3.1-8b
           api_base: http://10.85.30.220:52415/v1
-          api_key: dummy
-    
-    # LiteLLM Settings
-    litellm_settings:
-      drop_params: true
-      success_callback: []  # Remove any callbacks for now
-      
-    general_settings:
-      master_key: "sk-1022"  # Must match the env variable
-      health_check_route: true
-      
-    # Optional: Add router settings for better performance
-    router_settings:
-      model_group_alias: {"llama-3.1-8b": "llama3"}
-      num_retries: 3
-      request_timeout: 600
-      fallbacks: []
-
-# # apps/base/litellm/configmap.yaml
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: litellm-config-file
-#   namespace: litellm
-# data:
-#   config.yaml: |
-#     model_list:
-#       # exo cluster model (your external AI server)
-#       - model_name: llama-3.1-8b
-#         litellm_params:
-#           model: openai/llama-3.1-8b
-#           api_base: http://10.85.30.220:52415/v1
-#           api_key: dummy
-      
-#       # Access via Kubernetes service
-#       - model_name: llama-3.1-8b-k8s
-#         litellm_params:
-#           model: openai/llama-3.1-8b
-#           api_base: http://exo-openai.ollama.svc.cluster.local:52415/v1
-#           api_key: dummy
-      
-#       # Ollama proxy for Home Assistant
-#       - model_name: llama-3.1-8b-ollama
-#         litellm_params:
-#           model: ollama/llama-3.1-8b
-#           api_base: http://ollama-ha.ollama.svc.cluster.local:11434
-    
-#     litellm_settings:
-#       drop_params: true
-#       success_callback: []  # Removed langfuse for now
-    
-#     general_settings:
-#       master_key: "sk-1234"  # Change in production!
-
-
-
-# # apiVersion: v1
-# # kind: ConfigMap
-# # metadata:
-# #   name: litellm-configmap
-# #   namespace: litellm
-# # data:
-# #   # LiteLLM server configuration
-# #   LITELLM_HOST: "0.0.0.0"
-# #   LITELLM_PORT: "4000"
-  
-# #   # Database configuration (optional - uses SQLite by default)
-# #   DATABASE_URL: "sqlite:///./litellm.db"
-  
-# #   # Enable UI
-# #   LITELLM_UI: "true"
-  
-# #   # Logging
-# #   LITELLM_LOG: "INFO"
-  
-# #   # Model configuration will be in config.yaml
-# #   config.yaml: |
-# #     model_list:
-# #       # exo cluster model (your external AI server)
-# #       - model_name: llama-3.1-8b
-# #         litellm_params:
-# #           model: openai/llama-3.1-8b
-# #           api_base: http://10.85.30.220:52415/v1
-# #           api_key: dummy
-      
-# #       # You can also access via the Kubernetes service
-# #       - model_name: llama-3.1-8b-k8s
-# #         litellm_params:
-# #           model: openai/llama-3.1-8b
-# #           api_base: http://exo-openai.ollama.svc.cluster.local:52415/v1
-# #           api_key: dummy
-      
-# #       # Ollama proxy for Home Assistant compatibility
-# #       - model_name: llama-3.1-8b-ollama
-# #         litellm_params:
-# #           model: ollama/llama-3.1-8b
-# #           api_base: http://ollama-ha.ollama.svc.cluster.local:11434
-    
-# #     litellm_settings:
-# #       drop_params: true
-# #       success_callback: ["langfuse"]
-    
-# #     general_settings:
-# #       master_key: "sk-1234"  # Change this in production!
+          api_key: os.environ/DUMMY_API_KEY
