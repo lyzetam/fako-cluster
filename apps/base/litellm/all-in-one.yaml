@@ -41,8 +41,8 @@ spec:
     spec:
       containers:
       - name: litellm
-        # Using an older version that doesn't require database
-        image: ghcr.io/berriai/litellm:main-v1.0.0
+        # Use python image and install litellm
+        image: python:3.11-slim
         ports:
         - containerPort: 4000
         env:
@@ -54,15 +54,39 @@ spec:
         - name: config-volume
           mountPath: /app/config.yaml
           subPath: config.yaml
-        command: ["litellm"]
-        args: ["--config", "/app/config.yaml", "--port", "4000"]
+        command: 
+        - /bin/sh
+        - -c
+        - |
+          echo "Installing LiteLLM..."
+          pip install --no-cache-dir 'litellm[proxy]'
+          echo "Starting LiteLLM..."
+          exec litellm --config /app/config.yaml --port 4000
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
             memory: "512Mi"
-            cpu: "500m"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer sk-1022"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer sk-1022"
+          initialDelaySeconds: 30
+          periodSeconds: 10
       volumes:
         - name: config-volume
           configMap:
