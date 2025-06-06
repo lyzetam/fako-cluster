@@ -4,7 +4,9 @@ kind: Kustomization
 namespace: litellm
 resources:
   - namespace.yaml
+  - postgres.yaml      # Add postgres
   - configmap.yaml
   - deployment.yaml
   - service.yaml
   - nodeport-service.yaml
+  - ingress.yaml      # Add ingress
