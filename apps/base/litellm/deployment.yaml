@@ -19,28 +19,48 @@ spec:
       containers:
         - name: litellm
           image: ghcr.io/berriai/litellm:main-stable
-          command: ["litellm"]
-          args:
-            - "--config"
-            - "/app/proxy_server_config.yaml"
-            - "--port"
-            - "4000"
-            - "--num_workers"
-            - "1"
           ports:
             - containerPort: 4000
               protocol: TCP
-          volumeMounts:
-            - name: config-volume
-              mountPath: /app/proxy_server_config.yaml
-              subPath: config.yaml
           env:
+            - name: OPENAI_API_KEY
+              value: "dummy"
             - name: LITELLM_MASTER_KEY
               value: "sk-1234"
-            - name: STORE_MODEL_IN_DB
-              value: "False"
+            - name: PORT
+              value: "4000"
+            - name: LITELLM_MODE
+              value: "PROXY"
             - name: LITELLM_LOG
               value: "INFO"
+          command: 
+            - /bin/sh
+            - -c
+            - |
+              # Create config file
+              cat > /tmp/config.yaml << 'EOF'
+              model_list:
+                - model_name: llama-3.1-8b
+                  litellm_params:
+                    model: openai/llama-3.1-8b
+                    api_base: http://***NFS-IP-REMOVED***:52415/v1
+                    api_key: dummy
+                - model_name: llama3
+                  litellm_params:
+                    model: openai/llama-3.1-8b
+                    api_base: http://***NFS-IP-REMOVED***:52415/v1
+                    api_key: dummy
+              
+              litellm_settings:
+                drop_params: true
+              
+              general_settings:
+                master_key: sk-1022
+                health_check_route: true
+              EOF
+              
+              # Start LiteLLM
+              exec litellm --config /tmp/config.yaml --port 4000
           resources:
             requests:
               memory: "512Mi"
@@ -48,30 +68,19 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
+          # Use TCP probes instead of HTTP to avoid auth issues
           livenessProbe:
-            httpGet:
-              path: /health
+            tcpSocket:
               port: 4000
-              httpHeaders:
-                - name: Authorization
-                  value: "Bearer sk-1234"
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 10
           readinessProbe:
-            httpGet:
-              path: /health
+            tcpSocket:
               port: 4000
-              httpHeaders:
-                - name: Authorization
-                  value: "Bearer sk-1234"
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
-      volumes:
-        - name: config-volume
-          configMap:
-            name: litellm-config-file
 
 
 # # apps/base/litellm/deployment.yaml
