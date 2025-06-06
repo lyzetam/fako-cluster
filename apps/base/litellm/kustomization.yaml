@@ -4,10 +4,7 @@ kind: Kustomization
 namespace: litellm
 resources:
   - namespace.yaml
-  # - configmap.yaml
-  # - secret.yaml
-  # - deployment.yaml
-  # - service.yaml
-  # - nodeport-service.yaml
-  # - ingress.yaml
-  - all-in-one.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - nodeport-service.yaml
