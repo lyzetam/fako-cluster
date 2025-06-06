@@ -190,7 +190,7 @@ spec:
 #               subPath: config.yaml
 #           env:
 #             - name: LITELLM_MASTER_KEY
-#               value: "sk-1234"
+#               value: "sk-IpV6HuAx9DVeDvv"
 #             - name: LITELLM_LOG
 #               value: "INFO"
 #             # Disable auth for testing
