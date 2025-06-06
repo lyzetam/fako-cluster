@@ -1,4 +1,4 @@
-# apps/base/litellm/postgres-fixed.yaml
+# apps/base/litellm/postgres.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -9,20 +9,6 @@ stringData:
   POSTGRES_DB: litellm
   POSTGRES_USER: litellm
   POSTGRES_PASSWORD: litellm-secret-password
----
-# Use local storage instead of NFS for PostgreSQL
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-pvc
-  namespace: litellm
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path  # Use local-path instead of NFS
-  resources:
-    requests:
-      storage: 5Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -39,9 +25,6 @@ spec:
       labels:
         app: postgres
     spec:
-      securityContext:
-        fsGroup: 999  # postgres group
-        runAsUser: 999  # postgres user
       containers:
       - name: postgres
         image: postgres:15-alpine
@@ -50,9 +33,6 @@ spec:
         envFrom:
         - secretRef:
             name: postgres-secret
-        env:
-        - name: PGDATA
-          value: /var/lib/postgresql/data/pgdata  # Use subdirectory
         volumeMounts:
         - name: postgres-storage
           mountPath: /var/lib/postgresql/data
@@ -81,8 +61,7 @@ spec:
           periodSeconds: 5
       volumes:
       - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: postgres-pvc
+        emptyDir: {}  # Non-persistent storage
 ---
 apiVersion: v1
 kind: Service
