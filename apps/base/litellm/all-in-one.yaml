@@ -1,5 +1,10 @@
 # apps/base/litellm/all-in-one.yaml
-# This is a complete working deployment in one file
+# Complete working deployment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: litellm
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -41,8 +46,8 @@ spec:
     spec:
       containers:
       - name: litellm
-        # Use python image and install litellm
-        image: python:3.11-slim
+        # Use the latest stable image
+        image: ghcr.io/berriai/litellm:main-stable
         ports:
         - containerPort: 4000
         env:
@@ -52,23 +57,15 @@ spec:
           value: "dummy"
         volumeMounts:
         - name: config-volume
-          mountPath: /app/config.yaml
+          mountPath: /app/proxy_server_config.yaml
           subPath: config.yaml
-        command: 
-        - /bin/sh
-        - -c
-        - |
-          echo "Installing LiteLLM..."
-          pip install --no-cache-dir 'litellm[proxy]'
-          echo "Starting LiteLLM..."
-          exec litellm --config /app/config.yaml --port 4000
         resources:
           requests:
             memory: "512Mi"
             cpu: "250m"
           limits:
             memory: "1Gi"
-            cpu: "1000m"
+            cpu: "500m"
         livenessProbe:
           httpGet:
             path: /health
@@ -104,3 +101,17 @@ spec:
     - port: 4000
       targetPort: 4000
   type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm-nodeport
+  namespace: litellm
+spec:
+  type: NodePort
+  selector:
+    app: litellm
+  ports:
+    - port: 4000
+      targetPort: 4000
+      nodePort: 32767
