@@ -1,24 +1,4 @@
-# # apps/base/litellm/configmap.yaml
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: litellm-config-file
-#   namespace: litellm
-# data:
-#   config.yaml: |
-#     model_list: 
-#       - model_name: llama-3.1-8b
-#         litellm_params:
-#           model: openai/llama-3.1-8b
-#           api_base: http://10.85.30.220:52415/v1
-#           api_key: os.environ/DUMMY_API_KEY
-#       - model_name: llama3
-#         litellm_params:
-#           model: openai/llama-3.1-8b
-#           api_base: http://10.85.30.220:52415/v1
-#           api_key: os.environ/DUMMY_API_KEY
-
-
+# apps/base/litellm/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -29,19 +9,24 @@ data:
     import os
     import subprocess
     import sys
+    import time
     
-    # Install specific version of litellm with proxy dependencies
+    # Install specific version of litellm with proxy dependencies and postgres
     print("Installing LiteLLM with proxy dependencies...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0", "psycopg2-binary"])
     
     # Set environment variables
     os.environ["OPENAI_API_KEY"] = "dummy"
     os.environ["LITELLM_MASTER_KEY"] = "sk-1022"
-    os.environ["STORE_MODEL_IN_DB"] = "False"
-    os.environ["DISABLE_SPEND_LOGS"] = "True"
+    os.environ["DATABASE_URL"] = "postgresql://litellm:litellm-secret-password@postgres:5432/litellm"
+    os.environ["STORE_MODEL_IN_DB"] = "True"
     os.environ["UI_USERNAME"] = "admin"
-    os.environ["UI_PASSWORD"] = "sk-1022"
-    os.environ["DISABLE_ADMIN_UI"] = "True"  # Disable UI completely
+    os.environ["UI_PASSWORD"] = "admin123"
+    # Remove the DISABLE_ADMIN_UI line to enable UI
+    
+    # Wait for database to be ready
+    print("Waiting for database to be ready...")
+    time.sleep(15)
     
     # Start litellm with correct arguments and config
     print("Starting LiteLLM...")
@@ -52,3 +37,59 @@ data:
         "--port", "4000",
         "--telemetry", "False"
     ])
+
+
+# # # apps/base/litellm/configmap.yaml
+# # apiVersion: v1
+# # kind: ConfigMap
+# # metadata:
+# #   name: litellm-config-file
+# #   namespace: litellm
+# # data:
+# #   config.yaml: |
+# #     model_list: 
+# #       - model_name: llama-3.1-8b
+# #         litellm_params:
+# #           model: openai/llama-3.1-8b
+# #           api_base: http://10.85.30.220:52415/v1
+# #           api_key: os.environ/DUMMY_API_KEY
+# #       - model_name: llama3
+# #         litellm_params:
+# #           model: openai/llama-3.1-8b
+# #           api_base: http://10.85.30.220:52415/v1
+# #           api_key: os.environ/DUMMY_API_KEY
+
+
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: litellm-run-script
+#   namespace: litellm
+# data:
+#   run.py: |
+#     import os
+#     import subprocess
+#     import sys
+    
+#     # Install specific version of litellm with proxy dependencies
+#     print("Installing LiteLLM with proxy dependencies...")
+#     subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0"])
+    
+#     # Set environment variables
+#     os.environ["OPENAI_API_KEY"] = "dummy"
+#     os.environ["LITELLM_MASTER_KEY"] = "sk-1022"
+#     os.environ["STORE_MODEL_IN_DB"] = "False"
+#     os.environ["DISABLE_SPEND_LOGS"] = "True"
+#     os.environ["UI_USERNAME"] = "admin"
+#     os.environ["UI_PASSWORD"] = "sk-1022"
+#     os.environ["DISABLE_ADMIN_UI"] = "True"  # Disable UI completely
+    
+#     # Start litellm with correct arguments and config
+#     print("Starting LiteLLM...")
+#     subprocess.run([
+#         "litellm",
+#         "--model", "openai/llama-3.1-8b",
+#         "--api_base", "http://10.85.30.220:52415/v1",
+#         "--port", "4000",
+#         "--telemetry", "False"
+#     ])

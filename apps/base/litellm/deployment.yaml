@@ -1,3 +1,4 @@
+# apps/base/litellm/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,15 +24,16 @@ spec:
         - name: script
           mountPath: /app
         env:
-        # Additional env vars to disable DB
+        - name: DATABASE_URL
+          value: "postgresql://litellm:litellm-secret-password@postgres:5432/litellm"
+        - name: LITELLM_MASTER_KEY
+          value: "sk-1022"
         - name: STORE_MODEL_IN_DB
-          value: "False"
-        - name: DISABLE_SPEND_LOGS
           value: "True"
         - name: UI_USERNAME
           value: "admin"
         - name: UI_PASSWORD
-          value: "sk-1022"
+          value: "admin123"
         resources:
           requests:
             memory: "512Mi"
@@ -46,7 +48,7 @@ spec:
             httpHeaders:
             - name: Authorization
               value: "Bearer sk-1022"
-          initialDelaySeconds: 90
+          initialDelaySeconds: 120
           periodSeconds: 30
           timeoutSeconds: 10
         readinessProbe:
@@ -56,7 +58,7 @@ spec:
             httpHeaders:
             - name: Authorization
               value: "Bearer sk-1022"
-          initialDelaySeconds: 60
+          initialDelaySeconds: 90
           periodSeconds: 10
           timeoutSeconds: 5
       volumes:
@@ -65,38 +67,6 @@ spec:
           name: litellm-run-script
 
 
-# # apps/base/litellm/working-deployment-no-db.yaml
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: litellm-run-script
-#   namespace: litellm
-# data:
-#   run.py: |
-#     import os
-#     import subprocess
-#     import sys
-    
-#     # Install specific version of litellm with proxy dependencies
-#     print("Installing LiteLLM with proxy dependencies...")
-#     subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0"])
-    
-#     # Set environment variables
-#     os.environ["OPENAI_API_KEY"] = "dummy"
-#     os.environ["LITELLM_MASTER_KEY"] = "sk-1022"
-#     os.environ["STORE_MODEL_IN_DB"] = "False"
-#     os.environ["DISABLE_SPEND_LOGS"] = "True"
-    
-#     # Start litellm with correct arguments and config
-#     print("Starting LiteLLM...")
-#     subprocess.run([
-#         "litellm",
-#         "--model", "openai/llama-3.1-8b",
-#         "--api_base", "http://10.85.30.220:52415/v1",
-#         "--port", "4000",
-#         "--telemetry", "False"
-#     ])
-# ---
 # apiVersion: apps/v1
 # kind: Deployment
 # metadata:
@@ -127,6 +97,10 @@ spec:
 #           value: "False"
 #         - name: DISABLE_SPEND_LOGS
 #           value: "True"
+#         - name: UI_USERNAME
+#           value: "admin"
+#         - name: UI_PASSWORD
+#           value: "sk-1022"
 #         resources:
 #           requests:
 #             memory: "512Mi"
@@ -159,87 +133,182 @@ spec:
 #         configMap:
 #           name: litellm-run-script
 
-# # apps/base/litellm/working-deployment.yaml
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: litellm-run-script
-#   namespace: litellm
-# data:
-#   run.py: |
-#     import os
-#     import subprocess
-#     import sys
+
+# # # apps/base/litellm/working-deployment-no-db.yaml
+# # apiVersion: v1
+# # kind: ConfigMap
+# # metadata:
+# #   name: litellm-run-script
+# #   namespace: litellm
+# # data:
+# #   run.py: |
+# #     import os
+# #     import subprocess
+# #     import sys
     
-#     # Install specific version of litellm with proxy dependencies
-#     print("Installing LiteLLM with proxy dependencies...")
-#     subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0"])
+# #     # Install specific version of litellm with proxy dependencies
+# #     print("Installing LiteLLM with proxy dependencies...")
+# #     subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0"])
     
-#     # Set environment variables
-#     os.environ["OPENAI_API_KEY"] = "dummy"
-#     os.environ["LITELLM_MASTER_KEY"] = "sk-1022"
+# #     # Set environment variables
+# #     os.environ["OPENAI_API_KEY"] = "dummy"
+# #     os.environ["LITELLM_MASTER_KEY"] = "sk-1022"
+# #     os.environ["STORE_MODEL_IN_DB"] = "False"
+# #     os.environ["DISABLE_SPEND_LOGS"] = "True"
     
-#     # Start litellm with correct arguments
-#     print("Starting LiteLLM...")
-#     subprocess.run([
-#         "litellm",
-#         "--model", "openai/llama-3.1-8b",
-#         "--api_base", "http://10.85.30.220:52415/v1",
-#         "--port", "4000"
-#     ])
-# ---
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: litellm-deployment
-#   namespace: litellm
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: litellm
-#   template:
-#     metadata:
-#       labels:
-#         app: litellm
-#     spec:
-#       containers:
-#       - name: litellm
-#         image: python:3.11-slim
-#         ports:
-#         - containerPort: 4000
-#         command: ["python", "/app/run.py"]
-#         volumeMounts:
-#         - name: script
-#           mountPath: /app
-#         resources:
-#           requests:
-#             memory: "512Mi"
-#             cpu: "250m"
-#           limits:
-#             memory: "1Gi"
-#             cpu: "500m"
-#         livenessProbe:
-#           httpGet:
-#             path: /health
-#             port: 4000
-#             httpHeaders:
-#             - name: Authorization
-#               value: "Bearer sk-1022"
-#           initialDelaySeconds: 90
-#           periodSeconds: 30
-#           timeoutSeconds: 10
-#         readinessProbe:
-#           httpGet:
-#             path: /health
-#             port: 4000
-#             httpHeaders:
-#             - name: Authorization
-#               value: "Bearer sk-1022"
-#           initialDelaySeconds: 60
-#           periodSeconds: 10
-#           timeoutSeconds: 5
-#       volumes:
-#       - name: script
-#         configMap:
-#           name: litellm-run-script
+# #     # Start litellm with correct arguments and config
+# #     print("Starting LiteLLM...")
+# #     subprocess.run([
+# #         "litellm",
+# #         "--model", "openai/llama-3.1-8b",
+# #         "--api_base", "http://10.85.30.220:52415/v1",
+# #         "--port", "4000",
+# #         "--telemetry", "False"
+# #     ])
+# # ---
+# # apiVersion: apps/v1
+# # kind: Deployment
+# # metadata:
+# #   name: litellm-deployment
+# #   namespace: litellm
+# # spec:
+# #   replicas: 1
+# #   selector:
+# #     matchLabels:
+# #       app: litellm
+# #   template:
+# #     metadata:
+# #       labels:
+# #         app: litellm
+# #     spec:
+# #       containers:
+# #       - name: litellm
+# #         image: python:3.11-slim
+# #         ports:
+# #         - containerPort: 4000
+# #         command: ["python", "/app/run.py"]
+# #         volumeMounts:
+# #         - name: script
+# #           mountPath: /app
+# #         env:
+# #         # Additional env vars to disable DB
+# #         - name: STORE_MODEL_IN_DB
+# #           value: "False"
+# #         - name: DISABLE_SPEND_LOGS
+# #           value: "True"
+# #         resources:
+# #           requests:
+# #             memory: "512Mi"
+# #             cpu: "250m"
+# #           limits:
+# #             memory: "1Gi"
+# #             cpu: "500m"
+# #         livenessProbe:
+# #           httpGet:
+# #             path: /health
+# #             port: 4000
+# #             httpHeaders:
+# #             - name: Authorization
+# #               value: "Bearer sk-1022"
+# #           initialDelaySeconds: 90
+# #           periodSeconds: 30
+# #           timeoutSeconds: 10
+# #         readinessProbe:
+# #           httpGet:
+# #             path: /health
+# #             port: 4000
+# #             httpHeaders:
+# #             - name: Authorization
+# #               value: "Bearer sk-1022"
+# #           initialDelaySeconds: 60
+# #           periodSeconds: 10
+# #           timeoutSeconds: 5
+# #       volumes:
+# #       - name: script
+# #         configMap:
+# #           name: litellm-run-script
+
+# # # apps/base/litellm/working-deployment.yaml
+# # apiVersion: v1
+# # kind: ConfigMap
+# # metadata:
+# #   name: litellm-run-script
+# #   namespace: litellm
+# # data:
+# #   run.py: |
+# #     import os
+# #     import subprocess
+# #     import sys
+    
+# #     # Install specific version of litellm with proxy dependencies
+# #     print("Installing LiteLLM with proxy dependencies...")
+# #     subprocess.check_call([sys.executable, "-m", "pip", "install", "litellm[proxy]==1.35.0"])
+    
+# #     # Set environment variables
+# #     os.environ["OPENAI_API_KEY"] = "dummy"
+# #     os.environ["LITELLM_MASTER_KEY"] = "sk-1022"
+    
+# #     # Start litellm with correct arguments
+# #     print("Starting LiteLLM...")
+# #     subprocess.run([
+# #         "litellm",
+# #         "--model", "openai/llama-3.1-8b",
+# #         "--api_base", "http://10.85.30.220:52415/v1",
+# #         "--port", "4000"
+# #     ])
+# # ---
+# # apiVersion: apps/v1
+# # kind: Deployment
+# # metadata:
+# #   name: litellm-deployment
+# #   namespace: litellm
+# # spec:
+# #   replicas: 1
+# #   selector:
+# #     matchLabels:
+# #       app: litellm
+# #   template:
+# #     metadata:
+# #       labels:
+# #         app: litellm
+# #     spec:
+# #       containers:
+# #       - name: litellm
+# #         image: python:3.11-slim
+# #         ports:
+# #         - containerPort: 4000
+# #         command: ["python", "/app/run.py"]
+# #         volumeMounts:
+# #         - name: script
+# #           mountPath: /app
+# #         resources:
+# #           requests:
+# #             memory: "512Mi"
+# #             cpu: "250m"
+# #           limits:
+# #             memory: "1Gi"
+# #             cpu: "500m"
+# #         livenessProbe:
+# #           httpGet:
+# #             path: /health
+# #             port: 4000
+# #             httpHeaders:
+# #             - name: Authorization
+# #               value: "Bearer sk-1022"
+# #           initialDelaySeconds: 90
+# #           periodSeconds: 30
+# #           timeoutSeconds: 10
+# #         readinessProbe:
+# #           httpGet:
+# #             path: /health
+# #             port: 4000
+# #             httpHeaders:
+# #             - name: Authorization
+# #               value: "Bearer sk-1022"
+# #           initialDelaySeconds: 60
+# #           periodSeconds: 10
+# #           timeoutSeconds: 5
+# #       volumes:
+# #       - name: script
+# #         configMap:
+# #           name: litellm-run-script
