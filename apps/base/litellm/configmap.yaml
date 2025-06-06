@@ -7,27 +7,35 @@ metadata:
 data:
   config.yaml: |
     model_list:
-      # exo cluster model (your external AI server)
+      # Main model configuration for exo cluster
       - model_name: llama-3.1-8b
         litellm_params:
           model: openai/llama-3.1-8b
           api_base: http://10.85.30.220:52415/v1
           api_key: dummy
       
-      # Shorter alias
+      # Shorter alias for convenience
       - model_name: llama3
         litellm_params:
           model: openai/llama-3.1-8b
           api_base: http://10.85.30.220:52415/v1
           api_key: dummy
     
-    # Settings
+    # LiteLLM Settings
     litellm_settings:
       drop_params: true
+      success_callback: []  # Remove any callbacks for now
       
     general_settings:
       master_key: "sk-1022"  # Must match the env variable
-      salt_key: "sk-IpV6HuAx9DVeDvv"  # Must match the env variable
+      health_check_route: true
+      
+    # Optional: Add router settings for better performance
+    router_settings:
+      model_group_alias: {"llama-3.1-8b": "llama3"}
+      num_retries: 3
+      request_timeout: 600
+      fallbacks: []
 
 # # apps/base/litellm/configmap.yaml
 # apiVersion: v1
