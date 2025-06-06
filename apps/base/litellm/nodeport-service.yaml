@@ -8,7 +8,7 @@ spec:
   ports:
     - port: 4000
       targetPort: 4000
-      nodePort: 50400  # Choose an available port
+      nodePort: 32767  # Choose an available port
       protocol: TCP
       name: litellm-api
   selector:
