@@ -22,21 +22,64 @@ spec:
           ports:
             - containerPort: 4000
               protocol: TCP
-          volumeMounts:
-            - name: config-volume
-              mountPath: /app/proxy_server_config.yaml
-              subPath: config.yaml
-          envFrom:
-            - secretRef:
-                name: litellm-secrets
           env:
-            # Non-secret environment variables
+            - name: OPENAI_API_KEY
+              value: "dummy"
+            - name: LITELLM_MASTER_KEY
+              value: "sk-1022"
             - name: PORT
               value: "4000"
-            - name: STORE_MODEL_IN_DB
-              value: "True"
+            - name: LITELLM_MODE
+              value: "PROXY"
             - name: LITELLM_LOG
               value: "INFO"
+            # Disable all database features
+            - name: STORE_MODEL_IN_DB
+              value: "False"
+            - name: DISABLE_SPEND_LOGS
+              value: "True"
+            - name: DISABLE_MASTER_KEY_HASH_STORAGE
+              value: "True"
+            - name: DISABLE_RESET_BUDGET
+              value: "True"
+            - name: DISABLE_KEY_LOGGING
+              value: "True"
+            - name: ALLOW_REQUESTS_ON_DB_UNAVAILABLE
+              value: "True"
+          command: 
+            - /bin/sh
+            - -c
+            - |
+              # Create config file
+              cat > /tmp/config.yaml << 'EOF'
+              model_list:
+                - model_name: llama-3.1-8b
+                  litellm_params:
+                    model: openai/llama-3.1-8b
+                    api_base: http://***NFS-IP-REMOVED***:52415/v1
+                    api_key: dummy
+                - model_name: llama3
+                  litellm_params:
+                    model: openai/llama-3.1-8b
+                    api_base: http://***NFS-IP-REMOVED***:52415/v1
+                    api_key: dummy
+              
+              litellm_settings:
+                drop_params: true
+              
+              general_settings:
+                master_key: sk-1022
+                health_check_route: true
+                # Disable all database operations
+                disable_spend_logs: true
+                disable_master_key_return: true
+                disable_reset_budget: true
+                enable_health_check_route: true
+                allow_requests_on_db_unavailable: true
+              EOF
+              
+              # Start LiteLLM with explicit no-database flags
+              exec litellm --config /tmp/config.yaml --port 4000 --disable_spend_logs
           resources:
             requests:
               memory: "512Mi"
@@ -44,253 +87,16 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
+          # Use TCP probes to avoid auth issues
           livenessProbe:
-            httpGet:
-              path: /health
+            tcpSocket:
               port: 4000
-              httpHeaders:
-                - name: Authorization
-                  value: "Bearer sk-1022"  # Use your master key
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 10
           readinessProbe:
-            httpGet:
-              path: /health
+            tcpSocket:
               port: 4000
-              httpHeaders:
-                - name: Authorization
-                  value: "Bearer sk-1022"  # Use your master key
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
-      volumes:
-        - name: config-volume
-          configMap:
-            name: litellm-config-file
-
-
-# # apps/base/litellm/deployment.yaml
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: litellm-deployment
-#   namespace: litellm
-#   labels:
-#     app: litellm
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: litellm
-#   template:
-#     metadata:
-#       labels:
-#         app: litellm
-#     spec:
-#       containers:
-#         - name: litellm
-#           image: ghcr.io/berriai/litellm:main-stable
-#           ports:
-#             - containerPort: 4000
-#               protocol: TCP
-#           env:
-#             - name: OPENAI_API_KEY
-#               value: "dummy"
-#             - name: LITELLM_MASTER_KEY
-#               value: "sk-1234"
-#             - name: PORT
-#               value: "4000"
-#             - name: LITELLM_MODE
-#               value: "PROXY"
-#             - name: LITELLM_LOG
-#               value: "INFO"
-#           command: 
-#             - /bin/sh
-#             - -c
-#             - |
-#               # Create config file
-#               cat > /tmp/config.yaml << 'EOF'
-#               model_list:
-#                 - model_name: llama-3.1-8b
-#                   litellm_params:
-#                     model: openai/llama-3.1-8b
-#                     api_base: http://***NFS-IP-REMOVED***:52415/v1
-#                     api_key: dummy
-#                 - model_name: llama3
-#                   litellm_params:
-#                     model: openai/llama-3.1-8b
-#                     api_base: http://***NFS-IP-REMOVED***:52415/v1
-#                     api_key: dummy
-              
-#               litellm_settings:
-#                 drop_params: true
-              
-#               general_settings:
-#                 master_key: sk-1022
-#                 health_check_route: true
-#               EOF
-              
-#               # Start LiteLLM
-#               exec litellm --config /tmp/config.yaml --port 4000
-#           resources:
-#             requests:
-#               memory: "512Mi"
-#               cpu: "250m"
-#             limits:
-#               memory: "1Gi"
-#               cpu: "1000m"
-#           # Use TCP probes instead of HTTP to avoid auth issues
-#           livenessProbe:
-#             tcpSocket:
-#               port: 4000
-#             initialDelaySeconds: 30
-#             periodSeconds: 30
-#             timeoutSeconds: 10
-#           readinessProbe:
-#             tcpSocket:
-#               port: 4000
-#             initialDelaySeconds: 10
-#             periodSeconds: 10
-#             timeoutSeconds: 5
-
-
-# # # apps/base/litellm/deployment.yaml
-# # apiVersion: apps/v1
-# # kind: Deployment
-# # metadata:
-# #   name: litellm-deployment
-# #   namespace: litellm
-# #   labels:
-# #     app: litellm
-# # spec:
-# #   replicas: 1
-# #   selector:
-# #     matchLabels:
-# #       app: litellm
-# #   template:
-# #     metadata:
-# #       labels:
-# #         app: litellm
-# #     spec:
-# #       containers:
-# #         - name: litellm
-# #           image: ghcr.io/berriai/litellm:main-stable
-# #           ports:
-# #             - containerPort: 4000
-# #               protocol: TCP
-# #           volumeMounts:
-# #             - name: config-volume
-# #               mountPath: /app/proxy_server_config.yaml
-# #               subPath: config.yaml
-# #             - name: data
-# #               mountPath: /app/data
-# #           envFrom:
-# #             - secretRef:
-# #                 name: litellm-secrets
-# #           env:
-# #             # Non-secret environment variables
-# #             - name: PORT
-# #               value: "4000"
-# #             - name: STORE_MODEL_IN_DB
-# #               value: "True"
-# #             - name: LITELLM_LOG
-# #               value: "INFO"
-# #           resources:
-# #             requests:
-# #               memory: "512Mi"
-# #               cpu: "250m"
-# #             limits:
-# #               memory: "1Gi"
-# #               cpu: "1000m"
-# #           livenessProbe:
-# #             httpGet:
-# #               path: /health
-# #               port: 4000
-# #               httpHeaders:
-# #                 - name: Authorization
-# #                   value: "Bearer sk-1234"
-# #             initialDelaySeconds: 30
-# #             periodSeconds: 30
-# #             timeoutSeconds: 10
-# #           readinessProbe:
-# #             httpGet:
-# #               path: /health
-# #               port: 4000
-# #               httpHeaders:
-# #                 - name: Authorization
-# #                   value: "Bearer sk-1234"
-# #             initialDelaySeconds: 10
-# #             periodSeconds: 10
-# #             timeoutSeconds: 5
-# #       volumes:
-# #         - name: config-volume
-# #           configMap:
-# #             name: litellm-config-file
-# #         - name: data
-# #           emptyDir: {}  # For SQLite database
-
-
-
-# # # apps/base/litellm/deployment.yaml
-# # apiVersion: apps/v1
-# # kind: Deployment
-# # metadata:
-# #   name: litellm-deployment
-# #   namespace: litellm
-# #   labels:
-# #     app: litellm
-# # spec:
-# #   replicas: 1
-# #   selector:
-# #     matchLabels:
-# #       app: litellm
-# #   template:
-# #     metadata:
-# #       labels:
-# #         app: litellm
-# #     spec:
-# #       containers:
-# #         - name: litellm
-# #           image: ghcr.io/berriai/litellm:main-stable
-# #           ports:
-# #             - containerPort: 4000
-# #               protocol: TCP
-# #           volumeMounts:
-# #             - name: config-volume
-# #               mountPath: /app/proxy_server_config.yaml
-# #               subPath: config.yaml
-# #           env:
-# #             - name: LITELLM_MASTER_KEY
-# #               value: "sk-IpV6HuAx9DVeDvv"
-# #             - name: LITELLM_LOG
-# #               value: "INFO"
-# #             # Disable auth for testing
-# #             - name: LITELLM_GENERAL_SETTINGS
-# #               value: '{"master_key": null}'
-# #           resources:
-# #             requests:
-# #               memory: "512Mi"
-# #               cpu: "250m"
-# #             limits:
-# #               memory: "1Gi"
-# #               cpu: "1000m"
-# #           livenessProbe:
-# #             httpGet:
-# #               path: /
-# #               port: 4000
-# #             initialDelaySeconds: 30
-# #             periodSeconds: 30
-# #             timeoutSeconds: 10
-# #           readinessProbe:
-# #             httpGet:
-# #               path: /
-# #               port: 4000
-# #             initialDelaySeconds: 10
-# #             periodSeconds: 10
-# #             timeoutSeconds: 5
-# #       volumes:
-# #         - name: config-volume
-# #           configMap:
-# #             name: litellm-config-file
-
