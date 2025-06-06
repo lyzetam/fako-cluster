@@ -1,15 +1,17 @@
+# apps/base/litellm/nodeport-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: litellm-nodeport
   namespace: litellm
+  labels:
+    app: litellm
 spec:
   type: NodePort
   ports:
     - port: 4000
       targetPort: 4000
-      nodePort: 32767  # Choose an available port
+      nodePort: 32767
       protocol: TCP
-      name: litellm-api
   selector:
     app: litellm
