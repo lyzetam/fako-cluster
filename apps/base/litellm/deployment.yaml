@@ -1,4 +1,5 @@
-# apps/base/litellm/deployment.yaml
+# apps/base/litellm/deployment-alt.yaml
+# Alternative deployment using fake database URL
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,68 +19,34 @@ spec:
     spec:
       containers:
         - name: litellm
-          image: ghcr.io/berriai/litellm:main-stable
+          # Use the database image but with dummy DB
+          image: ghcr.io/berriai/litellm-database:main-stable
           ports:
             - containerPort: 4000
               protocol: TCP
           env:
-            - name: OPENAI_API_KEY
-              value: "dummy"
+            # Provide a dummy DATABASE_URL to satisfy Prisma
+            - name: DATABASE_URL
+              value: "postgresql://user:pass@dummy-host:5432/dummy?connect_timeout=1"
             - name: LITELLM_MASTER_KEY
               value: "sk-1022"
+            - name: OPENAI_API_KEY
+              value: "dummy"
             - name: PORT
               value: "4000"
-            - name: LITELLM_MODE
-              value: "PROXY"
-            - name: LITELLM_LOG
-              value: "INFO"
-            # Disable all database features
+            # Disable actual database operations
             - name: STORE_MODEL_IN_DB
               value: "False"
-            # - name: DISABLE_SPEND_LOGS
-            #   value: "False"
+            - name: DISABLE_SPEND_LOGS
+              value: "True"
             - name: DISABLE_MASTER_KEY_HASH_STORAGE
-              value: "True"
-            - name: DISABLE_RESET_BUDGET
-              value: "True"
-            - name: DISABLE_KEY_LOGGING
               value: "True"
             - name: ALLOW_REQUESTS_ON_DB_UNAVAILABLE
               value: "True"
-          command: 
-            - /bin/sh
-            - -c
-            - |
-              # Create config file
-              cat > /tmp/config.yaml << 'EOF'
-              model_list:
-                - model_name: llama-3.1-8b
-                  litellm_params:
-                    model: openai/llama-3.1-8b
-                    api_base: http://***NFS-IP-REMOVED***:52415/v1
-                    api_key: dummy
-                - model_name: llama3
-                  litellm_params:
-                    model: openai/llama-3.1-8b
-                    api_base: http://***NFS-IP-REMOVED***:52415/v1
-                    api_key: dummy
-              
-              litellm_settings:
-                drop_params: true
-              
-              general_settings:
-                master_key: sk-1022
-                health_check_route: true
-                # Disable all database operations
-                disable_spend_logs: true
-                disable_master_key_return: true
-                disable_reset_budget: true
-                enable_health_check_route: true
-                allow_requests_on_db_unavailable: true
-              EOF
-              
-              # Start LiteLLM with explicit no-database flags
-              exec litellm --config /tmp/config.yaml --port 4000 --disable_spend_logs
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/proxy_server_config.yaml
+              subPath: config.yaml
           resources:
             requests:
               memory: "512Mi"
@@ -87,16 +54,19 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
-          # Use TCP probes to avoid auth issues
           livenessProbe:
             tcpSocket:
               port: 4000
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60  # Give more time for startup
             periodSeconds: 30
             timeoutSeconds: 10
           readinessProbe:
             tcpSocket:
               port: 4000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
+      volumes:
+        - name: config-volume
+          configMap:
+            name: litellm-config-file
