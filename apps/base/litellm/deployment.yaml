@@ -1,5 +1,4 @@
-# apps/base/litellm/deployment-alt.yaml
-# Alternative deployment using fake database URL
+# apps/base/litellm/deployment-simple.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,34 +18,29 @@ spec:
     spec:
       containers:
         - name: litellm
-          # Use the database image but with dummy DB
-          image: ghcr.io/berriai/litellm-database:main-stable
+          image: ghcr.io/berriai/litellm:main-stable
           ports:
             - containerPort: 4000
               protocol: TCP
           env:
-            # Provide a dummy DATABASE_URL to satisfy Prisma
-            - name: DATABASE_URL
-              value: "postgresql://user:pass@dummy-host:5432/dummy?connect_timeout=1"
             - name: LITELLM_MASTER_KEY
               value: "sk-1022"
             - name: OPENAI_API_KEY
               value: "dummy"
-            - name: PORT
-              value: "4000"
-            # Disable actual database operations
-            - name: STORE_MODEL_IN_DB
-              value: "False"
-            - name: DISABLE_SPEND_LOGS
-              value: "True"
-            - name: DISABLE_MASTER_KEY_HASH_STORAGE
-              value: "True"
-            - name: ALLOW_REQUESTS_ON_DB_UNAVAILABLE
-              value: "True"
-          volumeMounts:
-            - name: config-volume
-              mountPath: /app/proxy_server_config.yaml
-              subPath: config.yaml
+          # Run litellm directly with model configuration
+          args:
+            - "--model"
+            - "openai/llama-3.1-8b"
+            - "--api_base"
+            - "http://***NFS-IP-REMOVED***:52415/v1"
+            - "--api_key"
+            - "dummy"
+            - "--port"
+            - "4000"
+            - "--alias"
+            - "llama3"
+            - "--add_function_to_prompt"
+            - "--drop_params"
           resources:
             requests:
               memory: "512Mi"
@@ -57,16 +51,10 @@ spec:
           livenessProbe:
             tcpSocket:
               port: 4000
-            initialDelaySeconds: 60  # Give more time for startup
+            initialDelaySeconds: 30
             periodSeconds: 30
-            timeoutSeconds: 10
           readinessProbe:
             tcpSocket:
               port: 4000
-            initialDelaySeconds: 30
+            initialDelaySeconds: 10
             periodSeconds: 10
-            timeoutSeconds: 5
-      volumes:
-        - name: config-volume
-          configMap:
-            name: litellm-config-file
