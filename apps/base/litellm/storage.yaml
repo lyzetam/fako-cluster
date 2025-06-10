@@ -6,7 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: nfs-csi  # Using your NFS storage class
+  storageClassName: nfs-csi-v2  # Using your NFS storage class
   resources:
     requests:
       storage: 5Gi
