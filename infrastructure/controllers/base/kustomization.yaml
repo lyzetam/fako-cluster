@@ -2,10 +2,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - renovate
-  # - nfs-storage
+  - nfs-storage
   - nvidia-gpu
   - k8s-backup
-  # - traefik-middleware
+
   
   
 
