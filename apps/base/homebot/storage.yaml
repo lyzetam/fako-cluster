@@ -8,7 +8,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: nfs-csi
+  storageClassName: nfs-csi-v2
   resources:
     requests:
       storage: 5Gi      
