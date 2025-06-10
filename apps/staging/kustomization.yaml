@@ -13,7 +13,8 @@ resources:
   - piper           
   - openwakeword    
   - voice-monitor
-  - litellm
+  - mlx-distributed
+  # - litellm
   
 
 
