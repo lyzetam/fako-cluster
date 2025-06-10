@@ -15,7 +15,7 @@ data:
     set -e
     
     # Configuration
-    NFS_SERVER="10.85.30.125"
+    NFS_SERVER="10.85.30.127"
     NFS_PATH="/volume1/k8s-storage"
     NFS_VERSION="3"
     

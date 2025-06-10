@@ -4,7 +4,7 @@ metadata:
   name: nfs-csi
 provisioner: nfs.csi.k8s.io
 parameters:
-  server: "10.85.30.125"
+  server: "10.85.30.127"
   share: "/volume1/k8s-storage"
 reclaimPolicy: Retain
 allowVolumeExpansion: true

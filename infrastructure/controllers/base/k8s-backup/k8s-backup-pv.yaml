@@ -12,6 +12,6 @@ spec:
   accessModes:
     - ReadWriteMany
   nfs:
-    server: 10.85.30.125
+    server: 10.85.30.127
     path: /volume1/k8s-backups
   persistentVolumeReclaimPolicy: Retain
