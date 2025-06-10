@@ -1,0 +1,58 @@
+# apps/base/mlx-distributed/external-service.yaml
+# Service and Endpoints to expose the MLX API running on ms1
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlx-distributed-api
+  namespace: mlx-distributed
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: mlx-distributed-api
+  namespace: mlx-distributed
+subsets:
+- addresses:
+  - ip: 10.85.35.223  # ms1 IP address
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+
+---
+# Service in ollama namespace for WebUI compatibility
+# This maps port 52415 (expected by WebUI) to 8080 (MLX API)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlx-openai
+  namespace: ollama
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 52415      # Port that WebUI expects
+    targetPort: 8080  # Actual port on ms1
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: mlx-openai
+  namespace: ollama
+subsets:
+- addresses:
+  - ip: 10.85.35.223  # ms1 IP address
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
