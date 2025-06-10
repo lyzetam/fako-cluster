@@ -16,7 +16,7 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - health-check-configmap.yaml
-  - storage.yaml
+  # - storage.yaml
   - deployment-gpu.yaml
   - service-gpu.yaml
   - nodeport-service.yaml
