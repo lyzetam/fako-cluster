@@ -1,3 +1,4 @@
+# Updated ConfigMap for Open WebUI to use MLX
 # apps/base/ollama-webui/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -10,19 +11,19 @@ data:
   OLLAMA_BASE_URL: ""
   OLLAMA_API_BASE_URL: ""
   
-  # Enable OpenAI API mode - now using Kubernetes service
+  # Enable OpenAI API mode - using MLX service
   ENABLE_OPENAI_API: "true"
-  OPENAI_API_BASE_URL: "http://exo-openai.ollama.svc.cluster.local:52415/v1"
+  OPENAI_API_BASE_URL: "http://mlx-openai.ollama.svc.cluster.local:52415/v1"
   OPENAI_API_KEY: "dummy"
-  OPENAI_API_BASE_URLS: "http://exo-openai.ollama.svc.cluster.local:52415/v1"
+  OPENAI_API_BASE_URLS: "http://mlx-openai.ollama.svc.cluster.local:52415/v1"
   OPENAI_API_KEYS: "dummy"
   
   # WebUI configuration
-  WEBUI_NAME: "HomeLab AI (exo cluster)"
+  WEBUI_NAME: "HomeLab AI (MLX 5-Node Mac Cluster)"
   WEBUI_URL: ""
   
-  # Model configuration
-  DEFAULT_MODELS: "llama-3.1-8b"
+  # Model configuration - MLX models
+  DEFAULT_MODELS: "llama-3.2-3b"
   MODEL_FILTER_ENABLED: "false"
   ENABLE_MODEL_FILTER: "false"
   
@@ -45,6 +46,8 @@ data:
 
 
 
+
+
 # # apps/base/ollama-webui/configmap.yaml
 # apiVersion: v1
 # kind: ConfigMap
@@ -52,18 +55,26 @@ data:
 #   name: ollama-webui-configmap
 #   namespace: ollama-webui
 # data:
-#   # Point to exo's OpenAI-compatible API
-#   OLLAMA_BASE_URL: ""  # Leave empty when using OpenAI mode
-#   OPENAI_API_BASE: "http://***NFS-IP-REMOVED***:52415/v1"
-#   OPENAI_API_KEY: "dummy"  # exo doesn't require authentication
+#   # Disable Ollama API completely
+#   ENABLE_OLLAMA_API: "false"
+#   OLLAMA_BASE_URL: ""
+#   OLLAMA_API_BASE_URL: ""
   
-#   # Use OpenAI API mode
+#   # Enable OpenAI API mode - now using Kubernetes service
+#   ENABLE_OPENAI_API: "true"
+#   OPENAI_API_BASE_URL: "http://exo-openai.ollama.svc.cluster.local:52415/v1"
+#   OPENAI_API_KEY: "dummy"
+#   OPENAI_API_BASE_URLS: "http://exo-openai.ollama.svc.cluster.local:52415/v1"
+#   OPENAI_API_KEYS: "dummy"
+  
+#   # WebUI configuration
 #   WEBUI_NAME: "HomeLab AI (exo cluster)"
-#   WEBUI_URL: "https://ai.landryzetam.net"
+#   WEBUI_URL: ""
   
 #   # Model configuration
-#   DEFAULT_MODELS: '["llama-3.1-8b"]'  # The model running on exo
-#   ENABLE_OPENAI_API: "true"  # Enable OpenAI compatibility
+#   DEFAULT_MODELS: "llama-3.1-8b"
+#   MODEL_FILTER_ENABLED: "false"
+#   ENABLE_MODEL_FILTER: "false"
   
 #   # Authentication settings
 #   WEBUI_AUTH: "true"
@@ -74,5 +85,11 @@ data:
 #   # User permissions
 #   USER_PERMISSIONS_CHAT_DELETION: "true"
 #   ENABLE_COMMUNITY_SHARING: "false"
-#   ENABLE_MODEL_FILTER: "false"
+  
+#   # Disable features that don't work with OpenAI API
+#   ENABLE_IMAGE_GENERATION: "false"
+#   ENABLE_RAG_WEB_SEARCH: "false"
+  
+#   # Logging
+#   WEBUI_LOG_LEVEL: "INFO"
 
