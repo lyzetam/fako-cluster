@@ -7,14 +7,13 @@ resources:
   - homebot
   
   # AI/ML stack with GPU support
-  # - ollama         
+  - ollama         
   - ollama-webui    
   - whisper         
   - piper           
   - openwakeword    
   - voice-monitor
-  # - mlx-distributed
-  # - litellm
+
   
 
 
