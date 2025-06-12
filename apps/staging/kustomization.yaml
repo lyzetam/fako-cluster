@@ -2,13 +2,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   # Core applications
-  # - linkding
-  # - audiobookshelf
-  # - homebot
+  - linkding
+  - audiobookshelf
+  - homebot
   
   # AI/ML stack with GPU support
   - ollama         
-  # - ollama-webui    
+  - ollama-webui    
   - whisper         
   - piper           
   - openwakeword    

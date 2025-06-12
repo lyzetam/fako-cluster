@@ -16,12 +16,8 @@ spec:
     spec:
     #   runtimeClassName: nvidia  # Use NVIDIA runtime
       nodeSelector:
-        kubernetes.io/hostname: playground
-        # nvidia.com/gpu: "true"
-      # tolerations:
-      # - key: nvidia.com/gpu
-      #   operator: Exists
-      #   effect: NoSchedule
+        kubernetes.io/hostname: pgbee
+
       containers:
       - name: whisper
         image: rhasspy/wyoming-whisper:latest
@@ -54,11 +50,11 @@ spec:
         resources:
           requests:
             memory: "4Gi"
-            cpu: "6000m"
+            cpu: "4000m"
             # nvidia.com/gpu: 1
           limits:
             memory: "8Gi"
-            cpu: "14000m"
+            cpu: "12000m"
             # nvidia.com/gpu: 1
         env:
         - name: OMP_NUM_THREADS
@@ -74,8 +70,6 @@ spec:
           value: "close"  # Keep threads close for cache efficiency
         - name: OMP_PLACES
           value: "cores"  # Bind to physical cores
-        - name: CUDA_VISIBLE_DEVICES
-          value: "0"
         livenessProbe:
           tcpSocket:
             port: 10300
