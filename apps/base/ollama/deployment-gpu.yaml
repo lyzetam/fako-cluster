@@ -1,4 +1,4 @@
-# apps/base/ollama/deployment-gpu-complete.yaml
+# apps/base/ollama/deployment-gpu.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,9 +14,19 @@ spec:
       labels:
         app: ollama-gpu
     spec:
-      # Target pgbee node
+      # FIXED: Target playground node with GPU
       nodeSelector:
-        kubernetes.io/hostname: pgbee
+        kubernetes.io/hostname: playground
+        nvidia.com/gpu: "true"  # Ensure GPU node
+      
+      # Add GPU tolerations
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      
+      # Use NVIDIA runtime for GPU access
+      runtimeClassName: nvidia
       
       containers:
       - name: ollama
@@ -28,23 +38,23 @@ spec:
         - configMapRef:
             name: ollama-configmap
         env:
-        # Force CPU mode
+        # Enable GPU mode
         - name: CUDA_VISIBLE_DEVICES
-          value: ""
+          value: "0"  # Use GPU 0
         
-        # Realistic CPU settings for shared node
+        # GPU-optimized settings
         - name: OLLAMA_NUM_PARALLEL
-          value: "3"  # 3 concurrent requests
+          value: "4"  # More parallel requests with GPU
         - name: OLLAMA_NUM_THREAD
-          value: "10"  # Use 10 threads
+          value: "8"  # Fewer CPU threads needed with GPU
         - name: OLLAMA_MAX_LOADED_MODELS
-          value: "3"  # Keep 3 models in memory
+          value: "3"  # Keep 3 models in GPU memory
         - name: GOMAXPROCS
-          value: "10"
+          value: "8"
         
         # Memory management
         - name: OLLAMA_KEEP_ALIVE
-          value: "15m"  # Keep models loaded for 15 minutes
+          value: "30m"  # Keep models loaded longer with GPU
         
         volumeMounts:
         - mountPath: /root/.ollama
@@ -52,11 +62,13 @@ spec:
         
         resources:
           requests:
-            memory: "16Gi"  # Safe with 17GB available
-            cpu: "8000m"    # 8 CPU cores requested
+            memory: "8Gi"   # Less CPU memory needed with GPU
+            cpu: "4000m"    # Fewer CPU cores needed
+            nvidia.com/gpu: 1  # Request 1 GPU
           limits:
-            memory: "28Gi"  # 28GB limit, leaving room 4GB for other processes
-            cpu: "12000m"   # 12 CPU cores max
+            memory: "16Gi"
+            cpu: "8000m"
+            nvidia.com/gpu: 1  # Limit to 1 GPU
         
         livenessProbe:
           httpGet:
