@@ -1,58 +1,70 @@
 # apps/base/mlx-distributed/external-service.yaml
-# Service and Endpoints to expose the MLX API running on ms1
+# Service and Endpoints to expose the GPUStack API
 apiVersion: v1
 kind: Service
 metadata:
-  name: mlx-distributed-api
+  name: gpustack-api
   namespace: mlx-distributed
+  labels:
+    app: gpustack
+    component: external-api
 spec:
   type: ClusterIP
   ports:
   - name: http
-    port: 8080
-    targetPort: 8080
+    port: 80
+    targetPort: 80
     protocol: TCP
 
 ---
 apiVersion: v1
 kind: Endpoints
 metadata:
-  name: mlx-distributed-api
+  name: gpustack-api
   namespace: mlx-distributed
+  labels:
+    app: gpustack
+    component: external-api
 subsets:
 - addresses:
-  - ip: 10.85.35.223  # ms1 IP address
+  - ip: 10.85.35.223  # GPUStack server IP
   ports:
   - name: http
-    port: 8080
+    port: 80          # GPUStack port
     protocol: TCP
 
 ---
-# Service in ollama namespace for WebUI compatibility
-# This maps port 52415 (expected by WebUI) to 8080 (MLX API)
+# Service for OpenAI-compatible API endpoint
+# This provides compatibility with Open WebUI
 apiVersion: v1
 kind: Service
 metadata:
-  name: mlx-openai
+  name: gpustack-openai
   namespace: mlx-distributed
+  labels:
+    app: gpustack
+    component: openai-api
 spec:
   type: ClusterIP
   ports:
   - name: http
-    port: 52415      # Port that WebUI expects
-    targetPort: 8080  # Actual port on ms1
+    port: 80          # Port that WebUI will connect to
+    targetPort: 80    # Actual GPUStack port
     protocol: TCP
 
 ---
 apiVersion: v1
 kind: Endpoints
 metadata:
-  name: mlx-openai
+  name: gpustack-openai
   namespace: mlx-distributed
+  labels:
+    app: gpustack
+    component: openai-api
 subsets:
 - addresses:
-  - ip: 10.85.35.223  # ms1 IP address
+  - ip: 10.85.35.223  # GPUStack server IP
   ports:
   - name: http
-    port: 8080
+    port: 80          # GPUStack port
     protocol: TCP
