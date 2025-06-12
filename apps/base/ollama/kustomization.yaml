@@ -1,7 +1,11 @@
-# apps/base/ollama/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: ollama
 resources:
   - namespace.yaml
-  - ollama-proxy-homeassistant.yaml  # The new Home Assistant compatible proxy
+  - configmap.yaml
+  - storage.yaml
+  - deployment-gpu.yaml
+  - service-gpu.yaml
+  - ingress.yaml
+  - nodeport-service.yaml
