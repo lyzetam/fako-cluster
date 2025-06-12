@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: litellm
-        image: python:3.11-slim
+        image: python:3.13-slim
         ports:
         - containerPort: 4000
         command: ["python", "/app/run.py"]
