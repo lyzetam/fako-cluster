@@ -1,4 +1,4 @@
-# Updated ConfigMap for Open WebUI to use MLX
+# Updated ConfigMap for Open WebUI to use GPUStack
 # apps/base/ollama-webui/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -11,20 +11,20 @@ data:
   OLLAMA_BASE_URL: ""
   OLLAMA_API_BASE_URL: ""
   
-  # Enable OpenAI API mode - using MLX service
+  # Enable OpenAI API mode - using GPUStack service
   ENABLE_OPENAI_API: "true"
-  OPENAI_API_BASE_URL: "http://mlx-distributed-api.mlx-distributed.svc.cluster.local:8080/v1"
-  OPENAI_API_KEY: "dummy"
-  OPENAI_API_BASE_URLS: "http://mlx-distributed-api.mlx-distributed.svc.cluster.local:8080/v1"
-  OPENAI_API_KEYS: "dummy"
+  OPENAI_API_BASE_URL: "http://gpustack-openai.mlx-distributed.svc.cluster.local:80/v1"
+  OPENAI_API_KEY: "dummy"  # Replace with your GPUStack API key if required
+  OPENAI_API_BASE_URLS: "http://gpustack-openai.mlx-distributed.svc.cluster.local:80/v1"
+  OPENAI_API_KEYS: "dummy"  # Replace with your GPUStack API key if required
 
   
   # WebUI configuration
-  WEBUI_NAME: "HomeLab AI (MLX 5-Node Mac Cluster)"
+  WEBUI_NAME: "HomeLab AI (GPUStack)"
   WEBUI_URL: ""
   
-  # Model configuration - MLX models
-  DEFAULT_MODELS: "llama-3.2-3b,llama-3.2-1b,qwen-0.5b"
+  # Model configuration - Update with your GPUStack models
+  DEFAULT_MODELS: "llama-3.2-3b,llama-3.2-1b,mistral-7b"  # Update based on available models
   MODEL_FILTER_ENABLED: "false"
   ENABLE_MODEL_FILTER: "false"
   
@@ -47,8 +47,7 @@ data:
 
 
 
-
-
+# # Updated ConfigMap for Open WebUI to use MLX
 # # apps/base/ollama-webui/configmap.yaml
 # apiVersion: v1
 # kind: ConfigMap
@@ -61,19 +60,20 @@ data:
 #   OLLAMA_BASE_URL: ""
 #   OLLAMA_API_BASE_URL: ""
   
-#   # Enable OpenAI API mode - now using Kubernetes service
+#   # Enable OpenAI API mode - using MLX service
 #   ENABLE_OPENAI_API: "true"
-#   OPENAI_API_BASE_URL: "http://exo-openai.ollama.svc.cluster.local:52415/v1"
+#   OPENAI_API_BASE_URL: "http://mlx-distributed-api.mlx-distributed.svc.cluster.local:8080/v1"
 #   OPENAI_API_KEY: "dummy"
-#   OPENAI_API_BASE_URLS: "http://exo-openai.ollama.svc.cluster.local:52415/v1"
+#   OPENAI_API_BASE_URLS: "http://mlx-distributed-api.mlx-distributed.svc.cluster.local:8080/v1"
 #   OPENAI_API_KEYS: "dummy"
+
   
 #   # WebUI configuration
-#   WEBUI_NAME: "HomeLab AI (exo cluster)"
+#   WEBUI_NAME: "HomeLab AI (MLX 5-Node Mac Cluster)"
 #   WEBUI_URL: ""
   
-#   # Model configuration
-#   DEFAULT_MODELS: "llama-3.1-8b"
+#   # Model configuration - MLX models
+#   DEFAULT_MODELS: "llama-3.2-3b,llama-3.2-1b,qwen-0.5b"
 #   MODEL_FILTER_ENABLED: "false"
 #   ENABLE_MODEL_FILTER: "false"
   
@@ -93,4 +93,53 @@ data:
   
 #   # Logging
 #   WEBUI_LOG_LEVEL: "INFO"
+
+
+
+
+
+# # # apps/base/ollama-webui/configmap.yaml
+# # apiVersion: v1
+# # kind: ConfigMap
+# # metadata:
+# #   name: ollama-webui-configmap
+# #   namespace: ollama-webui
+# # data:
+# #   # Disable Ollama API completely
+# #   ENABLE_OLLAMA_API: "false"
+# #   OLLAMA_BASE_URL: ""
+# #   OLLAMA_API_BASE_URL: ""
+  
+# #   # Enable OpenAI API mode - now using Kubernetes service
+# #   ENABLE_OPENAI_API: "true"
+# #   OPENAI_API_BASE_URL: "http://exo-openai.ollama.svc.cluster.local:52415/v1"
+# #   OPENAI_API_KEY: "dummy"
+# #   OPENAI_API_BASE_URLS: "http://exo-openai.ollama.svc.cluster.local:52415/v1"
+# #   OPENAI_API_KEYS: "dummy"
+  
+# #   # WebUI configuration
+# #   WEBUI_NAME: "HomeLab AI (exo cluster)"
+# #   WEBUI_URL: ""
+  
+# #   # Model configuration
+# #   DEFAULT_MODELS: "llama-3.1-8b"
+# #   MODEL_FILTER_ENABLED: "false"
+# #   ENABLE_MODEL_FILTER: "false"
+  
+# #   # Authentication settings
+# #   WEBUI_AUTH: "true"
+# #   ENABLE_SIGNUP: "true"
+# #   DEFAULT_USER_ROLE: "user"
+# #   WEBUI_SESSION_LIFETIME: "2592000"
+  
+# #   # User permissions
+# #   USER_PERMISSIONS_CHAT_DELETION: "true"
+# #   ENABLE_COMMUNITY_SHARING: "false"
+  
+# #   # Disable features that don't work with OpenAI API
+# #   ENABLE_IMAGE_GENERATION: "false"
+# #   ENABLE_RAG_WEB_SEARCH: "false"
+  
+# #   # Logging
+# #   WEBUI_LOG_LEVEL: "INFO"
 
