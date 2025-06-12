@@ -13,9 +13,9 @@ data:
   
   # Enable OpenAI API mode - using GPUStack service
   ENABLE_OPENAI_API: "true"
-  OPENAI_API_BASE_URL: "http://gpustack-openai.mlx-distributed.svc.cluster.local:80/v1"
+  OPENAI_API_BASE_URL: "http://gpustack-openai.mlx-distributed.svc.cluster.local:80/v1-openai"
   OPENAI_API_KEY: "dummy"  # Replace with your GPUStack API key if required
-  OPENAI_API_BASE_URLS: "http://gpustack-openai.mlx-distributed.svc.cluster.local:80/v1"
+  OPENAI_API_BASE_URLS: "http://gpustack-openai.mlx-distributed.svc.cluster.local:80/v1-openai"
   OPENAI_API_KEYS: "dummy"  # Replace with your GPUStack API key if required
 
   
