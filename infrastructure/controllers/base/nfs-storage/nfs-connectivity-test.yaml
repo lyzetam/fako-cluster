@@ -116,7 +116,7 @@ spec:
       
       containers:
       - name: nfs-test
-        image: ubuntu:22.04
+        image: ubuntu:24.04
         imagePullPolicy: IfNotPresent
         
         securityContext:
