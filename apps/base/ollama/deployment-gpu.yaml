@@ -106,12 +106,13 @@ spec:
           echo ""
           echo "=== HOME ASSISTANT SPECIALIZED MODELS ==="
           # Home Assistant specific model (trained for HA control)
-          ollama pull fixt/home-3b-v3 || echo "Failed Home-3B-v3"
-          ollama pull fixt/home-3b-v2 || echo "Failed Home-3B-v2"
-          ollama pull gemma3:4b || echo "Failed gemma3:4b"
+          # ollama pull fixt/home-3b-v3 || echo "Failed Home-3B-v3"
+          # ollama pull fixt/home-3b-v2 || echo "Failed Home-3B-v2"
           # ollama pull gemma3:4b || echo "Failed gemma3:4b"
-          ollama pull granite3-moe:1b || echo "Failed granite3-moe:1b"
+          # # ollama pull gemma3:4b || echo "Failed gemma3:4b"
+          # ollama pull granite3-moe:1b || echo "Failed granite3-moe:1b"
           ollama pull qwen3:8b || echo "Failed qwen3:8b"
+          ollama pull qwen3:4b || echo "Failed qwen3:14b"
 
           # PRIORITY 2: Latest Gemma models (excellent for conversation)
           echo ""
