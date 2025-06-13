@@ -11,8 +11,8 @@ data:
   DEVICE: "cuda"
   
   # Performance tuning
-  BEAM_SIZE: "5"
-  LANGUAGE: "en"  # Set default language for better performance
+  # BEAM_SIZE: "5"
+  # LANGUAGE: "en"  # Set default language for better performance
   
   # Wyoming protocol settings
   WYOMING_URI: "tcp://0.0.0.0:10300"
