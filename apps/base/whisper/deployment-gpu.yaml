@@ -26,7 +26,7 @@ spec:
           protocol: TCP
         args:
         - "--model"
-        - "small"  #after that need to try medium, if its bad then back to base
+        - "base"  #after that need to try medium, if its bad then back to base
         - "--uri"
         - "tcp://0.0.0.0:10300"
         - "--data-dir"
