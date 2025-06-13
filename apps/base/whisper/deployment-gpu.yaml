@@ -35,12 +35,12 @@ spec:
         - "/data"
         - "--language"
         - "en"
-        - "--beam-size"
-        - "5"  # Faster inference for limited GPU
+        # - "--beam-size"
+        # - "5"  # Faster inference for limited GPU
         - "--device"
         - "cpu"  # Explicitly use CPU
-        - "--compute-type"
-        - "int8"  # Use INT8 quantization for CPU efficiency        
+        # - "--compute-type"
+        # - "int8"  # Use INT8 quantization for CPU efficiency        
         # NOTE: NOT specifying --device or --compute-type to let it auto-detect
         #AMD Ryzen 7 5825U with Radeon Graphics, 32 GB RAM 2x 16 GB DDR4, 2 threads per core, 8 cores per socket = 16 cores total
         #cat /proc/cpuinfo | grep "processor" | wc -l => also tells 16 cores
@@ -49,22 +49,22 @@ spec:
           name: whisper-models
         resources:
           requests:
-            memory: "4Gi"
-            cpu: "4000m"
+            memory: "2Gi"
+            cpu: "2000m"
             # nvidia.com/gpu: 1
           limits:
-            memory: "8Gi"
-            cpu: "12000m"
+            memory: "6Gi"
+            cpu: "6000m"
             # nvidia.com/gpu: 1
         env:
         - name: OMP_NUM_THREADS
-          value: "14"  # 8 cores * 2 threads - 2 for system
+          value: "10"  # 8 cores * 2 threads - 2 for system
         - name: MKL_NUM_THREADS
-          value: "14"
+          value: "10"
         - name: NUMEXPR_NUM_THREADS
-          value: "14"
+          value: "10"
         - name: OPENBLAS_NUM_THREADS
-          value: "14"
+          value: "10"
         # AMD-specific optimizations
         - name: OMP_PROC_BIND
           value: "close"  # Keep threads close for cache efficiency
