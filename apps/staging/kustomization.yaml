@@ -9,7 +9,7 @@ resources:
   # AI/ML stack with GPU support
   - ollama         
   - ollama-webui    
-  - whisper         
+  # - whisper         
   - piper           
   - openwakeword    
   - voice-monitor
