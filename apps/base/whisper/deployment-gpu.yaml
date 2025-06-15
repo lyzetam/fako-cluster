@@ -14,8 +14,8 @@ spec:
       labels:
         app: whisper-gpu
     spec:
-      # Use NVIDIA runtime for GPU access
-      runtimeClassName: nvidia
+      # Use nvidia-experimental RuntimeClass that exists
+      runtimeClassName: nvidia-experimental
       
       # Target the new yeezyai node with dual GPUs
       nodeSelector:
@@ -69,6 +69,10 @@ spec:
         # Use RTX 3050 (GPU 1) for Whisper
         - name: CUDA_VISIBLE_DEVICES
           value: "1"
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "1"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
         - name: PYTORCH_CUDA_ALLOC_CONF
           value: "max_split_size_mb:512"  # Optimize memory for RTX 3050
         
@@ -97,6 +101,7 @@ spec:
           claimName: whisper-models
 
 
+
 # # apps/base/whisper/deployment-gpu.yaml
 # apiVersion: apps/v1
 # kind: Deployment
@@ -113,10 +118,19 @@ spec:
 #       labels:
 #         app: whisper-gpu
 #     spec:
-#     #   runtimeClassName: nvidia  # Use NVIDIA runtime
+#       # Use NVIDIA runtime for GPU access
+#       runtimeClassName: nvidia
+      
+#       # Target the new yeezyai node with dual GPUs
 #       nodeSelector:
-#         kubernetes.io/hostname: pgbee
-
+#         kubernetes.io/hostname: yeezyai
+#         nvidia.com/gpu: "true"
+      
+#       tolerations:
+#       - key: nvidia.com/gpu
+#         operator: Exists
+#         effect: NoSchedule
+      
 #       containers:
 #       - name: whisper
 #         image: rhasspy/wyoming-whisper:latest
@@ -125,7 +139,7 @@ spec:
 #           protocol: TCP
 #         args:
 #         - "--model"
-#         - "base"  #after that need to try medium, if its bad then back to base
+#         - "medium"  # RTX 3050 can handle medium model well
 #         - "--uri"
 #         - "tcp://0.0.0.0:10300"
 #         - "--data-dir"
@@ -134,41 +148,34 @@ spec:
 #         - "/data"
 #         - "--language"
 #         - "en"
-#         # - "--beam-size"
-#         # - "5"  # Faster inference for limited GPU
+#         - "--beam-size"
+#         - "5"  # Good balance for RTX 3050
 #         - "--device"
-#         - "cpu"  # Explicitly use CPU
-#         # - "--compute-type"
-#         # - "int8"  # Use INT8 quantization for CPU efficiency        
-#         # NOTE: NOT specifying --device or --compute-type to let it auto-detect
-#         #AMD Ryzen 7 5825U with Radeon Graphics, 32 GB RAM 2x 16 GB DDR4, 2 threads per core, 8 cores per socket = 16 cores total
-#         #cat /proc/cpuinfo | grep "processor" | wc -l => also tells 16 cores
+#         - "cuda"  # Use GPU acceleration
+#         - "--compute-type"
+#         - "float16"  # FP16 for GPU optimization
+        
 #         volumeMounts:
 #         - mountPath: /data
 #           name: whisper-models
+        
 #         resources:
 #           requests:
-#             memory: "2Gi"
+#             memory: "4Gi"
 #             cpu: "2000m"
-#             # nvidia.com/gpu: 1
+#             nvidia.com/gpu: 1  # Request 1 GPU (RTX 3050)
 #           limits:
-#             memory: "6Gi"
-#             cpu: "6000m"
-#             # nvidia.com/gpu: 1
+#             memory: "8Gi"
+#             cpu: "4000m"
+#             nvidia.com/gpu: 1  # Limit to 1 GPU
+        
 #         env:
-#         - name: OMP_NUM_THREADS
-#           value: "10"  # 8 cores * 2 threads - 2 for system
-#         - name: MKL_NUM_THREADS
-#           value: "10"
-#         - name: NUMEXPR_NUM_THREADS
-#           value: "10"
-#         - name: OPENBLAS_NUM_THREADS
-#           value: "10"
-#         # AMD-specific optimizations
-#         - name: OMP_PROC_BIND
-#           value: "close"  # Keep threads close for cache efficiency
-#         - name: OMP_PLACES
-#           value: "cores"  # Bind to physical cores
+#         # Use RTX 3050 (GPU 1) for Whisper
+#         - name: CUDA_VISIBLE_DEVICES
+#           value: "1"
+#         - name: PYTORCH_CUDA_ALLOC_CONF
+#           value: "max_split_size_mb:512"  # Optimize memory for RTX 3050
+        
 #         livenessProbe:
 #           tcpSocket:
 #             port: 10300
@@ -187,7 +194,104 @@ spec:
 #           initialDelaySeconds: 10
 #           periodSeconds: 10
 #           failureThreshold: 30
+      
 #       volumes:
 #       - name: whisper-models
 #         persistentVolumeClaim:
 #           claimName: whisper-models
+
+
+# # # apps/base/whisper/deployment-gpu.yaml
+# # apiVersion: apps/v1
+# # kind: Deployment
+# # metadata:
+# #   name: whisper-gpu
+# #   namespace: whisper
+# # spec:
+# #   replicas: 1
+# #   selector:
+# #     matchLabels:
+# #       app: whisper-gpu
+# #   template:
+# #     metadata:
+# #       labels:
+# #         app: whisper-gpu
+# #     spec:
+# #     #   runtimeClassName: nvidia  # Use NVIDIA runtime
+# #       nodeSelector:
+# #         kubernetes.io/hostname: pgbee
+
+# #       containers:
+# #       - name: whisper
+# #         image: rhasspy/wyoming-whisper:latest
+# #         ports:
+# #         - containerPort: 10300
+# #           protocol: TCP
+# #         args:
+# #         - "--model"
+# #         - "base"  #after that need to try medium, if its bad then back to base
+# #         - "--uri"
+# #         - "tcp://0.0.0.0:10300"
+# #         - "--data-dir"
+# #         - "/data"
+# #         - "--download-dir"
+# #         - "/data"
+# #         - "--language"
+# #         - "en"
+# #         # - "--beam-size"
+# #         # - "5"  # Faster inference for limited GPU
+# #         - "--device"
+# #         - "cpu"  # Explicitly use CPU
+# #         # - "--compute-type"
+# #         # - "int8"  # Use INT8 quantization for CPU efficiency        
+# #         # NOTE: NOT specifying --device or --compute-type to let it auto-detect
+# #         #AMD Ryzen 7 5825U with Radeon Graphics, 32 GB RAM 2x 16 GB DDR4, 2 threads per core, 8 cores per socket = 16 cores total
+# #         #cat /proc/cpuinfo | grep "processor" | wc -l => also tells 16 cores
+# #         volumeMounts:
+# #         - mountPath: /data
+# #           name: whisper-models
+# #         resources:
+# #           requests:
+# #             memory: "2Gi"
+# #             cpu: "2000m"
+# #             # nvidia.com/gpu: 1
+# #           limits:
+# #             memory: "6Gi"
+# #             cpu: "6000m"
+# #             # nvidia.com/gpu: 1
+# #         env:
+# #         - name: OMP_NUM_THREADS
+# #           value: "10"  # 8 cores * 2 threads - 2 for system
+# #         - name: MKL_NUM_THREADS
+# #           value: "10"
+# #         - name: NUMEXPR_NUM_THREADS
+# #           value: "10"
+# #         - name: OPENBLAS_NUM_THREADS
+# #           value: "10"
+# #         # AMD-specific optimizations
+# #         - name: OMP_PROC_BIND
+# #           value: "close"  # Keep threads close for cache efficiency
+# #         - name: OMP_PLACES
+# #           value: "cores"  # Bind to physical cores
+# #         livenessProbe:
+# #           tcpSocket:
+# #             port: 10300
+# #           initialDelaySeconds: 120
+# #           periodSeconds: 30
+# #           timeoutSeconds: 10
+# #         readinessProbe:
+# #           tcpSocket:
+# #             port: 10300
+# #           initialDelaySeconds: 30
+# #           periodSeconds: 10
+# #           timeoutSeconds: 5
+# #         startupProbe:
+# #           tcpSocket:
+# #             port: 10300
+# #           initialDelaySeconds: 10
+# #           periodSeconds: 10
+# #           failureThreshold: 30
+# #       volumes:
+# #       - name: whisper-models
+# #         persistentVolumeClaim:
+# #           claimName: whisper-models
