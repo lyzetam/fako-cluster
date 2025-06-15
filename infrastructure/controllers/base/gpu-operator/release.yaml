@@ -31,18 +31,18 @@ spec:
     # Container toolkit configuration
     toolkit:
       enabled: true
-      version: v1.17.3
-      repository: nvcr.io/nvidia
-      image: container-toolkit
-      tag: v1.17.3-ubi8
+      # version: v1.17.3
+      # repository: nvcr.io/nvidia
+      # image: container-toolkit
+      # tag: v1.17.3-ubi8
       
     # Device plugin configuration
     devicePlugin:
       enabled: true
-      version: v0.17.2
-      repository: nvcr.io/nvidia
-      image: k8s-device-plugin
-      tag: v0.17.2
+      # version: v0.17.2
+      # repository: nvcr.io/nvidia
+      # image: k8s-device-plugin
+      # tag: v0.17.2
       
     # Disable optional components for now
     nfd:
