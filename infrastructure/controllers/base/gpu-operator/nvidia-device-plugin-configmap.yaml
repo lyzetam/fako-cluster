@@ -1,0 +1,21 @@
+# apps/base/gpu-operator/nvidia-device-plugin-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: default-config
+  namespace: gpu-operator
+data:
+  # Default NVIDIA device plugin configuration
+  config.yaml: |
+    version: v1
+    flags:
+      migStrategy: "none"
+      failOnInitError: true
+      nvidiaDriverRoot: "/"
+      passDeviceSpecs: false
+      deviceListStrategy: "envvar"
+      deviceIDStrategy: "uuid"
+    resources:
+      gpus:
+      - pattern: "*"
+        name: nvidia.com/gpu
