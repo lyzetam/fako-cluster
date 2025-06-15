@@ -14,10 +14,10 @@ spec:
       labels:
         app: ollama-gpu
     spec:
-      # FIXED: Target playground node with GPU
+      # Target the new yeezyai node with dual GPUs
       nodeSelector:
-        kubernetes.io/hostname: playground
-        nvidia.com/gpu: "true"  # Ensure GPU node
+        kubernetes.io/hostname: yeezyai
+        nvidia.com/gpu: "true"
       
       # Add GPU tolerations
       tolerations:
@@ -38,23 +38,23 @@ spec:
         - configMapRef:
             name: ollama-configmap
         env:
-        # Enable GPU mode
+        # Use RTX 5070 (GPU 0) for Ollama - more powerful for LLM inference
         - name: CUDA_VISIBLE_DEVICES
-          value: "0"  # Use GPU 0
+          value: "0"
         
-        # GPU-optimized settings
+        # GPU-optimized settings for RTX 5070
         - name: OLLAMA_NUM_PARALLEL
-          value: "4"  # More parallel requests with GPU
+          value: "6"  # More parallel requests with RTX 5070
         - name: OLLAMA_NUM_THREAD
-          value: "8"  # Fewer CPU threads needed with GPU
+          value: "8"  
         - name: OLLAMA_MAX_LOADED_MODELS
-          value: "3"  # Keep 3 models in GPU memory
+          value: "5"  # Can keep more models in GPU memory with RTX 5070
         - name: GOMAXPROCS
           value: "8"
         
-        # # Memory management
-        # - name: OLLAMA_KEEP_ALIVE
-        #   value: "30m"  # Keep models loaded longer with GPU
+        # Memory management
+        - name: OLLAMA_KEEP_ALIVE
+          value: "30m"
         
         volumeMounts:
         - mountPath: /root/.ollama
@@ -62,9 +62,9 @@ spec:
         
         resources:
           requests:
-            memory: "8Gi"   # Less CPU memory needed with GPU
-            cpu: "4000m"    # Fewer CPU cores needed
-            nvidia.com/gpu: 1  # Request 1 GPU
+            memory: "8Gi"
+            cpu: "4000m"
+            nvidia.com/gpu: 1  # Request 1 GPU (RTX 5070)
           limits:
             memory: "16Gi"
             cpu: "8000m"
@@ -99,83 +99,61 @@ spec:
           
           echo ""
           echo "======================================"
-          echo "Downloading Home Assistant Optimized Models"
+          echo "Downloading Models for RTX 5070"
           echo "======================================"
           
           # PRIORITY 1: Home Assistant specialized models
           echo ""
           echo "=== HOME ASSISTANT SPECIALIZED MODELS ==="
-          # Home Assistant specific model (trained for HA control)
-          # ollama pull fixt/home-3b-v3 || echo "Failed Home-3B-v3"
-          # ollama pull fixt/home-3b-v2 || echo "Failed Home-3B-v2"
-          # ollama pull gemma3:4b || echo "Failed gemma3:4b"
-          # # ollama pull gemma3:4b || echo "Failed gemma3:4b"
-          # ollama pull granite3-moe:1b || echo "Failed granite3-moe:1b"
+          ollama pull fixt/home-3b-v3 || echo "Failed Home-3B-v3"
+          ollama pull fixt/home-3b-v2 || echo "Failed Home-3B-v2"
+          ollama pull gemma3:4b || echo "Failed gemma3:4b"
+          ollama pull granite3-moe:1b || echo "Failed granite3-moe:1b"
           ollama pull qwen3:8b || echo "Failed qwen3:8b"
-          ollama pull qwen3:4b || echo "Failed qwen3:14b"
 
-          # PRIORITY 2: Latest Gemma models (excellent for conversation)
+          # PRIORITY 2: Latest Gemma models
           echo ""
-          echo "=== GEMMA 3 MODELS (Latest Multimodal) ==="
-          ollama pull gemma2:2b || echo "Failed gemma2:2b (fallback)"
+          echo "=== GEMMA 3 MODELS ==="
+          ollama pull gemma2:2b || echo "Failed gemma2:2b"
+          ollama pull gemma2:9b || echo "Failed gemma2:9b"  # Larger model for RTX 5070
 
-
-          # PRIORITY 3: Small efficient models for quick responses
+          # PRIORITY 3: Small efficient models
           echo ""
           echo "=== SMALL EFFICIENT MODELS (1-4B) ==="
-          # Recommended by Home Assistant docs for local use
-          # ollama pull llama3.2:1b || echo "Failed llama3.2:1b"
           ollama pull llama3.2:3b || echo "Failed llama3.2:3b"
-          # ollama pull tinyllama || echo "Failed tinyllama"
+          ollama pull phi3:mini || echo "Failed phi3:mini"
           
-          # PRIORITY 4: Medium models for better reasoning
+          # PRIORITY 4: Medium models - RTX 5070 can handle these well
           echo ""
-          echo "=== MEDIUM MODELS (7-8B) - Better Reasoning ==="
-          # Home Assistant recommends llama3.1:8b for better control
-          # ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
-          # ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed mistral:7b"
+          echo "=== MEDIUM MODELS (7-8B) ==="
+          ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
+          ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed mistral:7b"
           ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed qwen2.5:7b"
           
-          # PRIORITY 5: Newer powerful models
+          # PRIORITY 5: Larger models - RTX 5070 has the memory
           echo ""
-          echo "=== NEWER HIGH-PERFORMANCE MODELS ==="
-          # Phi-4 is Microsoft's latest 14B model with excellent performance
-          # ollama pull phi-4:latest || echo "Failed phi-4"
-          # DeepSeek-R1 for reasoning (but may be verbose for voice)
-          # ollama pull deepseek-r1:1.5b || echo "Failed deepseek-r1:1.5b"
-          # ollama pull deepseek-r1:7b || echo "Failed deepseek-r1:7b"
+          echo "=== LARGER MODELS (13B+) ==="
+          ollama pull llama2:13b-chat-q4_K_M || echo "Failed llama2:13b"
+          ollama pull deepseek-r1:14b || echo "Failed deepseek-r1:14b"
+          ollama pull phi-4:latest || echo "Failed phi-4"
           
-          # PRIORITY 6: Specialized models
+          # PRIORITY 6: Even larger models for RTX 5070
           echo ""
-          echo "=== SPECIALIZED MODELS ==="
-          # Code assistance if needed
-          # ollama pull codellama:7b-instruct-q5_K_M || echo "Failed codellama:7b"
-          
-          # OPTIONAL: Larger models (only if you have memory)
-          echo ""
-          echo "=== OPTIONAL LARGER MODELS ==="
-          # Gemma 3 larger variants (excellent but memory intensive)
-          # ollama pull gemma3:12b || echo "Failed gemma3:12b"
-          # ollama pull gemma3:27b || echo "Failed gemma3:27b"
-          # ollama pull llama3.3:latest || echo "Failed llama3.3 70B"
+          echo "=== HIGH-END MODELS ==="
+          ollama pull mixtral:8x7b-instruct-v0.1-q3_K_M || echo "Failed mixtral"
+          ollama pull llama3.3:latest || echo "Failed llama3.3 70B"
           
           echo ""
           echo "======================================"
           echo "Model download complete. Available models:"
           ollama list
           echo ""
-          echo "RECOMMENDED FOR HOME ASSISTANT:"
-          # echo "1. fixt/home-3b-v3 - Best for device control"
-          # echo "2. gemma3:4b - Best for conversation with multimodal"
-          # echo "3. llama3.2:3b - Good balance of speed and capability"
-          # echo "4. llama3.1:8b - Better reasoning if you have resources"
+          echo "RTX 5070 optimized for larger models!"
           echo "======================================"
           
           while true; do
             sleep 600
             echo "Model manager heartbeat..."
-            # Optional: Check for model updates
-            # ollama pull fixt/home-3b-v3 || true
           done
         
         volumeMounts:
@@ -193,3 +171,202 @@ spec:
       - name: ollama-models
         persistentVolumeClaim:
           claimName: ollama-models
+
+
+
+
+# # apps/base/ollama/deployment-gpu.yaml
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: ollama-gpu
+#   namespace: ollama
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: ollama-gpu
+#   template:
+#     metadata:
+#       labels:
+#         app: ollama-gpu
+#     spec:
+#       # FIXED: Target playground node with GPU
+#       nodeSelector:
+#         kubernetes.io/hostname: playground
+#         nvidia.com/gpu: "true"  # Ensure GPU node
+      
+#       # Add GPU tolerations
+#       tolerations:
+#       - key: nvidia.com/gpu
+#         operator: Exists
+#         effect: NoSchedule
+      
+#       # Use NVIDIA runtime for GPU access
+#       runtimeClassName: nvidia
+      
+#       containers:
+#       - name: ollama
+#         image: ollama/ollama:latest
+#         ports:
+#         - containerPort: 11434
+#           protocol: TCP
+#         envFrom:
+#         - configMapRef:
+#             name: ollama-configmap
+#         env:
+#         # Enable GPU mode
+#         - name: CUDA_VISIBLE_DEVICES
+#           value: "0"  # Use GPU 0
+        
+#         # GPU-optimized settings
+#         - name: OLLAMA_NUM_PARALLEL
+#           value: "4"  # More parallel requests with GPU
+#         - name: OLLAMA_NUM_THREAD
+#           value: "8"  # Fewer CPU threads needed with GPU
+#         - name: OLLAMA_MAX_LOADED_MODELS
+#           value: "3"  # Keep 3 models in GPU memory
+#         - name: GOMAXPROCS
+#           value: "8"
+        
+#         # # Memory management
+#         # - name: OLLAMA_KEEP_ALIVE
+#         #   value: "30m"  # Keep models loaded longer with GPU
+        
+#         volumeMounts:
+#         - mountPath: /root/.ollama
+#           name: ollama-models
+        
+#         resources:
+#           requests:
+#             memory: "8Gi"   # Less CPU memory needed with GPU
+#             cpu: "4000m"    # Fewer CPU cores needed
+#             nvidia.com/gpu: 1  # Request 1 GPU
+#           limits:
+#             memory: "16Gi"
+#             cpu: "8000m"
+#             nvidia.com/gpu: 1  # Limit to 1 GPU
+        
+#         livenessProbe:
+#           httpGet:
+#             path: /api/tags
+#             port: 11434
+#           initialDelaySeconds: 60
+#           periodSeconds: 30
+#           timeoutSeconds: 10
+#         readinessProbe:
+#           httpGet:
+#             path: /api/tags
+#             port: 11434
+#           initialDelaySeconds: 30
+#           periodSeconds: 10
+#           timeoutSeconds: 5
+      
+#       # Model manager - downloads models optimized for Home Assistant
+#       - name: model-manager
+#         image: ollama/ollama:latest
+#         command: ["/bin/sh"]
+#         args:
+#         - -c
+#         - |
+#           echo "Model manager starting..."
+#           sleep 60
+          
+#           export OLLAMA_HOST=http://localhost:11434
+          
+#           echo ""
+#           echo "======================================"
+#           echo "Downloading Home Assistant Optimized Models"
+#           echo "======================================"
+          
+#           # PRIORITY 1: Home Assistant specialized models
+#           echo ""
+#           echo "=== HOME ASSISTANT SPECIALIZED MODELS ==="
+#           # Home Assistant specific model (trained for HA control)
+#           # ollama pull fixt/home-3b-v3 || echo "Failed Home-3B-v3"
+#           # ollama pull fixt/home-3b-v2 || echo "Failed Home-3B-v2"
+#           # ollama pull gemma3:4b || echo "Failed gemma3:4b"
+#           # # ollama pull gemma3:4b || echo "Failed gemma3:4b"
+#           # ollama pull granite3-moe:1b || echo "Failed granite3-moe:1b"
+#           ollama pull qwen3:8b || echo "Failed qwen3:8b"
+#           ollama pull qwen3:4b || echo "Failed qwen3:14b"
+
+#           # PRIORITY 2: Latest Gemma models (excellent for conversation)
+#           echo ""
+#           echo "=== GEMMA 3 MODELS (Latest Multimodal) ==="
+#           ollama pull gemma2:2b || echo "Failed gemma2:2b (fallback)"
+
+
+#           # PRIORITY 3: Small efficient models for quick responses
+#           echo ""
+#           echo "=== SMALL EFFICIENT MODELS (1-4B) ==="
+#           # Recommended by Home Assistant docs for local use
+#           # ollama pull llama3.2:1b || echo "Failed llama3.2:1b"
+#           ollama pull llama3.2:3b || echo "Failed llama3.2:3b"
+#           # ollama pull tinyllama || echo "Failed tinyllama"
+          
+#           # PRIORITY 4: Medium models for better reasoning
+#           echo ""
+#           echo "=== MEDIUM MODELS (7-8B) - Better Reasoning ==="
+#           # Home Assistant recommends llama3.1:8b for better control
+#           # ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
+#           # ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed mistral:7b"
+#           ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed qwen2.5:7b"
+          
+#           # PRIORITY 5: Newer powerful models
+#           echo ""
+#           echo "=== NEWER HIGH-PERFORMANCE MODELS ==="
+#           # Phi-4 is Microsoft's latest 14B model with excellent performance
+#           # ollama pull phi-4:latest || echo "Failed phi-4"
+#           # DeepSeek-R1 for reasoning (but may be verbose for voice)
+#           # ollama pull deepseek-r1:1.5b || echo "Failed deepseek-r1:1.5b"
+#           # ollama pull deepseek-r1:7b || echo "Failed deepseek-r1:7b"
+          
+#           # PRIORITY 6: Specialized models
+#           echo ""
+#           echo "=== SPECIALIZED MODELS ==="
+#           # Code assistance if needed
+#           # ollama pull codellama:7b-instruct-q5_K_M || echo "Failed codellama:7b"
+          
+#           # OPTIONAL: Larger models (only if you have memory)
+#           echo ""
+#           echo "=== OPTIONAL LARGER MODELS ==="
+#           # Gemma 3 larger variants (excellent but memory intensive)
+#           # ollama pull gemma3:12b || echo "Failed gemma3:12b"
+#           # ollama pull gemma3:27b || echo "Failed gemma3:27b"
+#           # ollama pull llama3.3:latest || echo "Failed llama3.3 70B"
+          
+#           echo ""
+#           echo "======================================"
+#           echo "Model download complete. Available models:"
+#           ollama list
+#           echo ""
+#           echo "RECOMMENDED FOR HOME ASSISTANT:"
+#           # echo "1. fixt/home-3b-v3 - Best for device control"
+#           # echo "2. gemma3:4b - Best for conversation with multimodal"
+#           # echo "3. llama3.2:3b - Good balance of speed and capability"
+#           # echo "4. llama3.1:8b - Better reasoning if you have resources"
+#           echo "======================================"
+          
+#           while true; do
+#             sleep 600
+#             echo "Model manager heartbeat..."
+#             # Optional: Check for model updates
+#             # ollama pull fixt/home-3b-v3 || true
+#           done
+        
+#         volumeMounts:
+#         - mountPath: /root/.ollama
+#           name: ollama-models
+#         resources:
+#           requests:
+#             memory: "2Gi"  
+#             cpu: "1000m"     
+#           limits:
+#             memory: "4Gi"
+#             cpu: "2000m"
+      
+#       volumes:
+#       - name: ollama-models
+#         persistentVolumeClaim:
+#           claimName: ollama-models

@@ -18,7 +18,7 @@ spec:
       hostPID: true
       hostNetwork: true
       nodeSelector:
-        kubernetes.io/hostname: playground  # Only run on playground node
+        kubernetes.io/hostname: yeezyai  # Updated to target yeezyai node
         nvidia.com/gpu: "true"
       tolerations:
       - key: nvidia.com/gpu
@@ -38,6 +38,9 @@ spec:
           value: ":9400"
         - name: DCGM_EXPORTER_KUBERNETES
           value: "true"
+        # Monitor all GPUs
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
         volumeMounts:
         - name: proc
           mountPath: /host/proc

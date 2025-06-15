@@ -1,3 +1,4 @@
+# infrastructure/controllers/base/nvidia-gpu/resource-quota.yaml
 apiVersion: v1
 kind: ResourceQuota
 metadata:
@@ -5,5 +6,5 @@ metadata:
   namespace: nvidia-device-plugin
 spec:
   hard:
-    requests.nvidia.com/gpu: "1"  # Adjust based on your playground node GPU count
-    limits.nvidia.com/gpu: "2"
+    requests.nvidia.com/gpu: "2"  # Updated for 2 GPUs on yeezyai node
+    limits.nvidia.com/gpu: "2"    # Allow up to 2 GPUs total

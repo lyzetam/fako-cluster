@@ -17,7 +17,7 @@ spec:
       labels:
         name: nvidia-device-plugin-ds
     spec:
-      # CRITICAL: Only run on nodes with the nvidia runtime configured
+      # Use the nvidia runtime configured
       runtimeClassName: nvidia
       tolerations:
       - key: nvidia.com/gpu
@@ -25,18 +25,10 @@ spec:
         effect: NoSchedule
       - key: CriticalAddonsOnly
         operator: Exists
-      # CRITICAL: Only run on nodes with NVIDIA GPU
+      # Run on nodes with NVIDIA GPU
       nodeSelector:
         nvidia.com/gpu: "true"
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                - playground
+      # Remove strict node affinity - let nodeSelector handle it
       priorityClassName: "system-node-critical"
       containers:
       - image: nvcr.io/nvidia/k8s-device-plugin:v0.17.2
@@ -48,8 +40,12 @@ spec:
             value: "/run/nvidia/mps"
           - name: NVIDIA_MIG_MONITOR_DEVICES
             value: "all"
+          # Support multiple GPUs
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: "all"
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: "compute,utility"
         securityContext:
-          # allowPrivilegeEscalation: false
           capabilities:
             drop: ["ALL"]
           privileged: true  # Required for device access
@@ -65,22 +61,6 @@ spec:
           limits:
             cpu: 100m
             memory: 50Mi
-        # livenessProbe:
-        #   httpGet:
-        #     path: /healthz
-        #     port: 8080
-        #   initialDelaySeconds: 30
-        #   periodSeconds: 30
-        #   timeoutSeconds: 10
-        #   failureThreshold: 3
-        # readinessProbe:
-        #   httpGet:
-        #     path: /healthz
-        #     port: 8080
-        #   initialDelaySeconds: 10
-        #   periodSeconds: 10
-        #   timeoutSeconds: 5
-        #   failureThreshold: 3
       volumes:
       - name: device-plugin
         hostPath:
