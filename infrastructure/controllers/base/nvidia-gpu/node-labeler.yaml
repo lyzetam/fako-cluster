@@ -1,4 +1,4 @@
-# infrastructure/controllers/base/nvidia-gpu/node-labeler-updated.yaml
+# infrastructure/controllers/base/nvidia-gpu/node-labeler.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -103,15 +103,23 @@ spec:
             local node=$1
             echo "Labeling node: $node"
             
-            # Apply all GPU-related labels
+            # Essential GPU labels
             kubectl label nodes "$node" nvidia.com/gpu=true --overwrite
-            kubectl label nodes "$node" accelerator=nvidia-gpu --overwrite
-            kubectl label nodes "$node" gpu.nvidia.present=true --overwrite
-            kubectl label nodes "$node" feature.node.kubernetes.io/pci-10de.present=true --overwrite
             kubectl label nodes "$node" node-role.kubernetes.io/gpu-worker=true --overwrite
-            kubectl label nodes "$node" hardware.tier=gpu --overwrite
-            kubectl label nodes "$node" voice-pipeline=enabled --overwrite
+            
+            # Hardware tier and type
+            kubectl label nodes "$node" hardware.tier=dual-gpu --overwrite
             kubectl label nodes "$node" node-type=gpu-compute --overwrite
+            
+            # GPU-specific labels
+            kubectl label nodes "$node" gpu.nvidia.present=true --overwrite
+            kubectl label nodes "$node" accelerator=nvidia-gpu --overwrite
+            kubectl label nodes "$node" feature.node.kubernetes.io/pci-10de.present=true --overwrite
+            
+            # Dual GPU specific labels
+            kubectl label nodes "$node" gpu.count=2 --overwrite
+            kubectl label nodes "$node" gpu.rtx5070=true --overwrite
+            kubectl label nodes "$node" gpu.rtx3050=true --overwrite
             
             echo "✓ Labels applied to $node"
           }
@@ -125,6 +133,10 @@ spec:
             kubectl label nodes "$node" accelerator- --overwrite 2>/dev/null || true
             kubectl label nodes "$node" gpu.nvidia.present- --overwrite 2>/dev/null || true
             kubectl label nodes "$node" node-role.kubernetes.io/gpu-worker- --overwrite 2>/dev/null || true
+            kubectl label nodes "$node" hardware.tier- --overwrite 2>/dev/null || true
+            kubectl label nodes "$node" gpu.count- --overwrite 2>/dev/null || true
+            kubectl label nodes "$node" gpu.rtx5070- --overwrite 2>/dev/null || true
+            kubectl label nodes "$node" gpu.rtx3050- --overwrite 2>/dev/null || true
             
             echo "✓ GPU labels removed from $node"
           }
@@ -134,18 +146,18 @@ spec:
           kubectl get nodes -o wide
           echo ""
           
-          # Label playground node (from your config)
-          if kubectl get node playground > /dev/null 2>&1; then
-            echo "Found playground node - applying GPU labels..."
-            label_node playground
+          # Label yeezyai node (new dual GPU node)
+          if kubectl get node yeezyai > /dev/null 2>&1; then
+            echo "Found yeezyai node - applying GPU labels..."
+            label_node yeezyai
           else
-            echo "WARNING: playground node not found!"
+            echo "WARNING: yeezyai node not found!"
           fi
           
           # Remove GPU labels from non-GPU nodes
           for node in pgbee pgmac01 pgmac02 pglenovo01 pglenovo02 thinkpad01 zz-macbookpro; do
             if kubectl get node $node > /dev/null 2>&1; then
-              echo "Found $node - removing any GPU labels..."
+              echo "Found $node - ensuring no GPU labels..."
               remove_gpu_labels $node
             fi
           done

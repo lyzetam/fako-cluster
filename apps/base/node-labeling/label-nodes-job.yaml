@@ -31,19 +31,41 @@ spec:
             fi
           }
           
-          # Label playground as GPU node with ALL required labels
-          echo "Labeling playground node with complete GPU labels..."
+          # Remove labels from old playground node if it exists
+          echo "Removing labels from old playground node (if exists)..."
           if kubectl get node playground > /dev/null 2>&1; then
-            apply_label playground "hardware.tier=gpu"
-            apply_label playground "node-type=gpu-compute"
-            apply_label playground "voice-pipeline=enabled"
-            apply_label playground "nvidia.com/gpu=true"
-            apply_label playground "gpu.nvidia.present=true"
-            apply_label playground "node-role.kubernetes.io/gpu-worker=true"
-            apply_label playground "accelerator=nvidia-gpu"
-            apply_label playground "feature.node.kubernetes.io/pci-10de.present=true"
+            kubectl label nodes playground nvidia.com/gpu- --overwrite 2>/dev/null || true
+            kubectl label nodes playground hardware.tier- --overwrite 2>/dev/null || true
+            kubectl label nodes playground node-type- --overwrite 2>/dev/null || true
+            kubectl label nodes playground voice-pipeline- --overwrite 2>/dev/null || true
+            echo "✓ Cleaned up playground node"
+          fi
+          
+          # Label yeezyai as dual-GPU node with ALL required labels
+          echo "Labeling yeezyai node with complete GPU labels..."
+          if kubectl get node yeezyai > /dev/null 2>&1; then
+            # Essential GPU labels
+            apply_label yeezyai "nvidia.com/gpu=true"
+            apply_label yeezyai "node-role.kubernetes.io/gpu-worker=true"
+            
+            # Hardware tier and type
+            apply_label yeezyai "hardware.tier=dual-gpu"
+            apply_label yeezyai "node-type=gpu-compute"
+            
+            # GPU-specific labels
+            apply_label yeezyai "gpu.nvidia.present=true"
+            apply_label yeezyai "accelerator=nvidia-gpu"
+            apply_label yeezyai "feature.node.kubernetes.io/pci-10de.present=true"
+            
+            # Dual GPU specific labels
+            apply_label yeezyai "gpu.count=2"
+            apply_label yeezyai "gpu.rtx5070=true"
+            apply_label yeezyai "gpu.rtx3050=true"
+            
+            # Optional: Voice pipeline
+            # apply_label yeezyai "voice-pipeline=enabled"
           else
-            echo "ERROR: playground node not found!"
+            echo "ERROR: yeezyai node not found!"
           fi
           
           # Label high-performance nodes
@@ -69,11 +91,11 @@ spec:
           echo ""
           echo "=== Final Node Labels Summary ==="
           echo ""
-          echo "GPU Node (playground):"
-          kubectl get node playground --show-labels | grep -E "(nvidia|gpu|voice)" || echo "playground node not found"
+          echo "Dual-GPU Node (yeezyai):"
+          kubectl get node yeezyai --show-labels | grep -E "(nvidia|gpu|voice)" || echo "yeezyai node not found"
           echo ""
           echo "High-Performance Nodes:"
           kubectl get nodes -l hardware.tier=high-performance --show-labels | grep voice-pipeline || echo "No high-performance nodes labeled"
           echo ""
           echo "All Nodes:"
-          kubectl get nodes -L hardware.tier,voice-pipeline,nvidia.com/gpu
+          kubectl get nodes -L hardware.tier,voice-pipeline,nvidia.com/gpu,gpu.count
