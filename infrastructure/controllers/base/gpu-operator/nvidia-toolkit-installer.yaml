@@ -1,4 +1,4 @@
-# NVIDIA Container Toolkit Installer
+# Fixed NVIDIA Container Toolkit Installer
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,45 +9,85 @@ data:
     #!/bin/bash
     set -e
     
+    echo "Starting NVIDIA Container Toolkit Installer..."
+    echo "Date: $(date)"
+    echo "Hostname: $(hostname)"
+    
+    # Check if we're already installed
+    if [ -f /host/usr/bin/nvidia-container-toolkit ]; then
+        echo "NVIDIA Container Toolkit already installed on host"
+        echo "Keeping container alive for monitoring..."
+        sleep infinity
+        exit 0
+    fi
+    
     echo "Installing NVIDIA Container Toolkit..."
     
     # Update package list
-    apt-get update
+    apt-get update || {
+        echo "Failed to update package list"
+        exit 1
+    }
     
     # Install dependencies
-    apt-get install -y curl gnupg2 software-properties-common
+    apt-get install -y curl gnupg2 software-properties-common || {
+        echo "Failed to install dependencies"
+        exit 1
+    }
     
     # Add NVIDIA repository
     distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-    curl -s -L https://nvidia.github.io/libnvidia-container/gpgkey | apt-key add -
-    curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    echo "Detected distribution: $distribution"
     
+    # Add GPG key
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg || {
+        echo "Failed to add GPG key"
+        exit 1
+    }
     
-    # Install NVIDIA Container Toolkit dependencies
-    apt-get install -y containerd.io
-
-    #testing
-    systemctl enable --now containerd
-
+    # Add repository
+    curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | \
+      sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+      tee /etc/apt/sources.list.d/nvidia-container-toolkit.list || {
+        echo "Failed to add repository"
+        exit 1
+    }
+    
+    # Update package list again
+    apt-get update || {
+        echo "Failed to update package list after adding repo"
+        exit 1
+    }
+    
     # Install toolkit
-    apt-get update
-    apt-get install -y nvidia-container-toolkit nvidia-container-runtime
+    apt-get install -y nvidia-container-toolkit || {
+        echo "Failed to install nvidia-container-toolkit"
+        exit 1
+    }
     
-    # Configure containerd
-    nvidia-ctk runtime configure --runtime=containerd --config=/host/etc/containerd/config.toml
+    # Configure containerd if config exists
+    if [ -f /host/etc/containerd/config.toml ]; then
+        echo "Configuring containerd..."
+        nvidia-ctk runtime configure --runtime=containerd --config=/host/etc/containerd/config.toml || {
+            echo "Warning: Failed to configure containerd, but continuing..."
+        }
+    else
+        echo "Warning: containerd config not found at /host/etc/containerd/config.toml"
+    fi
     
     # Create symlinks for libraries
-    ldconfig
+    ldconfig || echo "Warning: ldconfig failed"
     
-    # Copy NVIDIA libraries to host
-    mkdir -p /host/usr/lib/x86_64-linux-gnu
-    cp -r /usr/lib/x86_64-linux-gnu/libnvidia* /host/usr/lib/x86_64-linux-gnu/ || true
+    # Copy NVIDIA binaries to host
+    echo "Copying NVIDIA toolkit to host..."
+    mkdir -p /host/usr/bin
+    cp -r /usr/bin/nvidia-* /host/usr/bin/ || echo "Warning: Some files failed to copy"
     
-    echo "NVIDIA Container Toolkit installed successfully"
+    echo "NVIDIA Container Toolkit installation completed!"
+    echo "Keeping container running..."
     
     # Keep container running
     sleep infinity
-   
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -80,6 +120,9 @@ spec:
           mountPath: /host
         - name: containerd-config
           mountPath: /host/etc/containerd
+        env:
+        - name: DEBIAN_FRONTEND
+          value: "noninteractive"
         resources:
           requests:
             cpu: 100m
