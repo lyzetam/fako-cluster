@@ -25,8 +25,8 @@ spec:
         operator: Exists
         effect: NoSchedule
       
-      # Use nvidia-experimental RuntimeClass that exists
-      runtimeClassName: nvidia-experimental
+      # Use nvidia RuntimeClass that exists
+      runtimeClassName: nvidia
       
       containers:
       - name: ollama
