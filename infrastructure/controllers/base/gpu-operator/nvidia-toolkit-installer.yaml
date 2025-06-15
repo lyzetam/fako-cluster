@@ -1,4 +1,4 @@
-# infrastructure/controllers/base/nvidia-toolkit-fixed/nvidia-toolkit-installer.yaml
+# infrastructure/controllers/base/nvidia-toolkit-fixed/nvidia-toolkit-k3s-installer.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -14,14 +14,14 @@ data:
     #!/bin/bash
     set -e
     
-    echo "Starting NVIDIA Container Toolkit Installation..."
+    echo "=== NVIDIA Container Toolkit Installation for K3s ==="
     echo "Date: $(date)"
     echo "Hostname: $(hostname)"
     
     # Check if already installed
-    if command -v nvidia-ctk >/dev/null 2>&1; then
-        echo "NVIDIA Container Toolkit already installed"
-        echo "Version: $(nvidia-ctk --version)"
+    if [ -f /host/usr/bin/nvidia-ctk ] && /host/usr/bin/nvidia-ctk --version >/dev/null 2>&1; then
+        echo "NVIDIA Container Toolkit already installed on host"
+        echo "Version: $(/host/usr/bin/nvidia-ctk --version)"
         echo "Keeping container alive..."
         sleep infinity
         exit 0
@@ -43,31 +43,69 @@ data:
         sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
         tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
     
-    # Update and install with specific version
+    # Update and install
     apt-get update
-    
-    NVIDIA_CONTAINER_TOOLKIT_VERSION=1.17.8-1
-    apt-get install -y \
-        nvidia-container-toolkit=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
-        nvidia-container-toolkit-base=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
-        libnvidia-container-tools=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
-        libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
-    
-    # Configure runtime
-    nvidia-ctk runtime configure --runtime=containerd --config=/host/etc/containerd/config.toml
+    apt-get install -y nvidia-container-toolkit
     
     # Copy binaries to host
+    echo "Copying NVIDIA toolkit binaries to host..."
     mkdir -p /host/usr/bin
-    cp -f /usr/bin/nvidia-ctk /host/usr/bin/ || true
-    cp -f /usr/bin/nvidia-container-* /host/usr/bin/ || true
+    cp -f /usr/bin/nvidia-ctk /host/usr/bin/
+    cp -f /usr/bin/nvidia-container-* /host/usr/bin/
     
-    echo "NVIDIA Container Toolkit installation completed!"
-    echo "Version: $(nvidia-ctk --version)"
+    # Copy libraries to host
+    mkdir -p /host/usr/lib/x86_64-linux-gnu
+    cp -rf /usr/lib/x86_64-linux-gnu/libnvidia-container* /host/usr/lib/x86_64-linux-gnu/ || true
     
-    # Signal to restart containerd on host
-    touch /host/tmp/restart-containerd
+    # Configure K3s containerd
+    echo "Configuring K3s containerd..."
     
-    echo "Keeping container alive..."
+    # K3s stores its containerd config in /var/lib/rancher/k3s/agent/etc/containerd/config.toml
+    K3S_CONFIG="/host/var/lib/rancher/k3s/agent/etc/containerd/config.toml"
+    K3S_CONFIG_TMPL="/host/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl"
+    
+    # Generate NVIDIA runtime configuration
+    cat > /tmp/nvidia-container-runtime.toml <<EOF
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
+      runtime_type = "io.containerd.runc.v2"
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
+        BinaryName = "/usr/bin/nvidia-container-runtime"
+    
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia-experimental]
+      runtime_type = "io.containerd.runc.v2"
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia-experimental.options]
+        BinaryName = "/usr/bin/nvidia-container-runtime-experimental"
+    EOF
+    
+    # Create nvidia-container-runtime wrapper
+    cat > /host/usr/bin/nvidia-container-runtime <<'EOF'
+    #!/bin/bash
+    /usr/bin/nvidia-container-runtime.experimental "$@"
+    EOF
+    chmod +x /host/usr/bin/nvidia-container-runtime
+    
+    # Copy the nvidia-container-runtime binaries
+    cp -f /usr/bin/nvidia-container-runtime* /host/usr/bin/
+    
+    echo ""
+    echo "=== Installation Complete ==="
+    echo "NVIDIA Container Toolkit has been installed."
+    echo ""
+    echo "IMPORTANT: Manual steps required on the host:"
+    echo "1. Add the following to /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl:"
+    echo ""
+    cat /tmp/nvidia-container-runtime.toml
+    echo ""
+    echo "2. Restart K3s:"
+    echo "   sudo systemctl restart k3s-agent"
+    echo ""
+    echo "3. Verify with:"
+    echo "   sudo k3s crictl info | grep -i nvidia"
+    
+    # Create a flag file
+    touch /host/tmp/nvidia-toolkit-installed
+    
+    echo "Keeping container alive for debugging..."
     sleep infinity
 ---
 apiVersion: apps/v1
@@ -99,6 +137,8 @@ spec:
           mountPath: /scripts
         - name: host-usr
           mountPath: /host/usr
+        - name: host-var
+          mountPath: /host/var
         - name: host-etc
           mountPath: /host/etc
         - name: host-tmp
@@ -121,6 +161,9 @@ spec:
       - name: host-usr
         hostPath:
           path: /usr
+      - name: host-var
+        hostPath:
+          path: /var
       - name: host-etc
         hostPath:
           path: /etc
