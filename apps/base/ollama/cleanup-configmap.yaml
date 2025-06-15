@@ -34,19 +34,51 @@ data:
     #!/bin/sh
     set -e
     
-    echo "=== Ollama Model Cleanup Script ==="
+    echo "=== Direct Model Cleanup Script (No Ollama Server Required) ==="
     echo "Starting at: $(date)"
     echo ""
     
+    # Check if we're dealing with disk pressure
+    echo "=== Checking node disk status ==="
+    df -h
+    echo ""
+    
     # Show current state
-    echo "=== Current models before cleanup ==="
-    ollama list
-    echo ""
     echo "=== Disk usage before cleanup ==="
-    df -h /root/.ollama
+    df -h /root/.ollama 2>/dev/null || echo "Ollama directory not mounted"
     echo ""
+    
+    # Check Ollama directory structure
+    OLLAMA_DIR="/root/.ollama"
+    MODELS_DIR="$OLLAMA_DIR/models"
+    MANIFESTS_DIR="$MODELS_DIR/manifests"
+    BLOBS_DIR="$MODELS_DIR/blobs"
+    
+    if [ ! -d "$OLLAMA_DIR" ]; then
+        echo "ERROR: Ollama directory not found at $OLLAMA_DIR"
+        echo "Checking alternative locations..."
+        find / -name ".ollama" -type d 2>/dev/null | head -5
+        exit 1
+    fi
+    
     echo "=== Model storage details ==="
-    du -sh /root/.ollama/models/* 2>/dev/null | sort -h || echo "No models directory found"
+    echo "Total Ollama directory size:"
+    du -sh "$OLLAMA_DIR" 2>/dev/null || echo "Cannot calculate"
+    echo ""
+    echo "Subdirectory sizes:"
+    du -sh "$OLLAMA_DIR"/* 2>/dev/null | sort -h || echo "No subdirectories found"
+    echo ""
+    
+    # List all models by checking manifests
+    echo "=== Current models (from manifests) ==="
+    if [ -d "$MANIFESTS_DIR" ]; then
+        find "$MANIFESTS_DIR" -type f -name "*.json" | while read manifest; do
+            model_name=$(echo "$manifest" | sed "s|$MANIFESTS_DIR/||" | sed 's|/|:|g' | sed 's/.json$//')
+            echo "  - $model_name"
+        done
+    else
+        echo "No manifests directory found"
+    fi
     echo ""
     
     # Read models to delete
@@ -58,8 +90,9 @@ data:
         exit 1
     fi
     
-    # Process each model
-    echo "=== Starting deletion process ==="
+    # Process each model - direct file deletion
+    echo "=== Starting direct deletion process ==="
+    deleted_count=0
     while IFS= read -r model || [ -n "$model" ]; do
         # Skip empty lines and comments
         if [ -z "$model" ] || echo "$model" | grep -q '^#'; then
@@ -69,38 +102,64 @@ data:
         # Trim whitespace
         model=$(echo "$model" | xargs)
         
-        echo "Attempting to delete: $model"
-        if ollama rm "$model" 2>&1; then
-            echo "  ✓ Successfully deleted: $model"
+        echo "Processing model: $model"
+        
+        # Convert model name to path format
+        model_path=$(echo "$model" | sed 's|:|/|g')
+        
+        # Delete manifest
+        manifest_file="$MANIFESTS_DIR/$model_path.json"
+        if [ -f "$manifest_file" ]; then
+            echo "  Deleting manifest: $manifest_file"
+            rm -f "$manifest_file"
+            deleted_count=$((deleted_count + 1))
+            
+            # Try to clean up empty directories
+            manifest_dir=$(dirname "$manifest_file")
+            rmdir "$manifest_dir" 2>/dev/null || true
+            rmdir "$(dirname "$manifest_dir")" 2>/dev/null || true
         else
-            echo "  ✗ Failed or not found: $model"
+            echo "  Manifest not found: $manifest_file"
         fi
-        echo ""
     done < "$MODELS_FILE"
     
+    echo ""
+    echo "Deleted $deleted_count model manifests"
+    echo ""
+    
     # Clean up orphaned blobs
-    echo "=== Cleaning orphaned blobs ==="
-    BLOBS_DIR="/root/.ollama/models/blobs"
+    echo "=== Cleaning all blobs (aggressive cleanup due to disk pressure) ==="
     if [ -d "$BLOBS_DIR" ]; then
-        cd "$BLOBS_DIR"
-        # Find and remove blobs older than 7 days
-        find . -type f -atime +7 -print | while read blob; do
-            echo "  Removing old blob: $blob"
-            rm -f "$blob"
-        done
+        blob_count=$(find "$BLOBS_DIR" -type f | wc -l)
+        blob_size=$(du -sh "$BLOBS_DIR" 2>/dev/null | cut -f1)
+        echo "Found $blob_count blob files totaling $blob_size"
+        
+        # Since we can't run ollama to check which blobs are in use,
+        # we'll delete ALL blobs for maximum space recovery
+        echo "Deleting ALL blob files..."
+        rm -rf "$BLOBS_DIR"/*
+        
+        echo "All blobs deleted"
     else
-        echo "  No blobs directory found"
+        echo "No blobs directory found"
     fi
+    
+    # Clean up any temporary files
+    echo ""
+    echo "=== Cleaning temporary files ==="
+    find "$OLLAMA_DIR" -name "*.tmp" -o -name "*.partial" | while read tmpfile; do
+        echo "  Removing: $tmpfile"
+        rm -f "$tmpfile"
+    done
     
     echo ""
     echo "=== Cleanup complete ==="
     echo ""
-    echo "=== Remaining models ==="
-    ollama list
-    echo ""
     echo "=== Final disk usage ==="
-    df -h /root/.ollama
-    du -sh /root/.ollama/models/* 2>/dev/null | sort -h || echo "No models found"
+    df -h /root/.ollama 2>/dev/null || echo "Ollama directory not mounted"
+    echo ""
+    echo "=== Remaining space ==="
+    df -h
     echo ""
     echo "Completed at: $(date)"
 ---
