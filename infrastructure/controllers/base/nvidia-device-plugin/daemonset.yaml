@@ -20,16 +20,6 @@ spec:
         operator: Exists
         effect: NoSchedule
       priorityClassName: "system-node-critical"
-      # Add node affinity to ensure it only runs on GPU nodes
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: nvidia.com/gpu
-                operator: In
-                values:
-                - "true"
       containers:
       - image: nvcr.io/nvidia/k8s-device-plugin:v0.14.5
         name: nvidia-device-plugin-ctr
@@ -47,12 +37,23 @@ spec:
           - name: NVIDIA_VISIBLE_DEVICES
             value: "all"
         securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop: ["ALL"]
+          privileged: true  # Changed to privileged to access GPU
         volumeMounts:
           - name: device-plugin
             mountPath: /var/lib/kubelet/device-plugins
+          # Mount NVIDIA driver files
+          - name: nvidia-driver
+            mountPath: /usr/local/nvidia
+            readOnly: true
+          - name: nvidia-lib
+            mountPath: /usr/lib/x86_64-linux-gnu
+            readOnly: true
+          - name: nvidia-bin
+            mountPath: /usr/bin
+            readOnly: true
+          # Mount devices
+          - name: dev
+            mountPath: /dev
         resources:
           requests:
             cpu: 50m
@@ -64,7 +65,18 @@ spec:
       - name: device-plugin
         hostPath:
           path: /var/lib/kubelet/device-plugins
-      # This is the critical part - only run on nodes with the GPU label
+      - name: nvidia-driver
+        hostPath:
+          path: /usr/local/nvidia
+      - name: nvidia-lib
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu
+      - name: nvidia-bin
+        hostPath:
+          path: /usr/bin
+      - name: dev
+        hostPath:
+          path: /dev
       nodeSelector:
         nvidia.com/gpu: "true"
-        kubernetes.io/hostname: yeezyai  # Specifically target yeezyai node
+        kubernetes.io/hostname: yeezyai
