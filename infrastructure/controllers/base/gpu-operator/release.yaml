@@ -1,4 +1,4 @@
-# infrastructure/controllers/base/gpu-operator/release.yaml
+# Update your release.yaml
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -28,23 +28,15 @@ spec:
     driver:
       enabled: false
       
-    # Container toolkit configuration
+    # Disable toolkit since it's having issues
     toolkit:
-      enabled: true
-      # version: v1.17.3
-      # repository: nvcr.io/nvidia
-      # image: container-toolkit
-      # tag: v1.17.3-ubi8
+      enabled: false
       
     # Device plugin configuration
     devicePlugin:
       enabled: true
-      # version: v0.17.2
-      # repository: nvcr.io/nvidia
-      # image: k8s-device-plugin
-      # tag: v0.17.2
       
-    # Disable optional components for now
+    # Disable other components for now
     nfd:
       enabled: false
     gfd:
@@ -55,28 +47,9 @@ spec:
       enabled: false
     migManager:
       enabled: false
-      
-    # Validator configuration
     validator:
-      repository: nvcr.io/nvidia/cloud-native
-      image: gpu-operator-validator
-      version: v24.9.1
-      plugin:
-        env:
-        - name: WITH_WORKLOAD
-          value: "false"
-          
+      enabled: false
+      
     # Operator configuration
     operator:
       defaultRuntime: containerd
-      repository: nvcr.io/nvidia
-      image: gpu-operator
-      tag: v24.9.1
-      
-    daemonsets:
-      updateStrategy: "RollingUpdate"  # Just the string value
-      priorityClassName: system-node-critical
-      tolerations:
-      - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
