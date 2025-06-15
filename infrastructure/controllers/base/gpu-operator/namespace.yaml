@@ -1,0 +1,7 @@
+# infrastructure/controllers/base/gpu-operator/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-operator
+
+
