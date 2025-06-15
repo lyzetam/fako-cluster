@@ -7,3 +7,4 @@ resources:
   - repository.yaml
   - release.yaml
   - nvidia-toolkit-installer.yaml
+  - runtimeclass.yaml
