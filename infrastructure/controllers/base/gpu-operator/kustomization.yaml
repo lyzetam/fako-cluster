@@ -1,10 +1,11 @@
 # infrastructure/controllers/base/gpu-operator/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: gpu-operator
+# Note: namespace field doesn't apply to cluster-scoped resources like RuntimeClass
 resources:
   - namespace.yaml
-  - repository.yaml
-  - release.yaml
-  - nvidia-toolkit-installer.yaml
   - runtimeclass.yaml
+  # Removed all the complex stuff:
+  # - repository.yaml (not needed)
+  # - release.yaml (not needed) 
+  # - nvidia-toolkit-installer.yaml (not needed)
