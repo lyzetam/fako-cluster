@@ -69,7 +69,7 @@ spec:
       hostPID: true
       containers:
       - name: installer
-        image: ubuntu:22.04
+        image: ubuntu:24.04
         command: ["/bin/bash", "/scripts/install.sh"]
         securityContext:
           privileged: true
