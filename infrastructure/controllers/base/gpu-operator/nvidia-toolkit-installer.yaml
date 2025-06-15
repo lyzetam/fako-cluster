@@ -2,13 +2,13 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: nvidia-toolkit
+  name: nvidia-toolkit-installer
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nvidia-toolkit-installer-script
-  namespace: nvidia-toolkit
+  namespace: nvidia-toolkit-installer
 data:
   install.sh: |
     #!/bin/bash
@@ -35,27 +35,23 @@ data:
     rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
     rm -f /etc/apt/sources.list.d/libnvidia-container.list
     
-    # Add GPG key
+    # Use the official NVIDIA installation method
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
         gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
     
-    # Detect distribution
-    . /etc/os-release
-    DIST="${ID}${VERSION_ID}"
-    ARCH=$(dpkg --print-architecture)
-    
-    # For Ubuntu 24.04, use ubuntu22.04 repository (they're compatible)
-    if [ "$DIST" = "ubuntu24.04" ]; then
-        DIST="ubuntu22.04"
-    fi
-    
-    # Create repository file
-    echo "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/${DIST}/${ARCH} /" | \
+    curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
         tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
     
-    # Update and install
+    # Update and install with specific version
     apt-get update
-    apt-get install -y nvidia-container-toolkit
+    
+    NVIDIA_CONTAINER_TOOLKIT_VERSION=1.17.8-1
+    apt-get install -y \
+        nvidia-container-toolkit=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+        nvidia-container-toolkit-base=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+        libnvidia-container-tools=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+        libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
     
     # Configure runtime
     nvidia-ctk runtime configure --runtime=containerd --config=/host/etc/containerd/config.toml
@@ -78,7 +74,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: nvidia-toolkit-installer
-  namespace: nvidia-toolkit
+  namespace: nvidia-toolkit-installer
 spec:
   selector:
     matchLabels:
