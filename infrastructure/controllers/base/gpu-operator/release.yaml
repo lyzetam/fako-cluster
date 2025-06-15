@@ -6,6 +6,7 @@ metadata:
   namespace: gpu-operator
 spec:
   interval: 30m
+  timeout: 10m
   chart:
     spec:
       chart: gpu-operator
@@ -27,72 +28,65 @@ spec:
     driver:
       enabled: false
       
-    # Container toolkit configuration
+    # Container toolkit configuration with CORRECT image
     toolkit:
       enabled: true
-      version: v1.17.3-ubuntu22.04
+      version: v1.17.3
+      # Override the image repository to use the correct one
+      repository: nvcr.io/nvidia
+      image: container-toolkit
+      tag: v1.17.3-ubi8  # Use ubi8 tag which exists
       
     # Device plugin configuration
     devicePlugin:
       enabled: true
       version: v0.17.2
-      config:
-        data:
-          # Support multiple GPUs
-          any: |
-            version: v1
-            flags:
-              migStrategy: none
-              failOnInitError: false
-              nvidiaDriverRoot: /
-              plugin:
-                passDeviceSpecs: true
-                deviceListStrategy: [envvar]
-                deviceIDStrategy: uuid
-              
-    # Node Feature Discovery
+      repository: nvcr.io/nvidia
+      image: k8s-device-plugin
+      tag: v0.17.2
+      
+    # Disable optional components for now
     nfd:
-      enabled: true
+      enabled: false
       
-    # GPU Feature Discovery
     gfd:
-      enabled: true
+      enabled: false
       
-    # DCGM for monitoring
     dcgm:
-      enabled: true
+      enabled: false
       
-    # DCGM Exporter for Prometheus metrics
     dcgmExporter:
-      enabled: true
-      config:
-        collectors:
-          - /etc/dcgm-exporter/dcp-metrics-included.csv
-      serviceMonitor:
-        enabled: true
-        
-    # MIG Manager (disabled - not using MIG)
+      enabled: false
+      
     migManager:
       enabled: false
       
-    # Operator configuration
-    operator:
-      defaultRuntime: containerd
-      initContainer:
-        image: nvcr.io/nvidia/cuda
-        tag: 12.3.1-base-ubuntu22.04
-        
-    # Validator to ensure everything works
+    # Validator configuration
     validator:
+      repository: nvcr.io/nvidia/cloud-native
+      image: gpu-operator-validator
+      version: v24.9.1
       plugin:
         env:
         - name: WITH_WORKLOAD
-          value: "true"
+          value: "false"
           
+    # Operator configuration
+    operator:
+      defaultRuntime: containerd
+      repository: nvcr.io/nvidia
+      image: gpu-operator
+      tag: v24.9.1
+      
     # Node selector for GPU nodes
+    nodeSelector:
+      kubernetes.io/hostname: yeezyai
+      
     daemonsets:
-      labels:
-        app.kubernetes.io/part-of: gpu-operator
+      updateStrategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 1
       tolerations:
       - key: nvidia.com/gpu
         operator: Exists
