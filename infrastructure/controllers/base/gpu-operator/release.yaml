@@ -1,4 +1,4 @@
-# Update your infrastructure/controllers/base/gpu-operator/release.yaml
+# infrastructure/controllers/base/gpu-operator/release.yaml
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -10,7 +10,7 @@ spec:
   chart:
     spec:
       chart: gpu-operator
-      version: "v25.3.1"  # Updated to latest version
+      version: "v25.3.1"  #
       sourceRef:
         kind: HelmRepository
         name: nvidia
@@ -24,22 +24,24 @@ spec:
     remediation:
       retries: 3
   values:
-    # Since drivers are already installed, disable driver container
+    # Since drivers are already installed on yeezyai, disable driver container
     driver:
       enabled: false
       
     # Container toolkit configuration
     toolkit:
       enabled: true
-      # Let the operator use default values for v25.3.1
+      version: v1.16.2
       
     # Device plugin configuration
     devicePlugin:
       enabled: true
+      config:
+        name: default-config
       
     # Optional components
     nfd:
-      enabled: true  # Node Feature Discovery
+      enabled: false  # Disable if you don't need node feature discovery
       
     gfd:
       enabled: true  # GPU Feature Discovery
@@ -55,15 +57,12 @@ spec:
       
     # Validator configuration
     validator:
-      enabled: true
+      enabled: false  # Disable validator for now
           
     # Operator configuration
     operator:
       defaultRuntime: containerd
       
-    # Remove nodeSelector to let operator deploy on all GPU nodes
-    # The operator will automatically detect GPU nodes
-    
     # Daemonsets configuration
     daemonsets:
       updateStrategy: "RollingUpdate"
