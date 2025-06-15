@@ -28,14 +28,13 @@ spec:
     driver:
       enabled: false
       
-    # Container toolkit configuration with CORRECT image
+    # Container toolkit configuration
     toolkit:
       enabled: true
       version: v1.17.3
-      # Override the image repository to use the correct one
       repository: nvcr.io/nvidia
       image: container-toolkit
-      tag: v1.17.3-ubi8  # Use ubi8 tag which exists
+      tag: v1.17.3-ubi8
       
     # Device plugin configuration
     devicePlugin:
@@ -45,19 +44,15 @@ spec:
       image: k8s-device-plugin
       tag: v0.17.2
       
-    # Optional components for now
+    # Disable optional components for now
     nfd:
       enabled: false
-      
     gfd:
       enabled: false
-      
     dcgm:
       enabled: false
-      
     dcgmExporter:
       enabled: false
-      
     migManager:
       enabled: false
       
@@ -78,17 +73,10 @@ spec:
       image: gpu-operator
       tag: v24.9.1
       
-    # Node selector for GPU nodes
-    nodeSelector:
-      kubernetes.io/hostname: yeezyai
-      
     daemonsets:
-      updateStrategy:
-        type: RollingUpdate
-        rollingUpdate:
-          maxUnavailable: 1
+      updateStrategy: "RollingUpdate"  # Just the string value
+      priorityClassName: system-node-critical
       tolerations:
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule
-      priorityClassName: system-node-critical
