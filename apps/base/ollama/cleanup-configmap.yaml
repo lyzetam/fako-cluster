@@ -1,0 +1,208 @@
+# apps/base/ollama/cleanup-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-cleanup-config
+  namespace: ollama
+data:
+  models-to-delete.txt: |
+    # Models to delete - one per line
+    # Lines starting with # are ignored
+    
+    # GEMMA 2 MODELS
+    gemma2:2b
+    gemma2:9b
+    
+    # SMALL EFFICIENT MODELS
+    llama3.2:3b
+    phi3:mini
+    
+    # MEDIUM MODELS (7-8B)
+    llama3.1:8b
+    mistral:7b-instruct-v0.3-q5_K_M
+    qwen2.5:7b-instruct-q5_K_M
+    
+    # LARGER MODELS (13B+)
+    llama2:13b-chat-q4_K_M
+    deepseek-r1:14b
+    
+    # HIGH-END MODELS
+    mixtral:8x7b-instruct-v0.1-q3_K_M
+    llama3.3:latest
+    
+  cleanup-script.sh: |
+    #!/bin/sh
+    set -e
+    
+    echo "=== Ollama Model Cleanup Script ==="
+    echo "Starting at: $(date)"
+    echo ""
+    
+    # Show current state
+    echo "=== Current models before cleanup ==="
+    ollama list
+    echo ""
+    echo "=== Disk usage before cleanup ==="
+    df -h /root/.ollama
+    echo ""
+    echo "=== Model storage details ==="
+    du -sh /root/.ollama/models/* 2>/dev/null | sort -h || echo "No models directory found"
+    echo ""
+    
+    # Read models to delete
+    echo "=== Reading models to delete from config ==="
+    MODELS_FILE="/config/models-to-delete.txt"
+    
+    if [ ! -f "$MODELS_FILE" ]; then
+        echo "ERROR: Models file not found at $MODELS_FILE"
+        exit 1
+    fi
+    
+    # Process each model
+    echo "=== Starting deletion process ==="
+    while IFS= read -r model || [ -n "$model" ]; do
+        # Skip empty lines and comments
+        if [ -z "$model" ] || echo "$model" | grep -q '^#'; then
+            continue
+        fi
+        
+        # Trim whitespace
+        model=$(echo "$model" | xargs)
+        
+        echo "Attempting to delete: $model"
+        if ollama rm "$model" 2>&1; then
+            echo "  ✓ Successfully deleted: $model"
+        else
+            echo "  ✗ Failed or not found: $model"
+        fi
+        echo ""
+    done < "$MODELS_FILE"
+    
+    # Clean up orphaned blobs
+    echo "=== Cleaning orphaned blobs ==="
+    BLOBS_DIR="/root/.ollama/models/blobs"
+    if [ -d "$BLOBS_DIR" ]; then
+        cd "$BLOBS_DIR"
+        # Find and remove blobs older than 7 days
+        find . -type f -atime +7 -print | while read blob; do
+            echo "  Removing old blob: $blob"
+            rm -f "$blob"
+        done
+    else
+        echo "  No blobs directory found"
+    fi
+    
+    echo ""
+    echo "=== Cleanup complete ==="
+    echo ""
+    echo "=== Remaining models ==="
+    ollama list
+    echo ""
+    echo "=== Final disk usage ==="
+    df -h /root/.ollama
+    du -sh /root/.ollama/models/* 2>/dev/null | sort -h || echo "No models found"
+    echo ""
+    echo "Completed at: $(date)"
+---
+# apps/base/ollama/cleanup-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-model-cleanup
+  namespace: ollama
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: yeezyai
+      tolerations:
+      - key: node.kubernetes.io/disk-pressure
+        operator: Exists
+        effect: NoSchedule
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: cleanup
+        image: ollama/ollama:latest
+        command: ["/bin/sh", "/config/cleanup-script.sh"]
+        env:
+        - name: OLLAMA_HOST
+          value: "0.0.0.0"
+        volumeMounts:
+        - name: ollama-models
+          mountPath: /root/.ollama
+        - name: cleanup-config
+          mountPath: /config
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      restartPolicy: Never
+      volumes:
+      - name: ollama-models
+        persistentVolumeClaim:
+          claimName: ollama-models
+      - name: cleanup-config
+        configMap:
+          name: ollama-cleanup-config
+          defaultMode: 0755  # Make script executable
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 300  # Auto-delete job after 5 minutes
+---
+# apps/base/ollama/cleanup-cronjob.yaml (Optional - for scheduled cleanup)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ollama-model-cleanup-cron
+  namespace: ollama
+spec:
+  schedule: "0 2 * * 0"  # Run at 2 AM every Sunday
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/hostname: yeezyai
+          tolerations:
+          - key: node.kubernetes.io/disk-pressure
+            operator: Exists
+            effect: NoSchedule
+          - key: nvidia.com/gpu
+            operator: Exists
+            effect: NoSchedule
+          containers:
+          - name: cleanup
+            image: ollama/ollama:latest
+            command: ["/bin/sh", "/config/cleanup-script.sh"]
+            env:
+            - name: OLLAMA_HOST
+              value: "0.0.0.0"
+            volumeMounts:
+            - name: ollama-models
+              mountPath: /root/.ollama
+            - name: cleanup-config
+              mountPath: /config
+              readOnly: true
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "500m"
+              limits:
+                memory: "1Gi"
+                cpu: "1000m"
+          restartPolicy: Never
+          volumes:
+          - name: ollama-models
+            persistentVolumeClaim:
+              claimName: ollama-models
+          - name: cleanup-config
+            configMap:
+              name: ollama-cleanup-config
+              defaultMode: 0755
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
