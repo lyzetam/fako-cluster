@@ -6,3 +6,8 @@ resources:
   - namespace.yaml
   - runtimeclass.yaml
   - daemonset.yaml
+  - nvidia-device-plugin-configmap.yaml
+  - release.yaml
+  - repository.yaml
+
+  
