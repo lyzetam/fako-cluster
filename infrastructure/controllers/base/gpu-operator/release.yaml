@@ -45,7 +45,7 @@ spec:
       image: k8s-device-plugin
       tag: v0.17.2
       
-    # Disable optional components for now
+    # Optional components for now
     nfd:
       enabled: false
       
