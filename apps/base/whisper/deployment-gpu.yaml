@@ -14,8 +14,8 @@ spec:
       labels:
         app: whisper-gpu
     spec:
-      # Use nvidia-experimental RuntimeClass that exists
-      runtimeClassName: nvidia-experimental
+      # Use nvidia RuntimeClass that exists
+      runtimeClassName: nvidia
       
       # Target the new yeezyai node with dual GPUs
       nodeSelector:
