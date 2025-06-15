@@ -59,9 +59,9 @@ data:
         exit 1
     }
     
-    # Install toolkit
-    apt-get install -y nvidia-container-toolkit || {
-        echo "Failed to install nvidia-container-toolkit"
+    # Install containerd and the NVIDIA container toolkit
+    apt-get install -y containerd.io nvidia-container-toolkit || {
+        echo "Failed to install containerd.io or nvidia-container-toolkit"
         exit 1
     }
     
@@ -71,6 +71,7 @@ data:
         nvidia-ctk runtime configure --runtime=containerd --config=/host/etc/containerd/config.toml || {
             echo "Warning: Failed to configure containerd, but continuing..."
         }
+        systemctl enable --now containerd || echo "Warning: failed to start containerd"
     else
         echo "Warning: containerd config not found at /host/etc/containerd/config.toml"
     fi
