@@ -9,7 +9,7 @@ spec:
   chart:
     spec:
       chart: gpu-operator
-      version: "v25.3.1"
+      version: "*"  # This will always use the latest version
       sourceRef:
         kind: HelmRepository
         name: nvidia
@@ -30,7 +30,7 @@ spec:
     # Container toolkit configuration
     toolkit:
       enabled: true
-      version: v1.16.2
+      # No version specified - will use the default for this operator version
     
     # Device plugin configuration
     devicePlugin:
