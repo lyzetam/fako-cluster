@@ -32,7 +32,8 @@ spec:
         - -c
         - |
           echo "Waiting for NVIDIA toolkit installation..."
-          while [ ! -f /host/tmp/nvidia-k3s-configured ]; do
+          # while [ ! -f /host/tmp/nvidia-k3s-configured ]; do
+          while [ ! -f /host/tmp/nvidia-toolkit-installed ]; do
             echo "Waiting for K3s to be configured with NVIDIA support..."
             sleep 10
           done
