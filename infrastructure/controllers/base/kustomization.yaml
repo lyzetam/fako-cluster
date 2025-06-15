@@ -3,7 +3,8 @@ kind: Kustomization
 resources:
   - renovate
   - nfs-storage
-  - nvidia-device-plugin
+  - gpu-operator
+  # - nvidia-device-plugin
   - k8s-backup
 
   
