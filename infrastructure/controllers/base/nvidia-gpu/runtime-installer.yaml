@@ -23,6 +23,10 @@ data:
       sleep infinity
     fi
     
+    # Count GPUs
+    GPU_COUNT=$(lspci | grep -i nvidia | grep -i vga | wc -l)
+    echo "Found $GPU_COUNT NVIDIA GPU(s)"
+    
     # Check if nvidia-smi works
     if nvidia-smi > /dev/null 2>&1; then
       echo "✓ NVIDIA drivers are installed"
@@ -58,13 +62,24 @@ data:
     systemctl restart containerd
     sleep 10
     
-    # Test the runtime
+    # Test the runtime with both GPUs
     echo "Testing NVIDIA runtime..."
     ctr image pull docker.io/nvidia/cuda:11.8.0-base-ubuntu22.04
-    if ctr run --rm --runtime io.containerd.runc.v2 --runc-binary nvidia-container-runtime nvidia-test docker.io/nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi; then
-      echo "✓ NVIDIA runtime test successful!"
+    
+    # Test GPU 0
+    echo "Testing GPU 0..."
+    if CUDA_VISIBLE_DEVICES=0 ctr run --rm --runtime io.containerd.runc.v2 --runc-binary nvidia-container-runtime nvidia-test-gpu0 docker.io/nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi; then
+      echo "✓ GPU 0 runtime test successful!"
     else
-      echo "✗ NVIDIA runtime test failed"
+      echo "✗ GPU 0 runtime test failed"
+    fi
+    
+    # Test GPU 1
+    echo "Testing GPU 1..."
+    if CUDA_VISIBLE_DEVICES=1 ctr run --rm --runtime io.containerd.runc.v2 --runc-binary nvidia-container-runtime nvidia-test-gpu1 docker.io/nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi; then
+      echo "✓ GPU 1 runtime test successful!"
+    else
+      echo "✗ GPU 1 runtime test failed"
     fi
     
     # Mark as complete
@@ -170,3 +185,179 @@ spec:
         hostPath:
           path: /
           type: Directory
+
+
+
+
+# # infrastructure/controllers/base/nvidia-gpu/runtime-installer.yaml
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: nvidia-runtime-installer-script
+#   namespace: nvidia-device-plugin
+#   labels:
+#     app.kubernetes.io/name: nvidia-runtime-installer
+#     app.kubernetes.io/part-of: nvidia-gpu-infrastructure
+# data:
+#   install-runtime.sh: |
+#     #!/bin/bash
+#     set -e
+    
+#     echo "NVIDIA Container Runtime Installer"
+#     echo "================================="
+#     echo "Node: $(hostname)"
+#     echo "Date: $(date)"
+    
+#     # Check if this is a GPU node
+#     if ! lspci | grep -i nvidia > /dev/null; then
+#       echo "No NVIDIA GPU detected on this node, sleeping..."
+#       sleep infinity
+#     fi
+    
+#     # Check if nvidia-smi works
+#     if nvidia-smi > /dev/null 2>&1; then
+#       echo "✓ NVIDIA drivers are installed"
+#       nvidia-smi
+#     else
+#       echo "✗ NVIDIA drivers not found or not working"
+#       echo "Please install NVIDIA drivers on this node"
+#       sleep infinity
+#     fi
+    
+#     # Install NVIDIA container toolkit if needed
+#     if ! command -v nvidia-container-cli > /dev/null 2>&1; then
+#       echo "Installing NVIDIA Container Toolkit..."
+      
+#       distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+#       curl -s -L https://nvidia.github.io/libnvidia-container/gpgkey | apt-key add -
+#       curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+      
+#       apt-get update
+#       apt-get install -y nvidia-container-toolkit nvidia-container-runtime
+#     fi
+    
+#     # Configure containerd
+#     echo "Configuring containerd..."
+    
+#     # Backup config
+#     cp /etc/containerd/config.toml /etc/containerd/config.toml.backup.$(date +%s) || true
+    
+#     # Use nvidia-ctk to configure
+#     nvidia-ctk runtime configure --runtime=containerd --config=/etc/containerd/config.toml
+    
+#     # Restart containerd
+#     systemctl restart containerd
+#     sleep 10
+    
+#     # Test the runtime
+#     echo "Testing NVIDIA runtime..."
+#     ctr image pull docker.io/nvidia/cuda:11.8.0-base-ubuntu22.04
+#     if ctr run --rm --runtime io.containerd.runc.v2 --runc-binary nvidia-container-runtime nvidia-test docker.io/nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi; then
+#       echo "✓ NVIDIA runtime test successful!"
+#     else
+#       echo "✗ NVIDIA runtime test failed"
+#     fi
+    
+#     # Mark as complete
+#     touch /host/etc/nvidia-runtime-configured
+    
+#     echo "Installation complete, monitoring for changes..."
+    
+#     # Keep running to monitor
+#     while true; do
+#       sleep 3600
+      
+#       # Check if config still has nvidia runtime
+#       if ! grep -q nvidia-container-runtime /etc/containerd/config.toml; then
+#         echo "WARNING: NVIDIA runtime configuration missing, reapplying..."
+#         nvidia-ctk runtime configure --runtime=containerd --config=/etc/containerd/config.toml
+#         systemctl restart containerd
+#       fi
+#     done
+# ---
+# apiVersion: apps/v1
+# kind: DaemonSet
+# metadata:
+#   name: nvidia-runtime-installer
+#   namespace: nvidia-device-plugin
+#   labels:
+#     app.kubernetes.io/name: nvidia-runtime-installer
+#     app.kubernetes.io/part-of: nvidia-gpu-infrastructure
+# spec:
+#   selector:
+#     matchLabels:
+#       app: nvidia-runtime-installer
+#   updateStrategy:
+#     type: RollingUpdate
+#     rollingUpdate:
+#       maxUnavailable: 1
+#   template:
+#     metadata:
+#       labels:
+#         app: nvidia-runtime-installer
+#     spec:
+#       # Only run on GPU nodes
+#       nodeSelector:
+#         nvidia.com/gpu: "true"
+      
+#       tolerations:
+#       - key: nvidia.com/gpu
+#         operator: Exists
+#         effect: NoSchedule
+#       - key: CriticalAddonsOnly
+#         operator: Exists
+        
+#       hostNetwork: true
+#       hostPID: true
+      
+#       containers:
+#       - name: installer
+#         image: ubuntu:24.04
+#         imagePullPolicy: IfNotPresent
+        
+#         securityContext:
+#           privileged: true
+          
+#         resources:
+#           requests:
+#             cpu: 100m
+#             memory: 128Mi
+#           limits:
+#             cpu: 200m
+#             memory: 256Mi
+            
+#         command:
+#         - /bin/bash
+#         - -c
+#         - |
+#           # Install required tools
+#           apt-get update
+#           apt-get install -y curl gnupg2 software-properties-common pciutils
+          
+#           # Copy and run the installer script
+#           cp /scripts/install-runtime.sh /tmp/
+#           chmod +x /tmp/install-runtime.sh
+#           exec /tmp/install-runtime.sh
+          
+#         volumeMounts:
+#         - name: scripts
+#           mountPath: /scripts
+#           readOnly: true
+#         - name: containerd-config
+#           mountPath: /etc/containerd
+#         - name: host-root
+#           mountPath: /host
+          
+#       volumes:
+#       - name: scripts
+#         configMap:
+#           name: nvidia-runtime-installer-script
+#           defaultMode: 0755
+#       - name: containerd-config
+#         hostPath:
+#           path: /etc/containerd
+#           type: DirectoryOrCreate
+#       - name: host-root
+#         hostPath:
+#           path: /
+#           type: Directory
