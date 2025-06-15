@@ -8,7 +8,7 @@ data:
   OLLAMA_HOST: "0.0.0.0"
   OLLAMA_ORIGINS: "*"
   # OLLAMA_MODELS: "/root/.ollama/models"
-  OLLAMA_MODELS: "/models"
+  OLLAMA_MODELS: "/root/.ollama/models" #"/models"
   # Performance optimizations for Ryzen 7 5825U
   OLLAMA_DEBUG: "false"
   OLLAMA_FLASH_ATTENTION: "true"  # Enable flash attention for faster inference
