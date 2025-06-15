@@ -1,0 +1,94 @@
+# NVIDIA Container Toolkit Installer
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nvidia-toolkit-installer-script
+  namespace: gpu-operator
+data:
+  install.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Installing NVIDIA Container Toolkit..."
+    
+    # Update package list
+    apt-get update
+    
+    # Install dependencies
+    apt-get install -y curl gnupg2 software-properties-common
+    
+    # Add NVIDIA repository
+    distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+    curl -s -L https://nvidia.github.io/libnvidia-container/gpgkey | apt-key add -
+    curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    
+    # Install toolkit
+    apt-get update
+    apt-get install -y nvidia-container-toolkit nvidia-container-runtime
+    
+    # Configure containerd
+    nvidia-ctk runtime configure --runtime=containerd --config=/host/etc/containerd/config.toml
+    
+    # Create symlinks for libraries
+    ldconfig
+    
+    # Copy NVIDIA libraries to host
+    mkdir -p /host/usr/lib/x86_64-linux-gnu
+    cp -r /usr/lib/x86_64-linux-gnu/libnvidia* /host/usr/lib/x86_64-linux-gnu/ || true
+    
+    echo "NVIDIA Container Toolkit installed successfully"
+    
+    # Keep container running
+    sleep infinity
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-toolkit-installer
+  namespace: gpu-operator
+spec:
+  selector:
+    matchLabels:
+      name: nvidia-toolkit-installer
+  template:
+    metadata:
+      labels:
+        name: nvidia-toolkit-installer
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: yeezyai
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: installer
+        image: ubuntu:22.04
+        command: ["/bin/bash", "/scripts/install.sh"]
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+        - name: host-root
+          mountPath: /host
+        - name: containerd-config
+          mountPath: /host/etc/containerd
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+      volumes:
+      - name: scripts
+        configMap:
+          name: nvidia-toolkit-installer-script
+          defaultMode: 0755
+      - name: host-root
+        hostPath:
+          path: /
+          type: Directory
+      - name: containerd-config
+        hostPath:
+          path: /etc/containerd
+          type: DirectoryOrCreate
