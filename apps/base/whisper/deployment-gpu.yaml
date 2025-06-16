@@ -1,4 +1,4 @@
-# apps/base/whisper/deployment-gpu-auto.yaml
+# apps/base/whisper/deployment-gpu.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -27,69 +27,55 @@ spec:
       
       containers:
       - name: whisper
-        image: rhasspy/wyoming-whisper:latest
+        image: ghcr.io/slackr31337/wyoming-whisper-gpu:latest
         ports:
         - containerPort: 10300
           protocol: TCP
-        args:
-        - "--model"
-        - "tiny"
-        - "--uri"
-        - "tcp://0.0.0.0:10300"
-        - "--data-dir"
-        - "/data"
-        - "--download-dir"
-        - "/data"
-        - "--language"
-        - "en"
-        - "--device"
-        - "cuda"
-        - "--compute-type"
-        - "float16"
+        env:
+        - name: MODEL
+          value: "base-int8"  # Good balance of speed and accuracy
+        - name: LANGUAGE
+          value: "en"
+        - name: COMPUTE_TYPE
+          value: "int8"  # Use int8 for better GPU efficiency
+        - name: BEAM_SIZE
+          value: "5"
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "gpu,utility,compute"
         
         volumeMounts:
         - mountPath: /data
           name: whisper-models
-        - mountPath: /usr/local/nvidia
-          name: nvidia-install
-          readOnly: true
-        
-        env:
-        # Let Kubernetes handle GPU assignment
-        - name: NVIDIA_DRIVER_CAPABILITIES
-          value: "compute,utility"
-        - name: LD_LIBRARY_PATH
-          value: "/usr/local/nvidia/lib64:/usr/local/nvidia/lib:/usr/lib/x86_64-linux-gnu:/usr/local/lib:$LD_LIBRARY_PATH"
         
         resources:
           requests:
             memory: "4Gi"
             cpu: "2000m"
-            nvidia.com/gpu: 1  # Request 1 GPU
+            nvidia.com/gpu: 1
           limits:
             memory: "8Gi"
             cpu: "4000m"
-            nvidia.com/gpu: 1  # Limit to 1 GPU
+            nvidia.com/gpu: 1
         
         livenessProbe:
           tcpSocket:
             port: 10300
           initialDelaySeconds: 90
           periodSeconds: 30
+          timeoutSeconds: 10
         readinessProbe:
           tcpSocket:
             port: 10300
           initialDelaySeconds: 45
           periodSeconds: 10
+          timeoutSeconds: 5
       
       volumes:
       - name: whisper-models
         persistentVolumeClaim:
           claimName: whisper-models
-      - name: nvidia-install
-        hostPath:
-          path: /usr/local/nvidia
-          type: DirectoryOrCreate
 
 # # apps/base/whisper/deployment-gpu-flexible.yaml
 # apiVersion: apps/v1
