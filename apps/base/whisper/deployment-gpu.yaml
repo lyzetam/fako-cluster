@@ -1,4 +1,4 @@
-# apps/base/whisper/deployment-gpu.yaml
+# apps/base/whisper/deployment-gpu-sidecar.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,10 +14,7 @@ spec:
       labels:
         app: whisper-gpu
     spec:
-      # Use nvidia RuntimeClass
-      runtimeClassName: nvidia
-      
-      # Target yeezyai node with GPUs
+      # Same GPU setup as Ollama
       nodeSelector:
         kubernetes.io/hostname: yeezyai
         nvidia.com/gpu: "true"
@@ -27,7 +24,53 @@ spec:
         operator: Exists
         effect: NoSchedule
       
+      runtimeClassName: nvidia
+      
+      initContainers:
+      # Setup CUDA libraries in shared volume
+      - name: cuda-setup
+        image: nvidia/cuda:12.2.0-cudnn8-runtime-ubuntu22.04
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "=== Setting up CUDA libraries ==="
+          
+          # Create directories
+          mkdir -p /shared/usr/lib/x86_64-linux-gnu
+          mkdir -p /shared/usr/local/cuda/lib64
+          
+          # Copy all CUDA and CUDNN libraries
+          cp -r /usr/lib/x86_64-linux-gnu/libcud* /shared/usr/lib/x86_64-linux-gnu/ || true
+          cp -r /usr/local/cuda/lib64/* /shared/usr/local/cuda/lib64/ || true
+          
+          # Create all possible symlinks for CUDNN
+          cd /shared/usr/lib/x86_64-linux-gnu
+          for file in libcudnn*.so.*; do
+            if [ -f "$file" ]; then
+              # Create symlinks for all versions
+              ln -sf "$file" libcudnn.so || true
+              ln -sf "$file" libcudnn.so.8 || true
+              ln -sf "$file" libcudnn.so.9 || true
+              ln -sf "$file" libcudnn_ops.so || true
+              ln -sf "$file" libcudnn_ops.so.9 || true
+              ln -sf "$file" libcudnn_ops.so.9.1 || true
+              ln -sf "$file" libcudnn_ops.so.9.1.0 || true
+            fi
+          done
+          
+          echo "=== Libraries prepared ==="
+          ls -la /shared/usr/lib/x86_64-linux-gnu/libcud*
+          
+        volumeMounts:
+        - name: shared-libs
+          mountPath: /shared
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+      
       containers:
+      # Main Wyoming Whisper container
       - name: whisper
         image: rhasspy/wyoming-whisper:latest
         ports:
@@ -35,7 +78,7 @@ spec:
           protocol: TCP
         args:
         - "--model"
-        - "base"  # Start with base model
+        - "tiny"  # Start with tiny model
         - "--uri"
         - "tcp://0.0.0.0:10300"
         - "--data-dir"
@@ -44,8 +87,6 @@ spec:
         - "/data"
         - "--language"
         - "en"
-        - "--beam-size"
-        - "1"  # Reduce beam size for testing
         - "--device"
         - "cuda"
         - "--compute-type"
@@ -54,35 +95,33 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: whisper-models
-        # Mount host CUDA libraries
-        - mountPath: /usr/local/cuda
-          name: cuda
-          readOnly: true
+        # Mount CUDA libraries from shared volume
         - mountPath: /usr/lib/x86_64-linux-gnu
-          name: cuda-libs
-          readOnly: true
+          name: shared-libs
+          subPath: usr/lib/x86_64-linux-gnu
+        - mountPath: /usr/local/cuda
+          name: shared-libs
+          subPath: usr/local/cuda
+        
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "1"  # Use RTX 3050 like you specified
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "1"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
+        - name: LD_LIBRARY_PATH
+          value: "/usr/local/cuda/lib64:/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
         
         resources:
           requests:
-            memory: "2Gi"
-            cpu: "1000m"
-            nvidia.com/gpu: 1
-          limits:
             memory: "4Gi"
             cpu: "2000m"
             nvidia.com/gpu: 1
-        
-        env:
-        - name: NVIDIA_DRIVER_CAPABILITIES
-          value: "compute,utility"
-        - name: NVIDIA_VISIBLE_DEVICES
-          value: "all"
-        - name: LD_LIBRARY_PATH
-          value: "/usr/local/cuda/lib64:/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
-        - name: CUDA_CACHE_DISABLE
-          value: "0"
-        - name: PYTORCH_CUDA_ALLOC_CONF
-          value: "max_split_size_mb:512"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+            nvidia.com/gpu: 1
         
         livenessProbe:
           tcpSocket:
@@ -97,28 +136,29 @@ spec:
           initialDelaySeconds: 60
           periodSeconds: 10
           timeoutSeconds: 5
-        startupProbe:
-          tcpSocket:
-            port: 10300
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          failureThreshold: 30
+      
+      # CUDA library provider sidecar (keeps libraries available)
+      - name: cuda-provider
+        image: nvidia/cuda:12.2.0-cudnn8-runtime-ubuntu22.04
+        command: ["/bin/sh", "-c", "sleep infinity"]
+        volumeMounts:
+        - name: shared-libs
+          mountPath: /shared
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
       
       volumes:
       - name: whisper-models
         persistentVolumeClaim:
           claimName: whisper-models
-      # Mount CUDA libraries from host
-      - name: cuda
-        hostPath:
-          path: /usr/local/cuda
-          type: Directory
-      - name: cuda-libs
-        hostPath:
-          path: /usr/lib/x86_64-linux-gnu
-          type: Directory
-
-
+      - name: shared-libs
+        emptyDir: 
+          sizeLimit: 2Gi
 
 # # apps/base/whisper/deployment-gpu-flexible.yaml
 # apiVersion: apps/v1
