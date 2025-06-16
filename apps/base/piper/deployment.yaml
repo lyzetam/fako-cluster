@@ -14,15 +14,73 @@ spec:
       labels:
         app: piper
     spec:
+      initContainers:
+        # Download voice models before starting Piper
+        - name: download-voices
+          image: rhasspy/wyoming-piper:latest
+          command: ["/bin/bash"]
+          args:
+            - -c
+            - |
+              echo "=== Downloading Piper Voice Models ==="
+              
+              # Create voices directory
+              mkdir -p /data/voices
+              cd /data
+              
+              # Download multiple voice options
+              VOICES=(
+                "en_US-amy-low"
+                "en_US-lessac-medium"
+                "en_US-ryan-high"
+                "en_GB-alan-low"
+              )
+              
+              for voice in "${VOICES[@]}"; do
+                echo "Downloading $voice..."
+                python3 -m wyoming_piper.download \
+                  --model "$voice" \
+                  --download-dir /data \
+                  --data-dir /data \
+                  || echo "Failed to download $voice"
+              done
+              
+              echo ""
+              echo "Available voices:"
+              find /data -name "*.onnx" -type f | sort
+              
+              echo ""
+              echo "Voice download complete!"
+          volumeMounts:
+            - mountPath: /data
+              name: piper-data
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+      
       containers:
         - name: piper
           image: rhasspy/wyoming-piper:latest
-          args:
-            - --voice
-            - en_US-lessac-medium
           ports:
             - containerPort: 10200
               protocol: TCP
+          args:
+            - "--voice"
+            - "en_US-amy-low"  # Fast, good quality voice
+            - "--uri"
+            - "tcp://0.0.0.0:10200"
+            - "--data-dir"
+            - "/data"
+            - "--download-dir"
+            - "/data"
+            - "--max-piper-procs"
+            - "2"
+            - "--update-voices"  # Auto-download if missing
+            - "--debug"
           volumeMounts:
             - mountPath: /data
               name: piper-data
@@ -36,14 +94,73 @@ spec:
           livenessProbe:
             tcpSocket:
               port: 10200
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 30
+            timeoutSeconds: 10
           readinessProbe:
+            tcpSocket:
+              port: 10200
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          startupProbe:
             tcpSocket:
               port: 10200
             initialDelaySeconds: 10
             periodSeconds: 10
+            failureThreshold: 30
       volumes:
         - name: piper-data
           persistentVolumeClaim:
             claimName: piper-data
+
+
+# # apps/base/piper/deployment.yaml
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: piper
+#   namespace: piper
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: piper
+#   template:
+#     metadata:
+#       labels:
+#         app: piper
+#     spec:
+#       containers:
+#         - name: piper
+#           image: rhasspy/wyoming-piper:latest
+#           args:
+#             - --voice
+#             - en_US-lessac-medium
+#           ports:
+#             - containerPort: 10200
+#               protocol: TCP
+#           volumeMounts:
+#             - mountPath: /data
+#               name: piper-data
+#           resources:
+#             requests:
+#               memory: "2Gi"
+#               cpu: "1000m"
+#             limits:
+#               memory: "4Gi"
+#               cpu: "2000m"
+#           livenessProbe:
+#             tcpSocket:
+#               port: 10200
+#             initialDelaySeconds: 30
+#             periodSeconds: 30
+#           readinessProbe:
+#             tcpSocket:
+#               port: 10200
+#             initialDelaySeconds: 10
+#             periodSeconds: 10
+#       volumes:
+#         - name: piper-data
+#           persistentVolumeClaim:
+#             claimName: piper-data
