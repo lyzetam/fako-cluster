@@ -15,54 +15,34 @@ spec:
         app: piper
     spec:
       initContainers:
-        # Download voice models before starting Piper
-        - name: download-voices
-          image: rhasspy/wyoming-piper:latest
-          command: ["/bin/bash"]
+        # Quick check for essential voices only
+        - name: voice-check
+          image: busybox:latest
+          command: ["/bin/sh"]
           args:
             - -c
             - |
-              echo "=== Downloading Piper Voice Models ==="
+              echo "Checking for essential voice models..."
               
-              # Create voices directory
-              mkdir -p /data/voices
-              cd /data
-              
-              # Download multiple voice options
-              VOICES=(
-                "en_US-amy-low"
-                "en_US-lessac-medium"
-                "en_US-ryan-high"
-                "en_GB-alan-low"
-              )
-              
-              for voice in "${VOICES[@]}"; do
-                echo "Downloading $voice..."
-                python3 -m wyoming_piper.download \
-                  --model "$voice" \
-                  --download-dir /data \
-                  --data-dir /data \
-                  || echo "Failed to download $voice"
-              done
-              
-              echo ""
-              echo "Available voices:"
-              find /data -name "*.onnx" -type f | sort
-              
-              echo ""
-              echo "Voice download complete!"
+              # Just check if we have at least one voice
+              if [ -f /data/en_US-amy-low.onnx ] || [ -f /data/en_US-lessac-medium.onnx ]; then
+                echo "✓ Found at least one voice model, proceeding..."
+                exit 0
+              else
+                echo "⚠ No voice models found, but continuing anyway..."
+                echo "Voice manager sidecar will download them."
+                exit 0  # Don't block startup
+              fi
           volumeMounts:
             - mountPath: /data
               name: piper-data
           resources:
             requests:
-              memory: "1Gi"
-              cpu: "500m"
-            limits:
-              memory: "2Gi"
-              cpu: "1000m"
+              cpu: 50m
+              memory: 64Mi
       
       containers:
+        # Main Piper container
         - name: piper
           image: rhasspy/wyoming-piper:latest
           ports:
@@ -70,7 +50,7 @@ spec:
               protocol: TCP
           args:
             - "--voice"
-            - "en_US-amy-low"  # Fast, good quality voice
+            - "en_US-amy-low"
             - "--uri"
             - "tcp://0.0.0.0:10200"
             - "--data-dir"
@@ -79,7 +59,7 @@ spec:
             - "/data"
             - "--max-piper-procs"
             - "2"
-            - "--update-voices"  # Auto-download if missing
+            - "--update-voices"  # Auto-download if needed
             - "--debug"
           volumeMounts:
             - mountPath: /data
@@ -96,19 +76,102 @@ spec:
               port: 10200
             initialDelaySeconds: 60
             periodSeconds: 30
-            timeoutSeconds: 10
           readinessProbe:
             tcpSocket:
               port: 10200
             initialDelaySeconds: 30
             periodSeconds: 10
-            timeoutSeconds: 5
-          startupProbe:
-            tcpSocket:
-              port: 10200
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            failureThreshold: 30
+        
+        # Voice manager sidecar
+        - name: voice-manager
+          image: ubuntu:24.04
+          command: ["/bin/bash"]
+          args:
+            - -c
+            - |
+              echo "Voice Manager Sidecar Starting..."
+              
+              # Install wget
+              apt-get update -qq && apt-get install -y wget > /dev/null 2>&1
+              
+              cd /data
+              
+              # GitHub releases URL
+              BASE_URL="https://github.com/rhasspy/piper/releases/download/2023.11.14-2"
+              
+              # Voice models to maintain
+              VOICES=(
+                "en_US-amy-low"
+                "en_US-lessac-medium"
+                "en_US-ryan-high"
+                "en_GB-alan-low"
+                "en_US-kusal-medium"
+                "en_US-ljspeech-high"
+              )
+              
+              # Download function with retry
+              download_voice() {
+                local voice=$1
+                local retries=3
+                
+                for i in $(seq 1 $retries); do
+                  if [ ! -f "${voice}.onnx" ]; then
+                    echo "Downloading ${voice} (attempt $i/$retries)..."
+                    if wget -q --show-progress "${BASE_URL}/${voice}.onnx" && \
+                       wget -q --show-progress "${BASE_URL}/${voice}.onnx.json"; then
+                      echo "✓ Successfully downloaded ${voice}"
+                      return 0
+                    else
+                      echo "✗ Failed attempt $i for ${voice}"
+                      sleep $((i * 10))  # Exponential backoff
+                    fi
+                  else
+                    return 0  # Already exists
+                  fi
+                done
+                return 1
+              }
+              
+              # Initial download pass
+              echo "=== Initial Voice Download ==="
+              for voice in "${VOICES[@]}"; do
+                download_voice "$voice" || echo "Failed to download $voice after retries"
+              done
+              
+              echo ""
+              echo "=== Available Voices ==="
+              ls -la *.onnx 2>/dev/null || echo "No voices found"
+              
+              # Monitor and maintain voices
+              while true; do
+                sleep 3600  # Check hourly
+                
+                echo ""
+                echo "=== Voice Manager Health Check $(date) ==="
+                
+                # Check if essential voices still exist
+                if [ ! -f "en_US-amy-low.onnx" ]; then
+                  echo "⚠ Essential voice missing! Re-downloading..."
+                  download_voice "en_US-amy-low"
+                fi
+                
+                # Cleanup old/corrupted files
+                find . -name "*.onnx" -size -1M -delete 2>/dev/null
+                find . -name "*.onnx.json" -size -100c -delete 2>/dev/null
+                
+                echo "Voice manager heartbeat..."
+              done
+          volumeMounts:
+            - mountPath: /data
+              name: piper-data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "200m"
+      
       volumes:
         - name: piper-data
           persistentVolumeClaim:
