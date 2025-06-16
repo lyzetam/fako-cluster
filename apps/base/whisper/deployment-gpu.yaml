@@ -43,7 +43,7 @@ spec:
         - name: NVIDIA_VISIBLE_DEVICES
           value: "all"
         - name: NVIDIA_DRIVER_CAPABILITIES
-          value: "gpu,utility,compute"
+          value: "utility,compute"
         
         volumeMounts:
         - mountPath: /data
