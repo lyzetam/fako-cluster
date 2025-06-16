@@ -29,7 +29,7 @@ spec:
       initContainers:
       # Setup CUDA libraries in shared volume
       - name: cuda-setup
-        image: nvidia/cuda:12.2.0-cudnn8-runtime-ubuntu22.04
+        image: nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
         command:
         - /bin/bash
         - -c
@@ -139,7 +139,7 @@ spec:
       
       # CUDA library provider sidecar (keeps libraries available)
       - name: cuda-provider
-        image: nvidia/cuda:12.2.0-cudnn8-runtime-ubuntu22.04
+        image: nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
         command: ["/bin/sh", "-c", "sleep infinity"]
         volumeMounts:
         - name: shared-libs
