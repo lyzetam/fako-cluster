@@ -4,6 +4,6 @@ namespace: loki-stack
 resources:
   - namespace.yaml
   - repository.yaml
-  - loki-config.yaml
+  # - loki-config.yaml
   - loki-release.yaml
   - promtail-release.yaml
