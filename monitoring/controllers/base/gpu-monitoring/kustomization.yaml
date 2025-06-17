@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - rbac.yaml
+  - nvidia-gpu-exporter.yaml
   - dcgm-exporter.yaml
   - servicemonitor.yaml
   - grafana-dashboard-configmap.yaml
