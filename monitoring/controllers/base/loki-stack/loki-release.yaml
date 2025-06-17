@@ -27,6 +27,7 @@ spec:
     deploymentMode: SingleBinary
     
     loki:
+      # Basic auth disabled
       auth_enabled: false
       
       # Server configuration
@@ -35,7 +36,7 @@ spec:
         grpc_listen_port: 9095
         log_level: info
       
-      # Common configuration
+      # Common configuration - simplified
       commonConfig:
         replication_factor: 1
         path_prefix: /var/loki
@@ -44,14 +45,7 @@ spec:
             chunks_directory: /var/loki/chunks
             rules_directory: /var/loki/rules
       
-      # Storage configuration
-      storage:
-        type: filesystem
-        filesystem:
-          chunks_directory: /var/loki/chunks
-          rules_directory: /var/loki/rules
-      
-      # Schema configuration - use v13 consistently
+      # Schema configuration
       schemaConfig:
         configs:
           - from: "2024-01-01"
@@ -62,22 +56,13 @@ spec:
               prefix: loki_index_
               period: 24h
       
-      # Storage configuration for filesystem
-      storage_config:
-        filesystem:
-          directory: /var/loki/chunks
-        tsdb_shipper:
-          active_index_directory: /var/loki/tsdb-index
-          cache_location: /var/loki/tsdb-cache
-          shared_store: filesystem
-      
-      # Limits configuration
+      # Limits configuration - all limits fields go here
       limits_config:
         enforce_metric_name: false
         reject_old_samples: true
         reject_old_samples_max_age: 168h
         max_entries_limit_per_query: 5000
-        retention_period: 744h  # 31 days
+        retention_period: 744h
         ingestion_rate_mb: 10
         ingestion_burst_size_mb: 20
         max_streams_per_user: 10000
@@ -92,7 +77,6 @@ spec:
         retention_enabled: true
         retention_delete_delay: 2h
         retention_delete_worker_count: 150
-        delete_request_store: filesystem
     
     # Single Binary specific configuration
     singleBinary:
@@ -103,28 +87,15 @@ spec:
         enabled: true
         storageClass: nfs-csi-v2
         size: 100Gi
-        accessModes:
-          - ReadWriteOnce
       
-      # Resources - increased for better performance
+      # Resources
       resources:
         requests:
-          cpu: 500m      # Increased from 100m
-          memory: 1Gi    # Increased from 256Mi
+          cpu: 250m
+          memory: 512Mi
         limits:
-          cpu: 2000m
-          memory: 4Gi    # Increased from 2Gi
-      
-      # REMOVED extraVolumeMounts - let Helm handle this automatically
-      
-      # Node selector if needed
-      nodeSelector: {}
-      
-      # Tolerations
-      tolerations: []
-      
-      # Affinity rules
-      affinity: {}
+          cpu: 1000m
+          memory: 2Gi
     
     # Monitoring configuration
     monitoring:
@@ -141,7 +112,7 @@ spec:
         labels:
           prometheus: kube-prometheus
       selfMonitoring:
-        enabled: false  # Disable to reduce complexity
+        enabled: false
     
     # Test configuration
     test:
@@ -151,8 +122,6 @@ spec:
     gateway:
       enabled: true
       replicas: 1
-      
-      # Gateway resources
       resources:
         requests:
           cpu: 100m
@@ -160,8 +129,6 @@ spec:
         limits:
           cpu: 500m
           memory: 512Mi
-      
-      # Ingress configuration
       ingress:
         enabled: true
         ingressClassName: traefik
@@ -170,27 +137,24 @@ spec:
             paths:
               - path: /
                 pathType: Prefix
-        tls: []  # Add TLS configuration if needed
     
-    # Backend configuration (for SingleBinary mode)
+    # Disable microservices mode components
     backend:
-      replicas: 0  # Disabled in single binary mode
+      replicas: 0
     
     read:
-      replicas: 0  # Disabled in single binary mode
+      replicas: 0
     
     write:
-      replicas: 0  # Disabled in single binary mode
-    
-    # Table manager is deprecated in newer versions
-    tableManager:
-      enabled: false
+      replicas: 0
     
     # Service account
     serviceAccount:
       create: true
       name: loki
       automountServiceAccountToken: true
+
+
 
 
 # apiVersion: helm.toolkit.fluxcd.io/v2
