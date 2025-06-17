@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-promtail-config
+  namespace: ollama
+data:
+  promtail-config.yaml: |
+    - job_name: ollama
+      kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+              - ollama
+      pipeline_stages:
+        - match:
+            selector: '{app="ollama-gpu"}'
+            stages:
+              - regex:
+                  expression: 'time="(?P<timestamp>[^"]+)" level=(?P<level>\w+) msg="(?P<message>[^"]+)"'
+              - timestamp:
+                  source: timestamp
+                  format: '2006-01-02T15:04:05Z07:00'
+              - labels:
+                  level:
+              - metrics:
+                  log_lines_total:
+                    type: Counter
+                    description: "Total number of log lines"
+                    source: level
+                    config:
+                      action: inc
