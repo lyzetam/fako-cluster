@@ -102,20 +102,3 @@ spec:
           type: File
 
 ---
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: nvidia-gpu-exporter
-  namespace: gpu-monitoring
-  labels:
-    app: nvidia-gpu-exporter
-    prometheus: kube-prometheus
-spec:
-  selector:
-    matchLabels:
-      app: nvidia-gpu-exporter
-  endpoints:
-  - port: metrics
-    interval: 30s
-    honorLabels: true
-    path: /metrics
