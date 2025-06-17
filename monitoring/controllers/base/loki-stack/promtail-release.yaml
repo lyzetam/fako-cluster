@@ -1,0 +1,182 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: promtail
+  namespace: loki-stack
+spec:
+  interval: 30m
+  dependsOn:
+    - name: loki
+      namespace: loki-stack
+  chart:
+    spec:
+      chart: promtail
+      version: "^6.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: loki-stack
+  values:
+    config:
+      clients:
+        - url: http://loki-gateway.loki-stack.svc.cluster.local/loki/api/v1/push
+          tenant_id: 1
+      
+      snippets:
+        pipelineStages:
+          - cri: {}
+          - labeldrop:
+              - filename
+              - stream
+        
+        # Add extra scrape configs for specific apps
+        extraScrapeConfigs: |
+          # Kubernetes pods
+          - job_name: kubernetes-pods
+            pipeline_stages:
+              - cri: {}
+              - labeldrop:
+                  - filename
+                  - stream
+              - match:
+                  selector: '{app="nginx"}'
+                  stages:
+                    - regex:
+                        expression: '(?P<ip>\d+\.\d+\.\d+\.\d+) - (?P<user>[^ ]*) \[(?P<timestamp>[^\]]*)\] "(?P<method>[^ ]*) (?P<path>[^ ]*) (?P<protocol>[^ ]*)" (?P<status>\d+) (?P<size>\d+)'
+                    - labels:
+                        method:
+                        status:
+                        path:
+            kubernetes_sd_configs:
+              - role: pod
+            relabel_configs:
+              - source_labels:
+                  - __meta_kubernetes_pod_controller_name
+                regex: ([0-9a-z-.]+?)(-[0-9a-f]{8,10})?
+                action: replace
+                target_label: __tmp_controller_name
+              - source_labels:
+                  - __meta_kubernetes_pod_label_app_kubernetes_io_name
+                  - __meta_kubernetes_pod_label_app
+                  - __tmp_controller_name
+                  - __meta_kubernetes_pod_name
+                regex: ^;*([^;]+)(;.*)?$
+                action: replace
+                target_label: app
+              - source_labels:
+                  - __meta_kubernetes_pod_label_app_kubernetes_io_instance
+                  - __meta_kubernetes_pod_label_instance
+                regex: ^;*([^;]+)(;.*)?$
+                action: replace
+                target_label: instance
+              - source_labels:
+                  - __meta_kubernetes_namespace
+                action: replace
+                target_label: namespace
+              - source_labels:
+                  - __meta_kubernetes_pod_name
+                action: replace
+                target_label: pod
+              - source_labels:
+                  - __meta_kubernetes_pod_container_name
+                action: replace
+                target_label: container
+              - replacement: /var/log/pods/*$1/*.log
+                separator: /
+                source_labels:
+                  - __meta_kubernetes_pod_uid
+                  - __meta_kubernetes_pod_container_name
+                target_label: __path__
+              - action: replace
+                source_labels:
+                  - __meta_kubernetes_pod_node_name
+                target_label: node_name
+              - action: labelmap
+                regex: __meta_kubernetes_pod_label_(.+)
+              - action: replace
+                replacement: $1
+                separator: /
+                source_labels:
+                  - namespace
+                  - app
+                target_label: job
+              - action: replace
+                source_labels:
+                  - __meta_kubernetes_pod_host_ip
+                target_label: node_ip
+          
+          # System logs
+          - job_name: syslog
+            static_configs:
+              - targets:
+                  - localhost
+                labels:
+                  job: syslog
+                  __path__: /var/log/syslog
+          
+          # Journal logs
+          - job_name: journal
+            journal:
+              max_age: 12h
+              labels:
+                job: systemd-journal
+            relabel_configs:
+              - source_labels: ['__journal__systemd_unit']
+                target_label: 'unit'
+              - source_labels: ['__journal__hostname']
+                target_label: 'hostname'
+    
+    serviceMonitor:
+      enabled: true
+    
+    # Mount host paths for log collection
+    extraVolumes:
+      - name: pods
+        hostPath:
+          path: /var/log/pods
+      - name: docker
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: varlog
+        hostPath:
+          path: /var/log
+    
+    extraVolumeMounts:
+      - name: pods
+        mountPath: /var/log/pods
+        readOnly: true
+      - name: docker
+        mountPath: /var/lib/docker/containers
+        readOnly: true
+      - name: varlog
+        mountPath: /var/log
+        readOnly: true
+    
+    # Run as privileged to access host logs
+    containerSecurityContext:
+      privileged: true
+      runAsUser: 0
+    
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    
+    # Deploy to all nodes
+    tolerations:
+      - effect: NoSchedule
+        operator: Exists
+    
+    # Affinity to spread across nodes
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: promtail
+              topologyKey: kubernetes.io/hostname
