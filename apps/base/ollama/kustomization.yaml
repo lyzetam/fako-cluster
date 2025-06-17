@@ -9,3 +9,4 @@ resources:
   - service-gpu.yaml
   - ingress.yaml
   - nodeport-service.yaml
+  - promtail-config.yaml
