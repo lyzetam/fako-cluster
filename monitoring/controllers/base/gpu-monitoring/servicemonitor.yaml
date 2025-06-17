@@ -1,25 +1,44 @@
-# monitoring/controllers/base/gpu-monitoring/servicemonitor.yaml
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: dcgm-exporter
+  name: nvidia-gpu-exporter
   namespace: gpu-monitoring
   labels:
-    app: dcgm-exporter
+    app: nvidia-gpu-exporter
     prometheus: kube-prometheus
 spec:
   selector:
     matchLabels:
-      app: dcgm-exporter
+      app: nvidia-gpu-exporter
   endpoints:
   - port: metrics
     interval: 30s
     honorLabels: true
     path: /metrics
-    relabelings:
-    - sourceLabels: [__meta_kubernetes_pod_node_name]
-      targetLabel: node
-    - sourceLabels: [__meta_kubernetes_pod_name]
-      targetLabel: pod
-    - sourceLabels: [__meta_kubernetes_namespace]
-      targetLabel: namespace
+
+
+# # monitoring/controllers/base/gpu-monitoring/servicemonitor.yaml
+# apiVersion: monitoring.coreos.com/v1
+# kind: ServiceMonitor
+# metadata:
+#   name: dcgm-exporter
+#   namespace: gpu-monitoring
+#   labels:
+#     app: dcgm-exporter
+#     prometheus: kube-prometheus
+# spec:
+#   selector:
+#     matchLabels:
+#       app: dcgm-exporter
+#   endpoints:
+#   - port: metrics
+#     interval: 30s
+#     honorLabels: true
+#     path: /metrics
+#     relabelings:
+#     - sourceLabels: [__meta_kubernetes_pod_node_name]
+#       targetLabel: node
+#     - sourceLabels: [__meta_kubernetes_pod_name]
+#       targetLabel: pod
+#     - sourceLabels: [__meta_kubernetes_namespace]
+#       targetLabel: namespace
