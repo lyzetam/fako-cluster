@@ -48,6 +48,12 @@ spec:
       - name: dcgm-exporter
         image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.5-3.4.0-ubuntu22.04
         imagePullPolicy: IfNotPresent
+        args:
+        - "--address=:9400"
+        - "--collectors=/etc/dcgm-exporter/default-counters.csv"
+        - "--collect-interval=30000"  # 30 seconds in milliseconds
+        - "--kubernetes"
+        - "--kubernetes-gpu-id-type=device-name"
         ports:
         - name: metrics
           containerPort: 9400
@@ -58,8 +64,7 @@ spec:
           value: "true"
         - name: DCGM_EXPORTER_LISTEN
           value: ":9400"
-        - name: DCGM_EXPORTER_INTERVAL
-          value: "30s"
+        # Remove DCGM_EXPORTER_INTERVAL as we're using --collect-interval arg
         volumeMounts:
         - name: dcgm-exporter-config
           mountPath: /etc/dcgm-exporter
