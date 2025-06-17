@@ -27,10 +27,18 @@ spec:
     deploymentMode: SingleBinary
     
     loki:
-      # Only override what's absolutely necessary
+      # Disable auth
       auth_enabled: false
       
-      # Let the chart handle most of the config
+      # Configure storage - REQUIRED for filesystem
+      storage:
+        type: filesystem
+        bucketNames:
+          chunks: chunks
+          ruler: ruler
+          admin: admin
+      
+      # Schema config  
       schemaConfig:
         configs:
           - from: "2024-01-01"
@@ -60,26 +68,15 @@ spec:
           cpu: 1000m
           memory: 2Gi
     
-    # Monitoring configuration
-    monitoring:
-      dashboards:
-        enabled: true
-        namespace: monitoring
-        labels:
-          grafana_dashboard: "1"
-      rules:
-        enabled: true
-        alerting: true
-      serviceMonitor:
-        enabled: true
-        labels:
-          prometheus: kube-prometheus
-      selfMonitoring:
-        enabled: false
+    # Disable microservices mode components
+    backend:
+      replicas: 0
     
-    # Test configuration
-    test:
-      enabled: false
+    read:
+      replicas: 0
+    
+    write:
+      replicas: 0
     
     # Gateway configuration
     gateway:
@@ -101,22 +98,32 @@ spec:
               - path: /
                 pathType: Prefix
     
-    # Disable microservices mode components
-    backend:
-      replicas: 0
+    # Monitoring
+    monitoring:
+      dashboards:
+        enabled: true
+        namespace: monitoring
+        labels:
+          grafana_dashboard: "1"
+      rules:
+        enabled: true
+        alerting: true
+      serviceMonitor:
+        enabled: true
+        labels:
+          prometheus: kube-prometheus
+      selfMonitoring:
+        enabled: false
     
-    read:
-      replicas: 0
-    
-    write:
-      replicas: 0
+    # Test
+    test:
+      enabled: false
     
     # Service account
     serviceAccount:
       create: true
       name: loki
       automountServiceAccountToken: true
-
 
 
 
