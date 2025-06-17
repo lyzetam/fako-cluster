@@ -34,16 +34,34 @@ spec:
         app: dcgm-exporter
     spec:
       serviceAccountName: dcgm-exporter
+      hostNetwork: true  # Use host network for better GPU access
+      hostPID: true      # Access host PID namespace
       nodeSelector:
         nvidia.com/gpu: "true"
       tolerations:
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule
+      # Use the nvidia runtime class if available
+      runtimeClassName: nvidia
       volumes:
       - name: dcgm-exporter-config
         configMap:
           name: dcgm-exporter-config
+      # Add volume mounts for GPU access
+      - name: nvidia-install-dir-host
+        hostPath:
+          path: /usr/local/nvidia
+          type: Directory
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: proc
+        hostPath:
+          path: /proc
       containers:
       - name: dcgm-exporter
         image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.5-3.4.0-ubuntu22.04
@@ -59,20 +77,38 @@ spec:
           containerPort: 9400
         securityContext:
           privileged: true
+          capabilities:
+            add:
+            - SYS_ADMIN
         env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
+        - name: NVIDIA_REQUIRE_CUDA
+          value: "cuda>=11.0"
         - name: DCGM_EXPORTER_KUBERNETES
           value: "true"
         - name: DCGM_EXPORTER_LISTEN
           value: ":9400"
-        # Remove DCGM_EXPORTER_INTERVAL as we're using --collect-interval arg
         volumeMounts:
         - name: dcgm-exporter-config
           mountPath: /etc/dcgm-exporter
           readOnly: true
+        - name: nvidia-install-dir-host
+          mountPath: /usr/local/nvidia
+          readOnly: true
+        - name: dev
+          mountPath: /dev
+        - name: sys
+          mountPath: /sys
+        - name: proc
+          mountPath: /proc
         resources:
           requests:
             cpu: 100m
             memory: 128Mi
+            nvidia.com/gpu: 0  # Don't request GPU resources, just monitor
           limits:
             cpu: 200m
             memory: 256Mi
@@ -80,11 +116,106 @@ spec:
           httpGet:
             path: /health
             port: 9400
-          initialDelaySeconds: 15
+          initialDelaySeconds: 45
           periodSeconds: 20
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
             port: 9400
-          initialDelaySeconds: 5
+          initialDelaySeconds: 30
           periodSeconds: 10
+          failureThreshold: 3
+
+
+
+# # monitoring/controllers/base/gpu-monitoring/dcgm-exporter.yaml
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: dcgm-exporter
+#   namespace: gpu-monitoring
+#   labels:
+#     app: dcgm-exporter
+# spec:
+#   ports:
+#   - name: metrics
+#     port: 9400
+#     targetPort: 9400
+#     protocol: TCP
+#   selector:
+#     app: dcgm-exporter
+#   type: ClusterIP
+
+# ---
+# apiVersion: apps/v1
+# kind: DaemonSet
+# metadata:
+#   name: dcgm-exporter
+#   namespace: gpu-monitoring
+#   labels:
+#     app: dcgm-exporter
+# spec:
+#   selector:
+#     matchLabels:
+#       app: dcgm-exporter
+#   template:
+#     metadata:
+#       labels:
+#         app: dcgm-exporter
+#     spec:
+#       serviceAccountName: dcgm-exporter
+#       nodeSelector:
+#         nvidia.com/gpu: "true"
+#       tolerations:
+#       - key: nvidia.com/gpu
+#         operator: Exists
+#         effect: NoSchedule
+#       volumes:
+#       - name: dcgm-exporter-config
+#         configMap:
+#           name: dcgm-exporter-config
+#       containers:
+#       - name: dcgm-exporter
+#         image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.5-3.4.0-ubuntu22.04
+#         imagePullPolicy: IfNotPresent
+#         args:
+#         - "--address=:9400"
+#         - "--collectors=/etc/dcgm-exporter/default-counters.csv"
+#         - "--collect-interval=30000"  # 30 seconds in milliseconds
+#         - "--kubernetes"
+#         - "--kubernetes-gpu-id-type=device-name"
+#         ports:
+#         - name: metrics
+#           containerPort: 9400
+#         securityContext:
+#           privileged: true
+#         env:
+#         - name: DCGM_EXPORTER_KUBERNETES
+#           value: "true"
+#         - name: DCGM_EXPORTER_LISTEN
+#           value: ":9400"
+#         # Remove DCGM_EXPORTER_INTERVAL as we're using --collect-interval arg
+#         volumeMounts:
+#         - name: dcgm-exporter-config
+#           mountPath: /etc/dcgm-exporter
+#           readOnly: true
+#         resources:
+#           requests:
+#             cpu: 100m
+#             memory: 128Mi
+#           limits:
+#             cpu: 200m
+#             memory: 256Mi
+#         livenessProbe:
+#           httpGet:
+#             path: /health
+#             port: 9400
+#           initialDelaySeconds: 15
+#           periodSeconds: 20
+#         readinessProbe:
+#           httpGet:
+#             path: /health
+#             port: 9400
+#           initialDelaySeconds: 5
+#           periodSeconds: 10
