@@ -1,5 +1,0 @@
-# infrastructure/controllers/base/nvidia-device-plugin/namespace.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: nvidia-device-plugin

@@ -1,0 +1,104 @@
+# monitoring/controllers/base/gpu-monitoring/nvidia-gpu-exporter.yaml
+# Alternative to DCGM exporter - simpler nvidia-smi based exporter
+apiVersion: v1
+kind: Service
+metadata:
+  name: nvidia-gpu-exporter
+  namespace: gpu-monitoring
+  labels:
+    app: nvidia-gpu-exporter
+spec:
+  ports:
+  - name: metrics
+    port: 9835
+    targetPort: 9835
+    protocol: TCP
+  selector:
+    app: nvidia-gpu-exporter
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-gpu-exporter
+  namespace: gpu-monitoring
+  labels:
+    app: nvidia-gpu-exporter
+spec:
+  selector:
+    matchLabels:
+      app: nvidia-gpu-exporter
+  template:
+    metadata:
+      labels:
+        app: nvidia-gpu-exporter
+    spec:
+      serviceAccountName: dcgm-exporter  # Reuse the same service account
+      hostPID: true
+      nodeSelector:
+        nvidia.com/gpu: "true"
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: nvidia-gpu-exporter
+        image: utkuozdemir/nvidia_gpu_exporter:1.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - "--web.listen-address=:9835"
+        - "--nvidia-smi-command=nvidia-smi"
+        - "--query-field-names=AUTO"
+        ports:
+        - name: metrics
+          containerPort: 9835
+        securityContext:
+          privileged: true
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
+        volumeMounts:
+        - name: nvidia-install-dir-host
+          mountPath: /usr/local/nvidia
+          readOnly: true
+        - name: dev
+          mountPath: /dev
+        - name: nvidia-smi
+          mountPath: /usr/bin/nvidia-smi
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 200m
+            memory: 200Mi
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 9835
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 9835
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: nvidia-install-dir-host
+        hostPath:
+          path: /usr/local/nvidia
+          type: Directory
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: nvidia-smi
+        hostPath:
+          path: /usr/bin/nvidia-smi
+          type: File
+
+---

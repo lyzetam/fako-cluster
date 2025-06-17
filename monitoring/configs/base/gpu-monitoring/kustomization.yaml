@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: gpu-monitoring
+resources:
+  # - dcgm-exporter-config.yaml
+  - nvidia-gpu-exporter.yaml
