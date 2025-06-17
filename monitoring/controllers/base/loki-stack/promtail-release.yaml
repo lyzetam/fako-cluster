@@ -156,6 +156,7 @@ spec:
     containerSecurityContext:
       privileged: true
       runAsUser: 0
+      allowPrivilegeEscalation: true  # Must be true when privileged is tru
     
     resources:
       requests:
