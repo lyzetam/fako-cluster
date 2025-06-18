@@ -1,0 +1,158 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: alloy
+  namespace: alloy
+spec:
+  interval: 30m
+  timeout: 10m
+  dependsOn:
+    - name: loki
+      namespace: loki-stack
+  chart:
+    spec:
+      chart: alloy
+      version: "^0.10.0"  # Latest stable version
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: alloy
+  install:
+    crds: Create
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    # Use DaemonSet for comprehensive log collection
+    controller:
+      type: daemonset
+      updateStrategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 10%
+    
+    # Alloy configuration
+    alloy:
+      # Use our ConfigMap for configuration
+      configMap:
+        create: false
+        name: alloy-config
+        key: config.alloy
+      
+      # Enable clustering for distributed workload
+      clustering:
+        enabled: true
+        name: "alloy-cluster"
+      
+      # Stability level for components
+      stabilityLevel: "generally_available"
+      
+      # Enable UI for debugging
+      ui:
+        enabled: true
+      
+      # Mount paths for log collection
+      mounts:
+        varlog: true
+        dockercontainers: true
+        extra:
+        - name: podlogs
+          hostPath: /var/log/pods
+          mountPath: /var/log/pods
+          readOnly: true
+        - name: journal
+          hostPath: /var/log/journal
+          mountPath: /var/log/journal
+          readOnly: true
+        - name: alloy-data
+          hostPath: /var/lib/alloy
+          mountPath: /alloy-data
+    
+    # Resources based on workload size
+    resources:
+      requests:
+        cpu: 400m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    
+    # Security context
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 473      # Alloy user ID
+      runAsGroup: 473
+      fsGroup: 473
+      seccompProfile:
+        type: RuntimeDefault
+      supplementalGroups: [0]  # Required for log file access
+    
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 473
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+        add:
+          - DAC_OVERRIDE     # Required for log file access
+          - FOWNER          # Required for log file ownership
+    
+    # Service for metrics and UI
+    service:
+      enabled: true
+      type: ClusterIP
+      clusterIP: ""
+    
+    # ServiceMonitor for self-monitoring
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      additionalLabels:
+        prometheus: kube-prometheus
+      metricRelabelings:
+      - sourceLabels: [__name__]
+        regex: 'alloy_.*'
+        action: keep
+    
+    # Ingress for UI access (optional)
+    ingress:
+      enabled: false
+      # Enable if you want external access to Alloy UI
+      # ingressClassName: traefik
+      # hosts:
+      #   - alloy.landryzetam.net
+    
+    # Node selector for GPU nodes if needed
+    nodeSelector: {}
+    
+    # Tolerations for all nodes including GPU
+    tolerations:
+      - effect: NoSchedule
+        operator: Exists
+    
+    # Anti-affinity for better distribution
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: alloy
+              topologyKey: kubernetes.io/hostname
+    
+    # Disable telemetry
+    enableReporting: false
+    
+    # Extra environment variables
+    env:
+      - name: HOSTNAME
+        valueFrom:
+          fieldRef:
+            fieldPath: spec.nodeName
+      - name: GOGC
+        value: "80"  # Optimize garbage collection

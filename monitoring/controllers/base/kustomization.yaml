@@ -4,4 +4,5 @@ kind: Kustomization
 resources:
   - kube-prometheus-stack
   - loki-stack
+  - alloy
   - gpu-monitoring
