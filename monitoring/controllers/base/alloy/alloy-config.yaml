@@ -7,6 +7,14 @@ metadata:
 data:
   config.alloy: |
     // ============================================
+    // Logging configuration
+    // ============================================
+    logging {
+      level = "info"
+      format = "logfmt"
+    }
+    
+    // ============================================
     // Kubernetes Pod Logs Collection
     // ============================================
     
@@ -82,24 +90,26 @@ data:
     
     // CRI log parser
     loki.process "cri_parser" {
+      forward_to = [loki.process.app_specific.receiver]
+      
       stage.cri {}
       
       // Drop filename and stream labels
       stage.label_drop {
         values = ["filename", "stream"]
       }
-      
-      forward_to = [loki.process.app_specific.receiver]
     }
     
     // App-specific parsing (nginx example)
     loki.process "app_specific" {
+      forward_to = [loki.write.default.receiver]
+      
       // Nginx log parsing
       stage.match {
         selector = "{app=\"nginx\"}"
         
         stage.regex {
-          expression = "^(?P<remote_addr>[\\w\\.]+) - (?P<remote_user>[^ ]*) \\[(?P<time_local>[^\\]]+)\\] \"(?P<method>[^ ]*) (?P<request>[^ ]*) (?P<protocol>[^ ]*)\" (?P<status>[\\d]+) (?P<body_bytes_sent>[\\d]+)"
+          expression = "(?P<remote_addr>[\\w\\.]+) - (?P<remote_user>[^ ]*) \\[(?P<time_local>[^\\]]+)\\] \"(?P<method>[^ ]*) (?P<request>[^ ]*) (?P<protocol>[^ ]*)\" (?P<status>[\\d]+) (?P<body_bytes_sent>[\\d]+)"
         }
         
         stage.labels {
@@ -109,8 +119,6 @@ data:
           }
         }
       }
-      
-      forward_to = [loki.write.production.receiver]
     }
     
     // ============================================
@@ -121,14 +129,13 @@ data:
       path_targets = [{
         __path__ = "/var/log/syslog",
         job = "syslog",
-        node_name = env("HOSTNAME"),
       }]
     }
     
     loki.source.file "syslog" {
       targets = local.file_match.system_logs.targets
-      forward_to = [loki.write.production.receiver]
-      tail_from_end = true
+      forward_to = [loki.write.default.receiver]
+      tail_from_end = false
     }
     
     // ============================================
@@ -136,47 +143,26 @@ data:
     // ============================================
     
     loki.source.journal "systemd" {
+      forward_to = [loki.process.journal_labels.receiver]
       path = "/var/log/journal"
-      format_as_json = false
       max_age = "12h"
       labels = {
         job = "systemd-journal",
-        node_name = env("HOSTNAME"),
       }
-      relabel_rules = loki.relabel.journal.rules
-      forward_to = [loki.write.production.receiver]
     }
     
-    loki.relabel "journal" {
-      rule {
-        source_labels = ["__journal__systemd_unit"]
-        target_label = "unit"
+    loki.process "journal_labels" {
+      forward_to = [loki.write.default.receiver]
+      
+      stage.labels {
+        values = {
+          unit = "__journal__systemd_unit",
+          hostname = "__journal__hostname",
+        }
       }
       
-      rule {
-        source_labels = ["__journal__hostname"]
-        target_label = "hostname"
-      }
-      
-      rule {
-        source_labels = ["__journal_priority"]
-        regex = "[0-3]"
-        target_label = "severity"
-        replacement = "critical"
-      }
-      
-      rule {
-        source_labels = ["__journal_priority"]
-        regex = "[4-5]"
-        target_label = "severity"
-        replacement = "warning"
-      }
-      
-      rule {
-        source_labels = ["__journal_priority"]
-        regex = "[6-7]"
-        target_label = "severity"
-        replacement = "info"
+      stage.label_drop {
+        values = ["__journal__systemd_unit", "__journal__hostname"]
       }
     }
     
@@ -184,28 +170,13 @@ data:
     // Loki Write Configuration
     // ============================================
     
-    loki.write "production" {
+    loki.write "default" {
       endpoint {
         url = "http://loki-gateway.loki-stack.svc.cluster.local/loki/api/v1/push"
-        
-        // Retry configuration
-        retry_on_http_429 = true
-        min_backoff_period = "100ms"
-        max_backoff_period = "10s"
-        max_backoff_retries = 10
       }
       
-      // External labels
       external_labels = {
         cluster = "production",
-        environment = "staging",
-      }
-      
-      // Write-Ahead Log for durability
-      wal {
-        enabled = true
-        dir = "/alloy-data/wal"
-        max_segment_age = "2h"
       }
     }
     
@@ -214,8 +185,8 @@ data:
     // ============================================
     
     prometheus.exporter.unix "node_metrics" {
-      set_collectors = ["cpu", "meminfo", "filesystem", "netdev", "diskstats", "loadavg", "time"]
-      disable_collectors = ["wifi", "powersupplyclass", "thermal"]
+      set_collectors = ["cpu", "meminfo", "filesystem", "netdev", "diskstats", "loadavg"]
+      disable_collectors = ["wifi", "thermal"]
       
       filesystem {
         fs_types_exclude = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$"
@@ -225,31 +196,20 @@ data:
     
     prometheus.scrape "node_exporter" {
       targets = prometheus.exporter.unix.node_metrics.targets
-      forward_to = [prometheus.remote_write.production.receiver]
+      forward_to = [prometheus.remote_write.default.receiver]
       scrape_interval = "15s"
-      
-      clustering {
-        enabled = true
-      }
     }
     
     // Scrape existing ServiceMonitors
     prometheus.operator.servicemonitors "service_monitors" {
-      forward_to = [prometheus.remote_write.production.receiver]
+      forward_to = [prometheus.remote_write.default.receiver]
       namespaces = ["gpu-monitoring", "monitoring", "gpu-operator"]
     }
     
     // Remote write to Prometheus
-    prometheus.remote_write "production" {
+    prometheus.remote_write "default" {
       endpoint {
         url = "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
-        
-        queue_config {
-          capacity = 10000
-          max_samples_per_send = 2000
-          batch_send_deadline = "5s"
-          max_shards = 50
-        }
       }
     }
     
@@ -261,6 +221,6 @@ data:
     
     prometheus.scrape "self" {
       targets = prometheus.exporter.self.alloy.targets
-      forward_to = [prometheus.remote_write.production.receiver]
+      forward_to = [prometheus.remote_write.default.receiver]
       scrape_interval = "30s"
     }
