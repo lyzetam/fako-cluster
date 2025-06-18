@@ -30,6 +30,10 @@ spec:
       # Disable auth
       auth_enabled: false
       
+      # Common config with replication_factor: 1 for single binary
+      commonConfig:
+        replication_factor: 1
+      
       # Configure storage - REQUIRED for filesystem
       storage:
         type: filesystem
@@ -126,8 +130,6 @@ spec:
       automountServiceAccountToken: true
 
 
-
-
 # apiVersion: helm.toolkit.fluxcd.io/v2
 # kind: HelmRelease
 # metadata:
@@ -157,31 +159,18 @@ spec:
 #     deploymentMode: SingleBinary
     
 #     loki:
+#       # Disable auth
 #       auth_enabled: false
       
-#       # Server configuration
-#       server:
-#         http_listen_port: 3100
-#         grpc_listen_port: 9095
-#         log_level: info
-      
-#       # Common configuration
-#       commonConfig:
-#         replication_factor: 1
-#         path_prefix: /var/loki
-#         storage:
-#           filesystem:
-#             chunks_directory: /var/loki/chunks
-#             rules_directory: /var/loki/rules
-      
-#       # Storage configuration
+#       # Configure storage - REQUIRED for filesystem
 #       storage:
 #         type: filesystem
-#         filesystem:
-#           chunks_directory: /var/loki/chunks
-#           rules_directory: /var/loki/rules
+#         bucketNames:
+#           chunks: chunks
+#           ruler: ruler
+#           admin: admin
       
-#       # Schema configuration - use v13 consistently
+#       # Schema config  
 #       schemaConfig:
 #         configs:
 #           - from: "2024-01-01"
@@ -191,38 +180,6 @@ spec:
 #             index:
 #               prefix: loki_index_
 #               period: 24h
-      
-#       # Storage configuration for filesystem
-#       storage_config:
-#         filesystem:
-#           directory: /var/loki/chunks
-#         tsdb_shipper:
-#           active_index_directory: /var/loki/tsdb-index
-#           cache_location: /var/loki/tsdb-cache
-#           shared_store: filesystem
-      
-#       # Limits configuration
-#       limits_config:
-#         enforce_metric_name: false
-#         reject_old_samples: true
-#         reject_old_samples_max_age: 168h
-#         max_entries_limit_per_query: 5000
-#         retention_period: 744h  # 31 days
-#         ingestion_rate_mb: 10
-#         ingestion_burst_size_mb: 20
-#         max_streams_per_user: 10000
-#         max_global_streams_per_user: 10000
-#         per_stream_rate_limit: 3MB
-#         per_stream_rate_limit_burst: 15MB
-      
-#       # Compactor configuration
-#       compactor:
-#         working_directory: /var/loki/compactor
-#         compaction_interval: 10m
-#         retention_enabled: true
-#         retention_delete_delay: 2h
-#         retention_delete_worker_count: 150
-#         delete_request_store: filesystem
     
 #     # Single Binary specific configuration
 #     singleBinary:
@@ -232,34 +189,48 @@ spec:
 #       persistence:
 #         enabled: true
 #         storageClass: nfs-csi-v2
-#         size: 100Gi  # Increased from 50Gi
-#         accessModes:
-#           - ReadWriteOnce
+#         size: 100Gi
       
-#       # Resources - increased for better performance
+#       # Resources
 #       resources:
 #         requests:
-#           cpu: 500m      # Increased from 100m
-#           memory: 1Gi    # Increased from 256Mi
+#           cpu: 250m
+#           memory: 512Mi
 #         limits:
-#           cpu: 2000m
-#           memory: 4Gi    # Increased from 2Gi
-      
-#       # Additional volume mounts if needed
-#       extraVolumeMounts:
-#         - name: loki-data
-#           mountPath: /var/loki
-      
-#       # Node selector if needed
-#       nodeSelector: {}
-      
-#       # Tolerations
-#       tolerations: []
-      
-#       # Affinity rules
-#       affinity: {}
+#           cpu: 1000m
+#           memory: 2Gi
     
-#     # Monitoring configuration
+#     # Disable microservices mode components
+#     backend:
+#       replicas: 0
+    
+#     read:
+#       replicas: 0
+    
+#     write:
+#       replicas: 0
+    
+#     # Gateway configuration
+#     gateway:
+#       enabled: true
+#       replicas: 1
+#       resources:
+#         requests:
+#           cpu: 100m
+#           memory: 128Mi
+#         limits:
+#           cpu: 500m
+#           memory: 512Mi
+#       ingress:
+#         enabled: true
+#         ingressClassName: traefik
+#         hosts:
+#           - host: loki.landryzetam.net
+#             paths:
+#               - path: /
+#                 pathType: Prefix
+    
+#     # Monitoring
 #     monitoring:
 #       dashboards:
 #         enabled: true
@@ -274,49 +245,10 @@ spec:
 #         labels:
 #           prometheus: kube-prometheus
 #       selfMonitoring:
-#         enabled: false  # Disable to reduce complexity
+#         enabled: false
     
-#     # Test configuration
+#     # Test
 #     test:
-#       enabled: false
-    
-#     # Gateway configuration
-#     gateway:
-#       enabled: true
-#       replicas: 1
-      
-#       # Gateway resources
-#       resources:
-#         requests:
-#           cpu: 100m
-#           memory: 128Mi
-#         limits:
-#           cpu: 500m
-#           memory: 512Mi
-      
-#       # Ingress configuration
-#       ingress:
-#         enabled: true
-#         ingressClassName: traefik
-#         hosts:
-#           - host: loki.landryzetam.net
-#             paths:
-#               - path: /
-#                 pathType: Prefix
-#         tls: []  # Add TLS configuration if needed
-    
-#     # Backend configuration (for SingleBinary mode)
-#     backend:
-#       replicas: 0  # Disabled in single binary mode
-    
-#     read:
-#       replicas: 0  # Disabled in single binary mode
-    
-#     write:
-#       replicas: 0  # Disabled in single binary mode
-    
-#     # Table manager is deprecated in newer versions
-#     tableManager:
 #       enabled: false
     
 #     # Service account
@@ -324,3 +256,203 @@ spec:
 #       create: true
 #       name: loki
 #       automountServiceAccountToken: true
+
+
+
+
+# # apiVersion: helm.toolkit.fluxcd.io/v2
+# # kind: HelmRelease
+# # metadata:
+# #   name: loki
+# #   namespace: loki-stack
+# # spec:
+# #   interval: 30m
+# #   chart:
+# #     spec:
+# #       chart: loki
+# #       version: "^6.0.0"
+# #       sourceRef:
+# #         kind: HelmRepository
+# #         name: grafana
+# #         namespace: loki-stack
+# #   install:
+# #     crds: Create
+# #     createNamespace: true
+# #     remediation:
+# #       retries: 3
+# #   upgrade:
+# #     crds: CreateReplace
+# #     remediation:
+# #       retries: 3
+# #   values:
+# #     # Use single binary deployment for simplicity
+# #     deploymentMode: SingleBinary
+    
+# #     loki:
+# #       auth_enabled: false
+      
+# #       # Server configuration
+# #       server:
+# #         http_listen_port: 3100
+# #         grpc_listen_port: 9095
+# #         log_level: info
+      
+# #       # Common configuration
+# #       commonConfig:
+# #         replication_factor: 1
+# #         path_prefix: /var/loki
+# #         storage:
+# #           filesystem:
+# #             chunks_directory: /var/loki/chunks
+# #             rules_directory: /var/loki/rules
+      
+# #       # Storage configuration
+# #       storage:
+# #         type: filesystem
+# #         filesystem:
+# #           chunks_directory: /var/loki/chunks
+# #           rules_directory: /var/loki/rules
+      
+# #       # Schema configuration - use v13 consistently
+# #       schemaConfig:
+# #         configs:
+# #           - from: "2024-01-01"
+# #             store: tsdb
+# #             object_store: filesystem
+# #             schema: v13
+# #             index:
+# #               prefix: loki_index_
+# #               period: 24h
+      
+# #       # Storage configuration for filesystem
+# #       storage_config:
+# #         filesystem:
+# #           directory: /var/loki/chunks
+# #         tsdb_shipper:
+# #           active_index_directory: /var/loki/tsdb-index
+# #           cache_location: /var/loki/tsdb-cache
+# #           shared_store: filesystem
+      
+# #       # Limits configuration
+# #       limits_config:
+# #         enforce_metric_name: false
+# #         reject_old_samples: true
+# #         reject_old_samples_max_age: 168h
+# #         max_entries_limit_per_query: 5000
+# #         retention_period: 744h  # 31 days
+# #         ingestion_rate_mb: 10
+# #         ingestion_burst_size_mb: 20
+# #         max_streams_per_user: 10000
+# #         max_global_streams_per_user: 10000
+# #         per_stream_rate_limit: 3MB
+# #         per_stream_rate_limit_burst: 15MB
+      
+# #       # Compactor configuration
+# #       compactor:
+# #         working_directory: /var/loki/compactor
+# #         compaction_interval: 10m
+# #         retention_enabled: true
+# #         retention_delete_delay: 2h
+# #         retention_delete_worker_count: 150
+# #         delete_request_store: filesystem
+    
+# #     # Single Binary specific configuration
+# #     singleBinary:
+# #       replicas: 1
+      
+# #       # Persistence configuration
+# #       persistence:
+# #         enabled: true
+# #         storageClass: nfs-csi-v2
+# #         size: 100Gi  # Increased from 50Gi
+# #         accessModes:
+# #           - ReadWriteOnce
+      
+# #       # Resources - increased for better performance
+# #       resources:
+# #         requests:
+# #           cpu: 500m      # Increased from 100m
+# #           memory: 1Gi    # Increased from 256Mi
+# #         limits:
+# #           cpu: 2000m
+# #           memory: 4Gi    # Increased from 2Gi
+      
+# #       # Additional volume mounts if needed
+# #       extraVolumeMounts:
+# #         - name: loki-data
+# #           mountPath: /var/loki
+      
+# #       # Node selector if needed
+# #       nodeSelector: {}
+      
+# #       # Tolerations
+# #       tolerations: []
+      
+# #       # Affinity rules
+# #       affinity: {}
+    
+# #     # Monitoring configuration
+# #     monitoring:
+# #       dashboards:
+# #         enabled: true
+# #         namespace: monitoring
+# #         labels:
+# #           grafana_dashboard: "1"
+# #       rules:
+# #         enabled: true
+# #         alerting: true
+# #       serviceMonitor:
+# #         enabled: true
+# #         labels:
+# #           prometheus: kube-prometheus
+# #       selfMonitoring:
+# #         enabled: false  # Disable to reduce complexity
+    
+# #     # Test configuration
+# #     test:
+# #       enabled: false
+    
+# #     # Gateway configuration
+# #     gateway:
+# #       enabled: true
+# #       replicas: 1
+      
+# #       # Gateway resources
+# #       resources:
+# #         requests:
+# #           cpu: 100m
+# #           memory: 128Mi
+# #         limits:
+# #           cpu: 500m
+# #           memory: 512Mi
+      
+# #       # Ingress configuration
+# #       ingress:
+# #         enabled: true
+# #         ingressClassName: traefik
+# #         hosts:
+# #           - host: loki.landryzetam.net
+# #             paths:
+# #               - path: /
+# #                 pathType: Prefix
+# #         tls: []  # Add TLS configuration if needed
+    
+# #     # Backend configuration (for SingleBinary mode)
+# #     backend:
+# #       replicas: 0  # Disabled in single binary mode
+    
+# #     read:
+# #       replicas: 0  # Disabled in single binary mode
+    
+# #     write:
+# #       replicas: 0  # Disabled in single binary mode
+    
+# #     # Table manager is deprecated in newer versions
+# #     tableManager:
+# #       enabled: false
+    
+# #     # Service account
+# #     serviceAccount:
+# #       create: true
+# #       name: loki
+# #       automountServiceAccountToken: true
