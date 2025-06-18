@@ -1,5 +1,4 @@
-# Alternative minimal configuration without traces
-# Use this if you don't have Tempo deployed yet
+# Simple configuration without ServiceMonitor discovery
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -26,73 +25,37 @@ data:
     discovery.relabel "pod_logs" {
       targets = discovery.kubernetes.pods.targets
       
-      // Only keep running pods
       rule {
         source_labels = ["__meta_kubernetes_pod_phase"]
         regex = "Running"
         action = "keep"
       }
       
-      // Set namespace label
       rule {
         source_labels = ["__meta_kubernetes_namespace"]
         action = "replace"
         target_label = "namespace"
       }
       
-      // Set pod name
       rule {
         source_labels = ["__meta_kubernetes_pod_name"]
         action = "replace"
         target_label = "pod"
       }
       
-      // Set container name
       rule {
         source_labels = ["__meta_kubernetes_pod_container_name"]
         action = "replace"
         target_label = "container"
       }
-      
-      // Set app label
-      rule {
-        source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
-        action = "replace"
-        target_label = "app"
-      }
-      
-      rule {
-        source_labels = ["__meta_kubernetes_pod_label_app"]
-        regex = "(.+)"
-        action = "replace"
-        target_label = "app"
-      }
-      
-      // Set node name
-      rule {
-        source_labels = ["__meta_kubernetes_pod_node_name"]
-        action = "replace"
-        target_label = "node"
-      }
-      
-      // Set job label
-      rule {
-        source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
-        action = "replace"
-        target_label = "job"
-        separator = "/"
-        replacement = "$1"
-      }
     }
     
-    // Kubernetes log source
     loki.source.kubernetes "pods" {
       targets = discovery.relabel.pod_logs.output
-      forward_to = [loki.process.pod_logs.receiver]
+      forward_to = [loki.process.pods.receiver]
     }
     
-    // Simple log processing
-    loki.process "pod_logs" {
+    loki.process "pods" {
       forward_to = [loki.write.default.receiver]
       
       stage.cri {}
@@ -105,24 +68,7 @@ data:
     }
     
     // ============================================
-    // System Logs Collection  
-    // ============================================
-    
-    local.file_match "system_logs" {
-      path_targets = [
-        {__path__ = "/var/log/syslog", job = "syslog"},
-        {__path__ = "/var/log/messages", job = "messages"},
-      ]
-    }
-    
-    loki.source.file "system" {
-      targets = local.file_match.system_logs.targets
-      forward_to = [loki.write.default.receiver]
-      tail_from_end = false
-    }
-    
-    // ============================================
-    // Loki Write Configuration
+    // Loki Write
     // ============================================
     
     loki.write "default" {
@@ -136,18 +82,12 @@ data:
     }
     
     // ============================================
-    // Metrics Collection
+    // Metrics Collection - Direct Service Discovery
     // ============================================
     
     // Node metrics
     prometheus.exporter.unix "node_metrics" {
       set_collectors = ["cpu", "meminfo", "filesystem", "netdev", "diskstats", "loadavg"]
-      disable_collectors = ["wifi", "thermal"]
-      
-      filesystem {
-        fs_types_exclude = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$"
-        mount_points_exclude = "^/(dev|proc|sys|var/lib/docker/.+)($|/)"
-      }
     }
     
     prometheus.scrape "node_exporter" {
@@ -156,13 +96,67 @@ data:
       scrape_interval = "15s"
     }
     
-    // ServiceMonitor discovery
-    prometheus.operator.servicemonitors "service_monitors" {
-      forward_to = [prometheus.remote_write.default.receiver]
-      namespaces = ["gpu-monitoring", "monitoring", "gpu-operator", "default", "alloy", "loki-stack", "kube-system"]
+    // Discover services with Prometheus annotations
+    discovery.kubernetes "services" {
+      role = "service"
     }
     
-    // Remote write to Prometheus
+    discovery.relabel "metrics_services" {
+      targets = discovery.kubernetes.services.targets
+      
+      // Keep services with prometheus.io/scrape annotation
+      rule {
+        source_labels = ["__meta_kubernetes_service_annotation_prometheus_io_scrape"]
+        regex = "true"
+        action = "keep"
+      }
+      
+      // Set metrics path
+      rule {
+        source_labels = ["__meta_kubernetes_service_annotation_prometheus_io_path"]
+        action = "replace"
+        target_label = "__metrics_path__"
+        regex = "(.+)"
+      }
+      
+      // Set address with port
+      rule {
+        source_labels = ["__address__", "__meta_kubernetes_service_annotation_prometheus_io_port"]
+        action = "replace"
+        target_label = "__address__"
+        regex = "([^:]+)(?::\\d+)?;(\\d+)"
+        replacement = "$1:$2"
+      }
+      
+      // Add labels
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        target_label = "namespace"
+      }
+      
+      rule {
+        source_labels = ["__meta_kubernetes_service_name"]
+        target_label = "service"
+      }
+    }
+    
+    prometheus.scrape "services" {
+      targets = discovery.relabel.metrics_services.output
+      forward_to = [prometheus.remote_write.default.receiver]
+      scrape_interval = "30s"
+    }
+    
+    // GPU Exporter - Direct Configuration
+    prometheus.scrape "gpu_exporter" {
+      targets = [
+        {"__address__" = "nvidia-gpu-exporter.gpu-monitoring.svc.cluster.local:9835"},
+      ]
+      forward_to = [prometheus.remote_write.default.receiver]
+      scrape_interval = "30s"
+      metrics_path = "/metrics"
+    }
+    
+    // Remote write
     prometheus.remote_write "default" {
       endpoint {
         url = "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
@@ -173,15 +167,11 @@ data:
       }
     }
     
-    // ============================================
-    // Self-monitoring
-    // ============================================
-    
+    // Self monitoring
     prometheus.exporter.self "alloy" {}
     
     prometheus.scrape "self" {
       targets = prometheus.exporter.self.alloy.targets
       forward_to = [prometheus.remote_write.default.receiver]
       scrape_interval = "30s"
-      job_name = "alloy"
     }
