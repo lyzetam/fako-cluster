@@ -118,7 +118,7 @@ spec:
           # PRIORITY 3: Small efficient models
           echo ""
           echo "=== SMALL EFFICIENT MODELS (1-4B) ==="
-          # ollama pull llama3.2:3b || echo "Failed llama3.2:3b"
+          ollama pull llama3.2:3b || echo "Failed llama3.2:3b"
           # ollama pull phi3:mini || echo "Failed phi3:mini"
           
           # PRIORITY 4: Medium models - RTX 5070 can handle these well
