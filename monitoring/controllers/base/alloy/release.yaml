@@ -12,7 +12,7 @@ spec:
   chart:
     spec:
       chart: alloy
-      version: "^0.10.0"  # Latest stable version
+      version: "0.10.1"
       sourceRef:
         kind: HelmRepository
         name: grafana
@@ -26,15 +26,6 @@ spec:
     remediation:
       retries: 3
   values:
-    # Use DaemonSet for comprehensive log collection
-    controller:
-      type: daemonset
-      updateStrategy:
-        type: RollingUpdate
-        rollingUpdate:
-          maxUnavailable: 10%
-    
-    # Alloy configuration
     alloy:
       # Use our ConfigMap for configuration
       configMap:
@@ -42,117 +33,75 @@ spec:
         name: alloy-config
         key: config.alloy
       
-      # Enable clustering for distributed workload
+      # Enable clustering
       clustering:
         enabled: true
-        name: "alloy-cluster"
       
-      # Stability level for components
-      stabilityLevel: "generally_available"
-      
-      # Enable UI for debugging
-      ui:
-        enabled: true
-      
-      # Mount paths for log collection
+      # Mount configuration - use the correct format
       mounts:
+        # Host filesystem mounts
         varlog: true
         dockercontainers: true
-        extra:
-        - name: podlogs
-          hostPath: /var/log/pods
+      
+      # Extra volume mounts need to be in extraVolumes/extraVolumeMounts
+      extraVolumes:
+        - name: pods
+          hostPath:
+            path: /var/log/pods
+            type: Directory
+        - name: journal
+          hostPath:
+            path: /var/log/journal
+            type: DirectoryOrCreate
+        - name: alloy-data
+          hostPath:
+            path: /var/lib/alloy
+            type: DirectoryOrCreate
+      
+      extraVolumeMounts:
+        - name: pods
           mountPath: /var/log/pods
           readOnly: true
         - name: journal
-          hostPath: /var/log/journal
           mountPath: /var/log/journal
           readOnly: true
         - name: alloy-data
-          hostPath: /var/lib/alloy
           mountPath: /alloy-data
+          readOnly: false
     
-    # Resources based on workload size
+    # Controller configuration
+    controller:
+      type: daemonset
+      hostPID: true  # Required for some log collection
+    
+    # Resources
     resources:
       requests:
-        cpu: 400m
-        memory: 1Gi
+        cpu: 100m
+        memory: 256Mi
       limits:
-        cpu: 1000m
-        memory: 2Gi
+        cpu: 500m
+        memory: 512Mi
     
-    # Security context
-    podSecurityContext:
-      runAsNonRoot: true
-      runAsUser: 473      # Alloy user ID
-      runAsGroup: 473
-      fsGroup: 473
-      seccompProfile:
-        type: RuntimeDefault
-      supplementalGroups: [0]  # Required for log file access
+    # Service account - let Helm create it
+    serviceAccount:
+      create: true
     
+    # RBAC - let Helm create it
+    rbac:
+      create: true
+    
+    # Security context - adjusted for log collection
     securityContext:
-      runAsNonRoot: true
-      runAsUser: 473
-      readOnlyRootFilesystem: true
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop: ["ALL"]
-        add:
-          - DAC_OVERRIDE     # Required for log file access
-          - FOWNER          # Required for log file ownership
-    
-    # Service for metrics and UI
-    service:
-      enabled: true
-      type: ClusterIP
-      clusterIP: ""
+      privileged: true  # Required for accessing host logs
+      runAsUser: 0      # Run as root for log access
     
     # ServiceMonitor for self-monitoring
     serviceMonitor:
       enabled: true
-      interval: 30s
       additionalLabels:
         prometheus: kube-prometheus
-      metricRelabelings:
-      - sourceLabels: [__name__]
-        regex: 'alloy_.*'
-        action: keep
     
-    # Ingress for UI access (optional)
-    ingress:
-      enabled: false
-      # Enable if you want external access to Alloy UI
-      # ingressClassName: traefik
-      # hosts:
-      #   - alloy.landryzetam.net
-    
-    # Node selector for GPU nodes if needed
-    nodeSelector: {}
-    
-    # Tolerations for all nodes including GPU
+    # Tolerations for all nodes
     tolerations:
-      - effect: NoSchedule
-        operator: Exists
-    
-    # Anti-affinity for better distribution
-    affinity:
-      podAntiAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchLabels:
-                  app.kubernetes.io/name: alloy
-              topologyKey: kubernetes.io/hostname
-    
-    # Disable telemetry
-    enableReporting: false
-    
-    # Extra environment variables
-    env:
-      - name: HOSTNAME
-        valueFrom:
-          fieldRef:
-            fieldPath: spec.nodeName
-      - name: GOGC
-        value: "80"  # Optimize garbage collection
+      - operator: Exists
