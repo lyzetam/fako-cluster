@@ -82,98 +82,20 @@ data:
     }
     
     // ============================================
-    // Metrics Collection - Direct Service Discovery
+    // Metrics Collection - Disabled
     // ============================================
+    // Prometheus is already scraping metrics via ServiceMonitors
+    // so we don't need Alloy to remote write metrics
     
-    // Node metrics
-    prometheus.exporter.unix "node_metrics" {
-      set_collectors = ["cpu", "meminfo", "filesystem", "netdev", "diskstats", "loadavg"]
-    }
-    
-    prometheus.scrape "node_exporter" {
-      targets = prometheus.exporter.unix.node_metrics.targets
-      forward_to = [prometheus.remote_write.default.receiver]
-      scrape_interval = "15s"
-    }
-    
-    // Discover services with Prometheus annotations
-    discovery.kubernetes "services" {
-      role = "service"
-    }
-    
-    discovery.relabel "metrics_services" {
-      targets = discovery.kubernetes.services.targets
-      
-      // Keep services with prometheus.io/scrape annotation
-      rule {
-        source_labels = ["__meta_kubernetes_service_annotation_prometheus_io_scrape"]
-        regex = "true"
-        action = "keep"
-      }
-      
-      // Set metrics path
-      rule {
-        source_labels = ["__meta_kubernetes_service_annotation_prometheus_io_path"]
-        action = "replace"
-        target_label = "__metrics_path__"
-        regex = "(.+)"
-      }
-      
-      // Set address with port
-      rule {
-        source_labels = ["__address__", "__meta_kubernetes_service_annotation_prometheus_io_port"]
-        action = "replace"
-        target_label = "__address__"
-        regex = "([^:]+)(?::\\d+)?;(\\d+)"
-        replacement = "$1:$2"
-      }
-      
-      // Add labels
-      rule {
-        source_labels = ["__meta_kubernetes_namespace"]
-        target_label = "namespace"
-      }
-      
-      rule {
-        source_labels = ["__meta_kubernetes_service_name"]
-        target_label = "service"
-      }
-    }
-    
-    prometheus.scrape "services" {
-      targets = discovery.relabel.metrics_services.output
-      forward_to = [prometheus.remote_write.default.receiver]
-      scrape_interval = "30s"
-    }
-    
-    // GPU Exporter - Direct Configuration
-    prometheus.scrape "gpu_exporter" {
-      targets = [
-        {"__address__" = "nvidia-gpu-exporter.gpu-monitoring.svc.cluster.local:9835"},
-      ]
-      forward_to = [prometheus.remote_write.default.receiver]
-      scrape_interval = "30s"
-      metrics_path = "/metrics"
-    }
-    
-    // Remote write - FIXED SERVICE NAME
-    prometheus.remote_write "default" {
-      endpoint {
-        url = "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
-      }
-      
-      external_labels = {
-        cluster = "production",
-      }
-    }
-    
-    // Self monitoring
+    // Self monitoring only
     prometheus.exporter.self "alloy" {}
     
-    prometheus.scrape "self" {
+    discovery.relabel "alloy_self" {
       targets = prometheus.exporter.self.alloy.targets
-      forward_to = [prometheus.remote_write.default.receiver]
-      scrape_interval = "30s"
+      rule {
+        target_label = "job"
+        replacement = "alloy"
+      }
     }
 
 
@@ -336,10 +258,10 @@ data:
 #       metrics_path = "/metrics"
 #     }
     
-#     // Remote write
+#     // Remote write - FIXED SERVICE NAME
 #     prometheus.remote_write "default" {
 #       endpoint {
-#         url = "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+#         url = "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
 #       }
       
 #       external_labels = {
