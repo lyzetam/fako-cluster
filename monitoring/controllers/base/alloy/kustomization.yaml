@@ -6,4 +6,5 @@ resources:
   - repository.yaml
   - rbac.yaml
   - alloy-config.yaml
+  - service.yaml
   - release.yaml
