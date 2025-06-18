@@ -1,0 +1,15 @@
+
+# infrastructure/controllers/base/k8s-backup/backup-storageclass.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-backup
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: "10.85.30.127"
+  share: "/volume1/k8s-backups"
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+mountOptions:
+  - nfsvers=3
+  - nolock
