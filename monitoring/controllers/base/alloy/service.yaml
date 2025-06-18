@@ -1,0 +1,50 @@
+# monitoring/controllers/base/alloy/service.yaml
+# Service to expose Alloy's OTLP receivers
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy-otlp
+  namespace: alloy
+  labels:
+    app.kubernetes.io/name: alloy
+    app.kubernetes.io/component: otlp
+spec:
+  type: ClusterIP
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: alloy
+    app.kubernetes.io/instance: alloy
+---
+# Headless service for Alloy clustering
+apiVersion: v1
+kind: Service
+metadata:
+  name: alloy-cluster
+  namespace: alloy
+  labels:
+    app.kubernetes.io/name: alloy
+    app.kubernetes.io/component: cluster
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: http-metrics
+      port: 12345
+      targetPort: 12345
+      protocol: TCP
+    - name: alloy-cluster
+      port: 12346
+      targetPort: 12346  
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: alloy
+    app.kubernetes.io/instance: alloy

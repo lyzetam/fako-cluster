@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: monitoring
 resources:
   - loki-datasource.yaml
+  - prometheus-datasource.yaml
