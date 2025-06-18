@@ -1,5 +1,5 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
-kind: HelmRelease #think of this as the helm install command
+kind: HelmRelease
 metadata:
   name: kube-prometheus-stack
   namespace: monitoring
@@ -7,57 +7,203 @@ spec:
   interval: 30m
   chart:
     spec:
-      chart: kube-prometheus-stack # This is equivalent to helm install [RELEASE_NAME] prometheus-community/kube-prometheus-stack
-      version: "^66.2.0" # This versioning strategy allows patch upgrades for compatibility and stability. It is chosen to ensure we receive non-breaking updates while maintaining consistency with other charts in the project.
+      chart: kube-prometheus-stack
+      version: "^66.2.0"
       sourceRef:
-        kind: HelmRepository # This is the type of the source
-        name: kube-prometheus-stack # This is the name of the source repo to install line 10
-        namespace: monitoring # This is the namespace of the source
+        kind: HelmRepository
+        name: kube-prometheus-stack
+        namespace: monitoring
       interval: 12h
   install:
     crds: Create
   upgrade:
     crds: CreateReplace
-  # Drift detection ensures that the deployed resources match the desired state defined in the HelmRelease.
-  # When enabled, it detects and reconciles any manual changes made to the resources.
   driftDetection:
-    mode: enabled # Enabling drift detection ensures that manual changes to resources are reconciled, but it may increase resource usage and is not recommended for environments with frequent manual interventions.
+    mode: enabled
     ignore:
-      # Ignore "validated" annotation which is not inserted during install
       - paths: ["/metadata/annotations/prometheus-operator-validated"]
         target:
           kind: PrometheusRule
   values:
+    # Prometheus configuration
+    prometheus:
+      prometheusSpec:
+        # Enable all ServiceMonitors
+        serviceMonitorSelectorNilUsesHelmValues: false
+        serviceMonitorSelector: {}
+        serviceMonitorNamespaceSelector: {}
+        
+        # Enable all PodMonitors
+        podMonitorSelectorNilUsesHelmValues: false
+        podMonitorSelector: {}
+        podMonitorNamespaceSelector: {}
+        
+        # Enable all PrometheusRules
+        ruleSelectorNilUsesHelmValues: false
+        ruleSelector: {}
+        ruleNamespaceSelector: {}
+        
+        # Resources
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: 500m
+          limits:
+            memory: 4Gi
+            cpu: 2000m
+        
+        # Retention
+        retention: 30d
+        
+        # Storage
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: nfs-csi-v2
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: 50Gi
+    
+    # Ensure all exporters are enabled
+    kubeApiServer:
+      enabled: true
+    
+    kubelet:
+      enabled: true
+    
+    kubeControllerManager:
+      enabled: true
+    
+    coreDns:
+      enabled: true
+    
+    kubeDns:
+      enabled: false
+    
+    kubeEtcd:
+      enabled: true
+    
+    kubeScheduler:
+      enabled: true
+    
+    kubeProxy:
+      enabled: true
+    
+    kubeStateMetrics:
+      enabled: true
+    
+    nodeExporter:
+      enabled: true
+    
+    prometheusOperator:
+      enabled: true
+    
+    # Grafana configuration
     grafana:
       adminPassword: "admin"
+      
+      # Default datasources
+      additionalDataSources:
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki-gateway.loki-stack.svc.cluster.local
+          jsonData:
+            maxLines: 1000
+            timeout: 60
+        
+      # Sidecar configuration
+      sidecar:
+        dashboards:
+          enabled: true
+          label: grafana_dashboard
+          labelValue: "1"
+          searchNamespace: ALL
+          folderAnnotation: grafana_folder
+          provider:
+            disableDelete: false
+            allowUiUpdates: true
+        datasources:
+          enabled: true
+          label: grafana_datasource
+          labelValue: "1"
+          searchNamespace: ALL
+      
       ingress:
-        ## If true, Grafana Ingress will be created
-        ##
-        ## Ingress is disabled by default to avoid exposing Grafana publicly.
-        ## Enable this field when you want to expose Grafana via an ingress controller.
         enabled: true
-
-        ## IngressClassName for Grafana Ingress.
-        ## Should be provided if Ingress is enable.
-        ##
         ingressClassName: traefik
-
-        ## Hostnames Must be provided if Ingress is enable.
         hosts:
           - grafana.landryzetam.net
-        # The path for Grafana ingress is set to `/`. This is a common convention for root-level access,
-        # but it can be customized based on specific requirements of the setup.
         path: /
-        ## Secret must be manually created in the namespace
-        ## Leave the tls configuration empty if you do not require TLS or customize it as needed for your setup.
         tls: 
           - secretName: grafana-tls-secret
             hosts:
               - grafana.landryzetam.net
-            # The secret name for TLS configuration is set to `grafana-tls-secret`.
-            # This should be created in the same namespace as the Grafana installation.
-            # Ensure that the secret contains the necessary TLS certificate and key for secure communication.
-            # The secret must be created manually in the namespace.
-            # This is a common practice to ensure secure communication with Grafana.
-            # Customize the secret name based on your naming conventions or requirements.
+
+
+
+
+# apiVersion: helm.toolkit.fluxcd.io/v2
+# kind: HelmRelease #think of this as the helm install command
+# metadata:
+#   name: kube-prometheus-stack
+#   namespace: monitoring
+# spec:
+#   interval: 30m
+#   chart:
+#     spec:
+#       chart: kube-prometheus-stack # This is equivalent to helm install [RELEASE_NAME] prometheus-community/kube-prometheus-stack
+#       version: "^66.2.0" # This versioning strategy allows patch upgrades for compatibility and stability. It is chosen to ensure we receive non-breaking updates while maintaining consistency with other charts in the project.
+#       sourceRef:
+#         kind: HelmRepository # This is the type of the source
+#         name: kube-prometheus-stack # This is the name of the source repo to install line 10
+#         namespace: monitoring # This is the namespace of the source
+#       interval: 12h
+#   install:
+#     crds: Create
+#   upgrade:
+#     crds: CreateReplace
+#   # Drift detection ensures that the deployed resources match the desired state defined in the HelmRelease.
+#   # When enabled, it detects and reconciles any manual changes made to the resources.
+#   driftDetection:
+#     mode: enabled # Enabling drift detection ensures that manual changes to resources are reconciled, but it may increase resource usage and is not recommended for environments with frequent manual interventions.
+#     ignore:
+#       # Ignore "validated" annotation which is not inserted during install
+#       - paths: ["/metadata/annotations/prometheus-operator-validated"]
+#         target:
+#           kind: PrometheusRule
+#   values:
+#     grafana:
+#       adminPassword: "admin"
+#       ingress:
+#         ## If true, Grafana Ingress will be created
+#         ##
+#         ## Ingress is disabled by default to avoid exposing Grafana publicly.
+#         ## Enable this field when you want to expose Grafana via an ingress controller.
+#         enabled: true
+
+#         ## IngressClassName for Grafana Ingress.
+#         ## Should be provided if Ingress is enable.
+#         ##
+#         ingressClassName: traefik
+
+#         ## Hostnames Must be provided if Ingress is enable.
+#         hosts:
+#           - grafana.landryzetam.net
+#         # The path for Grafana ingress is set to `/`. This is a common convention for root-level access,
+#         # but it can be customized based on specific requirements of the setup.
+#         path: /
+#         ## Secret must be manually created in the namespace
+#         ## Leave the tls configuration empty if you do not require TLS or customize it as needed for your setup.
+#         tls: 
+#           - secretName: grafana-tls-secret
+#             hosts:
+#               - grafana.landryzetam.net
+#             # The secret name for TLS configuration is set to `grafana-tls-secret`.
+#             # This should be created in the same namespace as the Grafana installation.
+#             # Ensure that the secret contains the necessary TLS certificate and key for secure communication.
+#             # The secret must be created manually in the namespace.
+#             # This is a common practice to ensure secure communication with Grafana.
+#             # Customize the secret name based on your naming conventions or requirements.
 
