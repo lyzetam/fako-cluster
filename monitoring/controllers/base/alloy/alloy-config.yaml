@@ -1,0 +1,266 @@
+# Alloy configuration in River syntax
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: alloy
+data:
+  config.alloy: |
+    // ============================================
+    // Kubernetes Pod Logs Collection
+    // ============================================
+    
+    discovery.kubernetes "pods" {
+      role = "pod"
+    }
+    
+    discovery.relabel "pod_logs" {
+      targets = discovery.kubernetes.pods.targets
+      
+      // Only keep running pods
+      rule {
+        source_labels = ["__meta_kubernetes_pod_phase"]
+        regex = "Running"
+        action = "keep"
+      }
+      
+      // Set namespace label
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        action = "replace"
+        target_label = "namespace"
+      }
+      
+      // Set pod name
+      rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        action = "replace"
+        target_label = "pod"
+      }
+      
+      // Set container name
+      rule {
+        source_labels = ["__meta_kubernetes_pod_container_name"]
+        action = "replace"
+        target_label = "container"
+      }
+      
+      // Set app label
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name", "__meta_kubernetes_pod_label_app", "__meta_kubernetes_pod_controller_name", "__meta_kubernetes_pod_name"]
+        regex = "^;*([^;]+)(;.*)?$"
+        action = "replace"
+        target_label = "app"
+      }
+      
+      // Set node name
+      rule {
+        source_labels = ["__meta_kubernetes_pod_node_name"]
+        action = "replace"
+        target_label = "node_name"
+      }
+      
+      // Copy all pod labels
+      rule {
+        action = "labelmap"
+        regex = "__meta_kubernetes_pod_label_(.+)"
+      }
+      
+      // Drop system namespaces (optional)
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        regex = "kube-system|kube-public"
+        action = "drop"
+      }
+    }
+    
+    // Kubernetes log source with CRI parsing
+    loki.source.kubernetes "pods" {
+      targets = discovery.relabel.pod_logs.output
+      forward_to = [loki.process.cri_parser.receiver]
+    }
+    
+    // CRI log parser
+    loki.process "cri_parser" {
+      stage.cri {}
+      
+      // Drop filename and stream labels
+      stage.label_drop {
+        values = ["filename", "stream"]
+      }
+      
+      forward_to = [loki.process.app_specific.receiver]
+    }
+    
+    // App-specific parsing (nginx example)
+    loki.process "app_specific" {
+      // Nginx log parsing
+      stage.match {
+        selector = "{app=\"nginx\"}"
+        
+        stage.regex {
+          expression = "^(?P<remote_addr>[\\w\\.]+) - (?P<remote_user>[^ ]*) \\[(?P<time_local>[^\\]]+)\\] \"(?P<method>[^ ]*) (?P<request>[^ ]*) (?P<protocol>[^ ]*)\" (?P<status>[\\d]+) (?P<body_bytes_sent>[\\d]+)"
+        }
+        
+        stage.labels {
+          values = {
+            method = "",
+            status = "",
+          }
+        }
+      }
+      
+      forward_to = [loki.write.production.receiver]
+    }
+    
+    // ============================================
+    // System Logs Collection
+    // ============================================
+    
+    local.file_match "system_logs" {
+      path_targets = [{
+        __path__ = "/var/log/syslog",
+        job = "syslog",
+        node_name = env("HOSTNAME"),
+      }]
+    }
+    
+    loki.source.file "syslog" {
+      targets = local.file_match.system_logs.targets
+      forward_to = [loki.write.production.receiver]
+      tail_from_end = true
+    }
+    
+    // ============================================
+    // Journal Logs Collection
+    // ============================================
+    
+    loki.source.journal "systemd" {
+      path = "/var/log/journal"
+      format_as_json = false
+      max_age = "12h"
+      labels = {
+        job = "systemd-journal",
+        node_name = env("HOSTNAME"),
+      }
+      relabel_rules = loki.relabel.journal.rules
+      forward_to = [loki.write.production.receiver]
+    }
+    
+    loki.relabel "journal" {
+      rule {
+        source_labels = ["__journal__systemd_unit"]
+        target_label = "unit"
+      }
+      
+      rule {
+        source_labels = ["__journal__hostname"]
+        target_label = "hostname"
+      }
+      
+      rule {
+        source_labels = ["__journal_priority"]
+        regex = "[0-3]"
+        target_label = "severity"
+        replacement = "critical"
+      }
+      
+      rule {
+        source_labels = ["__journal_priority"]
+        regex = "[4-5]"
+        target_label = "severity"
+        replacement = "warning"
+      }
+      
+      rule {
+        source_labels = ["__journal_priority"]
+        regex = "[6-7]"
+        target_label = "severity"
+        replacement = "info"
+      }
+    }
+    
+    // ============================================
+    // Loki Write Configuration
+    // ============================================
+    
+    loki.write "production" {
+      endpoint {
+        url = "http://loki-gateway.loki-stack.svc.cluster.local/loki/api/v1/push"
+        
+        // Retry configuration
+        retry_on_http_429 = true
+        min_backoff_period = "100ms"
+        max_backoff_period = "10s"
+        max_backoff_retries = 10
+      }
+      
+      // External labels
+      external_labels = {
+        cluster = "production",
+        environment = "staging",
+      }
+      
+      // Write-Ahead Log for durability
+      wal {
+        enabled = true
+        dir = "/alloy-data/wal"
+        max_segment_age = "2h"
+      }
+    }
+    
+    // ============================================
+    // Metrics Collection (Node Exporter Replacement)
+    // ============================================
+    
+    prometheus.exporter.unix "node_metrics" {
+      set_collectors = ["cpu", "meminfo", "filesystem", "netdev", "diskstats", "loadavg", "time"]
+      disable_collectors = ["wifi", "powersupplyclass", "thermal"]
+      
+      filesystem {
+        fs_types_exclude = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$"
+        mount_points_exclude = "^/(dev|proc|sys|var/lib/docker/.+)($|/)"
+      }
+    }
+    
+    prometheus.scrape "node_exporter" {
+      targets = prometheus.exporter.unix.node_metrics.targets
+      forward_to = [prometheus.remote_write.production.receiver]
+      scrape_interval = "15s"
+      
+      clustering {
+        enabled = true
+      }
+    }
+    
+    // Scrape existing ServiceMonitors
+    prometheus.operator.servicemonitors "service_monitors" {
+      forward_to = [prometheus.remote_write.production.receiver]
+      namespaces = ["gpu-monitoring", "monitoring", "gpu-operator"]
+    }
+    
+    // Remote write to Prometheus
+    prometheus.remote_write "production" {
+      endpoint {
+        url = "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+        
+        queue_config {
+          capacity = 10000
+          max_samples_per_send = 2000
+          batch_send_deadline = "5s"
+          max_shards = 50
+        }
+      }
+    }
+    
+    // ============================================
+    // Self-monitoring
+    // ============================================
+    
+    prometheus.exporter.self "alloy" {}
+    
+    prometheus.scrape "self" {
+      targets = prometheus.exporter.self.alloy.targets
+      forward_to = [prometheus.remote_write.production.receiver]
+      scrape_interval = "30s"
+    }
