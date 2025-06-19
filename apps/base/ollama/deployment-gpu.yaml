@@ -127,7 +127,8 @@ spec:
           # ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
           # ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed mistral:7b"
           # ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed qwen2.5:7b"
-          
+          ollama pull orieg/gemma3-tools:4b || echo "Failed gemma3-tools:4b"
+
           # PRIORITY 5: Larger models - RTX 5070 has the memory
           echo ""
           echo "=== LARGER MODELS (13B+) ==="
