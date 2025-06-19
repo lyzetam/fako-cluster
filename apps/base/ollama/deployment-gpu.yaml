@@ -134,8 +134,9 @@ spec:
           # ollama pull llama2:13b-chat-q4_K_M || echo "Failed llama2:13b"
           # ollama pull deepseek-r1:14b || echo "Failed deepseek-r1:14b"
           ollama pull phi-4:latest || echo "Failed phi-4"
-          ollama pull orieg/gemma3-tools:27b || echo "Failed gemma3-tools:27b"
-          
+          # ollama pull orieg/gemma3-tools:27b || echo "Failed gemma3-tools:27b"
+          ollama pull orieg/gemma3-tools:12b || echo "Failed gemma3-tools:12b"
+
           # PRIORITY 6: Even larger models for RTX 5070
           echo ""
           echo "=== HIGH-END MODELS ==="
