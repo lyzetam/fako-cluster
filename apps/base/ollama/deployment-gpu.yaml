@@ -155,11 +155,11 @@ spec:
           name: ollama-models
         resources:
           requests:
-            memory: "2Gi"  
-            cpu: "1000m"     
+            memory: "1Gi"  
+            cpu: "500m"     
           limits:
-            memory: "4Gi"
-            cpu: "2000m"
+            memory: "2Gi"
+            cpu: "1000m"
       
       volumes:
       - name: ollama-models
