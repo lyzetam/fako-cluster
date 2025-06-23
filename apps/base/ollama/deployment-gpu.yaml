@@ -129,8 +129,8 @@ spec:
           # PRIORITY 1: Home Assistant specialized models
           echo ""
           echo "=== HOME ASSISTANT SPECIALIZED MODELS ==="
-          ollama pull granite3-moe:1b || echo "Failed granite3-moe:1b"
-          ollama pull qwen3:8b || echo "Failed qwen3:8b"
+          # ollama pull granite3-moe:1b || echo "Failed granite3-moe:1b"
+          # ollama pull qwen3:8b || echo "Failed qwen3:8b"
 
           # PRIORITY 2: Latest Gemma models
           echo ""
@@ -141,16 +141,16 @@ spec:
           # PRIORITY 3: Small efficient models
           echo ""
           echo "=== SMALL EFFICIENT MODELS (1-4B) ==="
-          ollama pull llama3.2:3b || echo "Failed llama3.2:3b"
+          # ollama pull llama3.2:3b || echo "Failed llama3.2:3b"
           # ollama pull phi3:mini || echo "Failed phi3:mini"
           
           # PRIORITY 4: Medium models - RTX 5070 can handle these well
           echo ""
           echo "=== MEDIUM MODELS (7-8B) ==="
-          # ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
+          ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
           # ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed mistral:7b"
           # ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed qwen2.5:7b"
-          ollama pull orieg/gemma3-tools:4b || echo "Failed gemma3-tools:4b"
+          # ollama pull orieg/gemma3-tools:4b || echo "Failed gemma3-tools:4b"
 
           # PRIORITY 5: Larger models - RTX 5070 has the memory
           echo ""
@@ -159,7 +159,7 @@ spec:
           # ollama pull deepseek-r1:14b || echo "Failed deepseek-r1:14b"
           # ollama pull phi-4:latest || echo "Failed phi-4"
           # ollama pull orieg/gemma3-tools:27b || echo "Failed gemma3-tools:27b"
-          ollama pull orieg/gemma3-tools:12b || echo "Failed gemma3-tools:12b"
+          # ollama pull orieg/gemma3-tools:12b || echo "Failed gemma3-tools:12b"
 
           # PRIORITY 6: Even larger models for RTX 5070
           echo ""
