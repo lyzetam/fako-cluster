@@ -82,8 +82,8 @@ spec:
         volumeMounts:
         - mountPath: /root/.ollama
           name: ollama-models
-        - mountPath: /dev/shm
-          name: dev-shm
+        # - mountPath: /dev/shm
+        #   name: dev-shm
 
 
 
