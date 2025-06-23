@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: inotify-tuning
+  namespace: system-tuning
+spec:
+  selector:
+    matchLabels:
+      name: inotify-tuning
+  template:
+    metadata:
+      labels:
+        name: inotify-tuning
+    spec:
+      hostPID: true
+      hostNetwork: true
+      containers:
+      - name: sysctl
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Increase inotify limits
+          sysctl -w fs.inotify.max_user_watches=524288
+          sysctl -w fs.inotify.max_user_instances=512
+          sysctl -w fs.file-max=2097152
+          
+          # Keep container running
+          while true; do
+            sleep 86400
+          done
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+          limits:
+            cpu: 50m
+            memory: 50Mi
+      tolerations:
+      - operator: Exists
+      restartPolicy: Always
