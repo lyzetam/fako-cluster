@@ -27,6 +27,9 @@ spec:
       
       # Use nvidia RuntimeClass that exists
       runtimeClassName: nvidia
+
+       # Enable host memory access for large models
+      hostIPC: true
       
       containers:
       - name: ollama
@@ -45,32 +48,52 @@ spec:
           value: "0"
         - name: NVIDIA_DRIVER_CAPABILITIES
           value: "compute,utility"
+
+        # Force GPU usage
+        - name: OLLAMA_GPU_LAYERS
+          value: "999"  # Force all layers to GPU
+        - name: OLLAMA_CUDA_FORCE_MMQ
+          value: "1"
+        
+        # Disable flash attention - not supported
+        - name: OLLAMA_FLASH_ATTENTION
+          value: "0"  # Use "0" instead of "false" 
+
+        # GPU memory control
+        - name: OLLAMA_GPU_MEMORY
+          value: "12G"  # Leave 0.5GB for system on 12GB card
         
         # GPU-optimized settings for RTX 5070
         - name: OLLAMA_NUM_PARALLEL
-          value: "6"  # More parallel requests with RTX 5070
+          value: "2"  # More parallel requests with RTX 5070
         - name: OLLAMA_NUM_THREAD
           value: "8"  
         - name: OLLAMA_MAX_LOADED_MODELS
-          value: "5"  # Can keep more models in GPU memory with RTX 5070
+          value: "1"  # Can keep more models in GPU memory with RTX 5070
         - name: GOMAXPROCS
           value: "8"
         
         # Memory management
         - name: OLLAMA_KEEP_ALIVE
-          value: "30m"
+          value: "5m"
+        - name: OLLAMA_MODELS_UNLOAD_AFTER_IDLE
+          value: "300"  # 5 minutes in seconds
         
         volumeMounts:
         - mountPath: /root/.ollama
           name: ollama-models
-        
+        - mountPath: /dev/shm
+          name: dev-shm
+
+
+
         resources:
           requests:
-            memory: "8Gi"
+            memory: "12Gi"
             cpu: "4000m"
             nvidia.com/gpu: 1  # Request 1 GPU (RTX 5070)
           limits:
-            memory: "16Gi"
+            memory: "28Gi"
             cpu: "8000m"
             nvidia.com/gpu: 1  # Limit to 1 GPU
         
@@ -134,7 +157,7 @@ spec:
           echo "=== LARGER MODELS (13B+) ==="
           # ollama pull llama2:13b-chat-q4_K_M || echo "Failed llama2:13b"
           # ollama pull deepseek-r1:14b || echo "Failed deepseek-r1:14b"
-          ollama pull phi-4:latest || echo "Failed phi-4"
+          # ollama pull phi-4:latest || echo "Failed phi-4"
           # ollama pull orieg/gemma3-tools:27b || echo "Failed gemma3-tools:27b"
           ollama pull orieg/gemma3-tools:12b || echo "Failed gemma3-tools:12b"
 
