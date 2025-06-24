@@ -44,7 +44,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: nvidia-gpu-exporter
-        image: utkuozdemir/nvidia_gpu_exporter:1.2.0
+        image: utkuozdemir/nvidia_gpu_exporter:1.3.2
         imagePullPolicy: IfNotPresent
         args:
         - "--web.listen-address=:9835"
