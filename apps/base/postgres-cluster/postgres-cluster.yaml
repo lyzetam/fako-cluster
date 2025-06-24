@@ -40,18 +40,27 @@ spec:
       encoding: "UTF8"
       localeCollate: "en_US.UTF-8"
       localeCType: "en_US.UTF-8"
-      
-      # Add init container to fix permissions
-      postInitSQL:
-        - |
-          -- This is just a placeholder SQL to trigger the init
-          SELECT version();
   
   storage:
     size: 50Gi
     storageClass: "nfs-postgres"
   
-  # Add pod template to include init container
+  # IMPORTANT: Add init container to fix NFS permissions
+  initContainers:
+    - name: fix-permissions
+      image: busybox:latest
+      command: ['sh', '-c']
+      args:
+        - |
+          chown -R 999:999 /var/lib/postgresql/data
+          chmod -R 700 /var/lib/postgresql/data
+      volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+      securityContext:
+        runAsUser: 0
+  
+  # Fixed security context - PostgreSQL should run as postgres user (999)
   postgresql:
     shared_preload_libraries:
       - "pg_stat_statements"
@@ -72,10 +81,3 @@ spec:
     customQueriesConfigMap:
       - name: postgres-monitoring
         key: custom-queries
-  
-  # Add security context to run as root initially
-  securityContext:
-    runAsUser: 0
-    runAsGroup: 0
-    fsGroup: 999  # postgres group
-    fsGroupChangePolicy: "OnRootMismatch"
