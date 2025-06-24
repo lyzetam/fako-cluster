@@ -5,6 +5,9 @@ resources:
   - linkding
   - audiobookshelf
   - homebot
+
+  # Database Management
+  - postgres-cluster
   
   # AI/ML stack with GPU support
   - ollama         
@@ -14,6 +17,8 @@ resources:
   - openwakeword    
   - voice-monitor
   - node-labeling
+
+
 
   
 

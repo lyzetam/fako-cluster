@@ -4,9 +4,9 @@ resources:
   - renovate
   - nfs-storage
   - gpu-operator
-  # - nvidia-device-plugin
   - k8s-backup
   - system-tuning
+  - cloudnative-pg
 
   
   

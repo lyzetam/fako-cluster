@@ -1,0 +1,87 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-cluster
+  namespace: postgres
+spec:
+  # Number of instances (1 primary + 2 replicas)
+  instances: 3
+  
+  # PostgreSQL version
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.2
+  
+  # Enable superuser access
+  enableSuperuserAccess: true
+  
+  # Update strategy
+  primaryUpdateStrategy: unsupervised
+  startDelay: 300
+  stopDelay: 300
+  
+  # PostgreSQL configuration
+  postgresql:
+    parameters:
+      # Performance tuning
+      max_connections: "200"
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      work_mem: "4MB"
+      maintenance_work_mem: "64MB"
+      
+      # WAL and replication
+      wal_level: "replica"
+      max_wal_size: "1GB"
+      min_wal_size: "80MB"
+      archive_mode: "on"
+      archive_command: "/bin/true"  # Configure for actual archiving if needed
+      
+      # Logging
+      log_destination: "jsonlog"
+      log_directory: "/controller/log"
+      log_filename: "postgres.json"
+      logging_collector: "on"
+      
+    pg_hba:
+      # Allow connections from Kubernetes pods
+      - host all all 10.0.0.0/8 md5
+      - host all all 172.16.0.0/12 md5
+      - host all all 192.168.0.0/16 md5
+  
+  # Bootstrap configuration
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      secret:
+        name: app-user-secret
+      dataChecksums: true
+      encoding: "UTF8"
+      localeCollate: "en_US.UTF-8"
+      localeCType: "en_US.UTF-8"
+  
+  # Storage configuration - using your NFS storage class
+  storage:
+    size: 50Gi
+    storageClass: "nfs-csi-v2"
+  
+  # Resource allocation
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1"
+    limits:
+      memory: "4Gi"
+      cpu: "2"
+  
+  # High availability and scheduling
+  affinity:
+    # Ensure pods are distributed across nodes
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+  
+  # Monitoring
+  monitoring:
+    enabled: true
+    customQueriesConfigMap:
+      - name: postgres-monitoring
+        key: custom-queries
