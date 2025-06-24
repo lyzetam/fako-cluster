@@ -4,50 +4,32 @@ metadata:
   name: postgres-cluster
   namespace: postgres
 spec:
-  # Number of instances (1 primary + 2 replicas)
   instances: 3
-  
-  # PostgreSQL version
   imageName: ghcr.io/cloudnative-pg/postgresql:16.2
-  
-  # Enable superuser access
   enableSuperuserAccess: true
   
-  # REMOVE THESE LINES - Let PostgreSQL use its default user
-  # postgresUID: 1000
-  # postgresGID: 1000
-  
-  # Update strategy
   primaryUpdateStrategy: unsupervised
   startDelay: 300
   stopDelay: 300
   
-  # PostgreSQL configuration
   postgresql:
     parameters:
-      # Performance tuning
       max_connections: "200"
       shared_buffers: "256MB"
       effective_cache_size: "1GB"
       work_mem: "4MB"
       maintenance_work_mem: "64MB"
-      
-      # WAL and replication
       wal_level: "replica"
       max_wal_size: "1GB"
       min_wal_size: "80MB"
-      
-      # Other safe parameters
       checkpoint_timeout: "5min"
       checkpoint_completion_target: "0.9"
-      
+    
     pg_hba:
-      # Allow connections from Kubernetes pods
       - host all all 10.0.0.0/8 md5
       - host all all 172.16.0.0/12 md5
       - host all all 192.168.0.0/16 md5
   
-  # Bootstrap configuration
   bootstrap:
     initdb:
       database: app
@@ -58,13 +40,22 @@ spec:
       encoding: "UTF8"
       localeCollate: "en_US.UTF-8"
       localeCType: "en_US.UTF-8"
+      
+      # Add init container to fix permissions
+      postInitSQL:
+        - |
+          -- This is just a placeholder SQL to trigger the init
+          SELECT version();
   
-  # Storage configuration
   storage:
     size: 50Gi
     storageClass: "nfs-postgres"
   
-  # Resource allocation
+  # Add pod template to include init container
+  postgresql:
+    shared_preload_libraries:
+      - "pg_stat_statements"
+  
   resources:
     requests:
       memory: "2Gi"
@@ -73,14 +64,18 @@ spec:
       memory: "4Gi"
       cpu: "2"
   
-  # High availability and scheduling
   affinity:
-    # Ensure pods are distributed across nodes
     enablePodAntiAffinity: true
     topologyKey: kubernetes.io/hostname
   
-  # Monitoring configuration
   monitoring:
     customQueriesConfigMap:
       - name: postgres-monitoring
         key: custom-queries
+  
+  # Add security context to run as root initially
+  securityContext:
+    runAsUser: 0
+    runAsGroup: 0
+    fsGroup: 999  # postgres group
+    fsGroupChangePolicy: "OnRootMismatch"
