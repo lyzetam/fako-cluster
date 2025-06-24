@@ -13,7 +13,6 @@ mountOptions:
   - nolock
   - soft
   - rw
-  - no_root_squash
   - rsize=32768
   - wsize=32768
   - timeo=600
