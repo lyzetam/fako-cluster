@@ -29,12 +29,31 @@ spec:
       min_wal_size: "80MB"
       checkpoint_timeout: "5min"
       checkpoint_completion_target: "0.9"
-      # Remove shared_preload_libraries from here
     
     pg_hba:
       - host all all 10.0.0.0/8 md5
       - host all all 172.16.0.0/12 md5
       - host all all 192.168.0.0/16 md5
+  
+  # Init containers to fix NFS permissions
+  initContainers:
+  - name: fix-permissions
+    image: busybox:latest
+    command: 
+    - /bin/sh
+    - -c
+    - |
+      echo "Fixing permissions for PostgreSQL data directory..."
+      chown -R 999:999 /var/lib/postgresql/data || true
+      chmod 750 /var/lib/postgresql/data || true
+      echo "Permissions fixed."
+    volumeMounts:
+    - name: pgdata
+      mountPath: /var/lib/postgresql/data
+    securityContext:
+      runAsUser: 0  # Run as root to change ownership
+      runAsGroup: 0
+      privileged: true
   
   bootstrap:
     initdb:
@@ -64,9 +83,16 @@ spec:
     topologyKey: kubernetes.io/hostname
   
   monitoring:
+    enabled: true
     customQueriesConfigMap:
       - name: postgres-monitoring
         key: custom-queries
   
-  # Security context - CloudNative PG handles this automatically
-  # Running as postgres user (999) is handled by the operator
+  # Additional pod spec configuration
+  podSpec:
+    # Ensure consistent security context
+    securityContext:
+      fsGroup: 999
+      runAsUser: 999
+      runAsGroup: 999
+      fsGroupChangePolicy: "OnRootMismatch"
