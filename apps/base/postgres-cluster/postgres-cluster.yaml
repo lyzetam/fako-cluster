@@ -13,6 +13,10 @@ spec:
   # Enable superuser access
   enableSuperuserAccess: true
   
+  # ADD THESE TWO LINES TO FIX NFS OWNERSHIP ISSUE
+  postgresUID: 1000
+  postgresGID: 1000
+  
   # Update strategy
   primaryUpdateStrategy: unsupervised
   startDelay: 300
@@ -28,7 +32,7 @@ spec:
       work_mem: "4MB"
       maintenance_work_mem: "64MB"
       
-      # WAL and replication (removed archive_command)
+      # WAL and replication
       wal_level: "replica"
       max_wal_size: "1GB"
       min_wal_size: "80MB"
@@ -36,8 +40,6 @@ spec:
       # Other safe parameters
       checkpoint_timeout: "5min"
       checkpoint_completion_target: "0.9"
-      
-      # Removed logging parameters - CloudNativePG manages these
       
     pg_hba:
       # Allow connections from Kubernetes pods
