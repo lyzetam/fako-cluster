@@ -13,9 +13,9 @@ spec:
   # Enable superuser access
   enableSuperuserAccess: true
   
-  # ADD THESE TWO LINES TO FIX NFS OWNERSHIP ISSUE
-  postgresUID: 1000
-  postgresGID: 1000
+  # REMOVE THESE LINES - Let PostgreSQL use its default user
+  # postgresUID: 1000
+  # postgresGID: 1000
   
   # Update strategy
   primaryUpdateStrategy: unsupervised
