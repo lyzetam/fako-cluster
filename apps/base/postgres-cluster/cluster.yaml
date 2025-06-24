@@ -33,7 +33,7 @@ spec:
       max_wal_size: "1GB"
       min_wal_size: "80MB"
       archive_mode: "on"
-      archive_command: "/bin/true"  # Configure for actual archiving if needed
+      archive_command: "/bin/true"
       
       # Logging
       log_destination: "jsonlog"
@@ -59,7 +59,7 @@ spec:
       localeCollate: "en_US.UTF-8"
       localeCType: "en_US.UTF-8"
   
-  # Storage configuration - using your NFS storage class
+  # Storage configuration
   storage:
     size: 50Gi
     storageClass: "nfs-csi-v2"
@@ -79,9 +79,9 @@ spec:
     enablePodAntiAffinity: true
     topologyKey: kubernetes.io/hostname
   
-  # Monitoring
+  # Monitoring configuration - FIXED
   monitoring:
-    enabled: true
+    # Remove the 'enabled' field - it doesn't exist
     customQueriesConfigMap:
       - name: postgres-monitoring
         key: custom-queries
