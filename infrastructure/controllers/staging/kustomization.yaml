@@ -6,5 +6,6 @@ resources:
   - gpu-operator
   - k8s-backup
   - system-tuning
+  - cloudnative-pg
 
 
