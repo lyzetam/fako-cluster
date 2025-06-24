@@ -28,18 +28,16 @@ spec:
       work_mem: "4MB"
       maintenance_work_mem: "64MB"
       
-      # WAL and replication
+      # WAL and replication (removed archive_command)
       wal_level: "replica"
       max_wal_size: "1GB"
       min_wal_size: "80MB"
-      archive_mode: "on"
-      archive_command: "/bin/true"
       
-      # Logging
-      log_destination: "jsonlog"
-      log_directory: "/controller/log"
-      log_filename: "postgres.json"
-      logging_collector: "on"
+      # Other safe parameters
+      checkpoint_timeout: "5min"
+      checkpoint_completion_target: "0.9"
+      
+      # Removed logging parameters - CloudNativePG manages these
       
     pg_hba:
       # Allow connections from Kubernetes pods
@@ -79,9 +77,8 @@ spec:
     enablePodAntiAffinity: true
     topologyKey: kubernetes.io/hostname
   
-  # Monitoring configuration - FIXED
+  # Monitoring configuration
   monitoring:
-    # Remove the 'enabled' field - it doesn't exist
     customQueriesConfigMap:
       - name: postgres-monitoring
         key: custom-queries
