@@ -14,7 +14,6 @@ spec:
   
   # PostgreSQL configuration
   postgresql:
-    # shared_preload_libraries goes here, not in parameters
     shared_preload_libraries:
       - "pg_stat_statements"
     
@@ -34,26 +33,6 @@ spec:
       - host all all 10.0.0.0/8 md5
       - host all all 172.16.0.0/12 md5
       - host all all 192.168.0.0/16 md5
-  
-  # Init containers to fix NFS permissions
-  initContainers:
-  - name: fix-permissions
-    image: busybox:latest
-    command: 
-    - /bin/sh
-    - -c
-    - |
-      echo "Fixing permissions for PostgreSQL data directory..."
-      chown -R 999:999 /var/lib/postgresql/data || true
-      chmod 750 /var/lib/postgresql/data || true
-      echo "Permissions fixed."
-    volumeMounts:
-    - name: pgdata
-      mountPath: /var/lib/postgresql/data
-    securityContext:
-      runAsUser: 0  # Run as root to change ownership
-      runAsGroup: 0
-      privileged: true
   
   bootstrap:
     initdb:
@@ -82,17 +61,8 @@ spec:
     enablePodAntiAffinity: true
     topologyKey: kubernetes.io/hostname
   
-  monitoring:
-    enabled: true
-    customQueriesConfigMap:
-      - name: postgres-monitoring
-        key: custom-queries
-  
-  # Additional pod spec configuration
-  podSpec:
-    # Ensure consistent security context
-    securityContext:
-      fsGroup: 999
-      runAsUser: 999
-      runAsGroup: 999
-      fsGroupChangePolicy: "OnRootMismatch"
+  # Monitoring configuration (without .enabled field)
+  # monitoring:
+  #   customQueriesConfigMap:
+  #     - name: postgres-monitoring
+  #       key: custom-queries
