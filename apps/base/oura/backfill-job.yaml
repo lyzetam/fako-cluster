@@ -1,0 +1,48 @@
+# One-time job for initial data backfill
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: oura-collector-backfill
+  namespace: oura-collector
+spec:
+  ttlSecondsAfterFinished: 86400  # Clean up after 24 hours
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: oura-collector
+        image: lzetam/oura-collector:latest
+        env:
+        # Storage configuration
+        - name: STORAGE_BACKEND
+          value: "postgres"
+        - name: DATABASE_HOST
+          value: "postgres-cluster-rw.postgres.svc.cluster.local"
+        - name: DATABASE_NAME
+          value: "app"
+        
+        # AWS Secrets Manager configuration
+        - name: OURA_SECRETS_NAME
+          value: "oura/api-credentials"
+        - name: POSTGRES_SECRETS_NAME
+          value: "postgres/app-user"
+        
+        # Collection configuration
+        - name: DAYS_TO_BACKFILL
+          value: "30"  # Collect last 30 days for initial backfill
+        - name: RUN_ONCE
+          value: "true"
+        - name: LOG_LEVEL
+          value: "INFO"
+        
+        envFrom:
+        - secretRef:
+            name: aws-credentials
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"

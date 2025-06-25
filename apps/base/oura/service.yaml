@@ -1,10 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: linkding
+  name: oura-collector
+  namespace: oura-collector
 spec:
-  ports:
-    - port: 9090
   selector:
-    app: linkding
+    app: oura-collector
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: health
   type: ClusterIP
