@@ -5,6 +5,7 @@ resources:
   - linkding
   - audiobookshelf
   - homebot
+  - oura-collector
 
   # Database Management
   - postgres-cluster
@@ -18,6 +19,8 @@ resources:
   - openwakeword    
   - voice-monitor
   - node-labeling
+
+
 
 
 

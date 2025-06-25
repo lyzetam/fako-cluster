@@ -1,53 +1,62 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: linkding                            # Name of the Deployment
+  name: oura-collector
+  namespace: oura-collector
 spec:
-  replicas: 1                               # Only one instance of the app
+  replicas: 1
   selector:
     matchLabels:
-      app: linkding                         # Match Pods with this label
+      app: oura-collector
   template:
     metadata:
       labels:
-        app: linkding                       # Label applied to the Pod
+        app: oura-collector
     spec:
-      securityContext:                      # Pod-level security settings
-        runAsUser: 33                     # Non-root user ID , this comes from the Dockerfile. www-data is UID 33 tells pod to run as this user 
-        runAsGroup: 33                    # Group ID for the user, which is also www-data
-        fsGroup: 33                       # Group ID for volume access this is also www-data tells pod update the group ownership of the volume to this user
+      serviceAccountName: oura-collector
       containers:
-        - name: linkding
-          image: lzetam/oura-collector:latest # Specific version of the app image
-          ports:
-            - containerPort: 9090           # Container listens on port 9090
-          resources:
-            requests:
-              memory: "128Mi"               # Minimum memory guaranteed
-              cpu: "250m"                   # Minimum CPU guaranteed
-            limits:
-              memory: "256Mi"               # Max memory allowed
-              cpu: "500m"                   # Max CPU allowed
-          envFrom:
-            # - configMapRef:
-            #     name: linkding-configmap
-            - secretRef:
-                name: linkding-container-env
-          securityContext:                  # Container-level security settings
-            # runAsNonRoot: true              # Ensure container doesn't run as root
-            allowPrivilegeEscalation: false # Prevent privilege escalation so the user can't gain root access by exploiting vulnerabilities 
-            # capabilities:
-              # drop:
-                # - ALL                       # Drop all capabilities for safety
-            # readOnlyRootFilesystem: true    # Makes root filesystem read-only
-          volumeMounts:
-            - name: linkding-data
-              mountPath: /etc/linkding/data # Mount persistent volume to this path
-      restartPolicy: Always                 # Restart policy for the Pod
+      - name: oura-collector
+        image: lzetam/oura-collector:latest
+        ports:
+        - containerPort: 8080
+          name: health
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: oura-collector-config
+        - secretRef:
+            name: aws-credentials
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        volumeMounts:
+        - name: data
+          mountPath: /data  # For fallback file storage if needed
+      
       volumes:
-        - name: linkding-data
-          persistentVolumeClaim:
-            claimName: linkding-data-nfs-pvc    # Reference to existing PVC
-
-
-
+      - name: data
+        emptyDir: {}  # Temporary storage, not persistent since we're using PostgreSQL
