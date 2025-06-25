@@ -4,3 +4,7 @@ namespace: postgres
 resources:
   - ../../base/postgres-cluster/
   - app-secret.yaml  
+patches:
+  - storage-patch.yaml
+
+  
