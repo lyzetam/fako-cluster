@@ -29,6 +29,16 @@ spec:
         volumeMounts:
         - name: pgadmin-data
           mountPath: /var/lib/pgadmin
+        # Mount the servers.json from ConfigMap
+        - name: pgadmin-config-servers
+          mountPath: /pgadmin4/servers.json
+          subPath: servers.json
+          readOnly: true
+        # Optional: Mount .pgpass file if you want automatic authentication
+        - name: pgpass
+          mountPath: /var/lib/pgadmin/.pgpass
+          subPath: .pgpass
+          readOnly: true
         resources:
           requests:
             memory: "256Mi"
@@ -38,6 +48,65 @@ spec:
             cpu: "500m"
       volumes:
       - name: pgadmin-data
-        # emptyDir: {}
-        persistentVolumeClaim:  # Using PVC instead of emptyDir
+        persistentVolumeClaim:
           claimName: pgadmin-data
+      # Add volume for servers.json from ConfigMap
+      - name: pgadmin-config-servers
+        configMap:
+          name: pgadmin-config
+          items:
+          - key: servers.json
+            path: servers.json
+      # Add volume for .pgpass file
+      - name: pgpass
+        secret:
+          name: pgadmin-pgpass
+          defaultMode: 0600  # Important: pgpass must have restricted permissions
+          items:
+          - key: .pgpass
+            path: .pgpass
+
+
+# ---
+# # apps/base/pgadmin/deployment.yaml
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: pgadmin
+#   namespace: pgadmin
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: pgadmin
+#   template:
+#     metadata:
+#       labels:
+#         app: pgadmin
+#     spec:
+#       containers:
+#       - name: pgadmin
+#         image: dpage/pgadmin4:latest
+#         ports:
+#         - containerPort: 80
+#           protocol: TCP
+#         envFrom:
+#         - configMapRef:
+#             name: pgadmin-config
+#         - secretRef:
+#             name: pgadmin-secret
+#         volumeMounts:
+#         - name: pgadmin-data
+#           mountPath: /var/lib/pgadmin
+#         resources:
+#           requests:
+#             memory: "256Mi"
+#             cpu: "250m"
+#           limits:
+#             memory: "512Mi"
+#             cpu: "500m"
+#       volumes:
+#       - name: pgadmin-data
+#         # emptyDir: {}
+#         persistentVolumeClaim:  # Using PVC instead of emptyDir
+#           claimName: pgadmin-data
