@@ -8,6 +8,10 @@ spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:16.2
   enableSuperuserAccess: true
   
+  # Add this section - uses AWS Secrets Manager for admin credentials
+  superuserSecret:
+    name: postgres-admin-secret
+  
   primaryUpdateStrategy: unsupervised
   startDelay: 300
   stopDelay: 300
@@ -40,7 +44,7 @@ spec:
       database: app
       owner: app
       secret:
-        name: app-user-secret
+        name: app-user-secret  # This now comes from AWS via External Secrets
       dataChecksums: true
       encoding: "UTF8"
       localeCollate: "en_US.UTF-8"
