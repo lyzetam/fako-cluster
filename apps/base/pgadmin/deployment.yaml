@@ -29,15 +29,9 @@ spec:
         volumeMounts:
         - name: pgadmin-data
           mountPath: /var/lib/pgadmin
-        # Mount the servers.json from ConfigMap
-        - name: pgadmin-config-servers
+        - name: servers-config
           mountPath: /pgadmin4/servers.json
           subPath: servers.json
-          readOnly: true
-        # Optional: Mount .pgpass file if you want automatic authentication
-        - name: pgpass
-          mountPath: /var/lib/pgadmin/.pgpass
-          subPath: .pgpass
           readOnly: true
         resources:
           requests:
@@ -50,22 +44,12 @@ spec:
       - name: pgadmin-data
         persistentVolumeClaim:
           claimName: pgadmin-data
-      # Add volume for servers.json from ConfigMap
-      - name: pgadmin-config-servers
+      - name: servers-config
         configMap:
           name: pgadmin-config
           items:
           - key: servers.json
             path: servers.json
-      # Add volume for .pgpass file
-      - name: pgpass
-        secret:
-          name: pgadmin-pgpass
-          defaultMode: 0600  # Important: pgpass must have restricted permissions
-          items:
-          - key: .pgpass
-            path: .pgpass
-
 
 # ---
 # # apps/base/pgadmin/deployment.yaml
