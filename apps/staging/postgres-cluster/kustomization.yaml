@@ -3,8 +3,6 @@ kind: Kustomization
 namespace: postgres
 resources:
   - ../../base/postgres-cluster/
-  - app-secret.yaml  
-patches:
+  - app-secret.yaml
+patchesStrategicMerge:
   - storage-patch.yaml
-
-  
