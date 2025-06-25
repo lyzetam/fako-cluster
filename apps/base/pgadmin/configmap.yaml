@@ -1,15 +1,4 @@
-# # apps/base/pgadmin/configmap.yaml
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: pgadmin-config
-#   namespace: pgadmin
-# data:
-#   PGADMIN_DEFAULT_EMAIL: "85landry@gmail.com"
-#   PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
-#   PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: "10"
-
-# File: apps/base/pgadmin/configmap.yaml - Enhanced configuration
+# apps/base/pgadmin/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -19,10 +8,12 @@ data:
   PGADMIN_DEFAULT_EMAIL: "85landry@gmail.com"
   PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
   PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: "10"
-  # Pre-configure PostgreSQL servers
   PGADMIN_CONFIG_SERVER_MODE: "False"
   PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
-  # Add connection to postgres cluster
+  # This is important for auto-loading servers
+  PGADMIN_SERVER_JSON_FILE: "/pgadmin4/servers.json"
+  
+  # Pre-configure PostgreSQL servers
   servers.json: |
     {
       "Servers": {
@@ -33,18 +24,70 @@ data:
           "Port": 5432,
           "MaintenanceDB": "app",
           "Username": "app",
-          "PassFile": "/var/lib/pgadmin/.pgpass",
-          "SSLMode": "prefer"
+          "SSLMode": "prefer",
+          "PassFile": "/var/lib/pgadmin/.pgpass"
         },
         "2": {
           "Name": "PostgreSQL Cluster (Read-Only)",
-          "Group": "Servers", 
+          "Group": "Servers",
           "Host": "postgres-cluster-ro.postgres.svc.cluster.local",
           "Port": 5432,
           "MaintenanceDB": "app",
           "Username": "app",
-          "PassFile": "/var/lib/pgadmin/.pgpass",
-          "SSLMode": "prefer"
+          "SSLMode": "prefer",
+          "PassFile": "/var/lib/pgadmin/.pgpass"
         }
       }
     }
+
+
+# # # apps/base/pgadmin/configmap.yaml
+# # apiVersion: v1
+# # kind: ConfigMap
+# # metadata:
+# #   name: pgadmin-config
+# #   namespace: pgadmin
+# # data:
+# #   PGADMIN_DEFAULT_EMAIL: "85landry@gmail.com"
+# #   PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
+# #   PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: "10"
+
+# # File: apps/base/pgadmin/configmap.yaml - Enhanced configuration
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: pgadmin-config
+#   namespace: pgadmin
+# data:
+#   PGADMIN_DEFAULT_EMAIL: "85landry@gmail.com"
+#   PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
+#   PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: "10"
+#   # Pre-configure PostgreSQL servers
+#   PGADMIN_CONFIG_SERVER_MODE: "False"
+#   PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+#   # Add connection to postgres cluster
+#   servers.json: |
+#     {
+#       "Servers": {
+#         "1": {
+#           "Name": "PostgreSQL Cluster",
+#           "Group": "Servers",
+#           "Host": "postgres-cluster-rw.postgres.svc.cluster.local",
+#           "Port": 5432,
+#           "MaintenanceDB": "app",
+#           "Username": "app",
+#           "PassFile": "/var/lib/pgadmin/.pgpass",
+#           "SSLMode": "prefer"
+#         },
+#         "2": {
+#           "Name": "PostgreSQL Cluster (Read-Only)",
+#           "Group": "Servers", 
+#           "Host": "postgres-cluster-ro.postgres.svc.cluster.local",
+#           "Port": 5432,
+#           "MaintenanceDB": "app",
+#           "Username": "app",
+#           "PassFile": "/var/lib/pgadmin/.pgpass",
+#           "SSLMode": "prefer"
+#         }
+#       }
+#     }
