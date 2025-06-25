@@ -6,7 +6,7 @@ provisioner: nfs.csi.k8s.io
 parameters:
   server: "10.85.30.127"
   share: "/volume1/k8s-db"
-  mountPermissions: "0750"
+  mountPermissions: "0777"  # Set permissions to 0777 for full access
 reclaimPolicy: Retain
 allowVolumeExpansion: true
 mountOptions:
