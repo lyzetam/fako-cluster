@@ -1,3 +1,4 @@
+# File: apps/base/oura-collector/deployment.yaml (updated section)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,7 +26,7 @@ spec:
         - configMapRef:
             name: oura-collector-config
         - secretRef:
-            name: aws-credentials
+            name: aws-credentials-env  # Changed from aws-credentials
         
         resources:
           requests:
@@ -55,8 +56,8 @@ spec:
         
         volumeMounts:
         - name: data
-          mountPath: /data  # For fallback file storage if needed
+          mountPath: /data
       
       volumes:
       - name: data
-        emptyDir: {}  # Temporary storage, not persistent since we're using PostgreSQL
+        emptyDir: {}
