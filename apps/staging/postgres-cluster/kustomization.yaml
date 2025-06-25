@@ -3,4 +3,4 @@ kind: Kustomization
 namespace: postgres
 resources:
   - ../../base/postgres-cluster/
-  - app-secret.yaml  # This should be encrypted with SOPS
+  - app-secret.yaml  

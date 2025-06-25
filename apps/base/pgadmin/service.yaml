@@ -1,0 +1,15 @@
+---
+# apps/base/pgadmin/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgadmin
+  namespace: pgadmin
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  selector:
+    app: pgadmin
+  type: ClusterIP
