@@ -8,6 +8,7 @@ resources:
 
   # Database Management
   - postgres-cluster
+  - pgadmin
   
   # AI/ML stack with GPU support
   - ollama         
