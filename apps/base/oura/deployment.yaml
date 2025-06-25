@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: linkding                            # Name of the Deployment
+spec:
+  replicas: 1                               # Only one instance of the app
+  selector:
+    matchLabels:
+      app: linkding                         # Match Pods with this label
+  template:
+    metadata:
+      labels:
+        app: linkding                       # Label applied to the Pod
+    spec:
+      securityContext:                      # Pod-level security settings
+        runAsUser: 33                     # Non-root user ID , this comes from the Dockerfile. www-data is UID 33 tells pod to run as this user 
+        runAsGroup: 33                    # Group ID for the user, which is also www-data
+        fsGroup: 33                       # Group ID for volume access this is also www-data tells pod update the group ownership of the volume to this user
+      containers:
+        - name: linkding
+          image: lzetam/oura-collector:latest # Specific version of the app image
+          ports:
+            - containerPort: 9090           # Container listens on port 9090
+          resources:
+            requests:
+              memory: "128Mi"               # Minimum memory guaranteed
+              cpu: "250m"                   # Minimum CPU guaranteed
+            limits:
+              memory: "256Mi"               # Max memory allowed
+              cpu: "500m"                   # Max CPU allowed
+          envFrom:
+            # - configMapRef:
+            #     name: linkding-configmap
+            - secretRef:
+                name: linkding-container-env
+          securityContext:                  # Container-level security settings
+            # runAsNonRoot: true              # Ensure container doesn't run as root
+            allowPrivilegeEscalation: false # Prevent privilege escalation so the user can't gain root access by exploiting vulnerabilities 
+            # capabilities:
+              # drop:
+                # - ALL                       # Drop all capabilities for safety
+            # readOnlyRootFilesystem: true    # Makes root filesystem read-only
+          volumeMounts:
+            - name: linkding-data
+              mountPath: /etc/linkding/data # Mount persistent volume to this path
+      restartPolicy: Always                 # Restart policy for the Pod
+      volumes:
+        - name: linkding-data
+          persistentVolumeClaim:
+            claimName: linkding-data-nfs-pvc    # Reference to existing PVC
+
+
+
