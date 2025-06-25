@@ -10,14 +10,13 @@ parameters:
 reclaimPolicy: Retain
 allowVolumeExpansion: true
 mountOptions:
-  - nfsvers=4
+  - nfsvers=3
   - nolock
   - hard
   - rw
-  - rsize=32768
-  - wsize=32768
+  - rsize=1048576      # Larger read size
+  - wsize=1048576      # Larger write size
   - timeo=600
   - retrans=2
   - noresvport
-  - rsize=1048576      # Larger read size
-  - wsize=1048576      # Larger write size
+
