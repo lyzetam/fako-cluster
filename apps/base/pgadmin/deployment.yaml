@@ -38,4 +38,6 @@ spec:
             cpu: "500m"
       volumes:
       - name: pgadmin-data
-        emptyDir: {}
+        # emptyDir: {}
+        persistentVolumeClaim:  # Using PVC instead of emptyDir
+          claimName: pgadmin-data
