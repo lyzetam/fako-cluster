@@ -5,6 +5,7 @@ namespace: pgadmin
 resources:
   - namespace.yaml
   - configmap.yaml
+  - storage.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

@@ -1,0 +1,13 @@
+# File: apps/base/pgadmin/storage.yaml - Add this new file
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pgadmin-data
+  namespace: pgadmin
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 5Gi
