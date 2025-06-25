@@ -4,8 +4,10 @@ namespace: oura-collector
 resources:
   - namespace.yaml
   - rbac.yaml
+  - rbac-additions.yaml      # New: Additional RBAC for External Secrets
+  - secret-store.yaml        # New: Local SecretStore
+  - external-secret-aws.yaml # New: External Secret for AWS credentials
   - configmap.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml  # Uncomment if you want to expose health endpoint
-  # - cronjob.yaml  # Alternative to deployment for scheduled collection
+  - ingress.yaml

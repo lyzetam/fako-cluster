@@ -1,0 +1,26 @@
+# File: apps/base/oura-collector/rbac-additions.yaml
+# Additional RBAC for External Secrets to read secrets
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secret-reader
+  namespace: oura-collector
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: oura-collector-secret-reader
+  namespace: oura-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: secret-reader
+subjects:
+- kind: ServiceAccount
+  name: oura-collector
+  namespace: oura-collector
