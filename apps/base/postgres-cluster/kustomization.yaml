@@ -4,9 +4,12 @@ namespace: postgres
 resources:
   - namespace.yaml
   - configmap.yaml
+  - secret-store.yaml
+  - external-secret-admin.yaml    
+  - external-secret-app.yam
   - postgres-cluster.yaml
   - aws-credentials-secret.yaml
-  - secret-store.yaml
+
   # - service.yaml
   # - backup-schedule.yaml  # Uncomment if using backups
   # - pooler.yaml  # Uncomment if using PgBouncer
