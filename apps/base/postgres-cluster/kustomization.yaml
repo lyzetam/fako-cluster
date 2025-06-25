@@ -6,7 +6,7 @@ resources:
   - configmap.yaml
   - secret-store.yaml
   - external-secret-admin.yaml    
-  - external-secret-app.yam
+  - external-secret-app.yaml
   - postgres-cluster.yaml
   - aws-credentials-secret.yaml
 
