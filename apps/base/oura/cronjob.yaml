@@ -1,0 +1,53 @@
+# Alternative to deployment - use CronJob for scheduled collection
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: oura-collector-cron
+  namespace: oura-collector
+spec:
+  schedule: "0 */6 * * *"  # Run every 6 hours
+  concurrencyPolicy: Forbid  # Don't run multiple jobs at once
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: oura-collector
+            image: lzetam/oura-collector:latest
+            env:
+            # Storage configuration
+            - name: STORAGE_BACKEND
+              value: "postgres"
+            - name: DATABASE_HOST
+              value: "postgres-cluster-rw.postgres.svc.cluster.local"
+            - name: DATABASE_NAME
+              value: "app"
+            
+            # AWS Secrets Manager configuration
+            - name: OURA_SECRETS_NAME
+              value: "oura/api-credentials"
+            - name: POSTGRES_SECRETS_NAME
+              value: "postgres/app-user"
+            
+            # Collection configuration
+            - name: DAYS_TO_BACKFILL
+              value: "1"  # Only collect last day when running as cron
+            - name: RUN_ONCE
+              value: "true"  # Important: run once and exit for CronJob
+            - name: LOG_LEVEL
+              value: "INFO"
+            
+            envFrom:
+            - secretRef:
+                name: aws-credentials
+            
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
