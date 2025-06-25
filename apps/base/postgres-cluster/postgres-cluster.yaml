@@ -63,8 +63,8 @@ spec:
     topologyKey: kubernetes.io/hostname
   
   # Monitoring configuration 
-  monitoring:
-    enabled: true
-    customQueriesConfigMap:
-      - name: postgres-monitoring
-        key: custom-queries
+  # monitoring:
+  #   enabled: true
+  #   customQueriesConfigMap:
+  #     - name: postgres-monitoring
+  #       key: custom-queries
