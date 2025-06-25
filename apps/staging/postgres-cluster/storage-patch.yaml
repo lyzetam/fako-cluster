@@ -1,0 +1,11 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-cluster
+  namespace: postgres
+spec:
+  postgresql:
+    securityContext:
+      fsGroup: 26
+      runAsUser: 26
+      runAsNonRoot: true
