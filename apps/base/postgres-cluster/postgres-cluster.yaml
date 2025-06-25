@@ -19,9 +19,10 @@ spec:
     
     parameters:
       max_connections: "200"
-      shared_buffers: "256MB"
-      effective_cache_size: "1GB"
-      work_mem: "4MB"
+      shared_buffers: "512MB"
+      effective_cache_size: "3GB"
+      work_mem: "8MB"
+      wal_buffers: "16MB"
       maintenance_work_mem: "64MB"
       wal_level: "replica"
       max_wal_size: "1GB"
@@ -61,8 +62,9 @@ spec:
     enablePodAntiAffinity: true
     topologyKey: kubernetes.io/hostname
   
-  # Monitoring configuration (without .enabled field)
-  # monitoring:
-  #   customQueriesConfigMap:
-  #     - name: postgres-monitoring
-  #       key: custom-queries
+  # Monitoring configuration 
+  monitoring:
+    enabled: true
+    customQueriesConfigMap:
+      - name: postgres-monitoring
+        key: custom-queries
