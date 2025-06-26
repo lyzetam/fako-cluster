@@ -1,0 +1,130 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: wger
+  namespace: wger
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: wger
+      version: "0.2.4"
+      sourceRef:
+        kind: HelmRepository
+        name: wger
+        namespace: wger
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    # Global app configuration
+    app:
+      global:
+        image:
+          tag: "latest"
+          pullPolicy: Always
+        replicas: 1
+        
+      # Enable nginx for production use
+      nginx:
+        enabled: true
+        
+      # Enable persistence using NFS
+      persistence:
+        enabled: true
+        storageClass: "nfs-csi-v2"
+        size: "10Gi"
+        
+      # Django configuration
+      django:
+        existingDatabase:
+          enabled: true
+          engine: "django.db.backends.postgresql"
+          host: "postgres-cluster-rw.postgres.svc.cluster.local"
+          port: 5432
+          existingSecret:
+            name: "wger-db-credentials"
+            dbnameKey: "dbname"
+            dbuserKey: "dbuser"
+            dbpwKey: "dbpw"
+          
+      # Mail configuration (disabled for now)
+      mail:
+        enabled: false
+        
+      # JWT configuration
+      jwt:
+        accessTokenLifetime: "10"
+        refreshTokenLifetime: "24"
+        
+      # Axes configuration for brute force protection
+      axes:
+        enabled: true
+        failureLimit: "10"
+        cooloffTime: "30"
+        
+      # Additional environment variables
+      environment:
+        - name: DJANGO_DEBUG
+          value: "False"
+        - name: WGER_USE_GUNICORN
+          value: "True"
+        - name: EXERCISE_CACHE_TTL
+          value: "86400"  # 24 hours
+        - name: WGER_ALLOW_REGISTRATION
+          value: "True"
+        - name: WGER_ALLOW_GUEST_USERS
+          value: "True"
+        
+      # Resource limits
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "1000m"
+          
+    # Celery configuration
+    celery:
+      enabled: true
+      syncExercises: true
+      syncImages: true
+      syncVideos: true
+      flower:
+        enabled: false  # Enable if you want the web interface
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+        
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 8000
+      
+    # Ingress configuration
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      url: wger.landryzetam.net
+      tls: false  # Set to true and add TLS secret if you have certificates
+      
+    # Disable bundled PostgreSQL since we're using the existing cluster
+    postgres:
+      enabled: false
+      
+    # Enable Redis for caching
+    redis:
+      enabled: true
+      auth:
+        enabled: false
+      storage:
+        requestedSize: "5Gi"
+        className: "nfs-csi-v2"
