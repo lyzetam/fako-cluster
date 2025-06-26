@@ -3,7 +3,13 @@ kind: HelmRelease
 metadata:
   name: wger
   namespace: wger
+  annotations:
+    # This annotation ensures the job runs before the helm release
+    fluxcd.io/depends-on: "batch/Job/wger/wger-db-init"
 spec:
+  dependsOn:
+    - name: wger-db-init
+      namespace: wger
   interval: 30m
   chart:
     spec:
