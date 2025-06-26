@@ -29,7 +29,7 @@ spec:
         
         # Collection configuration
         - name: DAYS_TO_BACKFILL
-          value: "365"  # Collect last 30 days for initial backfill
+          value: "1030"  # Collect last 30 days for initial backfill
         - name: RUN_ONCE
           value: "true"
         - name: LOG_LEVEL
