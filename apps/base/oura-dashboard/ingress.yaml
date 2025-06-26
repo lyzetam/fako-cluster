@@ -18,4 +18,4 @@ spec:
           service:
             name: oura-dashboard
             port:
-              number: 8080
+              number: 8501  # Changed from 8080
