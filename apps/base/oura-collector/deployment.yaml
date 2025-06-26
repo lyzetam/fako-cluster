@@ -60,4 +60,5 @@ spec:
       
       volumes:
       - name: data
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: oura-collector-data  

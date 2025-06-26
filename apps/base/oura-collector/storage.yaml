@@ -1,14 +1,13 @@
-
-
-
+# apps/base/oura-collector/storage.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: linkding-data-nfs-pvc
+  name: oura-collector-data
+  namespace: oura-collector
 spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: nfs-csi-v2
   resources:
     requests:
-      storage: 500Mi
+      storage: 10Gi  
