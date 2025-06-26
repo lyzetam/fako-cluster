@@ -1,0 +1,17 @@
+# Optional: ServiceMonitor for Prometheus monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: oura-dashboard
+  namespace: oura-dashboard
+  labels:
+    app: oura-dashboard
+spec:
+  selector:
+    matchLabels:
+      app: oura-dashboard
+  endpoints:
+  - port: health
+    path: /health
+    interval: 60s
+    scheme: http
