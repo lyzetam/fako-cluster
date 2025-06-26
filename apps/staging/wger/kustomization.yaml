@@ -4,4 +4,6 @@ namespace: wger
 resources:
   - ../../base/wger/
   - aws-credentials-secret.yaml  
-  - wger-db-secret.yaml  # Remember to encrypt this with SOPS
+  - wger-db-secret.yaml 
+  - tunnel-credentials-secret.yaml
+  - cloudflare.yaml
