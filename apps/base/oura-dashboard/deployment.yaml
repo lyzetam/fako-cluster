@@ -1,0 +1,63 @@
+# File: apps/base/oura-collector/deployment.yaml (updated section)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oura-dashboard
+  namespace: oura-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oura-dashboard
+  template:
+    metadata:
+      labels:
+        app: oura-dashboard
+    spec:
+      serviceAccountName: oura-dashboard
+      containers:
+      - name: oura-dashboard
+        image: lzetam/oura-dashboard:latest
+        ports:
+        - containerPort: 8080
+          name: health
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: oura-dashboard-config
+        - secretRef:
+            name: aws-credentials-env  # Changed from aws-credentials
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      
+      volumes:
+      - name: data
+        emptyDir: {}
