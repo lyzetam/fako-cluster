@@ -8,6 +8,7 @@ resources:
   - secret-store.yaml        # New: Local SecretStore
   - external-secret-aws.yaml # New: External Secret for AWS credentials
   - configmap.yaml
+  - storage.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
