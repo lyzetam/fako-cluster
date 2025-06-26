@@ -1,4 +1,3 @@
-# File: apps/base/oura-collector/deployment.yaml (updated section)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
