@@ -6,7 +6,8 @@ resources:
   - repository.yaml
   - secret-store.yaml
   - external-secret-aws.yaml
-  - external-secret-db-credentials.yaml  
+  - external-secret-db-credentials.yaml
+  - external-secret-postgres-superuser.yaml  # 
   - postgres-init-configmap.yaml
   - postgres-init-job.yaml
   - release.yaml
