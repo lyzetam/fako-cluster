@@ -29,11 +29,15 @@ spec:
         
         # Collection configuration
         - name: DAYS_TO_BACKFILL
-          value: "30"  # Collect last 30 days for initial backfill
+          value: "365"  # Collect last 30 days for initial backfill
         - name: RUN_ONCE
           value: "true"
         - name: LOG_LEVEL
           value: "INFO"
+
+        # Collection interval (not used for one-time job, but required)
+        - name: COLLECTION_INTERVAL
+          value: "3600"
         
         envFrom:
         - secretRef:
@@ -41,8 +45,8 @@ spec:
         
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "200m"
-          limits:
             memory: "1Gi"
-            cpu: "1000m"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
