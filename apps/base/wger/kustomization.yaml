@@ -5,7 +5,7 @@ resources:
   - namespace.yaml
   - repository.yaml
   - secret-store.yaml
-  - external-secret-wger-db.yaml         
+  - external-secrets-wger-db.yaml         
   - external-secret-postgres-superuser.yaml
   - postgres-init-job.yaml
   - release.yaml
