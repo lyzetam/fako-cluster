@@ -119,7 +119,8 @@ spec:
     ingress:
       enabled: true
       ingressClassName: traefik
-      url: wger.landryzetam.net
+      # url: wger.landryzetam.net
+      url: trackit.landryzetam.net
       tls: false  # Set to true and add TLS secret if you have certificates
       
     # Disable bundled PostgreSQL since we're using the existing cluster
