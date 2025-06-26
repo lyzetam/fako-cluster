@@ -42,7 +42,7 @@ spec:
             
             envFrom:
             - secretRef:
-                name: aws-credentials
+                name: aws-credentials-env  # Changed from aws-credentials
             
             resources:
               requests:
