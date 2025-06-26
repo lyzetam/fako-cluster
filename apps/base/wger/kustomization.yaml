@@ -5,7 +5,7 @@ resources:
   - namespace.yaml
   - repository.yaml
   - release.yaml
-  - configmap.yaml
+  # - configmap.yaml
   - external-secret-aws.yaml
   - postgres-init-job.yaml
   - postgres-init-configmap.yaml
