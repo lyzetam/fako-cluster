@@ -1,4 +1,4 @@
-# File: apps/base/oura-collector/deployment.yaml (updated section)
+# File: apps/base/oura-dashboard/deployment.yaml (updated section)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,8 +19,8 @@ spec:
       - name: oura-dashboard
         image: lzetam/oura-dashboard:latest
         ports:
-        - containerPort: 8080
-          name: health
+        - containerPort: 8501  # Changed from 8080 to 8501
+          name: http
           protocol: TCP
         envFrom:
         - configMapRef:
@@ -38,8 +38,8 @@ spec:
         
         livenessProbe:
           httpGet:
-            path: /health
-            port: 8080
+            path: /_stcore/health  # Changed from /health to Streamlit's actual health endpoint
+            port: 8501  # Changed from 8080
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 10
@@ -47,8 +47,8 @@ spec:
         
         readinessProbe:
           httpGet:
-            path: /ready
-            port: 8080
+            path: /_stcore/health  # Changed from /ready to Streamlit's health endpoint
+            port: 8501  # Changed from 8080
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
