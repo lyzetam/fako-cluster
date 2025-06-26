@@ -6,6 +6,7 @@ resources:
   - audiobookshelf
   - homebot
   - oura-collector
+  - oura-dashboard
 
   # Database Management
   - postgres-cluster
