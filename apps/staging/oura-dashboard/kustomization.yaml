@@ -4,3 +4,5 @@ namespace: oura-dashboard
 resources:
   - ../../base/oura-dashboard/
   - aws-credentials-secret.yaml
+  - cloudflare-secret.yaml
+  - cloudflare.yaml
