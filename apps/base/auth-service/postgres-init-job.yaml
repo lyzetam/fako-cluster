@@ -16,38 +16,30 @@ spec:
         - /app/src/scripts/init_database.py
         - --create-db
         env:
-        # Database configuration
+        # Database configuration - using postgres admin credentials
         - name: DATABASE_HOST
-          valueFrom:
-            secretKeyRef:
-              name: auth-service-db-credentials
-              key: host
+          value: "postgres-cluster-rw.postgres.svc.cluster.local"
         - name: DATABASE_PORT
-          valueFrom:
-            secretKeyRef:
-              name: auth-service-db-credentials
-              key: port
+          value: "5432"
         - name: DATABASE_NAME
-          valueFrom:
-            secretKeyRef:
-              name: auth-service-db-credentials
-              key: database
+          value: "auth_service"
         - name: DATABASE_USER
           valueFrom:
             secretKeyRef:
-              name: auth-service-db-credentials
+              name: postgres-admin-secret  # This comes from your external secret
               key: username
         - name: DATABASE_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: auth-service-db-credentials
+              name: postgres-admin-secret  # This comes from your external secret
               key: password
-        # AWS configuration (if using AWS Secrets Manager)
+        # AWS configuration
         - name: AWS_DEFAULT_REGION
           value: "us-east-1"
+        # Update to use correct secret names that exist in AWS
         - name: AUTH_POSTGRES_SECRETS_NAME
-          value: "auth-service/postgres"
+          value: "postgres/admin-credentials"  # Changed from auth-service/postgres
         - name: AUTH_API_SECRETS_NAME
-          value: "auth-service/api-keys"
+          value: "auth-service/api-key"
         - name: AUTH_SUPERUSER_SECRETS_NAME
           value: "auth-service/super-user"
