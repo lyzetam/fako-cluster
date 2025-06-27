@@ -24,7 +24,6 @@ resources:
   - openwakeword    
   - voice-monitor
   - node-labeling
-  - auth-service
 
 
 
