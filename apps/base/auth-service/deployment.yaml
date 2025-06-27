@@ -16,6 +16,68 @@ spec:
         - name: auth-service
           image: lzetam/auth-service:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8501  # Streamlit port
               protocol: TCP
+              name: streamlit
+          env:
+            # Database configuration
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-db-credentials
+                  key: host
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-db-credentials
+                  key: port
+            - name: DATABASE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-db-credentials
+                  key: database
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-db-credentials
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-db-credentials
+                  key: password
+            # AWS configuration
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+            # Auth service specific configs
+            - name: AUTH_API_URL
+              value: "http://localhost:8000/api/v1"
+            - name: ENABLE_API_KEY_AUTH
+              value: "true"
+            - name: DEFAULT_ADMIN_EMAIL
+              value: "admin@landryzetam.net"
+            # Streamlit config
+            - name: STREAMLIT_SERVER_PORT
+              value: "8501"
+            - name: STREAMLIT_SERVER_ADDRESS
+              value: "0.0.0.0"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 20
+            periodSeconds: 5
       restartPolicy: Always
