@@ -6,7 +6,7 @@ resources:
   - audiobookshelf
   - homebot
   - oura-collector
-  - oura-dashboard
+  # - oura-dashboard
   - wger
 
   # Database Management
