@@ -12,6 +12,9 @@ resources:
   # Database Management
   - postgres-cluster
   - pgadmin
+
+  # Identity Management
+  - auth-service
   
   # AI/ML stack with GPU support
   - ollama         
@@ -21,7 +24,7 @@ resources:
   - openwakeword    
   - voice-monitor
   - node-labeling
-  - auth-service
+
 
 
 

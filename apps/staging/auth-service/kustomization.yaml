@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: auth-service
 resources:
   - ../../base/auth-service
+  - aws-credentials-secret.yaml
