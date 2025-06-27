@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: auth-service-db-init
+  namespace: auth-service
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: db-init
+        image: lzetam/auth-service:latest
+        command:
+        - python
+        - /app/src/scripts/init_database.py
+        - --create-db
+        env:
+        # Database configuration
+        - name: DATABASE_HOST
+          valueFrom:
+            secretKeyRef:
+              name: auth-service-db-credentials
+              key: host
+        - name: DATABASE_PORT
+          valueFrom:
+            secretKeyRef:
+              name: auth-service-db-credentials
+              key: port
+        - name: DATABASE_NAME
+          valueFrom:
+            secretKeyRef:
+              name: auth-service-db-credentials
+              key: database
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: auth-service-db-credentials
+              key: username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: auth-service-db-credentials
+              key: password
+        # AWS configuration (if using AWS Secrets Manager)
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        - name: AUTH_POSTGRES_SECRETS_NAME
+          value: "auth-service/postgres"
+        - name: AUTH_API_SECRETS_NAME
+          value: "auth-service/api-keys"
+        - name: AUTH_SUPERUSER_SECRETS_NAME
+          value: "auth-service/super-user"
