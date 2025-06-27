@@ -3,4 +3,6 @@ kind: Kustomization
 namespace: auth-service
 resources:
   - ../../base/auth-service
-  - aws-credentials-secret.yaml
+  - aws-credentials-secret.yaml              # AWS credentials for accessing Secrets Manager
+
+  # - postgres-db-init-job.yaml               # Initialize database (run once)
