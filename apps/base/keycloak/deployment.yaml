@@ -24,9 +24,22 @@ spec:
           value: postgres-cluster-rw.postgres.svc.cluster.local
         - name: PGPORT
           value: "5432"
-        envFrom:
-        - secretRef:
-            name: aws-credentials
+        # Map the secret keys to AWS environment variables
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: secret-access-key
+        - name: AWS_DEFAULT_REGION
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: region
         command:
         - /bin/sh
         - -c
@@ -77,6 +90,7 @@ spec:
           PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $KC_USER;"
           
           echo "Database initialization completed!"
+
       containers:
       - name: keycloak
         image: quay.io/keycloak/keycloak:latest
