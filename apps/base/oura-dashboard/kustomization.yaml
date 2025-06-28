@@ -7,6 +7,8 @@ resources:
   - rbac-additions.yaml      # New: Additional RBAC for External Secrets
   - secret-store.yaml        # New: Local SecretStore
   - external-secret-aws.yaml # New: External Secret for AWS credentials
+  - external-secret-oauth2.yaml # New: External Secret for OAuth2 Proxy
+  - oauth2-proxy.yaml
   - configmap.yaml
   - deployment.yaml
   - service.yaml

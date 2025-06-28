@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy
+  namespace: oura-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oauth2-proxy
+  template:
+    metadata:
+      labels:
+        app: oauth2-proxy
+    spec:
+      containers:
+      - name: oauth2-proxy
+        image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+        args:
+        - --provider=keycloak-oidc
+        - --email-domain=*
+        - --upstream=http://oura-dashboard:8501
+        - --http-address=0.0.0.0:4180
+        - --reverse-proxy=true
+        - --skip-provider-button=true
+        - --cookie-secure=false  # Since behind Cloudflare
+        - --cookie-domain=oura-health.landryzetam.net
+        - --whitelist-domain=.landryzetam.net
+        - --cookie-refresh=1h
+        - --cookie-expire=24h
+        env:
+        - name: OAUTH2_PROXY_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy-secrets
+              key: client-id
+        - name: OAUTH2_PROXY_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy-secrets
+              key: client-secret
+        - name: OAUTH2_PROXY_COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy-secrets
+              key: cookie-secret
+        - name: OAUTH2_PROXY_OIDC_ISSUER_URL
+          value: "https://auth.landryzetam.net/realms/master"
+        - name: OAUTH2_PROXY_REDIRECT_URL
+          value: "https://oura-health.landryzetam.net/oauth2/callback"
+        ports:
+        - containerPort: 4180
+          name: http
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 4180
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 4180
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy
+  namespace: oura-dashboard
+spec:
+  selector:
+    app: oauth2-proxy
+  ports:
+  - port: 4180
+    targetPort: 4180
+    name: http
