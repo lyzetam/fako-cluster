@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: keycloak
 resources:
   - namespace.yaml
+  - rbac.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
