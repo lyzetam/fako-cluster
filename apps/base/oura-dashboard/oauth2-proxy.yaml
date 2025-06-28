@@ -1,4 +1,3 @@
-# apps/base/oura-dashboard/oauth2-proxy.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,15 +28,17 @@ spec:
         - --whitelist-domain=.landryzetam.net
         - --cookie-refresh=1h
         - --cookie-expire=24h
-        # Skip all the validations
         - --ssl-insecure-skip-verify=true
         - --insecure-oidc-allow-unverified-email=true
         - --insecure-oidc-skip-nonce=true
         - --skip-jwt-bearer-tokens=true
-        # Additional flags to make it more permissive
-        - --pass-authorization-header=true
-        - --pass-access-token=true
-        - --set-authorization-header=true
+        # Add the audiences that Keycloak is sending
+        - --oidc-extra-audience=master-realm
+        - --oidc-extra-audience=account
+        # Alternative: skip OIDC discovery entirely
+        - --skip-oidc-discovery=true
+        - --oidc-email-claim=email
+        - --oidc-groups-claim=groups
         env:
         - name: OAUTH2_PROXY_CLIENT_ID
           valueFrom:
@@ -58,6 +59,13 @@ spec:
           value: "https://auth.landryzetam.net/realms/master"
         - name: OAUTH2_PROXY_REDIRECT_URL
           value: "https://oura-health.landryzetam.net/oauth2/callback"
+        # Add these for skip-oidc-discovery mode
+        - name: OAUTH2_PROXY_LOGIN_URL
+          value: "https://auth.landryzetam.net/realms/master/protocol/openid-connect/auth"
+        - name: OAUTH2_PROXY_REDEEM_URL
+          value: "https://auth.landryzetam.net/realms/master/protocol/openid-connect/token"
+        - name: OAUTH2_PROXY_OIDC_JWKS_URL
+          value: "https://auth.landryzetam.net/realms/master/protocol/openid-connect/certs"
         ports:
         - containerPort: 4180
           name: http
@@ -80,16 +88,3 @@ spec:
             port: 4180
           initialDelaySeconds: 5
           periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: oauth2-proxy
-  namespace: oura-dashboard
-spec:
-  selector:
-    app: oauth2-proxy
-  ports:
-  - port: 4180
-    targetPort: 4180
-    name: http
