@@ -18,8 +18,6 @@ spec:
       - name: database-init
         image: postgres:16-alpine
         env:
-        - name: AWS_DEFAULT_REGION
-          value: us-east-1
         - name: PGHOST
           value: postgres-cluster-rw.postgres.svc.cluster.local
         - name: PGPORT
@@ -90,7 +88,6 @@ spec:
           PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $KC_USER;"
           
           echo "Database initialization completed!"
-
       containers:
       - name: keycloak
         image: quay.io/keycloak/keycloak:latest
