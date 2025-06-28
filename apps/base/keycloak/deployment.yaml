@@ -188,21 +188,21 @@ spec:
           name: jgroups
         
         # TCP-based health checks (more reliable for Keycloak)
-        readinessProbe:
-          tcpSocket:
-            port: 8080
-          initialDelaySeconds: 90
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 6
+        # readinessProbe:
+        #   tcpSocket:
+        #     port: 8080
+        #   initialDelaySeconds: 90
+        #   periodSeconds: 10
+        #   timeoutSeconds: 5
+        #   failureThreshold: 6
         
-        livenessProbe:
-          tcpSocket:
-            port: 8080
-          initialDelaySeconds: 300  # 5 minutes to allow for slow starts
-          periodSeconds: 30
-          timeoutSeconds: 15
-          failureThreshold: 3
+        # livenessProbe:
+        #   tcpSocket:
+        #     port: 8080
+        #   initialDelaySeconds: 300  # 5 minutes to allow for slow starts
+        #   periodSeconds: 30
+        #   timeoutSeconds: 15
+        #   failureThreshold: 3
         
         # Alternative: Use management port for health checks
         # readinessProbe:
