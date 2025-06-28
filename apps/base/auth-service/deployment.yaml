@@ -19,6 +19,13 @@ spec:
             - containerPort: 8501  # Streamlit port
               protocol: TCP
               name: streamlit
+          
+        - name: auth-api
+          image: lzetam/auth-service:latest
+          command: ["python", "-m", "uvicorn", "auth.api:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+              name: api
           env:
             - name: AUTH_API_SECRETS_NAME
               value: "auth-service/api-key"  
