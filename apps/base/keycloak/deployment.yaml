@@ -16,19 +16,19 @@ spec:
     spec:
       serviceAccountName: keycloak
       
-      # Spread pods across nodes
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - keycloak
-              topologyKey: kubernetes.io/hostname
+      # # Spread pods across nodes
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #     - weight: 100
+      #       podAffinityTerm:
+      #         labelSelector:
+      #           matchExpressions:
+      #           - key: app
+      #             operator: In
+      #             values:
+      #             - keycloak
+      #         topologyKey: kubernetes.io/hostname
       
       initContainers:
       - name: database-init
