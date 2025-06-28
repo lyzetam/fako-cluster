@@ -16,7 +16,7 @@ spec:
         - /app/src/scripts/init_database.py
         - --create-db
         env:
-        # Database configuration - using postgres admin credentials
+        # Database configuration
         - name: DATABASE_HOST
           value: "postgres-cluster-rw.postgres.svc.cluster.local"
         - name: DATABASE_PORT
@@ -26,20 +26,30 @@ spec:
         - name: DATABASE_USER
           valueFrom:
             secretKeyRef:
-              name: postgres-admin-secret  # This comes from your external secret
+              name: postgres-admin-secret
               key: username
         - name: DATABASE_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: postgres-admin-secret  # This comes from your external secret
+              name: postgres-admin-secret
               key: password
         # AWS configuration
         - name: AWS_DEFAULT_REGION
           value: "us-east-1"
-        # Update to use correct secret names that exist in AWS
         - name: AUTH_POSTGRES_SECRETS_NAME
-          value: "postgres/admin-credentials"  # Changed from auth-service/postgres
+          value: "postgres/admin-credentials"
         - name: AUTH_API_SECRETS_NAME
           value: "auth-service/api-key"
         - name: AUTH_SUPERUSER_SECRETS_NAME
           value: "auth-service/super-user"
+        # Add AWS credentials from the secret
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: secret-access-key
