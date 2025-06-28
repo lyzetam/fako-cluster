@@ -32,7 +32,7 @@ spec:
       
       initContainers:
       - name: database-init
-        image: postgres:16-alpine
+        image: postgres:17-alpine
         env:
         - name: PGHOST
           value: postgres-cluster-rw.postgres.svc.cluster.local
