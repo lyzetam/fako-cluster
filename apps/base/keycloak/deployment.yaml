@@ -14,7 +14,7 @@ spec:
         app: keycloak
     spec:
       serviceAccountName: keycloak
-      initContainers:
+      initContainers:  # Fixed indentation - should be at same level as containers
       - name: database-init
         image: postgres:16-alpine
         env:
@@ -22,22 +22,9 @@ spec:
           value: postgres-cluster-rw.postgres.svc.cluster.local
         - name: PGPORT
           value: "5432"
-        # Map the secret keys to AWS environment variables
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: aws-credentials
-              key: access-key-id
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: aws-credentials
-              key: secret-access-key
-        - name: AWS_DEFAULT_REGION
-          valueFrom:
-            secretKeyRef:
-              name: aws-credentials
-              key: region
+        envFrom:
+        - secretRef:
+            name: aws-credentials-env  # Changed from aws-credentials
         command:
         - /bin/sh
         - -c
@@ -88,7 +75,7 @@ spec:
           PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $KC_USER;"
           
           echo "Database initialization completed!"
-      containers:
+      containers:  # This is at the same level as initContainers
       - name: keycloak
         image: quay.io/keycloak/keycloak:latest
         args: ["start"]  # Changed from start-dev for production
