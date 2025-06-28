@@ -15,6 +15,7 @@ resources:
 
   # Identity Management
   - auth-service
+  - keycloak
   
   # AI/ML stack with GPU support
   - ollama         
