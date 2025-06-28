@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-db-init
+  namespace: keycloak
+spec:
+  template:
+    metadata:
+      name: keycloak-db-init
+    spec:
+      serviceAccountName: keycloak-db-init
+      restartPolicy: OnFailure
+      containers:
+      - name: db-init
+        image: postgres:16-alpine
+        env:
+        - name: AWS_DEFAULT_REGION
+          value: us-east-1
+        - name: PGHOST
+          value: postgres-cluster-rw.postgres.svc.cluster.local
+        - name: PGPORT
+          value: "5432"
+        envFrom:
+        - secretRef:
+            name: aws-credentials
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Installing AWS CLI and jq..."
+          apk add --no-cache aws-cli jq
+          
+          echo "Fetching credentials from AWS Secrets Manager..."
+          
+          # Get postgres superuser credentials
+          POSTGRES_CREDS=$(aws secretsmanager get-secret-value --secret-id postgres/admin-credentials --query SecretString --output text)
+          export PGUSER=$(echo $POSTGRES_CREDS | jq -r .Username)  # Capital U
+          export PGPASSWORD=$(echo $POSTGRES_CREDS | jq -r .Password)  # Capital P
+          
+          # Get keycloak user credentials
+          KEYCLOAK_CREDS=$(aws secretsmanager get-secret-value --secret-id auth-service/super-user --query SecretString --output text)
+          KC_USER=$(echo $KEYCLOAK_CREDS | jq -r .Username)  # Capital U
+          KC_PASS=$(echo $KEYCLOAK_CREDS | jq -r .Password)  # Capital P
+          
+          echo "Connecting to PostgreSQL as superuser..."
+          
+          # Check if database exists
+          DB_EXISTS=$(psql -tAc "SELECT 1 FROM pg_database WHERE datname='keycloak'" 2>/dev/null || echo "")
+          
+          if [ "$DB_EXISTS" = "1" ]; then
+            echo "Database 'keycloak' already exists"
+          else
+            echo "Creating database 'keycloak'..."
+            psql -c "CREATE DATABASE keycloak;"
+          fi
+          
+          # Check if user exists
+          USER_EXISTS=$(psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$KC_USER'" 2>/dev/null || echo "")
+          
+          if [ "$USER_EXISTS" = "1" ]; then
+            echo "User '$KC_USER' already exists, updating password..."
+            psql -c "ALTER USER $KC_USER WITH ENCRYPTED PASSWORD '$KC_PASS';"
+          else
+            echo "Creating user '$KC_USER'..."
+            psql -c "CREATE USER $KC_USER WITH ENCRYPTED PASSWORD '$KC_PASS';"
+          fi
+          
+          echo "Granting privileges on database..."
+          psql -c "GRANT ALL PRIVILEGES ON DATABASE keycloak TO $KC_USER;"
+          
+          # Connect to keycloak database to grant schema privileges
+          echo "Granting schema privileges..."
+          PGDATABASE=keycloak psql -c "GRANT ALL ON SCHEMA public TO $KC_USER;"
+          PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $KC_USER;"
+          PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $KC_USER;"
+          
+          echo "Database initialization completed successfully!"
+          echo "Database: keycloak"
+          echo "User: $KC_USER"
+          echo "Host: $PGHOST"
+          echo "Port: $PGPORT"
