@@ -13,19 +13,137 @@ spec:
       labels:
         app: keycloak
     spec:
+      serviceAccountName: keycloak
+      initContainers:
+      - name: database-init
+        image: postgres:16-alpine
+        env:
+        - name: AWS_DEFAULT_REGION
+          value: us-east-1
+        - name: PGHOST
+          value: postgres-cluster-rw.postgres.svc.cluster.local
+        - name: PGPORT
+          value: "5432"
+        envFrom:
+        - secretRef:
+            name: aws-credentials
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Installing AWS CLI and jq..."
+          apk add --no-cache aws-cli jq
+          
+          echo "Fetching credentials from AWS Secrets Manager..."
+          
+          # Get postgres superuser credentials
+          POSTGRES_CREDS=$(aws secretsmanager get-secret-value --secret-id postgres/admin-credentials --query SecretString --output text)
+          export PGUSER=$(echo $POSTGRES_CREDS | jq -r .Username)
+          export PGPASSWORD=$(echo $POSTGRES_CREDS | jq -r .Password)
+          
+          # Get keycloak user credentials
+          KEYCLOAK_CREDS=$(aws secretsmanager get-secret-value --secret-id auth-service/super-user --query SecretString --output text)
+          KC_USER=$(echo $KEYCLOAK_CREDS | jq -r .Username)
+          KC_PASS=$(echo $KEYCLOAK_CREDS | jq -r .Password)
+          
+          echo "Checking database setup..."
+          
+          # Check if database exists
+          DB_EXISTS=$(psql -tAc "SELECT 1 FROM pg_database WHERE datname='keycloak'" 2>/dev/null || echo "")
+          
+          if [ "$DB_EXISTS" = "1" ]; then
+            echo "Database 'keycloak' already exists"
+          else
+            echo "Creating database 'keycloak'..."
+            psql -c "CREATE DATABASE keycloak;"
+          fi
+          
+          # Check if user exists
+          USER_EXISTS=$(psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$KC_USER'" 2>/dev/null || echo "")
+          
+          if [ "$USER_EXISTS" = "1" ]; then
+            echo "User '$KC_USER' already exists"
+          else
+            echo "Creating user '$KC_USER'..."
+            psql -c "CREATE USER $KC_USER WITH ENCRYPTED PASSWORD '$KC_PASS';"
+          fi
+          
+          # Always ensure privileges are correct
+          echo "Ensuring privileges..."
+          psql -c "GRANT ALL PRIVILEGES ON DATABASE keycloak TO $KC_USER;"
+          PGDATABASE=keycloak psql -c "GRANT ALL ON SCHEMA public TO $KC_USER;"
+          PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $KC_USER;"
+          PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $KC_USER;"
+          
+          echo "Database initialization completed!"
       containers:
-        - name: keycloak
-          image: quay.io/keycloak/keycloak:latest
-          args: ["start-dev"]
-          env:
-            - name: KC_BOOTSTRAP_ADMIN_USERNAME  
-              value: admin
-            - name: KC_BOOTSTRAP_ADMIN_PASSWORD  
-              value: admin
-            - name: KC_HOSTNAME
-              value: auth.landryzetam.net
-            - name: KC_PROXY
-              value: "edge"
-          ports:
-            - containerPort: 8080
-              name: http
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:latest
+        args: ["start"]  # Changed from start-dev for production
+        env:
+        # Admin credentials
+        - name: KC_BOOTSTRAP_ADMIN_USERNAME
+          value: admin
+        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+          value: admin  # Change this in production!
+        
+        # Hostname configuration
+        - name: KC_HOSTNAME
+          value: auth.landryzetam.net
+        - name: KC_PROXY
+          value: "edge"
+        - name: KC_PROXY_HEADERS
+          value: "xforwarded"
+        - name: KC_HTTP_ENABLED
+          value: "true"
+        
+        # Database configuration
+        - name: KC_DB
+          value: postgres
+        - name: KC_DB_URL
+          value: jdbc:postgresql://postgres-cluster-rw.postgres.svc.cluster.local:5432/keycloak
+        
+        # DB credentials from External Secret
+        - name: KC_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-postgres-credentials
+              key: KC_DB_USERNAME
+        - name: KC_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-postgres-credentials
+              key: KC_DB_PASSWORD
+        
+        # Additional production settings
+        - name: KC_HEALTH_ENABLED
+          value: "true"
+        - name: KC_METRICS_ENABLED
+          value: "true"
+        
+        ports:
+        - containerPort: 8080
+          name: http
+        
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
