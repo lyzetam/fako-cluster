@@ -1,4 +1,4 @@
-# Updated deployment.yaml for Keycloak 26.x
+# Updated deployment.yaml for Keycloak 26.x with secure credentials
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,19 +16,19 @@ spec:
     spec:
       serviceAccountName: keycloak
       
-      # # Spread pods across nodes
-      # affinity:
-      #   podAntiAffinity:
-      #     preferredDuringSchedulingIgnoredDuringExecution:
-      #     - weight: 100
-      #       podAffinityTerm:
-      #         labelSelector:
-      #           matchExpressions:
-      #           - key: app
-      #             operator: In
-      #             values:
-      #             - keycloak
-      #         topologyKey: kubernetes.io/hostname
+      # Spread pods across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - keycloak
+              topologyKey: kubernetes.io/hostname
       
       initContainers:
       - name: database-init
@@ -123,13 +123,19 @@ spec:
         image: quay.io/keycloak/keycloak:26.2.5  # Use specific version instead of latest
         args: ["start"]
         env:
-        # Admin credentials
+        # Admin credentials from AWS Secrets Manager
         - name: KC_BOOTSTRAP_ADMIN_USERNAME
-          value: admin
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-credentials
+              key: KC_BOOTSTRAP_ADMIN_USERNAME
         - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-          value: admin
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-credentials
+              key: KC_BOOTSTRAP_ADMIN_PASSWORD
         
-        # FIXED: Correct hostname configuration for Keycloak 26.x
+        # Hostname configuration for Keycloak 26.x
         - name: KC_HOSTNAME
           value: auth.landryzetam.net
         - name: KC_HOSTNAME_STRICT
@@ -164,6 +170,8 @@ spec:
           value: "true"
         - name: KC_METRICS_ENABLED
           value: "true"
+        - name: KC_HTTP_MANAGEMENT_PORT
+          value: "9000"  # Separate management port for health checks
         
         # Clustering settings for HA
         - name: KC_CACHE_STACK
@@ -174,26 +182,46 @@ spec:
         ports:
         - containerPort: 8080
           name: http
+        - containerPort: 9000
+          name: management
         - containerPort: 7800
           name: jgroups
         
+        # TCP-based health checks (more reliable for Keycloak)
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 300  # 5 minutes to allow for slow starts
+          periodSeconds: 30
+          timeoutSeconds: 15
+          failureThreshold: 3
+        
+        # Alternative: Use management port for health checks
         # readinessProbe:
         #   httpGet:
         #     path: /health/ready
-        #     port: 8080
-        #   initialDelaySeconds: 60
+        #     port: 9000
+        #   initialDelaySeconds: 90
         #   periodSeconds: 10
         #   timeoutSeconds: 5
-        #   failureThreshold: 3
+        #   failureThreshold: 6
         
         # livenessProbe:
         #   httpGet:
         #     path: /health/live
-        #     port: 8080
-        #   initialDelaySeconds: 120
+        #     port: 9000
+        #   initialDelaySeconds: 300
         #   periodSeconds: 30
         #   timeoutSeconds: 15
-        #   failureThreshold: 5
+        #   failureThreshold: 3
         
         resources:
           requests:

@@ -5,7 +5,8 @@ resources:
   - namespace.yaml
   - rbac.yaml
   - local-secret-store.yaml       
-  - external-secret-aws.yaml      
+  - external-secret-aws.yaml
+  - external-secret-admin.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
