@@ -6,10 +6,11 @@ resources:
   - rbac.yaml
   - rbac-additions.yaml      # New: Additional RBAC for External Secrets
   - secret-store.yaml        # New: Local SecretStore
+  - aws-secret-store.yaml    # New: AWS SecretStore for External Secrets
   - external-secret-aws.yaml # New: External Secret for AWS credentials
   - external-secret-oauth2.yaml # New: External Secret for OAuth2 Proxy
   - oauth2-proxy.yaml
   - configmap.yaml
   - deployment.yaml
   - service.yaml
-  # - ingress.yaml
+  # - ingress.yamlclea
