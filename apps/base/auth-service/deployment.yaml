@@ -101,12 +101,12 @@ spec:
         # FastAPI Backend Container
         - name: auth-api
           image: lzetam/auth-service:latest
-          workingDir: /app
+          workingDir: /app/src/auth
           command: 
             - python
             - -m
             - uvicorn
-            - src.auth.app:app
+            - app:app
             - --host
             - "0.0.0.0"
             - --port
@@ -118,7 +118,7 @@ spec:
           env:
             # Set PYTHONPATH to match the Dockerfile
             - name: PYTHONPATH
-              value: "/app"
+              value: "/app:/app/src/auth"
             # Database configuration
             - name: DATABASE_HOST
               valueFrom:
