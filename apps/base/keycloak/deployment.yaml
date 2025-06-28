@@ -14,7 +14,7 @@ spec:
         app: keycloak
     spec:
       serviceAccountName: keycloak
-      initContainers:  # Fixed indentation - should be at same level as containers
+      initContainers:
       - name: database-init
         image: postgres:16-alpine
         env:
@@ -24,7 +24,7 @@ spec:
           value: "5432"
         envFrom:
         - secretRef:
-            name: aws-credentials-env  # Changed from aws-credentials
+            name: aws-credentials-env
         command:
         - /bin/sh
         - -c
@@ -35,15 +35,41 @@ spec:
           
           echo "Fetching credentials from AWS Secrets Manager..."
           
-          # Get postgres superuser credentials
+          # Get postgres superuser credentials with debugging
+          echo "Fetching postgres/admin-credentials..."
           POSTGRES_CREDS=$(aws secretsmanager get-secret-value --secret-id postgres/admin-credentials --query SecretString --output text)
-          export PGUSER=$(echo $POSTGRES_CREDS | jq -r .Username)
-          export PGPASSWORD=$(echo $POSTGRES_CREDS | jq -r .Password)
+          echo "Raw postgres credentials response: $POSTGRES_CREDS"
           
-          # Get keycloak user credentials
+          # Parse with debugging
+          export PGUSER=$(echo "$POSTGRES_CREDS" | jq -r .Username)
+          export PGPASSWORD=$(echo "$POSTGRES_CREDS" | jq -r .Password)
+          
+          echo "PGUSER: $PGUSER"
+          echo "PGPASSWORD is set: $([ ! -z "$PGPASSWORD" ] && echo 'YES' || echo 'NO')"
+          
+          # Get keycloak user credentials with debugging
+          echo "Fetching auth-service/super-user..."
           KEYCLOAK_CREDS=$(aws secretsmanager get-secret-value --secret-id auth-service/super-user --query SecretString --output text)
-          KC_USER=$(echo $KEYCLOAK_CREDS | jq -r .Username)
-          KC_PASS=$(echo $KEYCLOAK_CREDS | jq -r .Password)
+          echo "Raw keycloak credentials response: $KEYCLOAK_CREDS"
+          
+          KC_USER=$(echo "$KEYCLOAK_CREDS" | jq -r .Username)
+          KC_PASS=$(echo "$KEYCLOAK_CREDS" | jq -r .Password)
+          
+          echo "KC_USER: $KC_USER"
+          echo "KC_PASS is set: $([ ! -z "$KC_PASS" ] && echo 'YES' || echo 'NO')"
+          
+          # Exit if credentials are not properly set
+          if [ -z "$PGUSER" ] || [ -z "$PGPASSWORD" ] || [ "$PGUSER" = "null" ]; then
+            echo "ERROR: Failed to retrieve postgres credentials"
+            echo "Please check that AWS Secrets Manager contains the expected format"
+            exit 1
+          fi
+          
+          if [ -z "$KC_USER" ] || [ -z "$KC_PASS" ] || [ "$KC_USER" = "null" ]; then
+            echo "ERROR: Failed to retrieve keycloak credentials"
+            echo "Please check that AWS Secrets Manager contains the expected format"
+            exit 1
+          fi
           
           echo "Checking database setup..."
           
@@ -75,16 +101,16 @@ spec:
           PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $KC_USER;"
           
           echo "Database initialization completed!"
-      containers:  # This is at the same level as initContainers
+      containers:
       - name: keycloak
         image: quay.io/keycloak/keycloak:latest
-        args: ["start"]  # Changed from start-dev for production
+        args: ["start"]
         env:
         # Admin credentials
         - name: KC_BOOTSTRAP_ADMIN_USERNAME
           value: admin
         - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-          value: admin  # Change this in production!
+          value: admin
         
         # Hostname configuration
         - name: KC_HOSTNAME
