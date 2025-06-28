@@ -35,13 +35,13 @@ spec:
           
           # Get postgres superuser credentials
           POSTGRES_CREDS=$(aws secretsmanager get-secret-value --secret-id postgres/admin-credentials --query SecretString --output text)
-          export PGUSER=$(echo $POSTGRES_CREDS | jq -r .Username)  # Capital U
-          export PGPASSWORD=$(echo $POSTGRES_CREDS | jq -r .Password)  # Capital P
+          export PGUSER=$(echo "$POSTGRES_CREDS" | jq -r .username)
+          export PGPASSWORD=$(echo "$POSTGRES_CREDS" | jq -r .password)
           
           # Get keycloak user credentials
           KEYCLOAK_CREDS=$(aws secretsmanager get-secret-value --secret-id auth-service/super-user --query SecretString --output text)
-          KC_USER=$(echo $KEYCLOAK_CREDS | jq -r .Username)  # Capital U
-          KC_PASS=$(echo $KEYCLOAK_CREDS | jq -r .Password)  # Capital P
+          KC_USER=$(echo "$KEYCLOAK_CREDS" | jq -r .username)
+          KC_PASS=$(echo "$KEYCLOAK_CREDS" | jq -r .password)
           
           echo "Connecting to PostgreSQL as superuser..."
           
