@@ -101,22 +101,20 @@ spec:
         # FastAPI Backend Container
         - name: auth-api
           image: lzetam/auth-service:latest
-          workingDir: /app/src/auth
           command: 
-            - python
-            - -m
-            - uvicorn
-            - app:app
-            - --host
-            - "0.0.0.0"
-            - --port
-            - "8000"
+            - /bin/sh
+            - -c
+            - |
+              pip install email-validator
+              cd /app/src/auth
+              export PYTHONPATH=/app:/app/src/auth:$PYTHONPATH
+              python -m uvicorn app:app --host 0.0.0.0 --port 8000
           ports:
             - containerPort: 8000
               protocol: TCP
               name: api
           env:
-            # Set PYTHONPATH to match the Dockerfile
+            # Set PYTHONPATH to include both /app and current directory
             - name: PYTHONPATH
               value: "/app:/app/src/auth"
             # Database configuration
@@ -216,7 +214,7 @@ spec:
             httpGet:
               path: /health
               port: 8888  # Note: Health check is on port 8888 as per config.py
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60  # Increased to allow time for pip install
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
@@ -224,7 +222,7 @@ spec:
             httpGet:
               path: /health
               port: 8888
-            initialDelaySeconds: 20
+            initialDelaySeconds: 45  # Increased to allow time for pip install
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
@@ -232,7 +230,7 @@ spec:
             httpGet:
               path: /health
               port: 8888
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 12
