@@ -1,4 +1,4 @@
-# Update apps/base/oura-dashboard/oauth2-proxy.yaml
+# apps/base/oura-dashboard/oauth2-proxy.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,8 +29,15 @@ spec:
         - --whitelist-domain=.landryzetam.net
         - --cookie-refresh=1h
         - --cookie-expire=24h
-        # Add this to skip TLS verification for internal communication
+        # Skip all the validations
         - --ssl-insecure-skip-verify=true
+        - --insecure-oidc-allow-unverified-email=true
+        - --insecure-oidc-skip-nonce=true
+        - --skip-jwt-bearer-tokens=true
+        # Additional flags to make it more permissive
+        - --pass-authorization-header=true
+        - --pass-access-token=true
+        - --set-authorization-header=true
         env:
         - name: OAUTH2_PROXY_CLIENT_ID
           valueFrom:
@@ -47,7 +54,6 @@ spec:
             secretKeyRef:
               name: oauth2-proxy-secrets
               key: cookie-secret
-        # Keep external URL for browser access
         - name: OAUTH2_PROXY_OIDC_ISSUER_URL
           value: "https://auth.landryzetam.net/realms/master"
         - name: OAUTH2_PROXY_REDIRECT_URL
