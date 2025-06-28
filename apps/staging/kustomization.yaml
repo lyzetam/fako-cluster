@@ -6,7 +6,7 @@ resources:
   - audiobookshelf
   - homebot
   - oura-collector
-  # - oura-dashboard
+  - oura-dashboard
   - wger
 
   # Database Management
@@ -14,7 +14,7 @@ resources:
   - pgadmin
 
   # Identity Management
-  - auth-service
+  # - auth-service
   
   # AI/ML stack with GPU support
   - ollama         
