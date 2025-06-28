@@ -41,8 +41,8 @@ spec:
           echo "Raw postgres credentials response: $POSTGRES_CREDS"
           
           # Parse with debugging
-          export PGUSER=$(echo "$POSTGRES_CREDS" | jq -r .Username)
-          export PGPASSWORD=$(echo "$POSTGRES_CREDS" | jq -r .Password)
+          export PGUSER=$(echo "$POSTGRES_CREDS" | jq -r '.username // .Username')
+          export PGPASSWORD=$(echo "$POSTGRES_CREDS" | jq -r '.password // .Password')
           
           echo "PGUSER: $PGUSER"
           echo "PGPASSWORD is set: $([ ! -z "$PGPASSWORD" ] && echo 'YES' || echo 'NO')"
@@ -52,8 +52,8 @@ spec:
           KEYCLOAK_CREDS=$(aws secretsmanager get-secret-value --secret-id auth-service/super-user --query SecretString --output text)
           echo "Raw keycloak credentials response: $KEYCLOAK_CREDS"
           
-          KC_USER=$(echo "$KEYCLOAK_CREDS" | jq -r .Username)
-          KC_PASS=$(echo "$KEYCLOAK_CREDS" | jq -r .Password)
+          KC_USER=$(echo "$KEYCLOAK_CREDS" | jq -r '.username // .Username')
+          KC_PASS=$(echo "$KEYCLOAK_CREDS" | jq -r '.password // .Password')
           
           echo "KC_USER: $KC_USER"
           echo "KC_PASS is set: $([ ! -z "$KC_PASS" ] && echo 'YES' || echo 'NO')"
