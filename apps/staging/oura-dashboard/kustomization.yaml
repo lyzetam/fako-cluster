@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: oura-dashboard
 resources:
   - ../../base/oura-dashboard/
-  - aws-credentials-secret.yaml
+  # - aws-credentials-secret.yaml
   - aws-credentials-secret-local.yaml
   - cloudflare-secret.yaml
   - cloudflare.yaml
