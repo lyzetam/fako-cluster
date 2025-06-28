@@ -3,14 +3,9 @@ kind: Ingress
 metadata:
   name: keycloak
   namespace: keycloak
-  annotations:
-    # Add annotations based on your ingress controller
-    # For nginx-ingress:
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
-    # For cert-manager (if you want automatic HTTPS):
-    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
 spec:
-  ingressClassName: nginx  # Change if using different ingress controller
+  ingressClassName: traefik
   rules:
   - host: auth.landryzetam.net
     http:
