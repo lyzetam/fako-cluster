@@ -101,12 +101,12 @@ spec:
         # FastAPI Backend Container
         - name: auth-api
           image: lzetam/auth-service:latest
-          workingDir: /app/src
+          workingDir: /app
           command: 
             - python
             - -m
             - uvicorn
-            - app:app
+            - src.auth.app:app
             - --host
             - "0.0.0.0"
             - --port
@@ -116,6 +116,9 @@ spec:
               protocol: TCP
               name: api
           env:
+            # Set PYTHONPATH to match the Dockerfile
+            - name: PYTHONPATH
+              value: "/app"
             # Database configuration
             - name: DATABASE_HOST
               valueFrom:
@@ -212,7 +215,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 8000
+              port: 8888  # Note: Health check is on port 8888 as per config.py
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -220,7 +223,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health
-              port: 8000
+              port: 8888
             initialDelaySeconds: 20
             periodSeconds: 5
             timeoutSeconds: 3
@@ -228,7 +231,7 @@ spec:
           startupProbe:
             httpGet:
               path: /health
-              port: 8000
+              port: 8888
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
