@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - secret-store.yaml                        # SecretStore configuration  
   - external-secret-db.yaml                  # Database credentials from AWS Secrets Manager
+  - external-secret-postgres-admin.yaml      # Postgres admin credentials
   - external-secret-postgres-superuser.yaml  # Postgres superuser for DB init
   - postgres-init-job.yaml
   - deployment.yaml
