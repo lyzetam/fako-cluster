@@ -1,10 +1,11 @@
+# Updated deployment.yaml for Keycloak 26.x
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: keycloak
   namespace: keycloak
 spec:
-  replicas: 1
+  replicas: 2  # Run 2 replicas for HA
   selector:
     matchLabels:
       app: keycloak
@@ -14,6 +15,21 @@ spec:
         app: keycloak
     spec:
       serviceAccountName: keycloak
+      
+      # Spread pods across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - keycloak
+              topologyKey: kubernetes.io/hostname
+      
       initContainers:
       - name: database-init
         image: postgres:16-alpine
@@ -101,9 +117,10 @@ spec:
           PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $KC_USER;"
           
           echo "Database initialization completed!"
+      
       containers:
       - name: keycloak
-        image: quay.io/keycloak/keycloak:latest
+        image: quay.io/keycloak/keycloak:26.2.5  # Use specific version instead of latest
         args: ["start"]
         env:
         # Admin credentials
@@ -112,11 +129,15 @@ spec:
         - name: KC_BOOTSTRAP_ADMIN_PASSWORD
           value: admin
         
-        # Hostname configuration
-        - name: KC_HOSTNAME_URL
-          value: "https://auth.landryzetam.net"
+        # FIXED: Correct hostname configuration for Keycloak 26.x
+        - name: KC_HOSTNAME
+          value: auth.landryzetam.net
+        - name: KC_HOSTNAME_STRICT
+          value: "false"  # Allow backend URLs to use different hostnames
+        - name: KC_HOSTNAME_STRICT_HTTPS
+          value: "false"  # Allow HTTP for backend (since we're behind a proxy)
         - name: KC_PROXY_HEADERS
-          value: "xforwarded"
+          value: "xforwarded"  # Trust X-Forwarded headers from proxy
         - name: KC_HTTP_ENABLED
           value: "true"
         
@@ -144,16 +165,26 @@ spec:
         - name: KC_METRICS_ENABLED
           value: "true"
         
+        # Clustering settings for HA
+        - name: KC_CACHE_STACK
+          value: kubernetes
+        - name: JAVA_OPTS_APPEND
+          value: "-Djgroups.dns.query=keycloak-headless.keycloak.svc.cluster.local"
+        
         ports:
         - containerPort: 8080
           name: http
+        - containerPort: 7800
+          name: jgroups
         
         readinessProbe:
           httpGet:
             path: /health/ready
             port: 8080
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         
         livenessProbe:
           httpGet:
@@ -161,8 +192,8 @@ spec:
             port: 8080
           initialDelaySeconds: 120
           periodSeconds: 30
-          timeoutSeconds: 15      # Increased timeout
-          failureThreshold: 5     # More tolerance
+          timeoutSeconds: 15
+          failureThreshold: 5
         
         resources:
           requests:
@@ -171,3 +202,21 @@ spec:
           limits:
             memory: "2Gi"
             cpu: "1000m"
+---
+# Headless service for JGroups clustering
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-headless
+  namespace: keycloak
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: jgroups
+      port: 7800
+      targetPort: 7800
+      protocol: TCP
+  selector:
+    app: keycloak
