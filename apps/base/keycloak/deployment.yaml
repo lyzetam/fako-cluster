@@ -113,10 +113,8 @@ spec:
           value: admin
         
         # Hostname configuration
-        - name: KC_HOSTNAME
-          value: auth.landryzetam.net
-        - name: KC_PROXY
-          value: "edge"
+        - name: KC_HOSTNAME_URL
+          value: "https://auth.landryzetam.net"
         - name: KC_PROXY_HEADERS
           value: "xforwarded"
         - name: KC_HTTP_ENABLED
@@ -161,13 +159,15 @@ spec:
           httpGet:
             path: /health/live
             port: 8080
-          initialDelaySeconds: 60
+          initialDelaySeconds: 120
           periodSeconds: 30
+          timeoutSeconds: 15      # Increased timeout
+          failureThreshold: 5     # More tolerance
         
         resources:
           requests:
-            memory: "512Mi"
+            memory: "1Gi"
             cpu: "500m"
           limits:
-            memory: "1Gi"
+            memory: "2Gi"
             cpu: "1000m"
