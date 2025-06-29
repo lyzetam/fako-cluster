@@ -4,7 +4,7 @@ resources:
   # Core applications
   - linkding
   - audiobookshelf
-  - homebot
+  # - homebot
   - oura-collector
   - oura-dashboard
   - wger
