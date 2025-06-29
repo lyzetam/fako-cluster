@@ -10,7 +10,7 @@ spec:
       restartPolicy: Never
       containers:
       - name: postgres-init
-        image: postgres:16-alpine
+        image: postgres:17-alpine
         command:
         - /bin/sh
         - -c
