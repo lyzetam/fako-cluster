@@ -120,7 +120,7 @@ spec:
       
       containers:
       - name: keycloak
-        image: quay.io/keycloak/keycloak:26.2.5  # Use specific version instead of latest
+        image: quay.io/keycloak/keycloak:26.3.0  # Use specific version instead of latest
         args: ["start"]
         env:
         # Admin credentials from AWS Secrets Manager
