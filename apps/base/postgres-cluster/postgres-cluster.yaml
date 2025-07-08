@@ -52,7 +52,7 @@ spec:
   
   storage:
     size: 50Gi
-    storageClass: "nfs-postgres-v2"
+    storageClass: "nfs-postgres-v3"
   
   resources:
     requests:
@@ -70,5 +70,4 @@ spec:
   # monitoring:
   #   # enabled: true
   #   customQueriesConfigMap:
-  #     - name: postgres-monitoring
-  #       key: custom-queries
+  #     - name: postgres-monitoring  #       key: custom-queries

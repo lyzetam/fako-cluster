@@ -4,11 +4,9 @@ kind: Kustomization
 resources:
   - namespace.yaml
   # - k8s-backup-pv.yaml
-  - backup-storageclass.yaml
   - nfs-backup-pvc.yaml
   - configmap.yaml
   - rbac.yaml
   - cronjob.yaml
   - cronjob-weekly.yaml
-  - etcd-backup-cronjob.yaml
-  # - backup-pvc-data.yaml  # Enable if you want PVC data backups
+  - etcd-backup-cronjob.yaml  # - backup-pvc-data.yaml  # Enable if you want PVC data backups
