@@ -14,8 +14,10 @@ resources:
   - pgadmin
 
   # Identity Management
-
   - keycloak
+
+  # Security Scanning
+  - gitleaks
   
   # AI/ML stack with GPU support
   - ollama         
