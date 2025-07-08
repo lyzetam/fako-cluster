@@ -4,8 +4,11 @@ kind: Kustomization
 namespace: ollama-webui
 resources:
   - namespace.yaml
-  - configmap.yaml
+  - configmap.yaml  
+  - configmap-v2.yaml  # Template-based configmap
   - storage.yaml
+  - deployment.yaml  # Will be patched in staging
+  - deployment-v2.yaml  # Secret-aware deployment
   - service.yaml
-  - deployment.yaml
   - ingress.yaml
+  - gpustack-secret.yaml  # Encrypted secret

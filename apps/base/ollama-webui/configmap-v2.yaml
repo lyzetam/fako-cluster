@@ -9,23 +9,18 @@ data:
   OLLAMA_BASE_URL: ""
   OLLAMA_API_BASE_URL: ""
   
-  # Enable OpenAI API mode - using GPUStack service
+  # Enable OpenAI API mode
   ENABLE_OPENAI_API: "true"
-  OPENAI_API_BASE_URL: "http://10.85.35.223:80/v1-openai"
-  OPENAI_API_KEY: "gpustack_fc6f26b5f56d4c8d_2e51c6ca508679a59bc7b1ed65a1ab07"
-  OPENAI_API_BASE_URLS: "http://10.85.35.223:80/v1-openai"
-  OPENAI_API_KEYS: "gpustack_fc6f26b5f56d4c8d_2e51c6ca508679a59bc7b1ed65a1ab07"
+  # These will be injected from secrets via init container
+  OPENAI_API_BASE_URL: "${GPUSTACK_API_URL}"
+  OPENAI_API_KEY: "${GPUSTACK_API_KEY}"
+  OPENAI_API_BASE_URLS: "${GPUSTACK_API_URL}"
+  OPENAI_API_KEYS: "${GPUSTACK_API_KEY}"
   
-  # WebUI configuration
+  # Other settings remain the same...
   WEBUI_NAME: "HomeLab AI (GPUStack)"
-  WEBUI_URL: ""
-  
-  # Model configuration - Update with your GPUStack models
   DEFAULT_MODELS: "gemma-3-27b-it,glm4-0414"
   MODEL_FILTER_ENABLED: "false"
-  ENABLE_MODEL_FILTER: "false"
-  
-  # FIX: Add model access control bypass to make all models visible to all users
   BYPASS_MODEL_ACCESS_CONTROL: "true"
   
   # Alternative: Configure granular workspace permissions (use instead of BYPASS if you want more control)

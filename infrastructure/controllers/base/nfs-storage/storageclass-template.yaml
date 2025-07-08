@@ -1,0 +1,13 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi-v2
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: ${NFS_SERVER}
+  share: ${NFS_STORAGE_PATH}
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+mountOptions:
+  - nfsvers=3
+  - nolock

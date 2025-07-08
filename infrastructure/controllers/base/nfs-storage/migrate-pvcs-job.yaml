@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate-pvcs-to-v3
+  namespace: nfs-system
+spec:
+  template:
+    spec:
+      serviceAccountName: nfs-storage-admin
+      containers:
+      - name: migrator
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "=== PVC Migration Tool ==="
+          echo "This job helps identify PVCs that need migration"
+          
+          # List all PVCs using old storage classes
+          echo -e "\n=== PVCs using nfs-csi-v2 ==="
+          kubectl get pvc -A -o json | jq -r '.items[] | select(.spec.storageClassName == "nfs-csi-v2") | "\(.metadata.namespace)/\(.metadata.name)"'
+          
+          echo -e "\n=== PVCs using nfs-postgres-v2 ==="
+          kubectl get pvc -A -o json | jq -r '.items[] | select(.spec.storageClassName == "nfs-postgres-v2") | "\(.metadata.namespace)/\(.metadata.name)"'
+          
+          echo -e "\n=== PVCs using nfs-backup ==="
+          kubectl get pvc -A -o json | jq -r '.items[] | select(.spec.storageClassName == "nfs-backup") | "\(.metadata.namespace)/\(.metadata.name)"'
+          
+          # Generate migration commands
+          echo -e "\n=== Migration Commands ==="
+          echo "# To migrate a PVC, you need to:"
+          echo "# 1. Scale down the deployment"
+          echo "# 2. Backup the PV data"
+          echo "# 3. Create new PVC with v3 storage class"
+          echo "# 4. Copy data from old to new PV"
+          echo "# 5. Update deployment to use new PVC"
+          echo "# 6. Scale up deployment"
+          echo "# 7. Verify functionality"
+          echo "# 8. Delete old PVC"
+      restartPolicy: OnFailure

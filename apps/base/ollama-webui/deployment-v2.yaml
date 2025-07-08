@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-webui-v2
+  namespace: ollama-webui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama-webui-v2
+  template:
+    metadata:
+      labels:
+        app: ollama-webui-v2
+    spec:
+      serviceAccountName: ollama-webui
+      containers:
+      - name: ollama-webui
+        image: ghcr.io/open-webui/open-webui:latest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        # Static configuration
+        - name: ENABLE_OLLAMA_API
+          value: "false"
+        - name: ENABLE_OPENAI_API
+          value: "true"
+        - name: WEBUI_NAME
+          value: "HomeLab AI (GPUStack)"
+        # Dynamic configuration from secret
+        - name: OPENAI_API_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: gpustack-config
+              key: api-base-url
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gpustack-config
+              key: api-key
+        - name: OPENAI_API_BASE_URLS
+          valueFrom:
+            secretKeyRef:
+              name: gpustack-config
+              key: api-base-url
+        - name: OPENAI_API_KEYS
+          valueFrom:
+            secretKeyRef:
+              name: gpustack-config
+              key: api-key
+        volumeMounts:
+        - mountPath: /app/backend/data
+          name: webui-data
+        resources:
+          requests:
+            memory: "3Gi"
+            cpu: "1500m"
+          limits:
+            memory: "6Gi"
+            cpu: "3000m"
+      volumes:
+      - name: webui-data
+        persistentVolumeClaim:
+          claimName: ollama-webui-data

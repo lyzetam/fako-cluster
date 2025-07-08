@@ -6,17 +6,14 @@ kind: ConfigMap
 metadata:
   name: nfs-test-script
   namespace: nfs-system
-  labels:
-    app.kubernetes.io/name: nfs-connectivity-test
-    app.kubernetes.io/part-of: nfs-storage
 data:
   test-nfs.sh: |
     #!/bin/bash
     set -e
     
-    # Configuration
-    NFS_SERVER="10.85.30.127"
-    NFS_PATH="/volume1/k8s-storage"
+    # Get NFS server from secret
+    NFS_SERVER=$(cat /secrets/nfs/server)
+    NFS_PATH=$(cat /secrets/nfs/storage-path)
     NFS_VERSION="3"
     
     echo "========================================="

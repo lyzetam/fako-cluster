@@ -3,3 +3,15 @@ kind: Kustomization
 namespace: nfs-system
 resources:
   - ../../base/nfs-storage/
+  - ../../base/nfs-storage/nfs-server-secret.yaml  
+  - ../../base/nfs-storage/apply-storageclass-job.yaml  
+
+# Patches to trigger the storage class job on changes
+patches:
+  - target:
+      kind: Job
+      name: apply-nfs-storageclass
+    patch: |
+      - op: replace
+        path: /metadata/name
+        value: apply-nfs-storageclass-${TIMESTAMP}

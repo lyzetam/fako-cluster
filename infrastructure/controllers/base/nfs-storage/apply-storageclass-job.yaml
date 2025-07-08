@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: apply-nfs-storageclass
+  namespace: nfs-system
+spec:
+  template:
+    spec:
+      serviceAccountName: nfs-storage-admin
+      containers:
+      - name: apply-storageclass
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Get NFS server from secret
+          export NFS_SERVER=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.server}' | base64 -d)
+          export NFS_STORAGE_PATH=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.storage-path}' | base64 -d)
+          export NFS_DB_PATH=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.db-path}' | base64 -d)
+          export NFS_BACKUP_PATH=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.backup-path}' | base64 -d)
+          
+          # Apply storage classes with substitution
+          cat <<EOF | envsubst | kubectl apply -f -
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: nfs-csi-v2
+          provisioner: nfs.csi.k8s.io
+          parameters:
+            server: "${NFS_SERVER}"
+            share: "${NFS_STORAGE_PATH}"
+          reclaimPolicy: Retain
+          allowVolumeExpansion: true
+          mountOptions:
+            - nfsvers=3
+            - nolock
+          ---
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: nfs-postgres-v2
+          provisioner: nfs.csi.k8s.io
+          parameters:
+            server: "${NFS_SERVER}"
+            share: "${NFS_DB_PATH}"
+            mountPermissions: "0777"
+          reclaimPolicy: Retain
+          allowVolumeExpansion: true
+          mountOptions:
+            - nfsvers=3
+            - nolock
+            - hard
+            - rw
+            - rsize=1048576
+            - wsize=1048576
+            - timeo=600
+            - retrans=2
+            - noresvport
+          ---
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: nfs-backup
+          provisioner: nfs.csi.k8s.io
+          parameters:
+            server: "${NFS_SERVER}"
+            share: "${NFS_BACKUP_PATH}"
+          reclaimPolicy: Retain
+          allowVolumeExpansion: true
+          mountOptions:
+            - nfsvers=3
+            - nolock
+          EOF
+      restartPolicy: OnFailure
