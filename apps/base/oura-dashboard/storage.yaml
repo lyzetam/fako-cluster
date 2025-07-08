@@ -1,6 +1,3 @@
-
-
-
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,5 +6,5 @@ spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: nfs-csi-v3
-  resources:
-    requests:      storage: 500Mi
+  resources:    requests:
+      storage: 500Mi
