@@ -7,5 +7,5 @@ spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: nfs-csi-v3
-  resources:
-    requests:      storage: 5Gi  # For chat history and user data
+  resources:    requests:
+      storage: 5Gi  # For chat history and user data

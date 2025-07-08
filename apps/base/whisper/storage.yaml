@@ -7,5 +7,5 @@ spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: nfs-csi-v3
-  resources:
-    requests:      storage: 10Gi  # Whisper models can be large
+  resources:    requests:
+      storage: 10Gi  # Whisper models can be large
