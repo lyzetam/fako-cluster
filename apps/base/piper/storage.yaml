@@ -8,5 +8,6 @@ spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: nfs-csi-v3  # Same as your Ollama PVC
-  resources:    requests:
+  resources:
+    requests:
       storage: 15Gi  # Voice models need space
