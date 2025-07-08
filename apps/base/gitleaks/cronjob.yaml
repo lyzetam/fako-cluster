@@ -1,0 +1,30 @@
+# apps/base/gitleaks/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gitleaks-scanner
+  namespace: security-scanning
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: gitleaks
+          containers:
+          - name: gitleaks
+            image: zricethezav/gitleaks:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Clone your repo
+              git clone https://github.com/lyzetam/fako-cluster.git /tmp/repo
+              cd /tmp/repo
+              
+              # Run gitleaks
+              gitleaks detect --source . --verbose
+              
+              # You could also scan multiple repos
+              # Or send results to a webhook/slack
+          restartPolicy: OnFailure
