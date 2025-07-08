@@ -36,7 +36,7 @@ spec:
                   name: github-credentials
                   key: token
             - name: DRY_RUN
-              value: "true"  # Start with dry run
+              value: "false"  # Start with dry run
             - name: AUTO_PUSH
               value: "false"  # Don't auto-push initially
             - name: SLACK_WEBHOOK
