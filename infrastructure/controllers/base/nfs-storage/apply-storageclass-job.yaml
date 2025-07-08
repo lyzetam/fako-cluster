@@ -7,6 +7,7 @@ metadata:
   annotations:
     # This ensures the job runs after secret is created
     fluxcd.io/depends-on: "v1/Secret/nfs-system/nfs-server-config"
+    kustomize.config.k8s.io/trigger: ""
 spec:
   template:
     spec:
