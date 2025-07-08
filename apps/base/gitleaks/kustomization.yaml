@@ -1,5 +1,8 @@
+# apps/base/gitleaks/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: security-scanning
 resources:
-  - ../../base/gitleaks
+  - namespace.yaml
+  - serviceaccount.yaml
+  - cronjob.yaml
