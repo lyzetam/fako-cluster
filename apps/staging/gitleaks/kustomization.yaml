@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: security-scanning
 resources:
   - ../../base/gitleaks
+  - aws-credentials-secret.yaml
