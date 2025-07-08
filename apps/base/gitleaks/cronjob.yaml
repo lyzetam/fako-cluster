@@ -5,7 +5,7 @@ metadata:
   name: gitleaks-scanner
   namespace: security-scanning
 spec:
-  schedule: "0 */6 * * *"  # Every 6 hours
+  schedule: "0 */6 * * *"
   jobTemplate:
     spec:
       template:
@@ -14,17 +14,29 @@ spec:
           containers:
           - name: gitleaks
             image: zricethezav/gitleaks:latest
+            env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: github-credentials
+                  key: token
             command:
             - /bin/sh
             - -c
             - |
-              # Clone your repo
+              # Configure git to use the token
+              git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+              
+              # Clone the repo
               git clone https://github.com/lyzetam/fako-cluster.git /tmp/repo
               cd /tmp/repo
               
               # Run gitleaks
-              gitleaks detect --source . --verbose
+              gitleaks detect --source . --verbose --report-path=/tmp/gitleaks-report.json
               
-              # You could also scan multiple repos
-              # Or send results to a webhook/slack
+              # You could upload the report to S3 or send to webhook here
+              if [ -f /tmp/gitleaks-report.json ]; then
+                echo "Gitleaks scan complete. Found issues:"
+                cat /tmp/gitleaks-report.json
+              fi
           restartPolicy: OnFailure
