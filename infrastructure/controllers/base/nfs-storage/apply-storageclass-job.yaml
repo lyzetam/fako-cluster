@@ -13,7 +13,7 @@ spec:
       serviceAccountName: nfs-storage-admin
       containers:
       - name: apply-storageclass
-        image: alpine/k8s:1.28.3  # This image includes both kubectl and shell tools
+        image: alpine/k8s:1.33.2  # This image includes both kubectl and shell tools
         command:
         - /bin/sh
         - -c
