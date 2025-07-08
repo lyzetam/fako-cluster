@@ -5,5 +5,5 @@ resources:
   - repository.yaml  
   - release.yaml
   - nfs-server-secret.yaml
-  - storageclass-v3.yaml  # Template-based storage classes
-  - apply-storageclass-job.yaml  # Job to create storage classes  - rbac.yaml  # RBAC for the job
+  - storageclass-v3.yaml  # Template-based storage classes  - apply-storageclass-job.yaml  # Job to create storage classes
+  - rbac.yaml  # RBAC for the job
