@@ -11,6 +11,21 @@ spec:
       template:
         spec:
           serviceAccountName: gitleaks
+          initContainers:
+          # Install dependencies
+          - name: setup
+            image: alpine:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              apk add --no-cache openjdk11-jre curl
+              curl -L https://repo1.maven.org/maven2/com/madgag/bfg/1.14.0/bfg-1.14.0.jar \
+                -o /tools/bfg.jar
+            volumeMounts:
+            - name: tools
+              mountPath: /tools
+          
           containers:
           - name: gitleaks
             image: zricethezav/gitleaks:latest
@@ -20,23 +35,51 @@ spec:
                 secretKeyRef:
                   name: github-credentials
                   key: token
+            - name: DRY_RUN
+              value: "true"  # Start with dry run
+            - name: AUTO_PUSH
+              value: "false"  # Don't auto-push initially
+            - name: SLACK_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: slack-webhook
+                  key: url
+                  optional: true
             command:
             - /bin/sh
             - -c
             - |
-              # Configure git to use the token
-              git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+              # Install additional tools
+              apk add --no-cache git jq bash openjdk11-jre
               
-              # Clone the repo
-              git clone https://github.com/lyzetam/fako-cluster.git /tmp/repo
-              cd /tmp/repo
+              # Copy BFG from init container
+              cp /tools/bfg.jar /usr/local/bin/
               
-              # Run gitleaks
-              gitleaks detect --source . --verbose --report-path=/tmp/gitleaks-report.json
-              
-              # You could upload the report to S3 or send to webhook here
-              if [ -f /tmp/gitleaks-report.json ]; then
-                echo "Gitleaks scan complete. Found issues:"
-                cat /tmp/gitleaks-report.json
-              fi
+              # Run the cleanup script
+              bash /scripts/cleanup.sh
+            volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: tools
+              mountPath: /tools
+            - name: scan-results
+              mountPath: /tmp/scan-results
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "200m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+          
+          volumes:
+          - name: scripts
+            configMap:
+              name: gitleaks-cleanup-script
+              defaultMode: 0755
+          - name: tools
+            emptyDir: {}
+          - name: scan-results
+            emptyDir: {}
+          
           restartPolicy: OnFailure
