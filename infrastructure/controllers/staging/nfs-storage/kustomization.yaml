@@ -1,17 +1,42 @@
+# apiVersion: kustomize.config.k8s.io/v1beta1
+# kind: Kustomization
+# namespace: nfs-system
+# resources:
+#   - ../../base/nfs-storage/
+#   - ../../base/nfs-storage/nfs-server-secret.yaml  
+#   - ../../base/nfs-storage/apply-storageclass-job.yaml  
+
+# # Patches to trigger the storage class job on changes
+# patches:
+#   - target:
+#       kind: Job
+#       name: apply-nfs-storageclass
+#     patch: |
+#       - op: replace
+#         path: /metadata/name
+#         value: apply-nfs-storageclass-${TIMESTAMP}
+
+# infrastructure/controllers/staging/nfs-storage/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: nfs-system
 resources:
   - ../../base/nfs-storage/
-  - ../../base/nfs-storage/nfs-server-secret.yaml  
-  - ../../base/nfs-storage/apply-storageclass-job.yaml  
 
-# Patches to trigger the storage class job on changes
-patches:
-  - target:
+# Trigger job recreation on each apply
+replacements:
+- source:
+    kind: ConfigMap
+    name: job-trigger
+    fieldPath: data.timestamp
+  targets:
+  - select:
       kind: Job
       name: apply-nfs-storageclass
-    patch: |
-      - op: replace
-        path: /metadata/name
-        value: apply-nfs-storageclass-${TIMESTAMP}
+    fieldPaths:
+    - metadata.annotations.[kustomize.config.k8s.io/trigger]
+
+configMapGenerator:
+- name: job-trigger
+  literals:
+  - timestamp="$(date +%s)"

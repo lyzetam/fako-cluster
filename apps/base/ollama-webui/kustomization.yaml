@@ -1,14 +1,38 @@
+# # apps/base/ollama-webui/kustomization.yaml
+# apiVersion: kustomize.config.k8s.io/v1beta1
+# kind: Kustomization
+# namespace: ollama-webui
+# resources:
+#   - namespace.yaml
+#   - serviceaccount.yaml
+#   - storage.yaml
+#   - deployment-v2.yaml 
+#   - service.yaml
+#   - ingress.yaml
+#   - gpustack-secret.yaml
+
 # apps/base/ollama-webui/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: ollama-webui
 resources:
   - namespace.yaml
-  - configmap.yaml  
-  - configmap-v2.yaml  # Template-based configmap
+  - serviceaccount.yaml
   - storage.yaml
-  - deployment.yaml  # Will be patched in staging
-  - deployment-v2.yaml  # Secret-aware deployment
+  - deployment-v2.yaml  # Use only v2
   - service.yaml
   - ingress.yaml
-  - gpustack-secret.yaml  # Encrypted secret
+  - gpustack-secret.yaml
+  
+# Remove old configmap, create new one
+configMapGenerator:
+- name: ollama-webui-configmap
+  literals:
+  - ENABLE_OLLAMA_API=false
+  - ENABLE_OPENAI_API=true
+  - WEBUI_NAME="HomeLab AI (GPUStack)"
+  - MODEL_FILTER_ENABLED=false
+  - BYPASS_MODEL_ACCESS_CONTROL=true
+  - WEBUI_AUTH=true
+  - ENABLE_SIGNUP=true
+  - DEFAULT_USER_ROLE=user

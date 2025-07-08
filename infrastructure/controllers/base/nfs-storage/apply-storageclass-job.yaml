@@ -1,31 +1,40 @@
+# infrastructure/controllers/base/nfs-storage/apply-storageclass-job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: apply-nfs-storageclass
   namespace: nfs-system
+  annotations:
+    # This ensures the job runs after secret is created
+    fluxcd.io/depends-on: "v1/Secret/nfs-system/nfs-server-config"
 spec:
   template:
     spec:
       serviceAccountName: nfs-storage-admin
       containers:
       - name: apply-storageclass
-        image: bitnami/kubectl:latest
+        image: alpine/k8s:1.28.3  # This image includes both kubectl and shell tools
         command:
-        - /bin/bash
+        - /bin/sh
         - -c
         - |
+          # Install envsubst
+          apk add --no-cache gettext
+          
           # Get NFS server from secret
           export NFS_SERVER=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.server}' | base64 -d)
           export NFS_STORAGE_PATH=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.storage-path}' | base64 -d)
           export NFS_DB_PATH=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.db-path}' | base64 -d)
           export NFS_BACKUP_PATH=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.backup-path}' | base64 -d)
           
+          echo "Creating StorageClasses with NFS server: ${NFS_SERVER}"
+          
           # Apply storage classes with substitution
-          cat <<EOF | envsubst | kubectl apply -f -
+          cat <<'EOF' | envsubst | kubectl apply -f -
           apiVersion: storage.k8s.io/v1
           kind: StorageClass
           metadata:
-            name: nfs-csi-v2
+            name: nfs-csi-v3
           provisioner: nfs.csi.k8s.io
           parameters:
             server: "${NFS_SERVER}"
@@ -39,7 +48,7 @@ spec:
           apiVersion: storage.k8s.io/v1
           kind: StorageClass
           metadata:
-            name: nfs-postgres-v2
+            name: nfs-postgres-v3
           provisioner: nfs.csi.k8s.io
           parameters:
             server: "${NFS_SERVER}"
@@ -61,7 +70,7 @@ spec:
           apiVersion: storage.k8s.io/v1
           kind: StorageClass
           metadata:
-            name: nfs-backup
+            name: nfs-backup-v3
           provisioner: nfs.csi.k8s.io
           parameters:
             server: "${NFS_SERVER}"
