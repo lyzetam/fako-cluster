@@ -6,7 +6,6 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: nfs-csi-v2
+  storageClassName: nfs-csi-v3
   resources:
-    requests:
-      storage: 5Gi  # For wake word models
+    requests:      storage: 5Gi  # For wake word models

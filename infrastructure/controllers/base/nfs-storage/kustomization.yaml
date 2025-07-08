@@ -4,9 +4,6 @@ resources:
   - namespace.yaml
   - repository.yaml  
   - release.yaml
-  - storageclass.yaml  
-  - postgres-storageclass.yaml 
-  - nfs-server-secret.yaml  
+  - nfs-server-secret.yaml
   - storageclass-v3.yaml  # Template-based storage classes
-  - apply-storageclass-job.yaml  # Job to create storage classes
-  - rbac.yaml  # RBAC for the job
+  - apply-storageclass-job.yaml  # Job to create storage classes  - rbac.yaml  # RBAC for the job

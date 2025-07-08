@@ -89,7 +89,7 @@ spec:
       replicas: 2  # Run 2 replicas for HA
       persistence:
         enabled: true
-        storageClass: nfs-csi-v2
+        storageClass: nfs-csi-v3
         size: 20Gi
       resources:
         requests:
@@ -111,7 +111,7 @@ spec:
       replicas: 2
       persistence:
         enabled: true
-        storageClass: nfs-csi-v2
+        storageClass: nfs-csi-v3
         size: 20Gi
       resources:
         requests:
@@ -135,7 +135,7 @@ spec:
       replicas: 3  # 3 replicas to match replication_factor
       persistence:
         enabled: true
-        storageClass: nfs-csi-v2
+        storageClass: nfs-csi-v3
         size: 50Gi  # More storage for write path
       resources:
         requests:
@@ -208,7 +208,7 @@ spec:
 #       # Persistence configuration
 #       persistence:
 #         enabled: true
-#         storageClass: nfs-csi-v2
+#         storageClass: nfs-csi-v3
 #         size: 100Gi
       
 #       # Resources

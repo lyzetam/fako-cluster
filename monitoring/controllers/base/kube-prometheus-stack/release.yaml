@@ -59,7 +59,7 @@ spec:
         storageSpec:
           volumeClaimTemplate:
             spec:
-              storageClassName: nfs-csi-v2
+              storageClassName: nfs-csi-v3
               accessModes: ["ReadWriteOnce"]
               resources:
                 requests:

@@ -21,8 +21,8 @@ spec:
           echo -e "\n=== PVCs using nfs-csi-v2 ==="
           kubectl get pvc -A -o json | jq -r '.items[] | select(.spec.storageClassName == "nfs-csi-v2") | "\(.metadata.namespace)/\(.metadata.name)"'
           
-          echo -e "\n=== PVCs using nfs-postgres-v2 ==="
-          kubectl get pvc -A -o json | jq -r '.items[] | select(.spec.storageClassName == "nfs-postgres-v2") | "\(.metadata.namespace)/\(.metadata.name)"'
+          echo -e "\n=== PVCs using nfs-postgres-v3 ==="
+          kubectl get pvc -A -o json | jq -r '.items[] | select(.spec.storageClassName == "nfs-postgres-v3") | "\(.metadata.namespace)/\(.metadata.name)"'
           
           echo -e "\n=== PVCs using nfs-backup ==="
           kubectl get pvc -A -o json | jq -r '.items[] | select(.spec.storageClassName == "nfs-backup") | "\(.metadata.namespace)/\(.metadata.name)"'
@@ -37,5 +37,4 @@ spec:
           echo "# 5. Update deployment to use new PVC"
           echo "# 6. Scale up deployment"
           echo "# 7. Verify functionality"
-          echo "# 8. Delete old PVC"
-      restartPolicy: OnFailure
+          echo "# 8. Delete old PVC"      restartPolicy: OnFailure

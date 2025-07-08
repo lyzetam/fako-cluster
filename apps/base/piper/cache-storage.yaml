@@ -7,7 +7,6 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: nfs-csi-v2
+  storageClassName: nfs-csi-v3
   resources:
-    requests:
-      storage: 2Gi  # Cache for generated speech
+    requests:      storage: 2Gi  # Cache for generated speech

@@ -41,7 +41,7 @@ spec:
       # Enable persistence using NFS
       persistence:
         enabled: true
-        storageClass: "nfs-csi-v2"
+        storageClass: "nfs-csi-v3"
         size: "10Gi"
         
       # Django configuration
@@ -133,5 +133,4 @@ spec:
       auth:
         enabled: false
       storage:
-        requestedSize: "5Gi"
-        className: "nfs-csi-v2"
+        requestedSize: "5Gi"        className: "nfs-csi-v3"

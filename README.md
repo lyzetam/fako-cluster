@@ -94,10 +94,11 @@ fako-cluster/
 
 #### NFS CSI Driver
 - **Version**: ^4.8.0
-- **Storage Classes**:
-  - `nfs-csi-v2`: General purpose storage
-  - `nfs-postgres-v2`: Optimized for PostgreSQL
-  - `nfs-backup`: Dedicated backup storage
+- **Storage Classes** (generated at runtime):
+  - `nfs-csi-v3`: General purpose storage
+  - `nfs-postgres-v3`: Optimized for PostgreSQL
+  - `nfs-backup-v3`: Dedicated backup storage
+  - Created by `apply-storageclass-job` which injects the NFS server address from the encrypted `nfs-server-config` secret.
 
 #### NVIDIA GPU Operator
 - **Purpose**: GPU device plugin and container runtime
@@ -258,6 +259,8 @@ fako-cluster/
 1. **SOPS Encryption**
    - Age encryption for Git-stored secrets
    - Per-environment encryption keys
+   - Flux automatically decrypts manifests using `sops-age` during reconciliation
+   - Sensitive values like the NFS server IP and GPUStack API credentials are stored only in encrypted secrets
 
 2. **AWS Secrets Manager**
    - Database credentials
