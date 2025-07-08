@@ -7,4 +7,5 @@ resources:
   - serviceaccount.yaml
   - secret-store.yaml
   - external-secret-github.yaml
+  - configmap.yaml
   - cronjob.yaml
