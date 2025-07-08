@@ -11,7 +11,7 @@ data:
     
     # Configuration
     REPO_URL="https://github.com/lyzetam/fako-cluster.git"
-    DRY_RUN="${DRY_RUN:-true}"
+    DRY_RUN="${DRY_RUN:-false}"
     AUTO_PUSH="${AUTO_PUSH:-false}"
     
     # Colors
