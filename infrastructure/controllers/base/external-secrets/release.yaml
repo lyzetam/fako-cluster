@@ -26,11 +26,11 @@ spec:
     # Enable cert-controller for webhook certificates
     certController:
       create: true
-    
+
     # Enable webhook for validation
     webhook:
       create: true
-    
+
     # Resources
     resources:
       limits:
@@ -39,7 +39,7 @@ spec:
       requests:
         cpu: 100m
         memory: 128Mi
-    
+
     # Security context
     securityContext:
       allowPrivilegeEscalation: false
@@ -47,5 +47,4 @@ spec:
       runAsNonRoot: true
       runAsUser: 65534
       capabilities:
-        drop:
-        - ALL
+        drop:        - ALL

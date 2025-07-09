@@ -142,5 +142,4 @@ data:
 
 #     ingress:
 #     - hostname: oura-health.landryzetam.net
-#       service: http://oura-dashboard:8501
-#     - service: http_status:404
+#       service: http://oura-dashboard:8501#     - service: http_status:404

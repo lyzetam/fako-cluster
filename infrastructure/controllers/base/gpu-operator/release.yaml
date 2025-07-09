@@ -26,7 +26,7 @@ spec:
     # Since drivers are pre-installed on yeezyai, disable driver container
     driver:
       enabled: false
-    
+
     # Container toolkit configuration with K3s-specific paths
     toolkit:
       enabled: true
@@ -39,21 +39,21 @@ spec:
         value: nvidia
       - name: CONTAINERD_SET_AS_DEFAULT
         value: "true"
-    
+
     # Device plugin configuration
     devicePlugin:
       enabled: true
       config:
         name: default-config
-    
+
     # Node Feature Discovery
     nfd:
       enabled: true
-    
+
     # GPU Feature Discovery
     gfd:
       enabled: true
-    
+
     # Enable GPU metrics collection with DCGM
     dcgm:
       enabled: true
@@ -62,10 +62,10 @@ spec:
       enabled: true
       serviceMonitor:
         enabled: true
-    
+
     migManager:
       enabled: false
-    
+
     # Validator configuration
     validator:
       enabled: true
@@ -73,16 +73,15 @@ spec:
         env:
         - name: DISABLE_DEV_CHAR_SYMLINK_CHECK
           value: "true"
-    
+
     # Operator configuration
     operator:
       defaultRuntime: containerd
-    
+
     # Daemonsets configuration
     daemonsets:
       updateStrategy: "RollingUpdate"
       priorityClassName: system-node-critical
       tolerations:
       - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
+        operator: Exists        effect: NoSchedule

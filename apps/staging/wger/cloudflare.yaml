@@ -67,5 +67,4 @@ data:
 
     ingress:
     - hostname: trackit.landryzetam.net
-      service: http://wger-http:8000
-    - service: http_status:404
+      service: http://wger-http:8000    - service: http_status:404

@@ -11,5 +11,4 @@ spec:
       protocol: TCP
       name: wyoming
   selector:
-    app: whisper-gpu
-  type: ClusterIP
+    app: whisper-gpu  type: ClusterIP

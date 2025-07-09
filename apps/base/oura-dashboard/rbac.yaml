@@ -26,5 +26,4 @@ roleRef:
   name: oura-dashboard
 subjects:
 - kind: ServiceAccount
-  name: oura-dashboard
-  namespace: oura-dashboard
+  name: oura-dashboard  namespace: oura-dashboard

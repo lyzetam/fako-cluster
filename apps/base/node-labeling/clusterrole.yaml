@@ -4,5 +4,4 @@ metadata:
   name: node-labeler
 rules:
 - apiGroups: [""]
-  resources: ["nodes"]
-  verbs: ["get", "list", "patch", "update"]
+  resources: ["nodes"]  verbs: ["get", "list", "patch", "update"]

@@ -12,5 +12,4 @@ data:
             usage: "LABEL"
             description: "Name of the database"
         - size_bytes:
-            usage: "GAUGE"
-            description: "Disk space used by the database"
+            usage: "GAUGE"            description: "Disk space used by the database"

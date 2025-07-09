@@ -17,23 +17,23 @@ spec:
   values:
     # Use Distributed mode instead of SingleBinary
     deploymentMode: Distributed
-    
+
     loki:
       auth_enabled: false
-      
+
       # Server configuration
       server:
         http_listen_port: 3100
         grpc_listen_port: 9095
         log_level: info
-      
+
       # Common config for distributed mode
       commonConfig:
         replication_factor: 3  # Use 3 for better reliability
         ring:
           kvstore:
             store: memberlist  # Use memberlist for distributed coordination
-      
+
       # Memberlist configuration
       memberlist:
         join_members:
@@ -41,10 +41,10 @@ spec:
         dead_node_reclaim_time: 30s
         gossip_to_dead_nodes_time: 15s
         left_ingesters_timeout: 30s
-        bind_addr: 
+        bind_addr:
           - "${POD_IP}"
         bind_port: 7946
-      
+
       # Storage configuration
       storage:
         type: filesystem
@@ -55,7 +55,7 @@ spec:
         filesystem:
           chunks_directory: /var/loki/chunks
           rules_directory: /var/loki/rules
-      
+
       # Schema config
       schemaConfig:
         configs:
@@ -66,7 +66,7 @@ spec:
             index:
               prefix: loki_index_
               period: 24h
-      
+
       # Limits configuration
       limits_config:
         enforce_metric_name: false
@@ -79,11 +79,11 @@ spec:
         ingestion_rate_mb: 10
         ingestion_burst_size_mb: 20
         max_query_parallelism: 32
-      
+
       # Runtime config
       runtime_config:
         file: /etc/loki/runtime-config/runtime-config.yaml
-    
+
     # Backend component (compactor, querier, query-scheduler, distributor)
     backend:
       replicas: 2  # Run 2 replicas for HA
@@ -105,7 +105,7 @@ spec:
                 matchLabels:
                   app.kubernetes.io/component: backend
               topologyKey: kubernetes.io/hostname
-    
+
     # Read path components
     read:
       replicas: 2
@@ -129,7 +129,7 @@ spec:
                   matchLabels:
                     app.kubernetes.io/component: read
                 topologyKey: kubernetes.io/hostname
-    
+
     # Write path components
     write:
       replicas: 3  # 3 replicas to match replication_factor
@@ -173,15 +173,15 @@ spec:
 #   values:
 #     # Use single binary deployment for simplicity
 #     deploymentMode: SingleBinary
-    
+
 #     loki:
 #       # Disable auth
 #       auth_enabled: false
-      
+
 #       # Common config with replication_factor: 1 for single binary
 #       commonConfig:
 #         replication_factor: 1
-      
+
 #       # Configure storage - REQUIRED for filesystem
 #       storage:
 #         type: filesystem
@@ -189,8 +189,8 @@ spec:
 #           chunks: chunks
 #           ruler: ruler
 #           admin: admin
-      
-#       # Schema config  
+
+#       # Schema config
 #       schemaConfig:
 #         configs:
 #           - from: "2024-01-01"
@@ -200,17 +200,17 @@ spec:
 #             index:
 #               prefix: loki_index_
 #               period: 24h
-    
+
 #     # Single Binary specific configuration
 #     singleBinary:
 #       replicas: 1
-      
+
 #       # Persistence configuration
 #       persistence:
 #         enabled: true
 #         storageClass: nfs-csi-v3
 #         size: 100Gi
-      
+
 #       # Resources
 #       resources:
 #         requests:
@@ -219,17 +219,17 @@ spec:
 #         limits:
 #           cpu: 1000m
 #           memory: 2Gi
-    
+
 #     # Disable microservices mode components
 #     backend:
 #       replicas: 0
-    
+
 #     read:
 #       replicas: 0
-    
+
 #     write:
 #       replicas: 0
-    
+
 #     # Gateway configuration
 #     gateway:
 #       enabled: true
@@ -249,7 +249,7 @@ spec:
 #             paths:
 #               - path: /
 #                 pathType: Prefix
-    
+
 #     # Monitoring
 #     monitoring:
 #       dashboards:
@@ -266,14 +266,13 @@ spec:
 #           prometheus: kube-prometheus
 #       selfMonitoring:
 #         enabled: false
-    
+
 #     # Test
 #     test:
 #       enabled: false
-    
+
 #     # Service account
 #     serviceAccount:
 #       create: true
 #       name: loki
 #       automountServiceAccountToken: true
-

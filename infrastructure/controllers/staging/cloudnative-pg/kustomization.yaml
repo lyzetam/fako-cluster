@@ -3,4 +3,3 @@ kind: Kustomization
 namespace: cnpg-system
 resources:
   - ../../base/cloudnative-pg/
-  

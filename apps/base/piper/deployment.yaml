@@ -53,7 +53,7 @@ spec:
               port: 10200
             initialDelaySeconds: 10
             periodSeconds: 10
-        
+
         # Lightweight voice manager (only downloads what's missing)
         - name: voice-manager
           image: busybox:latest
@@ -62,22 +62,22 @@ spec:
             - -c
             - |
               echo "Voice Manager Starting..."
-              
+
               # Simple monitoring - Piper already has the voices it needs
               while true; do
                 echo "Voice manager check at $(date)"
-                
+
                 # Check if essential voice still exists
                 if [ -f /data/en_US-amy-low.onnx ]; then
                   echo "✓ Essential voice present"
                 else
                   echo "⚠ Essential voice missing!"
                 fi
-                
+
                 # List available voices
                 echo "Available voices:"
                 ls -la /data/*.onnx 2>/dev/null || echo "No voices found"
-                
+
                 # Sleep for 1 hour
                 sleep 3600
               done
@@ -91,7 +91,7 @@ spec:
             limits:
               memory: "64Mi"
               cpu: "50m"
-      
+
       volumes:
         - name: piper-data
           persistentVolumeClaim:
@@ -123,7 +123,7 @@ spec:
 #             - -c
 #             - |
 #               echo "Checking for essential voice models..."
-              
+
 #               # Just check if we have at least one voice
 #               if [ -f /data/en_US-amy-low.onnx ] || [ -f /data/en_US-lessac-medium.onnx ]; then
 #                 echo "✓ Found at least one voice model, proceeding..."
@@ -140,7 +140,7 @@ spec:
 #             requests:
 #               cpu: 50m
 #               memory: 64Mi
-      
+
 #       containers:
 #         # Main Piper container
 #         - name: piper
@@ -181,7 +181,7 @@ spec:
 #               port: 10200
 #             initialDelaySeconds: 30
 #             periodSeconds: 10
-        
+
 #         # Voice manager sidecar
 #         - name: voice-manager
 #           image: ubuntu:24.04
@@ -190,15 +190,15 @@ spec:
 #             - -c
 #             - |
 #               echo "Voice Manager Sidecar Starting..."
-              
+
 #               # Install wget
 #               apt-get update -qq && apt-get install -y wget > /dev/null 2>&1
-              
+
 #               cd /data
-              
+
 #               # GitHub releases URL
 #               BASE_URL="https://github.com/rhasspy/piper/releases/download/2023.11.14-2"
-              
+
 #               # Voice models to maintain
 #               VOICES=(
 #                 "en_US-amy-low"
@@ -208,12 +208,12 @@ spec:
 #                 "en_US-kusal-medium"
 #                 "en_US-ljspeech-high"
 #               )
-              
+
 #               # Download function with retry
 #               download_voice() {
 #                 local voice=$1
 #                 local retries=3
-                
+
 #                 for i in $(seq 1 $retries); do
 #                   if [ ! -f "${voice}.onnx" ]; then
 #                     echo "Downloading ${voice} (attempt $i/$retries)..."
@@ -231,34 +231,34 @@ spec:
 #                 done
 #                 return 1
 #               }
-              
+
 #               # Initial download pass
 #               echo "=== Initial Voice Download ==="
 #               for voice in "${VOICES[@]}"; do
 #                 download_voice "$voice" || echo "Failed to download $voice after retries"
 #               done
-              
+
 #               echo ""
 #               echo "=== Available Voices ==="
 #               ls -la *.onnx 2>/dev/null || echo "No voices found"
-              
+
 #               # Monitor and maintain voices
 #               while true; do
 #                 sleep 3600  # Check hourly
-                
+
 #                 echo ""
 #                 echo "=== Voice Manager Health Check $(date) ==="
-                
+
 #                 # Check if essential voices still exist
 #                 if [ ! -f "en_US-amy-low.onnx" ]; then
 #                   echo "⚠ Essential voice missing! Re-downloading..."
 #                   download_voice "en_US-amy-low"
 #                 fi
-                
+
 #                 # Cleanup old/corrupted files
 #                 find . -name "*.onnx" -size -1M -delete 2>/dev/null
 #                 find . -name "*.onnx.json" -size -100c -delete 2>/dev/null
-                
+
 #                 echo "Voice manager heartbeat..."
 #               done
 #           volumeMounts:
@@ -271,7 +271,7 @@ spec:
 #             limits:
 #               memory: "512Mi"
 #               cpu: "200m"
-      
+
 #       volumes:
 #         - name: piper-data
 #           persistentVolumeClaim:
@@ -325,5 +325,4 @@ spec:
 #             periodSeconds: 10
 #       volumes:
 #         - name: piper-data
-#           persistentVolumeClaim:
-#             claimName: piper-data
+#           persistentVolumeClaim:#             claimName: piper-data

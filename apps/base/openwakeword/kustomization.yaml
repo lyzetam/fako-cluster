@@ -6,5 +6,4 @@ resources:
   - configmap.yaml
   - storage.yaml
   - deployment.yaml
-  - service.yaml
-  - nodeport-service.yaml
+  - service.yaml  - nodeport-service.yaml

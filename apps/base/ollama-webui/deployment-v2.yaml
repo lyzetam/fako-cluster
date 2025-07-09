@@ -61,5 +61,4 @@ spec:
             cpu: "3000m"
       volumes:
       - name: webui-data
-        persistentVolumeClaim:
-          claimName: ollama-webui-data
+        persistentVolumeClaim:          claimName: ollama-webui-data

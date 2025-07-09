@@ -2,5 +2,4 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: gpu-monitoring
-  labels:
-    monitoring: gpu
+  labels:    monitoring: gpu

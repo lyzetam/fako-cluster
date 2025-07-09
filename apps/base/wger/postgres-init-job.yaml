@@ -20,24 +20,24 @@ spec:
             echo "Waiting for database connection..."
             sleep 2
           done
-          
+
           echo "Initializing wger database..."
-          
+
           # Create database if it doesn't exist
           PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'wger'" | grep -q 1 || \
           PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "CREATE DATABASE wger"
-          
+
           # Create user if it doesn't exist
           PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -tc "SELECT 1 FROM pg_user WHERE usename = 'wger'" | grep -q 1 || \
           PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "CREATE USER wger WITH PASSWORD '$WGER_PASSWORD'"
-          
+
           # Grant privileges
           PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "ALTER USER wger WITH SUPERUSER"
           PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE wger TO wger"
-          
+
           # Grant schema permissions
           PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -d wger -c "GRANT ALL ON SCHEMA public TO wger"
-          
+
           echo "Database initialization complete!"
         env:
         - name: POSTGRES_PASSWORD
@@ -48,5 +48,4 @@ spec:
         - name: WGER_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: wger-db-credentials
-              key: dbpw
+              name: wger-db-credentials              key: dbpw

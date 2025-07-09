@@ -20,4 +20,3 @@ spec:
                 name: ollama-webui
                 port:
                   number: 8080
-

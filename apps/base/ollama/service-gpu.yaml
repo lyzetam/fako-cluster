@@ -10,5 +10,4 @@ spec:
       targetPort: 11434
       protocol: TCP
   selector:
-    app: ollama-gpu
-  type: ClusterIP
+    app: ollama-gpu  type: ClusterIP

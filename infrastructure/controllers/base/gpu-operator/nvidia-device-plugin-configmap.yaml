@@ -17,5 +17,4 @@ data:
       deviceIDStrategy: "uuid"
     resources:
       gpus:
-      - pattern: "*"
-        name: nvidia.com/gpu
+      - pattern: "*"        name: nvidia.com/gpu

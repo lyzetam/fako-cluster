@@ -26,7 +26,7 @@ spec:
             name: oura-collector-config
         - secretRef:
             name: aws-credentials-env  # Changed from aws-credentials
-        
+
         resources:
           requests:
             memory: "256Mi"
@@ -34,7 +34,7 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
-        
+
         livenessProbe:
           httpGet:
             path: /health
@@ -43,7 +43,7 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 10
           failureThreshold: 3
-        
+
         readinessProbe:
           httpGet:
             path: /ready
@@ -52,12 +52,11 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        
+
         volumeMounts:
         - name: data
           mountPath: /data
-      
+
       volumes:
       - name: data
-        persistentVolumeClaim:
-          claimName: oura-collector-data  
+        persistentVolumeClaim:          claimName: oura-collector-data

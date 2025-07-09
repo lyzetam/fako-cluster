@@ -3,8 +3,7 @@ kind: Kustomization
 namespace: homebot
 resources:
   - namespace.yaml
-  - configmap.yaml  
+  - configmap.yaml
   - storage.yaml
   - service.yaml
-  - deployment.yaml
-  - ingress.yaml
+  - deployment.yaml  - ingress.yaml

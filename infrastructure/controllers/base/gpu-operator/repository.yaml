@@ -4,5 +4,4 @@ metadata:
   name: nvidia
   namespace: gpu-operator
 spec:
-  interval: 24h
-  url: https://helm.ngc.nvidia.com/nvidia
+  interval: 24h  url: https://helm.ngc.nvidia.com/nvidia

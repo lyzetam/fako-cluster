@@ -26,5 +26,4 @@ roleRef:
   name: oura-collector
 subjects:
 - kind: ServiceAccount
-  name: oura-collector
-  namespace: oura-collector
+  name: oura-collector  namespace: oura-collector

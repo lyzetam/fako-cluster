@@ -4,5 +4,4 @@ metadata:
   name: grafana
   namespace: alloy
 spec:
-  interval: 24h
-  url: https://grafana.github.io/helm-charts
+  interval: 24h  url: https://grafana.github.io/helm-charts

@@ -17,14 +17,14 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: yeezyai
         nvidia.com/gpu: "true"
-      
+
       tolerations:
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule
-      
+
       runtimeClassName: nvidia
-      
+
       containers:
       - name: whisper
         image: ghcr.io/slackr31337/wyoming-whisper-gpu:latest
@@ -45,11 +45,11 @@ spec:
         - name: NVIDIA_DRIVER_CAPABILITIES
           value: "compute,utility"
         # Remove CUDA_VISIBLE_DEVICES to allow any GPU
-        
+
         volumeMounts:
         - mountPath: /data
           name: whisper-models
-        
+
         resources:
           requests:
             memory: "1Gi"
@@ -59,7 +59,7 @@ spec:
             memory: "2Gi"
             cpu: "2000m"
             nvidia.com/gpu: 1
-        
+
         livenessProbe:
           tcpSocket:
             port: 10300
@@ -72,7 +72,7 @@ spec:
           initialDelaySeconds: 45
           periodSeconds: 10
           timeoutSeconds: 5
-      
+
       volumes:
       - name: whisper-models
         persistentVolumeClaim:

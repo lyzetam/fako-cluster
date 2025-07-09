@@ -21,15 +21,15 @@ spec:
         - |
           # Install envsubst
           apk add --no-cache gettext
-          
+
           # Get NFS server from secret
           export NFS_SERVER=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.server}' | base64 -d)
           export NFS_STORAGE_PATH=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.storage-path}' | base64 -d)
           export NFS_DB_PATH=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.db-path}' | base64 -d)
           export NFS_BACKUP_PATH=$(kubectl get secret nfs-server-config -n nfs-system -o jsonpath='{.data.backup-path}' | base64 -d)
-          
+
           echo "Creating StorageClasses with NFS server: ${NFS_SERVER}"
-          
+
           # Apply storage classes with substitution
           cat <<'EOF' | envsubst | kubectl apply -f -
           apiVersion: storage.k8s.io/v1
@@ -81,5 +81,4 @@ spec:
           mountOptions:
             - nfsvers=3
             - nolock
-          EOF
-      restartPolicy: OnFailure
+          EOF      restartPolicy: OnFailure

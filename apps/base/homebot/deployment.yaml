@@ -66,5 +66,4 @@ spec:
           configMap:
             name: homebot-configmap
             items:
-              - key: configuration.yaml
-                path: configuration.yaml
+              - key: configuration.yaml                path: configuration.yaml

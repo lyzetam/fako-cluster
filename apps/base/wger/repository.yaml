@@ -4,5 +4,4 @@ metadata:
   name: wger
   namespace: wger
 spec:
-  interval: 24h
-  url: https://wger-project.github.io/helm-charts
+  interval: 24h  url: https://wger-project.github.io/helm-charts

@@ -8,5 +8,4 @@ spec:
   accessModes:
     - ReadWriteMany
   resources:
-    requests:
-      storage: 500Gi  storageClassName: nfs-backup-v3
+    requests:      storage: 500Gi  storageClassName: nfs-backup-v3

@@ -20,5 +20,4 @@ spec:
   # Optional: Add TLS configuration
   # tls:
   # - hosts:
-  #   - auth.landryzetam.net
-  #   secretName: keycloak-tls
+  #   - auth.landryzetam.net  #   secretName: keycloak-tls

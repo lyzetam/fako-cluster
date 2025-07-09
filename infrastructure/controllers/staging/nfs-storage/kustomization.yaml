@@ -3,8 +3,8 @@
 # namespace: nfs-system
 # resources:
 #   - ../../base/nfs-storage/
-#   - ../../base/nfs-storage/nfs-server-secret.yaml  
-#   - ../../base/nfs-storage/apply-storageclass-job.yaml  
+#   - ../../base/nfs-storage/nfs-server-secret.yaml
+#   - ../../base/nfs-storage/apply-storageclass-job.yaml
 
 # # Patches to trigger the storage class job on changes
 # patches:
@@ -38,5 +38,4 @@ replacements:
 
 configMapGenerator:
 - name: job-trigger
-  literals:
-  - timestamp="$(date +%s)"
+  literals:  - timestamp="$(date +%s)"

@@ -10,5 +10,4 @@ spec:
     - port: 10200
       targetPort: 10200
       nodePort: 30200  # External port
-  selector:
-    app: piper
+  selector:    app: piper

@@ -1,11 +1,10 @@
 # apiVersion: kustomize.config.k8s.io/v1beta1
 # kind: Kustomization
 # resources:
-#   - grafana 
+#   - grafana
 #   - kube-prometheus-stack
 
 # monitoring/configs/staging/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources:
-  - ../base
+resources:  - ../base

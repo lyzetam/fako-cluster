@@ -10,5 +10,4 @@ spec:
   - port: 4180
     targetPort: 4180
     protocol: TCP
-    name: http
-  type: ClusterIP
+    name: http  type: ClusterIP

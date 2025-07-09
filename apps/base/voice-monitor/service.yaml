@@ -24,5 +24,4 @@ spec:
     - port: 8080
       targetPort: 8080
       nodePort: 30808  # Access on any node IP:30808
-  selector:
-    app: voice-monitor
+  selector:    app: voice-monitor

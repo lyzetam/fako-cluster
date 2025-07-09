@@ -10,5 +10,4 @@ spec:
       protocol: TCP
       name: wyoming
   selector:
-    app: openwakeword
-  type: ClusterIP
+    app: openwakeword  type: ClusterIP

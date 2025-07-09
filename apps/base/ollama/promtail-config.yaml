@@ -27,5 +27,4 @@ data:
                     type: Counter
                     description: "Total number of log lines"
                     source: level
-                    config:
-                      action: inc
+                    config:                      action: inc

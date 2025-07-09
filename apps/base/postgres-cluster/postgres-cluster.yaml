@@ -7,20 +7,20 @@ spec:
   instances: 3
   imageName: ghcr.io/cloudnative-pg/postgresql:16.2
   enableSuperuserAccess: true
-  
+
   # Add this section - uses AWS Secrets Manager for admin credentials
   superuserSecret:
     name: postgres-admin-secret
-  
+
   primaryUpdateStrategy: unsupervised
   startDelay: 300
   stopDelay: 300
-  
+
   # PostgreSQL configuration
   postgresql:
     shared_preload_libraries:
       - "pg_stat_statements"
-    
+
     parameters:
       max_connections: "200"
       shared_buffers: "512MB"
@@ -33,12 +33,12 @@ spec:
       min_wal_size: "80MB"
       checkpoint_timeout: "5min"
       checkpoint_completion_target: "0.9"
-    
+
     pg_hba:
       - host all all 10.0.0.0/8 md5
       - host all all 172.16.0.0/12 md5
       - host all all 192.168.0.0/16 md5
-  
+
   bootstrap:
     initdb:
       database: app
@@ -49,11 +49,11 @@ spec:
       encoding: "UTF8"
       localeCollate: "en_US.UTF-8"
       localeCType: "en_US.UTF-8"
-  
+
   storage:
     size: 50Gi
     storageClass: "nfs-postgres-v3"
-  
+
   resources:
     requests:
       memory: "2Gi"
@@ -61,13 +61,12 @@ spec:
     limits:
       memory: "4Gi"
       cpu: "2"
-  
+
   affinity:
     enablePodAntiAffinity: true
     topologyKey: kubernetes.io/hostname
-  
-  # Monitoring configuration 
+
+  # Monitoring configuration
   # monitoring:
   #   # enabled: true
-  #   customQueriesConfigMap:
-  #     - name: postgres-monitoring  #       key: custom-queries
+  #   customQueriesConfigMap:  #     - name: postgres-monitoring  #       key: custom-queries

@@ -2,5 +2,4 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: linkding
-  # labels:
-  #   app.kubernetes.io/component: monitoring
+  # labels:  #   app.kubernetes.io/component: monitoring

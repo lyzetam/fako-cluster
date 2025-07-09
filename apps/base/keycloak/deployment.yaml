@@ -15,7 +15,7 @@ spec:
         app: keycloak
     spec:
       serviceAccountName: keycloak
-      
+
       # Spread pods across nodes
       affinity:
         podAntiAffinity:
@@ -29,7 +29,7 @@ spec:
                   values:
                   - keycloak
               topologyKey: kubernetes.io/hostname
-      
+
       initContainers:
       - name: database-init
         image: postgres:17-alpine
@@ -48,76 +48,76 @@ spec:
           set -e
           echo "Installing AWS CLI and jq..."
           apk add --no-cache aws-cli jq
-          
+
           echo "Fetching credentials from AWS Secrets Manager..."
-          
+
           # Get postgres superuser credentials with debugging
           echo "Fetching postgres/admin-credentials..."
           POSTGRES_CREDS=$(aws secretsmanager get-secret-value --secret-id postgres/admin-credentials --query SecretString --output text)
           echo "Raw postgres credentials response: $POSTGRES_CREDS"
-          
+
           # Parse with debugging
           export PGUSER=$(echo "$POSTGRES_CREDS" | jq -r .username)
           export PGPASSWORD=$(echo "$POSTGRES_CREDS" | jq -r .password)
-          
+
           echo "PGUSER: $PGUSER"
           echo "PGPASSWORD is set: $([ ! -z "$PGPASSWORD" ] && echo 'YES' || echo 'NO')"
-          
+
           # Get keycloak user credentials with debugging
           echo "Fetching auth-service/super-user..."
           KEYCLOAK_CREDS=$(aws secretsmanager get-secret-value --secret-id auth-service/super-user --query SecretString --output text)
           echo "Raw keycloak credentials response: $KEYCLOAK_CREDS"
-          
+
           KC_USER=$(echo "$KEYCLOAK_CREDS" | jq -r .username)
           KC_PASS=$(echo "$KEYCLOAK_CREDS" | jq -r .password)
-          
+
           echo "KC_USER: $KC_USER"
           echo "KC_PASS is set: $([ ! -z "$KC_PASS" ] && echo 'YES' || echo 'NO')"
-          
+
           # Exit if credentials are not properly set
           if [ -z "$PGUSER" ] || [ -z "$PGPASSWORD" ] || [ "$PGUSER" = "null" ]; then
             echo "ERROR: Failed to retrieve postgres credentials"
             echo "Please check that AWS Secrets Manager contains the expected format"
             exit 1
           fi
-          
+
           if [ -z "$KC_USER" ] || [ -z "$KC_PASS" ] || [ "$KC_USER" = "null" ]; then
             echo "ERROR: Failed to retrieve keycloak credentials"
             echo "Please check that AWS Secrets Manager contains the expected format"
             exit 1
           fi
-          
+
           echo "Checking database setup..."
-          
+
           # Check if database exists
           DB_EXISTS=$(psql -tAc "SELECT 1 FROM pg_database WHERE datname='keycloak'" 2>/dev/null || echo "")
-          
+
           if [ "$DB_EXISTS" = "1" ]; then
             echo "Database 'keycloak' already exists"
           else
             echo "Creating database 'keycloak'..."
             psql -c "CREATE DATABASE keycloak;"
           fi
-          
+
           # Check if user exists
           USER_EXISTS=$(psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$KC_USER'" 2>/dev/null || echo "")
-          
+
           if [ "$USER_EXISTS" = "1" ]; then
             echo "User '$KC_USER' already exists"
           else
             echo "Creating user '$KC_USER'..."
             psql -c "CREATE USER $KC_USER WITH ENCRYPTED PASSWORD '$KC_PASS';"
           fi
-          
+
           # Always ensure privileges are correct
           echo "Ensuring privileges..."
           psql -c "GRANT ALL PRIVILEGES ON DATABASE keycloak TO $KC_USER;"
           PGDATABASE=keycloak psql -c "GRANT ALL ON SCHEMA public TO $KC_USER;"
           PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $KC_USER;"
           PGDATABASE=keycloak psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $KC_USER;"
-          
+
           echo "Database initialization completed!"
-      
+
       containers:
       - name: keycloak
         image: quay.io/keycloak/keycloak:26.3.0  # Use specific version instead of latest
@@ -134,7 +134,7 @@ spec:
             secretKeyRef:
               name: keycloak-admin-credentials
               key: KC_BOOTSTRAP_ADMIN_PASSWORD
-        
+
         # Hostname configuration for Keycloak 26.x
         - name: KC_HOSTNAME
           value: auth.landryzetam.net
@@ -146,13 +146,13 @@ spec:
           value: "xforwarded"  # Trust X-Forwarded headers from proxy
         - name: KC_HTTP_ENABLED
           value: "true"
-        
+
         # Database configuration
         - name: KC_DB
           value: postgres
         - name: KC_DB_URL
           value: jdbc:postgresql://postgres-cluster-rw.postgres.svc.cluster.local:5432/keycloak
-        
+
         # DB credentials from External Secret
         - name: KC_DB_USERNAME
           valueFrom:
@@ -164,7 +164,7 @@ spec:
             secretKeyRef:
               name: keycloak-postgres-credentials
               key: KC_DB_PASSWORD
-        
+
         # Additional production settings
         - name: KC_HEALTH_ENABLED
           value: "true"
@@ -172,13 +172,13 @@ spec:
           value: "true"
         - name: KC_HTTP_MANAGEMENT_PORT
           value: "9000"  # Separate management port for health checks
-        
+
         # Clustering settings for HA
         - name: KC_CACHE_STACK
           value: kubernetes
         - name: JAVA_OPTS_APPEND
           value: "-Djgroups.dns.query=keycloak-headless.keycloak.svc.cluster.local"
-        
+
         ports:
         - containerPort: 8080
           name: http
@@ -186,7 +186,7 @@ spec:
           name: management
         - containerPort: 7800
           name: jgroups
-        
+
         # TCP-based health checks (more reliable for Keycloak)
         # readinessProbe:
         #   tcpSocket:
@@ -195,7 +195,7 @@ spec:
         #   periodSeconds: 10
         #   timeoutSeconds: 5
         #   failureThreshold: 6
-        
+
         # livenessProbe:
         #   tcpSocket:
         #     port: 8080
@@ -203,7 +203,7 @@ spec:
         #   periodSeconds: 30
         #   timeoutSeconds: 15
         #   failureThreshold: 3
-        
+
         # Alternative: Use management port for health checks
         # readinessProbe:
         #   httpGet:
@@ -213,7 +213,7 @@ spec:
         #   periodSeconds: 10
         #   timeoutSeconds: 5
         #   failureThreshold: 6
-        
+
         # livenessProbe:
         #   httpGet:
         #     path: /health/live
@@ -222,7 +222,7 @@ spec:
         #   periodSeconds: 30
         #   timeoutSeconds: 15
         #   failureThreshold: 3
-        
+
         resources:
           requests:
             memory: "1Gi"
@@ -246,5 +246,4 @@ spec:
       port: 7800
       targetPort: 7800
       protocol: TCP
-  selector:
-    app: keycloak
+  selector:    app: keycloak

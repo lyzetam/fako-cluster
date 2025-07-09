@@ -8,26 +8,26 @@ data:
   backup-etcd.sh: |
     #!/bin/bash
     set -e
-    
+
     echo "=== ETCD Backup Script ==="
     echo "Date: $(date)"
-    
+
     BACKUP_DIR="/backups/etcd"
     DATE=$(date +%Y%m%d-%H%M%S)
     BACKUP_PATH="$BACKUP_DIR/$DATE"
-    
+
     mkdir -p "$BACKUP_PATH"
-    
+
     # Find etcd pod
     ETCD_POD=$(kubectl get pods -n kube-system -l component=etcd -o jsonpath='{.items[0].metadata.name}')
-    
+
     if [ -z "$ETCD_POD" ]; then
       echo "ERROR: No etcd pod found!"
       exit 1
     fi
-    
+
     echo "Found etcd pod: $ETCD_POD"
-    
+
     # Backup etcd
     echo "Creating etcd snapshot..."
     kubectl exec -n kube-system "$ETCD_POD" -- etcdctl \
@@ -36,10 +36,10 @@ data:
       --cert=/etc/kubernetes/pki/etcd/server.crt \
       --key=/etc/kubernetes/pki/etcd/server.key \
       snapshot save /tmp/etcd-snapshot.db
-    
+
     # Copy snapshot from pod
     kubectl cp -n kube-system "$ETCD_POD":/tmp/etcd-snapshot.db "$BACKUP_PATH/etcd-snapshot.db"
-    
+
     # Verify snapshot
     echo "Verifying snapshot..."
     kubectl exec -n kube-system "$ETCD_POD" -- etcdctl \
@@ -48,10 +48,10 @@ data:
       --cert=/etc/kubernetes/pki/etcd/server.crt \
       --key=/etc/kubernetes/pki/etcd/server.key \
       snapshot status /tmp/etcd-snapshot.db
-    
+
     # Clean up
     kubectl exec -n kube-system "$ETCD_POD" -- rm -f /tmp/etcd-snapshot.db
-    
+
     # Create metadata
     cat > "$BACKUP_PATH/backup-info.txt" <<EOF
     ETCD Backup
@@ -60,10 +60,10 @@ data:
     ETCD Pod: $ETCD_POD
     Snapshot: etcd-snapshot.db
     EOF
-    
+
     # Cleanup old backups (keep 30 days)
     find "$BACKUP_DIR" -maxdepth 1 -type d -mtime +30 -exec rm -rf {} \; 2>/dev/null || true
-    
+
     echo "ETCD backup completed: $BACKUP_PATH"
     ls -la "$BACKUP_PATH/"
 
@@ -149,5 +149,4 @@ roleRef:
   name: etcd-backup-role
 subjects:
 - kind: ServiceAccount
-  name: etcd-backup-sa
-  namespace: backup-system
+  name: etcd-backup-sa  namespace: backup-system

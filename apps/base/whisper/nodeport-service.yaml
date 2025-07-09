@@ -25,5 +25,4 @@ spec:
     - port: 10300
       targetPort: 10300
       nodePort: 30300
-  selector:
-    app: whisper-gpu  # Fixed to match GPU deployment
+  selector:    app: whisper-gpu  # Fixed to match GPU deployment

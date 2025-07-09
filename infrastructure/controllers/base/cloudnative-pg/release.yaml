@@ -26,7 +26,7 @@ spec:
     # Operator configuration
     config:
       clusterWide: true
-      
+
     # Resource limits for the operator
     resources:
       limits:
@@ -35,18 +35,17 @@ spec:
       requests:
         cpu: 100m
         memory: 128Mi
-    
+
     # Monitoring
     monitoring:
       enabled: true
       podMonitor:
         enabled: true
-    
+
     # Node selector if needed
     nodeSelector: {}
-    
+
     # Tolerations
     tolerations: []
-    
-    # Affinity rules
-    affinity: {}
+
+    # Affinity rules    affinity: {}

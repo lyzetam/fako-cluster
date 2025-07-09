@@ -14,5 +14,4 @@ spec:
             backend:
               service:
                 name: voice-monitor
-                port:
-                  number: 80
+                port:                  number: 80

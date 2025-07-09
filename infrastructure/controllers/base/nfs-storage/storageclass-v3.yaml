@@ -21,7 +21,7 @@ data:
     mountOptions:
       - nfsvers=3
       - nolock
-  
+
   nfs-postgres-v3.yaml: |
     apiVersion: storage.k8s.io/v1
     kind: StorageClass
@@ -44,7 +44,7 @@ data:
       - timeo=600
       - retrans=2
       - noresvport
-  
+
   nfs-backup-v3.yaml: |
     apiVersion: storage.k8s.io/v1
     kind: StorageClass
@@ -57,5 +57,4 @@ data:
     reclaimPolicy: Retain
     allowVolumeExpansion: true
     mountOptions:
-      - nfsvers=3
-      - nolock
+      - nfsvers=3      - nolock

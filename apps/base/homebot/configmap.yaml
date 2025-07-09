@@ -8,19 +8,18 @@ data:
   configuration.yaml: |
     # Loads default set of integrations. Do not remove.
     default_config:
-    
+
     # Load frontend themes from the themes folder
     frontend:
       themes: !include_dir_merge_named themes
-    
+
     automation: !include automations.yaml
     script: !include scripts.yaml
     scene: !include scenes.yaml
-    
+
     # HTTP configuration for reverse proxy
     http:
       use_x_forwarded_for: true
       trusted_proxies:
         - 10.42.0.0/16    # Kubernetes pod network
-        - 10.43.0.0/16    # Kubernetes service network
-        - 127.0.0.1       # Localhost
+        - 10.43.0.0/16    # Kubernetes service network        - 127.0.0.1       # Localhost

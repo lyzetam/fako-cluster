@@ -22,5 +22,4 @@ roleRef:
   name: secret-reader
 subjects:
 - kind: ServiceAccount
-  name: oura-dashboard
-  namespace: oura-dashboard
+  name: oura-dashboard  namespace: oura-dashboard
