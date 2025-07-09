@@ -3,3 +3,12 @@ kind: Kustomization
 namespace: dev-openwakeword
 resources:
   - ../../base/openwakeword/
+
+patches:
+  - target:
+      kind: Service
+      name: openwakeword-nodeport
+    patch: |-
+      - op: replace
+        path: /spec/ports/0/nodePort
+        value: 30401
