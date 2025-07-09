@@ -21,14 +21,14 @@ spec:
       clients:
         - url: http://loki-gateway.loki-stack.svc.cluster.local/loki/api/v1/push
           tenant_id: 1
-      
+
       snippets:
         pipelineStages:
           - cri: {}
           - labeldrop:
               - filename
               - stream
-        
+
         # Add extra scrape configs for specific apps
         extraScrapeConfigs: |
           # Kubernetes pods
@@ -104,7 +104,7 @@ spec:
                 source_labels:
                   - __meta_kubernetes_pod_host_ip
                 target_label: node_ip
-          
+
           # System logs
           - job_name: syslog
             static_configs:
@@ -113,7 +113,7 @@ spec:
                 labels:
                   job: syslog
                   __path__: /var/log/syslog
-          
+
           # Journal logs
           - job_name: journal
             journal:
@@ -125,10 +125,10 @@ spec:
                 target_label: 'unit'
               - source_labels: ['__journal__hostname']
                 target_label: 'hostname'
-    
+
     serviceMonitor:
       enabled: true
-    
+
     # Mount host paths for log collection
     extraVolumes:
       - name: pods
@@ -140,7 +140,7 @@ spec:
       - name: varlog
         hostPath:
           path: /var/log
-    
+
     extraVolumeMounts:
       - name: pods
         mountPath: /var/log/pods
@@ -151,13 +151,13 @@ spec:
       - name: varlog
         mountPath: /var/log
         readOnly: true
-    
+
     # Run as privileged to access host logs
     containerSecurityContext:
       privileged: true
       runAsUser: 0
       allowPrivilegeEscalation: true  # Must be true when privileged is tru
-    
+
     resources:
       requests:
         cpu: 200m
@@ -165,12 +165,12 @@ spec:
       limits:
         cpu: 500m
         memory: 512Mi
-    
+
     # Deploy to all nodes
     tolerations:
       - effect: NoSchedule
         operator: Exists
-    
+
     # Affinity to spread across nodes
     affinity:
       podAntiAffinity:
@@ -179,5 +179,4 @@ spec:
             podAffinityTerm:
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/name: promtail
-              topologyKey: kubernetes.io/hostname
+                  app.kubernetes.io/name: promtail              topologyKey: kubernetes.io/hostname

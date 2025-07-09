@@ -21,5 +21,4 @@ spec:
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 300
-    scaleUp:
-      stabilizationWindowSeconds: 30
+    scaleUp:      stabilizationWindowSeconds: 30

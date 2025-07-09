@@ -14,5 +14,4 @@ spec:
         name: csi-driver-nfs
         namespace: nfs-system
       interval: 12h
-  install:
-    createNamespace: true
+  install:    createNamespace: true

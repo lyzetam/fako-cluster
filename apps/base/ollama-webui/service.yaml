@@ -9,5 +9,4 @@ spec:
       targetPort: 8080
       protocol: TCP
   selector:
-    app: ollama-webui
-  type: ClusterIP
+    app: ollama-webui  type: ClusterIP

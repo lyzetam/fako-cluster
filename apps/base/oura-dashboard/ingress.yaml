@@ -14,5 +14,4 @@ spec:
         backend:
           service:
             name: oura-dashboard
-            port:
-              number: 8501
+            port:              number: 8501

@@ -9,5 +9,4 @@ spec:
       targetPort: 8123
       protocol: TCP
   selector:
-    app: homebot
-  type: ClusterIP  
+    app: homebot  type: ClusterIP

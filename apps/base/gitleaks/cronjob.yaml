@@ -25,7 +25,7 @@ spec:
             volumeMounts:
             - name: tools
               mountPath: /tools
-          
+
           containers:
           - name: gitleaks
             image: zricethezav/gitleaks:latest
@@ -51,10 +51,10 @@ spec:
             - |
               # Install additional tools
               apk add --no-cache git jq bash openjdk11-jre
-              
+
               # Copy BFG from init container
               cp /tools/bfg.jar /usr/local/bin/
-              
+
               # Run the cleanup script
               bash /scripts/cleanup.sh
             volumeMounts:
@@ -71,7 +71,7 @@ spec:
               limits:
                 memory: "1Gi"
                 cpu: "500m"
-          
+
           volumes:
           - name: scripts
             configMap:
@@ -81,5 +81,4 @@ spec:
             emptyDir: {}
           - name: scan-results
             emptyDir: {}
-          
           restartPolicy: OnFailure

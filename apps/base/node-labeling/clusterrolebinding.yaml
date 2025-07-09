@@ -8,5 +8,4 @@ roleRef:
   name: node-labeler
 subjects:
 - kind: ServiceAccount
-  name: node-labeler
-  namespace: node-labeling
+  name: node-labeler  namespace: node-labeling

@@ -14,5 +14,4 @@ data:
   OLLAMA_FLASH_ATTENTION: "true"  # Enable flash attention for faster inference
   OLLAMA_NOHISTORY: "false"  # Keep conversation history
   # CPU-specific optimizations
-  GOARCH: "amd64"
-  GOOS: "linux"
+  GOARCH: "amd64"  GOOS: "linux"

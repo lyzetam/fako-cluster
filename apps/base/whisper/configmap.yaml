@@ -9,10 +9,9 @@ data:
   MODEL_SIZE: "medium"  # Options: tiny, base, small, medium, large
   COMPUTE_TYPE: "float16"  # FP16 for GPU optimization
   DEVICE: "cuda"
-  
+
   # Performance tuning
   # BEAM_SIZE: "5"
   # LANGUAGE: "en"  # Set default language for better performance
-  
-  # Wyoming protocol settings
-  WYOMING_URI: "tcp://0.0.0.0:10300"
+
+  # Wyoming protocol settings  WYOMING_URI: "tcp://0.0.0.0:10300"

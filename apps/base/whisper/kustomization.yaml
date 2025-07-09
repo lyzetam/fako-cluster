@@ -8,5 +8,4 @@ resources:
   - health-check-configmap.yaml
   - storage.yaml
   - deployment-gpu.yaml
-  - service-gpu.yaml
-  - nodeport-service.yaml
+  - service-gpu.yaml  - nodeport-service.yaml

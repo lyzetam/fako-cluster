@@ -8,42 +8,42 @@ data:
   cleanup.sh: |
     #!/bin/bash
     set -e
-    
+
     # Configuration
     REPO_URL="https://github.com/lyzetam/fako-cluster.git"
     DRY_RUN="${DRY_RUN:-false}"
     AUTO_PUSH="${AUTO_PUSH:-false}"
-    
+
     # Colors
     RED='\033[0;31m'
     GREEN='\033[0;32m'
     YELLOW='\033[1;33m'
     NC='\033[0m'
-    
+
     echo -e "${GREEN}=== Gitleaks Scanner with Auto-Cleanup ===${NC}"
-    
+
     # Clone the repo
     echo -e "${YELLOW}Cloning repository...${NC}"
     git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
     git clone --mirror "$REPO_URL" /tmp/repo-mirror
     git clone /tmp/repo-mirror /tmp/repo
     cd /tmp/repo
-    
+
     # Run Gitleaks
     echo -e "${YELLOW}Running Gitleaks scan...${NC}"
     gitleaks detect --source . --report-format json --report-path /tmp/gitleaks-report.json || SCAN_FAILED=$?
-    
+
     # Check if secrets were found
     if [ "$SCAN_FAILED" != "1" ]; then
         echo -e "${GREEN}✅ No secrets found!${NC}"
         exit 0
     fi
-    
+
     echo -e "${RED}⚠️ Secrets detected!${NC}"
-    
+
     # Parse Gitleaks results
     echo "Parsing Gitleaks report..."
-    
+
     # Extract unique secrets and create BFG replacement file
     cat /tmp/gitleaks-report.json | \
         jq -r '.[].Secret' | \
@@ -53,71 +53,71 @@ data:
             escaped_secret=$(echo "$secret" | sed 's/[[\.*^$()+?{|]/\\&/g')
             echo "${escaped_secret}==>***REMOVED***"
         done > /tmp/replacements.txt
-    
+
     # Extract affected files
     cat /tmp/gitleaks-report.json | \
         jq -r '.[].File' | \
         sort -u > /tmp/affected-files.txt
-    
+
     # Show summary
     SECRETS_COUNT=$(cat /tmp/gitleaks-report.json | jq '. | length')
     FILES_COUNT=$(wc -l < /tmp/affected-files.txt)
-    
+
     echo -e "\n${YELLOW}Summary:${NC}"
     echo "- Secrets found: $SECRETS_COUNT"
     echo "- Files affected: $FILES_COUNT"
     echo -e "\n${YELLOW}Affected files:${NC}"
     cat /tmp/affected-files.txt
-    
+
     # If dry run, stop here
     if [ "$DRY_RUN" = "true" ]; then
         echo -e "\n${YELLOW}DRY RUN MODE - No cleanup performed${NC}"
         echo "To clean secrets, set DRY_RUN=false"
-        
+
         # Save report for inspection
         cp /tmp/gitleaks-report.json /tmp/scan-results/
         cp /tmp/affected-files.txt /tmp/scan-results/
-        
+
         # Send notification if webhook exists
         if [ ! -z "$SLACK_WEBHOOK" ]; then
             curl -X POST "$SLACK_WEBHOOK" \
                 -H 'Content-type: application/json' \
                 -d "{\"text\":\"🔍 Gitleaks found $SECRETS_COUNT secrets in $FILES_COUNT files (dry run mode)\"}"
         fi
-        
+
         exit 0
     fi
-    
+
     # Download BFG if not exists
     if [ ! -f /usr/local/bin/bfg.jar ]; then
         echo "Downloading BFG..."
         curl -L https://repo1.maven.org/maven2/com/madgag/bfg/1.14.0/bfg-1.14.0.jar \
             -o /usr/local/bin/bfg.jar
     fi
-    
+
     # Perform cleanup
     echo -e "\n${YELLOW}Cleaning secrets from git history...${NC}"
     cd /tmp/repo-mirror
-    
+
     # Run BFG
     java -jar /usr/local/bin/bfg.jar \
         --replace-text /tmp/replacements.txt \
         --no-blob-protection \
         .
-    
+
     # Clean up git
     git reflog expire --expire=now --all
     git gc --prune=now --aggressive
-    
+
     echo -e "${GREEN}✅ Secrets cleaned from history!${NC}"
-    
+
     # If auto-push is enabled
     if [ "$AUTO_PUSH" = "true" ]; then
         echo -e "\n${YELLOW}Pushing cleaned repository...${NC}"
         git push --force --all
         git push --force --tags
         echo -e "${GREEN}✅ Repository pushed!${NC}"
-        
+
         # Notify
         if [ ! -z "$SLACK_WEBHOOK" ]; then
             curl -X POST "$SLACK_WEBHOOK" \
@@ -127,12 +127,11 @@ data:
     else
         echo -e "\n${YELLOW}Auto-push disabled. Cleaned repo available at /tmp/repo-mirror${NC}"
     fi
-    
+
     # Save final report
     echo "{
       \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
       \"secrets_found\": $SECRETS_COUNT,
       \"files_affected\": $FILES_COUNT,
       \"cleaned\": true,
-      \"pushed\": $AUTO_PUSH
-    }" > /tmp/scan-results/cleanup-report.json
+      \"pushed\": $AUTO_PUSH    }" > /tmp/scan-results/cleanup-report.json

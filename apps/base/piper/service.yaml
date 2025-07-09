@@ -9,5 +9,4 @@ spec:
       targetPort: 10200
       protocol: TCP
   selector:
-    app: piper
-  type: ClusterIP
+    app: piper  type: ClusterIP

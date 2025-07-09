@@ -12,7 +12,7 @@ data:
   PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
   # This is important for auto-loading servers
   PGADMIN_SERVER_JSON_FILE: "/pgadmin4/servers.json"
-  
+
   # Pre-configure PostgreSQL servers
   servers.json: |
     {

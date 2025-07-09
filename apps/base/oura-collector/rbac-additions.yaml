@@ -22,5 +22,4 @@ roleRef:
   name: secret-reader
 subjects:
 - kind: ServiceAccount
-  name: oura-collector
-  namespace: oura-collector
+  name: oura-collector  namespace: oura-collector

@@ -6,13 +6,12 @@ metadata:
 spec:
   # Backup schedule (daily at 2 AM)
   schedule: "0 2 * * *"
-  
+
   # Reference to the cluster
   cluster:
     name: postgres-cluster
-  
+
   # Backup retention
   backupOwnerReference: self
-  
-  # Optional: immediate backup on creation
-  immediate: true
+
+  # Optional: immediate backup on creation  immediate: true

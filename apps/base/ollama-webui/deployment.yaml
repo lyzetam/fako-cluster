@@ -22,7 +22,7 @@ spec:
           # Get GPUStack config from secret
           GPUSTACK_URL=$(cat /secrets/gpustack/api-base-url)
           GPUSTACK_KEY=$(cat /secrets/gpustack/api-key)
-          
+
           # Create environment file
           cat > /config/env-config <<EOF
           OPENAI_API_BASE_URL=$GPUSTACK_URL
@@ -35,7 +35,7 @@ spec:
           mountPath: /secrets/gpustack
         - name: config-volume
           mountPath: /config
-      
+
       containers:
       - name: ollama-webui
         image: ghcr.io/open-webui/open-webui:latest
@@ -77,7 +77,7 @@ spec:
           limits:
             memory: "6Gi"
             cpu: "3000m"
-      
+
       volumes:
       - name: webui-data
         persistentVolumeClaim:

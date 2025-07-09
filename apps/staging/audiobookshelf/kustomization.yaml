@@ -13,5 +13,4 @@ resources:
 #       kind: SecretProviderClass
 #     patch: |-
 #       - op: replace
-#         path: /spec/parameters/keyvaultName
-#         value: k8s-homelab-production
+#         path: /spec/parameters/keyvaultName#         value: k8s-homelab-production

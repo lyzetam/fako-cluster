@@ -25,7 +25,7 @@ spec:
           sysctl -w fs.inotify.max_user_watches=524288
           sysctl -w fs.inotify.max_user_instances=512
           sysctl -w fs.file-max=2097152
-          
+
           # Keep container running
           while true; do
             sleep 86400
@@ -40,5 +40,4 @@ spec:
             cpu: 50m
             memory: 50Mi
       tolerations:
-      - operator: Exists
-      restartPolicy: Always
+      - operator: Exists      restartPolicy: Always

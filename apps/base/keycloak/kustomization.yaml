@@ -4,11 +4,10 @@ namespace: keycloak
 resources:
   - namespace.yaml
   - rbac.yaml
-  - local-secret-store.yaml       
+  - local-secret-store.yaml
   - external-secret-aws.yaml
   - external-secret-admin.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
-  - secret-store.yaml        
-  - external-secret-postgres.yaml  
+  - ingress.yaml  - secret-store.yaml
+  - external-secret-postgres.yaml

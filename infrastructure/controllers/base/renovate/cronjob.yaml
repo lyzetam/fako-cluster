@@ -23,5 +23,4 @@ spec:
                 - configMapRef:
                     name: renovate-configmap
 
-          # The restartPolicy is set to Never because CronJobs are expected to run to completion without restarting.
-          restartPolicy: Never
+          # The restartPolicy is set to Never because CronJobs are expected to run to completion without restarting.          restartPolicy: Never

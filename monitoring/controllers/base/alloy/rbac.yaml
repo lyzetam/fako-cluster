@@ -49,5 +49,4 @@ roleRef:
   name: alloy
 subjects:
 - kind: ServiceAccount
-  name: alloy
-  namespace: alloy
+  name: alloy  namespace: alloy

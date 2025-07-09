@@ -25,5 +25,4 @@ roleRef:
   name: keycloak
 subjects:
 - kind: ServiceAccount
-  name: keycloak
-  namespace: keycloak
+  name: keycloak  namespace: keycloak

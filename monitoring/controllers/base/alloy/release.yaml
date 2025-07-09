@@ -32,17 +32,17 @@ spec:
         create: false
         name: alloy-config
         key: config.alloy
-      
+
       # Enable clustering
       clustering:
         enabled: true
-      
+
       # Mount configuration - use the correct format
       mounts:
         # Host filesystem mounts
         varlog: true
         dockercontainers: true
-      
+
       # Extra volume mounts need to be in extraVolumes/extraVolumeMounts
       extraVolumes:
         - name: pods
@@ -57,7 +57,7 @@ spec:
           hostPath:
             path: /var/lib/alloy
             type: DirectoryOrCreate
-      
+
       extraVolumeMounts:
         - name: pods
           mountPath: /var/log/pods
@@ -68,12 +68,12 @@ spec:
         - name: alloy-data
           mountPath: /alloy-data
           readOnly: false
-    
+
     # Controller configuration
     controller:
       type: daemonset
       hostPID: true  # Required for some log collection
-    
+
     # Resources
     resources:
       requests:
@@ -82,26 +82,25 @@ spec:
       limits:
         cpu: 500m
         memory: 512Mi
-    
+
     # Service account - let Helm create it
     serviceAccount:
       create: true
-    
+
     # RBAC - let Helm create it
     rbac:
       create: true
-    
+
     # Security context - adjusted for log collection
     securityContext:
       privileged: true  # Required for accessing host logs
       runAsUser: 0      # Run as root for log access
-    
+
     # ServiceMonitor for self-monitoring
     serviceMonitor:
       enabled: true
       additionalLabels:
         prometheus: kube-prometheus
-    
+
     # Tolerations for all nodes
-    tolerations:
-      - operator: Exists
+    tolerations:      - operator: Exists

@@ -24,7 +24,7 @@ spec:
             - "tcp://0.0.0.0:10400"
             - "--preload-model"
             - "alexa"
-            - "--preload-model" 
+            - "--preload-model"
             - "hey_jarvis"
             - "--preload-model"
             - "hey_mycroft"
@@ -68,5 +68,4 @@ spec:
             failureThreshold: 12
       volumes:
         - name: openwakeword-models
-          persistentVolumeClaim:
-            claimName: openwakeword-models
+          persistentVolumeClaim:            claimName: openwakeword-models

@@ -6,7 +6,7 @@
 #   - namespace.yaml
 #   - serviceaccount.yaml
 #   - storage.yaml
-#   - deployment-v2.yaml 
+#   - deployment-v2.yaml
 #   - service.yaml
 #   - ingress.yaml
 #   - gpustack-secret.yaml
@@ -23,7 +23,7 @@ resources:
   - service.yaml
   - ingress.yaml
   - gpustack-secret.yaml
-  
+
 # Remove old configmap, create new one
 configMapGenerator:
 - name: ollama-webui-configmap

@@ -33,17 +33,17 @@ spec:
           tag: "latest"
           pullPolicy: Always
         replicas: 1
-        
+
       # Enable nginx for production use
       nginx:
         enabled: true
-        
+
       # Enable persistence using NFS
       persistence:
         enabled: true
         storageClass: "nfs-csi-v3"
         size: "10Gi"
-        
+
       # Django configuration
       django:
         existingDatabase:
@@ -56,22 +56,22 @@ spec:
             dbnameKey: "dbname"
             dbuserKey: "dbuser"
             dbpwKey: "dbpw"
-          
+
       # Mail configuration (disabled for now)
       mail:
         enabled: false
-        
+
       # JWT configuration
       jwt:
         accessTokenLifetime: "10"
         refreshTokenLifetime: "24"
-        
+
       # Axes configuration for brute force protection
       axes:
         enabled: true
         failureLimit: "10"
         cooloffTime: "30"
-        
+
       # Additional environment variables
       environment:
         - name: DJANGO_DEBUG
@@ -84,7 +84,7 @@ spec:
           value: "True"
         - name: WGER_ALLOW_GUEST_USERS
           value: "True"
-        
+
       # Resource limits
       resources:
         requests:
@@ -93,7 +93,7 @@ spec:
         limits:
           memory: "1Gi"
           cpu: "1000m"
-          
+
     # Celery configuration
     celery:
       enabled: true
@@ -109,12 +109,12 @@ spec:
         limits:
           memory: "512Mi"
           cpu: "500m"
-        
+
     # Service configuration
     service:
       type: ClusterIP
       port: 8000
-      
+
     # Ingress configuration
     ingress:
       enabled: true
@@ -122,15 +122,14 @@ spec:
       # url: wger.landryzetam.net
       url: trackit.landryzetam.net
       tls: true
-      
+
     # Disable bundled PostgreSQL since we're using the existing cluster
     postgres:
       enabled: false
-      
+
     # Enable Redis for caching
     redis:
       enabled: true
       auth:
         enabled: false
-      storage:
-        requestedSize: "5Gi"        className: "nfs-csi-v3"
+      storage:        requestedSize: "5Gi"        className: "nfs-csi-v3"

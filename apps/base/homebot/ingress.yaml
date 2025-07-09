@@ -18,5 +18,4 @@ spec:
                   number: 8123 # Home Assistant service
   tls:
     - hosts:
-      - homebot.landryzetam.net
-      secretName: homebot-tls-secret
+      - homebot.landryzetam.net      secretName: homebot-tls-secret

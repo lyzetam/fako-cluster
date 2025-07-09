@@ -10,5 +10,4 @@ spec:
   - port: 8501  # Changed from 8080
     targetPort: 8501  # Changed from 8080
     protocol: TCP
-    name: http
-  type: ClusterIP
+    name: http  type: ClusterIP

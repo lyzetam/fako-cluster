@@ -1,5 +1,4 @@
 # apps/base/gitleaks/namespace.yaml
 apiVersion: v1
 kind: Namespace
-metadata:
-  name: security-scanning
+metadata:  name: security-scanning

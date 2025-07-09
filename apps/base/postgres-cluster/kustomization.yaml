@@ -5,11 +5,10 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - secret-store.yaml
-  - external-secret-admin.yaml    
+  - external-secret-admin.yaml
   - external-secret-app.yaml
   - postgres-cluster.yaml
   - aws-credentials-secret.yaml
 
   # - service.yaml
-  # - backup-schedule.yaml  # Uncomment if using backups
-  # - pooler.yaml  # Uncomment if using PgBouncer
+  # - backup-schedule.yaml  # Uncomment if using backups  # - pooler.yaml  # Uncomment if using PgBouncer

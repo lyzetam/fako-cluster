@@ -8,47 +8,47 @@ data:
   backup.sh: |
     #!/bin/bash
     set -e
-    
+
     BACKUP_DIR="/backups"
     DATE=$(date +%Y%m%d-%H%M%S)
     BACKUP_PATH="$BACKUP_DIR/$DATE"
-    
+
     echo "Starting Kubernetes backup - $DATE"
     mkdir -p "$BACKUP_PATH"
-    
+
     # Create backup structure
     mkdir -p "$BACKUP_PATH"/{namespaces,cluster,certificates,etcd-info}
-    
+
     # Namespaces to backup
     NAMESPACES=${NAMESPACES:-"default flux-system renovate nfs-system nvidia-device-plugin backup-system"}
-    
+
     # Backup all resources in specified namespaces
     for ns in $NAMESPACES; do
       echo "Backing up namespace: $ns"
       mkdir -p "$BACKUP_PATH/namespaces/$ns"
-      
+
       # Get all resources
       kubectl api-resources --namespaced=true --verbs=list -o name | while read resource; do
         echo "  Backing up $resource..."
         kubectl get "$resource" -n "$ns" -o yaml > "$BACKUP_PATH/namespaces/$ns/${resource}.yaml" 2>/dev/null || true
       done
     done
-    
+
     # Backup cluster-wide resources
     echo "Backing up cluster resources"
     kubectl api-resources --namespaced=false --verbs=list -o name | while read resource; do
       echo "  Backing up $resource..."
       kubectl get "$resource" -o yaml > "$BACKUP_PATH/cluster/${resource}.yaml" 2>/dev/null || true
     done
-    
+
     # Get etcd endpoint info (but not the actual backup)
     echo "Getting etcd information..."
     kubectl get pods -n kube-system -l component=etcd -o yaml > "$BACKUP_PATH/etcd-info/etcd-pods.yaml"
-    
+
     # Get certificate expiration info
     echo "Getting certificate information..."
     kubectl get pods -n kube-system -o yaml | grep -E "(ca.crt|tls.crt)" > "$BACKUP_PATH/certificates/cert-references.txt" || true
-    
+
     # Create comprehensive backup metadata
     cat > "$BACKUP_PATH/backup-info.txt" <<EOF
     Kubernetes Backup
@@ -58,28 +58,27 @@ data:
     Namespaces: $NAMESPACES
     Cluster: $(kubectl config current-context)
     Nodes: $(kubectl get nodes -o name | wc -l)
-    
+
     Backup Contents:
     - All Kubernetes resources (manifests)
     - Cluster-wide resources
     - Certificate references
     - etcd pod information
-    
+
     NOT Included:
     - etcd database (see /backups/etcd/)
     - PVC data (see /backups/pvc-data/)
     - Container images
     - PKI certificates
-    
+
     To restore:
     1. Restore etcd first (critical!)
     2. Apply cluster resources
     3. Apply namespace resources
     4. Restore PVC data
     EOF
-    
+
     # Cleanup old backups (keep last 30 days)
     find "$BACKUP_DIR" -maxdepth 1 -type d -mtime +30 -name "20*" -exec rm -rf {} \; 2>/dev/null || true
-    
-    echo "Backup completed: $BACKUP_PATH"
-    du -sh "$BACKUP_PATH"
+
+    echo "Backup completed: $BACKUP_PATH"    du -sh "$BACKUP_PATH"

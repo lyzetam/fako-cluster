@@ -3,5 +3,4 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - renovate-container-env.yaml
-  - configmap.yaml
-  - cronjob.yaml
+  - configmap.yaml  - cronjob.yaml

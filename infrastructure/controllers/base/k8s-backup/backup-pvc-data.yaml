@@ -20,10 +20,10 @@ spec:
             - |
               echo "Starting PVC data backup"
               DATE=$(date +%Y%m%d-%H%M%S)
-              
+
               # Mount points for PVCs you want to backup
               # Add logic here to rsync PVC data to NFS backup location
-              
+
               echo "PVC backup completed"
             volumeMounts:
             - name: backup-storage

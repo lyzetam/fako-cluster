@@ -11,5 +11,4 @@ resources:
   - storage.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
-  - backfill-job.yaml
+  - ingress.yaml  - backfill-job.yaml

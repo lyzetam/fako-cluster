@@ -92,5 +92,4 @@ spec:
 #       volumes:
 #       - name: pgadmin-data
 #         # emptyDir: {}
-#         persistentVolumeClaim:  # Using PVC instead of emptyDir
-#           claimName: pgadmin-data
+#         persistentVolumeClaim:  # Using PVC instead of emptyDir#           claimName: pgadmin-data

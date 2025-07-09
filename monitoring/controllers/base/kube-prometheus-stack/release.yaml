@@ -32,17 +32,17 @@ spec:
         serviceMonitorSelectorNilUsesHelmValues: false
         serviceMonitorSelector: {}
         serviceMonitorNamespaceSelector: {}
-        
+
         # Enable all PodMonitors
         podMonitorSelectorNilUsesHelmValues: false
         podMonitorSelector: {}
         podMonitorNamespaceSelector: {}
-        
+
         # Enable all PrometheusRules
         ruleSelectorNilUsesHelmValues: false
         ruleSelector: {}
         ruleNamespaceSelector: {}
-        
+
         # Resources
         resources:
           requests:
@@ -51,10 +51,10 @@ spec:
           limits:
             memory: 4Gi
             cpu: 2000m
-        
+
         # Retention
         retention: 30d
-        
+
         # Storage
         storageSpec:
           volumeClaimTemplate:
@@ -64,45 +64,45 @@ spec:
               resources:
                 requests:
                   storage: 50Gi
-    
+
     # Ensure all exporters are enabled
     kubeApiServer:
       enabled: true
-    
+
     kubelet:
       enabled: true
-    
+
     kubeControllerManager:
       enabled: true
-    
+
     coreDns:
       enabled: true
-    
+
     kubeDns:
       enabled: false
-    
+
     kubeEtcd:
       enabled: true
-    
+
     kubeScheduler:
       enabled: true
-    
+
     kubeProxy:
       enabled: true
-    
+
     kubeStateMetrics:
       enabled: true
-    
+
     nodeExporter:
       enabled: true
-    
+
     prometheusOperator:
       enabled: true
-    
+
     # Grafana configuration
     grafana:
       adminPassword: "admin"
-      
+
       # Default datasources
       additionalDataSources:
         - name: Loki
@@ -112,7 +112,7 @@ spec:
           jsonData:
             maxLines: 1000
             timeout: 60
-        
+
       # Sidecar configuration
       sidecar:
         dashboards:
@@ -129,14 +129,14 @@ spec:
           label: grafana_datasource
           labelValue: "1"
           searchNamespace: ALL
-      
+
       ingress:
         enabled: true
         ingressClassName: traefik
         hosts:
           - grafana.landryzetam.net
         path: /
-        tls: 
+        tls:
           - secretName: grafana-tls-secret
             hosts:
               - grafana.landryzetam.net
@@ -196,7 +196,7 @@ spec:
 #         path: /
 #         ## Secret must be manually created in the namespace
 #         ## Leave the tls configuration empty if you do not require TLS or customize it as needed for your setup.
-#         tls: 
+#         tls:
 #           - secretName: grafana-tls-secret
 #             hosts:
 #               - grafana.landryzetam.net
@@ -206,4 +206,3 @@ spec:
 #             # The secret must be created manually in the namespace.
 #             # This is a common practice to ensure secure communication with Grafana.
 #             # Customize the secret name based on your naming conventions or requirements.
-

@@ -13,7 +13,7 @@ spec:
         app: linkding                       # Label applied to the Pod
     spec:
       securityContext:                      # Pod-level security settings
-        runAsUser: 33                     # Non-root user ID , this comes from the Dockerfile. www-data is UID 33 tells pod to run as this user 
+        runAsUser: 33                     # Non-root user ID , this comes from the Dockerfile. www-data is UID 33 tells pod to run as this user
         runAsGroup: 33                    # Group ID for the user, which is also www-data
         fsGroup: 33                       # Group ID for volume access this is also www-data tells pod update the group ownership of the volume to this user
       containers:
@@ -35,7 +35,7 @@ spec:
                 name: linkding-container-env
           securityContext:                  # Container-level security settings
             # runAsNonRoot: true              # Ensure container doesn't run as root
-            allowPrivilegeEscalation: false # Prevent privilege escalation so the user can't gain root access by exploiting vulnerabilities 
+            allowPrivilegeEscalation: false # Prevent privilege escalation so the user can't gain root access by exploiting vulnerabilities
             # capabilities:
               # drop:
                 # - ALL                       # Drop all capabilities for safety
@@ -90,5 +90,4 @@ spec:
 #       restartPolicy: Always
 #       volumes:
 #         - name: linkding-data
-#           persistentVolumeClaim:
-#             claimName: linkding-data-pvc
+#           persistentVolumeClaim:#             claimName: linkding-data-pvc

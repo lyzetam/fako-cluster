@@ -15,5 +15,4 @@ spec:
         backend:
           service:
             name: pgadmin
-            port:
-              number: 80
+            port:              number: 80

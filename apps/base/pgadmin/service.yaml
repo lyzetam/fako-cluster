@@ -11,5 +11,4 @@ spec:
     targetPort: 80
     protocol: TCP
   selector:
-    app: pgadmin
-  type: ClusterIP
+    app: pgadmin  type: ClusterIP

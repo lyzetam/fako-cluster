@@ -20,13 +20,13 @@ spec:
           value: "postgres-cluster-rw.postgres.svc.cluster.local"
         - name: DATABASE_NAME
           value: "app"
-        
+
         # AWS Secrets Manager configuration
         - name: OURA_SECRETS_NAME
           value: "oura/api-credentials"
         - name: POSTGRES_SECRETS_NAME
           value: "postgres/app-user"
-        
+
         # Collection configuration
         - name: DAYS_TO_BACKFILL
           value: "1030"  # Collect last 30 days for initial backfill
@@ -38,15 +38,14 @@ spec:
         # Collection interval (not used for one-time job, but required)
         - name: COLLECTION_INTERVAL
           value: "3600"
-        
+
         envFrom:
         - secretRef:
             name: aws-credentials-env  # Changed from aws-credentials
-        
+
         resources:
           requests:
             memory: "1Gi"
             cpu: "500m"
           limits:
-            memory: "2Gi"
-            cpu: "2000m"
+            memory: "2Gi"            cpu: "2000m"

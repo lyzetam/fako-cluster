@@ -23,5 +23,4 @@ resources:
 #   - secret-store.yaml              # SecretStore for AWS Secrets Manager
 #   - external-secret-pgpass.yaml    # External Secret for .pgpass
 #   - deployment.yaml
-#   - service.yaml
-#   - ingress.yaml
+#   - service.yaml#   - ingress.yaml

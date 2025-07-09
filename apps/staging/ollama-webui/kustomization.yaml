@@ -20,5 +20,4 @@ patches:
       name: ollama-webui-v2
     patch: |
       - op: add
-        path: /metadata/labels/version
-        value: v2-encrypted  
+        path: /metadata/labels/version        value: v2-encrypted
