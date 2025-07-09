@@ -25,5 +25,6 @@ roleRef:
   kind: ClusterRole
   name: storageclass-manager
 subjects:
-- kind: ServiceAccount
-  name: nfs-storage-admin  namespace: nfs-system
+  - kind: ServiceAccount
+    name: nfs-storage-admin
+    namespace: nfs-system

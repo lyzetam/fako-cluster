@@ -147,4 +147,5 @@ spec:
       volumes:
       - name: test-script
         configMap:
-          name: nfs-test-script          defaultMode: 0755
+          name: nfs-test-script
+          defaultMode: 0755

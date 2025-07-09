@@ -36,4 +36,6 @@ spec:
           echo "# 4. Copy data from old to new PV"
           echo "# 5. Update deployment to use new PVC"
           echo "# 6. Scale up deployment"
-          echo "# 7. Verify functionality"          echo "# 8. Delete old PVC"      restartPolicy: OnFailure
+          echo "# 7. Verify functionality"
+          echo "# 8. Delete old PVC"
+      restartPolicy: OnFailure

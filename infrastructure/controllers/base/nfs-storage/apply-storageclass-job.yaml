@@ -81,4 +81,5 @@ spec:
           mountOptions:
             - nfsvers=3
             - nolock
-          EOF      restartPolicy: OnFailure
+          EOF
+        restartPolicy: OnFailure
