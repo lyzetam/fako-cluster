@@ -8,7 +8,7 @@ resources:
 patches:
   - target:
       kind: Service
-      name: voice-monitor-service
+      name: voice-monitor-nodeport
     patch: |-
       - op: replace
         path: /spec/ports/0/nodePort
