@@ -57,4 +57,5 @@ data:
     reclaimPolicy: Retain
     allowVolumeExpansion: true
     mountOptions:
-      - nfsvers=3      - nolock
+      - nfsvers=3
+      - nolock

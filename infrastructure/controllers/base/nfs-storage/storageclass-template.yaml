@@ -8,4 +8,6 @@ parameters:
   share: ${NFS_STORAGE_PATH}
 reclaimPolicy: Retain
 allowVolumeExpansion: true
-mountOptions:  - nfsvers=3  - nolock
+mountOptions:
+  - nfsvers=3
+  - nolock
