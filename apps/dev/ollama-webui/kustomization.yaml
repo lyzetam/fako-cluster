@@ -1,7 +1,7 @@
 # apps/dev/ollama-webui/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: ollama-webui
+namespace: dev-ollama-webui
 resources:
   - ../../base/ollama-webui/
   - ollama-webui-tls-secret.yaml
