@@ -4,3 +4,12 @@ kind: Kustomization
 namespace: dev-voice-monitor
 resources:
   - ../../base/voice-monitor/
+
+patches:
+  - target:
+      kind: Service
+      name: voice-monitor-nodeport
+    patch: |-
+      - op: replace
+        path: /spec/ports/0/nodePort
+        value: 30809
