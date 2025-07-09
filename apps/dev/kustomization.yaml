@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Core applications
+  - linkding
+  - audiobookshelf
+  # - homebot
+  - oura-collector
+  - oura-dashboard
+  - wger
+
+  # Database Management
+  - postgres-cluster
+  - pgadmin
+
+  # Identity Management
+  - keycloak
+
+  # Security Scanning
+  - gitleaks
+  
+  # AI/ML stack with GPU support
+  - ollama         
+  - ollama-webui    
+  - whisper         
+  - piper           
+  - openwakeword    
+  - voice-monitor
+  - node-labeling
+
+
+
+
+
+
+  
+
+
+
