@@ -1,16 +1,3 @@
-# # apps/base/ollama-webui/kustomization.yaml
-# apiVersion: kustomize.config.k8s.io/v1beta1
-# kind: Kustomization
-# namespace: ollama-webui
-# resources:
-#   - namespace.yaml
-#   - serviceaccount.yaml
-#   - storage.yaml
-#   - deployment-v2.yaml
-#   - service.yaml
-#   - ingress.yaml
-#   - gpustack-secret.yaml
-
 # apps/base/ollama-webui/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
