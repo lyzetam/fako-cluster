@@ -10,16 +10,17 @@ resources:
   - service.yaml
   - ingress.yaml
   - gpustack-secret.yaml
+  - configmap-v2.yaml
 
 # Remove old configmap, create new one
-configMapGenerator:
-- name: ollama-webui-configmap
-  literals:
-  - ENABLE_OLLAMA_API=false
-  - ENABLE_OPENAI_API=true
-  - WEBUI_NAME="HomeLab AI (GPUStack)"
-  - MODEL_FILTER_ENABLED=false
-  - BYPASS_MODEL_ACCESS_CONTROL=true
-  - WEBUI_AUTH=true
-  - ENABLE_SIGNUP=true
-  - DEFAULT_USER_ROLE=user
+# configMapGenerator:
+# - name: ollama-webui-configmap
+#   literals:
+#   - ENABLE_OLLAMA_API=false
+#   - ENABLE_OPENAI_API=true
+#   - WEBUI_NAME="HomeLab AI (GPUStack)"
+#   - MODEL_FILTER_ENABLED=false
+#   - BYPASS_MODEL_ACCESS_CONTROL=true
+#   - WEBUI_AUTH=true
+#   - ENABLE_SIGNUP=true
+#   - DEFAULT_USER_ROLE=user

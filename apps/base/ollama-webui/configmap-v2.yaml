@@ -46,4 +46,5 @@ data:
   # WEBUI_LOG_LEVEL: "DEBUG"  # Uncomment for detailed troubleshooting
 
   # Additional settings for better GPUStack integration
-  ENABLE_OPENAI_COMPATIBLE_TITLE_GENERATION: "true"  OPENAI_REQUEST_TIMEOUT: "600"  # 10 minutes for large model responses
+  ENABLE_OPENAI_COMPATIBLE_TITLE_GENERATION: "true"
+  OPENAI_REQUEST_TIMEOUT: "600"  # 10 minutes for large model responses

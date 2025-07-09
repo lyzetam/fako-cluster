@@ -59,6 +59,7 @@ spec:
           limits:
             memory: "6Gi"
             cpu: "3000m"
-      volumes:
-      - name: webui-data
-        persistentVolumeClaim:          claimName: ollama-webui-data
+        volumes:
+        - name: webui-data
+          persistentVolumeClaim:
+            claimName: ollama-webui-data

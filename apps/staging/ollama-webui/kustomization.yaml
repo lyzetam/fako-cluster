@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: ollama-webui
 resources:
   - ../../base/ollama-webui/
-  - ../../base/ollama-webui/gpustack-secret.yaml
   - ollama-webui-tls-secret.yaml
 
 patches:
@@ -20,4 +19,6 @@ patches:
       name: ollama-webui-v2
     patch: |
       - op: add
-        path: /metadata/labels/version        value: v2-encrypted
+        path: /metadata/labels
+        value:
+          version: v2-encrypted
