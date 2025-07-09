@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: dev-ollama
 resources:
   - ../../base/ollama/
+  - nodeport-service-patch.yaml
