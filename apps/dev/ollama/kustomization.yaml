@@ -5,10 +5,7 @@ resources:
   - ../../base/ollama/
 
 patches:
-  - target:
-      kind: Service
-      name: ollama-nodeport
-    patch: |-
-      - op: replace
-        path: /spec/ports/0/nodePort
-        value: 31435
+  - path: deployment-cpu-patch.yaml
+    target:
+      kind: Deployment
+      name: ollama-gpu
