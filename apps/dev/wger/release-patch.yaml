@@ -1,0 +1,18 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: wger
+  namespace: dev-wger
+spec:
+  values:
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 8000
+      
+    # Ingress configuration for dev
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      url: dev-trackit.landryzetam.net
+      tls: true
