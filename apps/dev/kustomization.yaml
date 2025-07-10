@@ -21,7 +21,7 @@ resources:
   
   # AI/ML stack with GPU support (excluded from dev due to limited GPU resources)
   # - ollama         
-  # - ollama-webui    
+  - ollama-webui    # UI only, no GPU required
   # - whisper         
   # - piper           
   # - openwakeword    
