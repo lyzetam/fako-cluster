@@ -887,6 +887,88 @@ To change the NFS server or paths:
 This approach ensures complete separation of configuration from code, making your infrastructure more secure and maintainable.
 
 
+# NFS Configuration - Complete Solution
+
+## Overview
+
+We've successfully implemented a solution that completely removes ALL hardcoded IP addresses from the Git repository while maintaining full functionality.
+
+## How It Works
+
+1. **AWS Secrets Manager** stores the NFS configuration:
+   ```json
+   {
+     "server": "10.85.30.127",
+     "storage_path": "/volume1/k8s-storage",
+     "db_path": "/volume1/k8s-db",
+     "backup_path": "/volume1/k8s-backups"
+   }
+   ```
+
+2. **External Secrets Operator** fetches this configuration and creates a Kubernetes secret
+
+3. **Dynamic Job** (`create-nfs-storageclasses`) reads the secret and creates:
+   - StorageClasses (nfs-csi-v2, nfs-postgres-v2, nfs-backup)
+   - PersistentVolume (k8s-backup-pv)
+
+## Key Benefits
+
+✅ **NO hardcoded IPs in Git** - The repository contains zero IP addresses
+✅ **Dynamic configuration** - Resources are created at runtime
+✅ **Secure storage** - IPs only exist in AWS Secrets Manager
+✅ **GitOps compatible** - Everything is declarative
+✅ **Easy updates** - Change the AWS secret, restart the job
+
+## Repository Structure
+
+```
+infrastructure/
+├── configs/
+│   └── base/
+│       └── nfs-config/
+│           ├── namespace.yaml              # Creates infrastructure namespace
+│           ├── aws-credentials-secret.yaml # SOPS-encrypted AWS credentials
+│           ├── aws-secret-store.yaml       # SecretStore configuration
+│           ├── external-secret-nfs.yaml    # Fetches from AWS
+│           └── kustomization.yaml
+└── controllers/
+    └── base/
+        └── nfs-storage/
+            ├── dynamic-storageclass-job.yaml  # Creates resources dynamically
+            └── nfs-connectivity-test.yaml     # Also reads from secret
+
+clusters/staging/
+└── infrastructure-configs.yaml  # Flux kustomization to deploy configs
+```
+
+## Deployment Process
+
+1. Flux applies `infrastructure-configs` kustomization
+2. This creates the External Secret infrastructure
+3. External Secrets fetches NFS config from AWS
+4. The dynamic job runs and creates StorageClasses/PVs
+5. Applications can use the StorageClasses normally
+
+## Security
+
+- AWS credentials are SOPS-encrypted (age encryption)
+- Only Flux can decrypt them in the cluster
+- NFS IPs never appear in Git history
+- Access controlled via IAM policies
+
+## Maintenance
+
+To update NFS configuration:
+1. Update the secret in AWS Secrets Manager
+2. Delete and recreate the job:
+   ```bash
+   kubectl delete job -n nfs-system create-nfs-storageclasses
+   kubectl rollout restart deployment -n flux-system kustomize-controller
+   ```
+
+This solution provides complete separation of sensitive configuration from code while maintaining full GitOps principles.
+
+
 ## About
 
 **Maintainer**: Landry  
