@@ -268,6 +268,33 @@ fako-cluster/
    - Automatic secret synchronization
    - Namespace-scoped SecretStores
 
+### Credentials Management
+
+#### AWS Credentials
+AWS credentials for External Secrets Operator are managed through SOPS-encrypted secrets in environment-specific overlays:
+- **Location**: `apps/{dev,staging}/<app-name>/aws-credentials-secret.yaml`
+- **Encryption**: SOPS with Age
+
+#### Application Patterns
+
+**Example: GPUStack API Keys (ollama-webui)**
+1. **Base Configuration** (`apps/base/ollama-webui/`)
+   - `aws-secret-store.yaml`: Connects to AWS Secrets Manager
+   - `external-secret-gpustack.yaml`: Pulls API key from AWS
+   - `configmap.yaml`: Contains only non-sensitive configuration
+   - `deployment.yaml`: Mounts secrets as environment variables
+
+2. **Environment Overlays** (`apps/{dev,staging}/ollama-webui/`)
+   - `aws-credentials-secret.yaml`: SOPS-encrypted AWS credentials
+   - `kustomization.yaml`: Includes base + environment-specific resources
+
+**Supported Applications**
+- Keycloak: Database and admin credentials
+- Ollama WebUI: GPUStack API keys
+- Oura Dashboard: OAuth2 and AWS credentials
+- PostgreSQL: Database credentials
+- Wger: Application secrets
+
 ### Network Security
 - **Ingress**: Traefik with TLS
 - **Internal**: Cloudflare tunnels for select services
@@ -372,6 +399,7 @@ sops infrastructure/secrets/aws-credentials.yaml
 - `auth-service/super-user`
 - `oura/api-credentials`
 - `wger/db-credentials`
+- `gpustack/api-key` (key: OPENAI_API_KEYS)
 
 ### Verify Deployment
 
