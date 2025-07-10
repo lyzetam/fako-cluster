@@ -701,6 +701,190 @@ If you see `SecretSyncedError` on the External Secret:
 - Easy rotation of credentials and endpoints
 - Follows GitOps best practices
 
+# NFS Configuration Management
+
+This directory contains the centralized NFS configuration for the cluster, using AWS Secrets Manager to store sensitive IP addresses and paths.
+
+## Overview
+
+Instead of hardcoding NFS server IPs in multiple places, we store them in AWS Secrets Manager and use External Secrets Operator to sync them to Kubernetes.
+
+## AWS Secret Structure
+
+The secret `infrastructure/nfs-config` in AWS Secrets Manager contains:
+```json
+{
+  "server": "192.160.40.200",
+  "storage_path": "/volume1/k8s-storage",
+  "db_path": "/volume1/k8s-db",
+  "backup_path": "/volume1/k8s-backups"
+}
+```
+
+## Components
+
+1. **namespace.yaml** - Creates the `infrastructure` namespace
+2. **aws-secret-store.yaml** - Configures access to AWS Secrets Manager
+3. **external-secret-nfs.yaml** - Fetches NFS config from AWS
+4. **nfs-configmap.yaml** - ConfigMap placeholder for Kustomize replacements
+5. **sync-job.yaml** - Syncs secret values to ConfigMap for use in patches
+
+## Usage in StorageClasses
+
+Since StorageClasses don't support environment variables or ConfigMaps directly, we use Kustomize patches to inject the values. See the individual StorageClass configurations for examples.
+
+## Updating NFS Configuration
+
+To change the NFS server or paths:
+1. Update the secret in AWS Secrets Manager
+2. The External Secrets Operator will sync within 1 hour (or force sync)
+3. Run the sync job to update the ConfigMap
+4. Reapply the StorageClasses with Kustomize
+
+## Required IAM Permissions
+
+The `external-secrets-user` IAM user needs:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:us-east-1:*:secret:infrastructure/nfs-config*"
+      ]
+    }
+  ]
+}
+
+
+# NFS Configuration - Dynamic IP Management Solution
+
+## Overview
+
+This solution completely eliminates hardcoded IP addresses from all configuration files by using Kubernetes Jobs to dynamically create resources based on values stored in AWS Secrets Manager.
+
+## Architecture
+
+```
+AWS Secrets Manager
+    ↓
+External Secrets Operator
+    ↓
+Kubernetes Secret (nfs-config)
+    ↓
+Dynamic Jobs read the secret
+    ↓
+Create StorageClasses & PVs at runtime
+```
+
+## Key Components
+
+### 1. AWS Secrets Manager
+- **Secret Name**: `infrastructure/nfs-config`
+- **Content**: 
+  ```json
+  {
+    "server": "Not coded",
+    "storage_path": "/volume1/k8s-storage",
+    "db_path": "/volume1/k8s-db",
+    "backup_path": "/volume1/k8s-backups"
+  }
+  ```
+
+### 2. External Secret Configuration
+- **Location**: `infrastructure/configs/base/nfs-config/`
+- Fetches NFS configuration from AWS and creates a Kubernetes secret
+
+### 3. Dynamic StorageClass Job
+- **Location**: `infrastructure/controllers/base/nfs-storage/dynamic-storageclass-job.yaml`
+- Reads the secret and creates StorageClasses dynamically
+- No IPs in any configuration files!
+
+### 4. Dynamic Connectivity Test
+- **Location**: `infrastructure/controllers/base/nfs-storage/nfs-connectivity-test.yaml`
+- Also reads from the secret for testing
+
+## Benefits
+
+✅ **Zero hardcoded IPs** in the repository  
+✅ **Dynamic configuration** - Jobs create resources at runtime  
+✅ **Single source of truth** - AWS Secrets Manager  
+✅ **Easy updates** - Just change the AWS secret  
+✅ **GitOps compatible** - All configuration is declarative  
+
+## Deployment Steps
+
+1. **Deploy the NFS configuration infrastructure**:
+   ```bash
+   kubectl apply -k infrastructure/configs/base/
+   ```
+
+2. **Update IAM permissions** for `external-secrets-user`:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [{
+       "Effect": "Allow",
+       "Action": [
+         "secretsmanager:GetSecretValue",
+         "secretsmanager:DescribeSecret"
+       ],
+       "Resource": [
+         "arn:aws:secretsmanager:us-east-1:*:secret:infrastructure/nfs-config*"
+       ]
+     }]
+   }
+   ```
+
+3. **Deploy the NFS storage controller**:
+   ```bash
+   kubectl apply -k infrastructure/controllers/{env}/nfs-storage/
+   ```
+
+4. **Verify StorageClasses were created**:
+   ```bash
+   kubectl get storageclass | grep nfs
+   ```
+
+## How It Works
+
+1. External Secrets Operator fetches NFS config from AWS
+2. Creates a Kubernetes secret with the configuration
+3. The dynamic-storageclass-job runs and:
+   - Reads the NFS configuration from the secret
+   - Creates StorageClasses with the actual IPs
+   - Creates PersistentVolumes as needed
+4. Applications can use the StorageClasses normally
+
+## Updating NFS Configuration
+
+To change the NFS server or paths:
+
+1. Update the secret in AWS Secrets Manager
+2. Delete and recreate the job to apply changes:
+   ```bash
+   kubectl delete job create-nfs-storageclasses -n nfs-system
+   kubectl apply -k infrastructure/controllers/{env}/nfs-storage/
+   ```
+
+## Comparison with Previous Approach
+
+### Before:
+- IPs hardcoded in YAML files
+- Visible in public repository
+- Required patches with IPs
+
+### After:
+- No IPs in any files
+- Dynamic creation at runtime
+- Secure storage in AWS
+
+This approach ensures complete separation of configuration from code, making your infrastructure more secure and maintainable.
 
 
 ## About

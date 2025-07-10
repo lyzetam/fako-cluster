@@ -2,6 +2,37 @@
 # Test job to validate NFS server connectivity before deploying applications
 
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nfs-test
+  namespace: nfs-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nfs-test
+  namespace: infrastructure
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["nfs-config"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nfs-test
+  namespace: infrastructure
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nfs-test
+subjects:
+- kind: ServiceAccount
+  name: nfs-test
+  namespace: nfs-system
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nfs-test-script
@@ -14,9 +45,10 @@ data:
     #!/bin/bash
     set -e
     
-    # Configuration
-    NFS_SERVER="10.85.30.127"
-    NFS_PATH="/volume1/k8s-storage"
+    # Get configuration from secret
+    echo "Getting NFS configuration from secret..."
+    NFS_SERVER=$(kubectl get secret nfs-config -n infrastructure -o jsonpath='{.data.NFS_SERVER}' | base64 -d)
+    NFS_PATH=$(kubectl get secret nfs-config -n infrastructure -o jsonpath='{.data.NFS_STORAGE_PATH}' | base64 -d)
     NFS_VERSION="3"
     
     echo "========================================="
@@ -112,6 +144,7 @@ spec:
         app.kubernetes.io/name: nfs-connectivity-test
         app.kubernetes.io/part-of: nfs-storage
     spec:
+      serviceAccountName: nfs-test
       restartPolicy: Never
       
       containers:
