@@ -274,7 +274,6 @@ fako-cluster/
 AWS credentials for External Secrets Operator are managed through SOPS-encrypted secrets in environment-specific overlays:
 - **Location**: `apps/{dev,staging}/<app-name>/aws-credentials-secret.yaml`
 - **Encryption**: SOPS with Age
-- **Shared**: Same encrypted credentials used across all applications
 
 #### Application Patterns
 
