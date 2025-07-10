@@ -9,3 +9,5 @@ resources:
   - service.yaml
   - deployment.yaml
   - ingress.yaml
+  - aws-secret-store.yaml
+  - external-secret-gpustack.yaml
