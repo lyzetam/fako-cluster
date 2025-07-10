@@ -19,11 +19,11 @@ resources:
   # Security Scanning
   - gitleaks
   
-  # AI/ML stack with GPU support (excluded from dev due to limited GPU resources)
-  # - ollama         
-  - ollama-webui    
-  - whisper         
-  - piper           
-  - openwakeword    
-  - voice-monitor
+  # AI/ML stack - CPU versions for dev
+  - ollama         # CPU version for dev
+  - ollama-webui   # UI only, no GPU required
+  - whisper        # CPU version for dev
+  - piper          # Already CPU-based
+  - openwakeword   # Already CPU-based
+  - voice-monitor  # UI only, no GPU required
   - node-labeling
