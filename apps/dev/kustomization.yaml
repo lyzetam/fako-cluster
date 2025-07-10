@@ -20,10 +20,10 @@ resources:
   - gitleaks
   
   # AI/ML stack with GPU support (excluded from dev due to limited GPU resources)
-  - ollama         
+  # - ollama         # GPU required - disabled in dev
   - ollama-webui    # UI only, no GPU required
-  - whisper         
-  - piper           
-  - openwakeword    
-  - voice-monitor
+  # - whisper        # GPU required - disabled in dev
+  # - piper          # GPU required - disabled in dev
+  # - openwakeword   # GPU required - disabled in dev
+  - voice-monitor   # UI only, no GPU required
   - node-labeling
