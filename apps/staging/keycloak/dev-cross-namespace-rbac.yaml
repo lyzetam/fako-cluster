@@ -1,0 +1,80 @@
+# Cross-namespace RBAC to allow dev service accounts to read secrets from staging keycloak namespace
+# This enables dev apps to use the same AWS credentials as staging
+
+---
+# Role that allows reading secrets in the keycloak namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dev-secrets-reader
+  namespace: keycloak
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+  # Optional: restrict to specific secret names for better security
+  # resourceNames: ["aws-credentials"]
+
+---
+# RoleBinding for dev-keycloak service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-keycloak-secrets-access
+  namespace: keycloak
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: dev-secrets-reader
+subjects:
+- kind: ServiceAccount
+  name: keycloak
+  namespace: dev-keycloak
+
+---
+# RoleBinding for dev-oura-collector service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-oura-collector-secrets-access
+  namespace: keycloak
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: dev-secrets-reader
+subjects:
+- kind: ServiceAccount
+  name: oura-collector
+  namespace: dev-oura-collector
+
+---
+# RoleBinding for dev-oura-dashboard service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-oura-dashboard-secrets-access
+  namespace: keycloak
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: dev-secrets-reader
+subjects:
+- kind: ServiceAccount
+  name: oura-dashboard
+  namespace: dev-oura-dashboard
+
+---
+# RoleBinding for dev-wger service account (if it uses AWS secrets)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-wger-secrets-access
+  namespace: keycloak
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: dev-secrets-reader
+subjects:
+- kind: ServiceAccount
+  name: wger
+  namespace: dev-wger
