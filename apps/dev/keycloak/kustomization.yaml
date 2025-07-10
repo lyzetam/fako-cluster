@@ -4,3 +4,4 @@ namespace: dev-keycloak
 resources:
   - ../../base/keycloak
   - aws-credentials-secret.yaml
+  - local-secret-store-patch.yaml
