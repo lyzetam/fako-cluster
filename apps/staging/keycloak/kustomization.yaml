@@ -4,3 +4,4 @@ namespace: keycloak
 resources:
   - ../../base/keycloak
   - aws-credentials-secret.yaml
+  - dev-cross-namespace-rbac.yaml
