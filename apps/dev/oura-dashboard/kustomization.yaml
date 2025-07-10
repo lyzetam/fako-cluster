@@ -7,4 +7,12 @@ resources:
   - aws-credentials-secret-local.yaml
   - cloudflare-secret.yaml
   - cloudflare.yaml
-  - local-secret-store-patch.yaml
+
+patches:
+  - target:
+      kind: SecretStore
+      name: local-secret-store
+    patch: |-
+      - op: replace
+        path: /spec/provider/kubernetes/remoteNamespace
+        value: keycloak
