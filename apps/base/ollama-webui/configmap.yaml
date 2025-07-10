@@ -12,9 +12,8 @@ data:
   # Enable OpenAI API mode - using GPUStack service
   ENABLE_OPENAI_API: "true"
   OPENAI_API_BASE_URL: "http://10.85.35.223:80/v1-openai"
-  OPENAI_API_KEY: "gpustack_fc6f26b5f56d4c8d_2e51c6ca508679a59bc7b1ed65a1ab07"
   OPENAI_API_BASE_URLS: "http://10.85.35.223:80/v1-openai"
-  OPENAI_API_KEYS: "gpustack_fc6f26b5f56d4c8d_2e51c6ca508679a59bc7b1ed65a1ab07"
+  # API keys are now loaded from AWS Secrets Manager via external-secret-gpustack.yaml
   
   # WebUI configuration
   WEBUI_NAME: "HomeLab AI (GPUStack)"
