@@ -4,3 +4,12 @@ namespace: dev-keycloak
 resources:
   - ../../base/keycloak
   - aws-credentials-secret.yaml
+
+patches:
+  - target:
+      kind: SecretStore
+      name: local-secret-store
+    patch: |-
+      - op: replace
+        path: /spec/provider/kubernetes/remoteNamespace
+        value: keycloak
