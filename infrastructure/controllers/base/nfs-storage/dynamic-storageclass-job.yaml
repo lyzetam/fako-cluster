@@ -1,0 +1,151 @@
+# This Job creates StorageClasses dynamically by reading NFS config from a Secret
+# The Secret is populated by External Secrets from AWS Secrets Manager
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: storageclass-creator
+  namespace: nfs-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: storageclass-creator
+rules:
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["persistentvolumes"]
+  verbs: ["get", "list", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: storageclass-creator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: storageclass-creator
+subjects:
+- kind: ServiceAccount
+  name: storageclass-creator
+  namespace: nfs-system
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-nfs-storageclasses
+  namespace: nfs-system
+  annotations:
+    # This ensures the job runs after the secret is available
+    config.kubernetes.io/depends-on: external-secrets.io/namespaces/infrastructure/ExternalSecret/nfs-config-secret
+spec:
+  template:
+    spec:
+      serviceAccountName: storageclass-creator
+      restartPolicy: OnFailure
+      containers:
+      - name: create-storageclasses
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          
+          # Wait for the secret to be available
+          echo "Waiting for nfs-config secret..."
+          while ! kubectl get secret nfs-config -n infrastructure >/dev/null 2>&1; do
+            echo "Secret not found, waiting..."
+            sleep 5
+          done
+          
+          # Get NFS configuration from secret
+          NFS_SERVER=$(kubectl get secret nfs-config -n infrastructure -o jsonpath='{.data.NFS_SERVER}' | base64 -d)
+          NFS_STORAGE_PATH=$(kubectl get secret nfs-config -n infrastructure -o jsonpath='{.data.NFS_STORAGE_PATH}' | base64 -d)
+          NFS_DB_PATH=$(kubectl get secret nfs-config -n infrastructure -o jsonpath='{.data.NFS_DB_PATH}' | base64 -d)
+          NFS_BACKUP_PATH=$(kubectl get secret nfs-config -n infrastructure -o jsonpath='{.data.NFS_BACKUP_PATH}' | base64 -d)
+          
+          echo "NFS Server: $NFS_SERVER"
+          echo "Creating StorageClasses..."
+          
+          # Create nfs-csi-v2 StorageClass
+          cat <<EOF | kubectl apply -f -
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: nfs-csi-v2
+          provisioner: nfs.csi.k8s.io
+          parameters:
+            server: "$NFS_SERVER"
+            share: "$NFS_STORAGE_PATH"
+          reclaimPolicy: Retain
+          allowVolumeExpansion: true
+          mountOptions:
+            - nfsvers=3
+            - nolock
+          EOF
+          
+          # Create nfs-postgres-v2 StorageClass
+          cat <<EOF | kubectl apply -f -
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: nfs-postgres-v2
+          provisioner: nfs.csi.k8s.io
+          parameters:
+            server: "$NFS_SERVER"
+            share: "$NFS_DB_PATH"
+            mountPermissions: "0777"
+          reclaimPolicy: Retain
+          allowVolumeExpansion: true
+          mountOptions:
+            - nfsvers=3
+            - nolock
+            - hard
+            - rw
+            - rsize=1048576
+            - wsize=1048576
+            - timeo=600
+            - retrans=2
+            - noresvport
+          EOF
+          
+          # Create nfs-backup StorageClass
+          cat <<EOF | kubectl apply -f -
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: nfs-backup
+          provisioner: nfs.csi.k8s.io
+          parameters:
+            server: "$NFS_SERVER"
+            share: "$NFS_BACKUP_PATH"
+          reclaimPolicy: Retain
+          allowVolumeExpansion: true
+          mountOptions:
+            - nfsvers=3
+            - nolock
+          EOF
+          
+          # Create backup PersistentVolume
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: PersistentVolume
+          metadata:
+            name: k8s-backup-pv
+            labels:
+              app: k8s-backup
+              type: nfs-storage
+          spec:
+            capacity:
+              storage: 500Gi
+            accessModes:
+              - ReadWriteMany
+            nfs:
+              server: $NFS_SERVER
+              path: $NFS_BACKUP_PATH
+            persistentVolumeReclaimPolicy: Retain
+          EOF
+          
+          echo "StorageClasses created successfully!"

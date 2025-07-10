@@ -4,5 +4,6 @@ resources:
   - namespace.yaml
   - repository.yaml  
   - release.yaml
-  - storageclass.yaml
-  - postgres-storageclass.yaml
+  - dynamic-storageclass-job.yaml
+  # StorageClasses are created dynamically by the job
+  # No hardcoded IPs anywhere in the configuration
