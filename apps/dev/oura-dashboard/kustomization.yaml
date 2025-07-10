@@ -7,3 +7,4 @@ resources:
   - aws-credentials-secret-local.yaml
   - cloudflare-secret.yaml
   - cloudflare.yaml
+  - local-secret-store-patch.yaml
