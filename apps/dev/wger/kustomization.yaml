@@ -5,4 +5,12 @@ resources:
   - ../../base/wger/
   - aws-credentials-secret.yaml  
   - wger-db-secret.yaml 
-  - release-patch.yaml
+
+patches:
+  - target:
+      kind: HelmRelease
+      name: wger
+    patch: |-
+      - op: replace
+        path: /spec/values/ingress/url
+        value: dev-trackit.landryzetam.net
