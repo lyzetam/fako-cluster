@@ -5,10 +5,7 @@ resources:
   - ../../base/whisper/
 
 patches:
-  - target:
-      kind: Service
-      name: whisper-nodeport
-    patch: |-
-      - op: replace
-        path: /spec/ports/0/nodePort
-        value: 30301
+  - path: deployment-cpu-patch.yaml
+    target:
+      kind: Deployment
+      name: whisper-gpu
