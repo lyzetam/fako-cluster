@@ -12,3 +12,7 @@ patches:
       - op: replace
         path: /spec/ports/0/nodePort
         value: 30301
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: whisper-gpu
