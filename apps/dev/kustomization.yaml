@@ -5,16 +5,16 @@ resources:
   - linkding
   - audiobookshelf
   # - homebot
-  - oura-collector
-  - oura-dashboard
-  - wger
+  # - oura-collector  # Excluded: requires AWS Secrets Manager
+  # - oura-dashboard  # Excluded: requires AWS Secrets Manager
+  # - wger           # Excluded: requires external dependencies
 
   # Database Management
   - postgres-cluster
   - pgadmin
 
-  # Identity Management
-  - keycloak
+  # Identity Management (excluded from dev due to AWS dependencies)
+  # - keycloak       # Excluded: requires AWS Secrets Manager
 
   # Security Scanning
   - gitleaks
