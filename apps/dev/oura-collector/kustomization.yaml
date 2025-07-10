@@ -4,4 +4,12 @@ namespace: dev-oura-collector
 resources:
   - ../../base/oura-collector/
   - aws-credentials-secret.yaml
-  - local-secret-store-patch.yaml
+
+patches:
+  - target:
+      kind: SecretStore
+      name: local-secret-store
+    patch: |-
+      - op: replace
+        path: /spec/provider/kubernetes/remoteNamespace
+        value: keycloak
