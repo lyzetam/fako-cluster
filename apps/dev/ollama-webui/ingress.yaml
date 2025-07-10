@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ollama-webui
+  namespace: dev-ollama-webui
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - dev-ai.landryzetam.net
+      secretName: dev-ai-tls
+  rules:
+    - host: dev-ai.landryzetam.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ollama-webui
+                port:
+                  number: 8080
