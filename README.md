@@ -532,6 +532,75 @@ kubectl logs -n NAMESPACE deployment/APP_NAME
 - **Resource Efficient**: CPU versions use minimal resources
 - **Consistent Architecture**: Same service structure in dev and prod
 
+# Ollama WebUI - External Secrets Configuration
+
+This application uses AWS Secrets Manager to store sensitive configuration data, including internal IP addresses and API keys.
+
+## Required AWS Secrets
+
+### 1. GPUStack API Key
+- **Secret Name**: `gpustack/api-key`
+- **Secret Value**: JSON object with the following structure:
+```json
+{
+  "OPENAI_API_KEYS": "your-gpustack-api-key-here"
+}
+```
+
+### 2. Endpoint URLs
+- **Secret Name**: `ollama-webui/endpoints`
+- **Secret Value**: JSON object with the following structure:
+```json
+{
+  "gpustack_base_url": "http://YOUR-INTERNAL-IP:80/v1-openai"
+}
+```
+
+## Setup Instructions
+
+1. **Create the secret in AWS Secrets Manager** (one-time setup):
+```bash
+# Create endpoints secret in AWS (replace with your actual internal IP)
+aws secretsmanager create-secret \
+  --name ollama-webui/endpoints \
+  --secret-string '{"gpustack_base_url":"http://10.85.35.223:80/v1-openai"}'
+```
+
+2. **Deploy to Kubernetes**:
+```bash
+# The External Secrets Operator will automatically:
+# - Use the existing aws-credentials secret (managed by SOPS) to authenticate
+# - Fetch the secret from AWS Secrets Manager
+# - Create the Kubernetes secret with the endpoint URLs
+kubectl apply -k apps/base/ollama-webui/
+```
+
+3. **Verify the secret is created**:
+```bash
+# Check External Secret status
+kubectl get externalsecret -n ollama-webui endpoints-secret
+
+# Verify the Kubernetes secret was created
+kubectl get secret -n ollama-webui ollama-endpoints
+```
+
+## Architecture
+
+The application uses the following External Secrets:
+- `external-secret-gpustack.yaml`: Fetches API keys from AWS
+- `external-secret-endpoints.yaml`: Fetches endpoint URLs from AWS
+
+These secrets are mounted into the deployment via `envFrom` in the following order:
+1. ConfigMap (`ollama-webui-configmap`)
+2. GPUStack credentials secret
+3. Endpoint URLs secret
+
+## Benefits
+
+- No hardcoded IPs or sensitive data in the Git repository
+- Centralized secret management via AWS Secrets Manager
+- Easy rotation of credentials and endpoints
+- Follows GitOps best practices
 
 
 ## About
