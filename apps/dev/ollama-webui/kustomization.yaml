@@ -5,3 +5,5 @@ namespace: dev-ollama-webui
 resources:
   - ../../base/ollama-webui/
   - ollama-webui-tls-secret.yaml
+  - aws-credentials-secret.yaml
+  - ingress.yaml
