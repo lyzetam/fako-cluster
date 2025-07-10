@@ -476,6 +476,64 @@ kubectl logs -n NAMESPACE deployment/APP_NAME
 - **FluxCD Documentation**: [fluxcd.io](https://fluxcd.io)
 - **K3s Documentation**: [k3s.io](https://k3s.io)
 
+# GPU/CPU Architecture for Dev vs Production
+
+## Current State (After Implementation)
+
+### Production/Staging Environment
+- **GPU-optimized services**: ollama, whisper (using GPU hardware)
+- **CPU services**: piper, openwakeword (already CPU-based)
+- **UI services**: ollama-webui, voice-monitor
+- **GPU Hardware**: RTX 5070 on yeezyai node
+
+### Development Environment
+- **CPU versions**: ollama (CPU mode), whisper (CPU mode)
+- **CPU services**: piper, openwakeword (same as prod)
+- **UI services**: ollama-webui, voice-monitor
+- **No GPU required**: All services run on CPU
+
+## Architecture Pattern
+
+### Services by Type
+
+#### GPU-Optimized (Production) / CPU-Mode (Dev)
+- `ollama`: 
+  - **Prod**: GPU-accelerated LLM inference on RTX 5070
+  - **Dev**: CPU-only with small models (tinyllama, phi3:mini)
+- `whisper`:
+  - **Prod**: GPU-accelerated speech-to-text
+  - **Dev**: CPU-optimized with int8 compute type
+
+#### CPU-Based (Same in Both Environments)
+- `piper`: Text-to-speech (CPU-based)
+- `openwakeword`: Wake word detection (CPU-based)
+
+#### UI Services (No Compute Required)
+- `ollama-webui`: Web interface (connects to GPUStack backend)
+- `voice-monitor`: Monitoring dashboard
+
+## Implementation Details
+
+### Dev CPU Patches
+1. **ollama**: `apps/dev/ollama/deployment-cpu-patch.yaml`
+   - Removes GPU node selector, tolerations, and runtime
+   - Sets `OLLAMA_GPU_LAYERS=0` to force CPU
+   - Reduces resource limits
+   - Downloads only small CPU-friendly models
+
+2. **whisper**: `apps/dev/whisper/deployment-cpu-patch.yaml`
+   - Uses CPU-optimized whisper image
+   - Sets compute type to int8 for CPU efficiency
+   - Removes GPU-specific configurations
+
+## Benefits
+- **Full Stack Testing**: Developers can test the complete AI/ML stack locally
+- **No GPU Required**: All services run on CPU in dev environment
+- **Resource Efficient**: CPU versions use minimal resources
+- **Consistent Architecture**: Same service structure in dev and prod
+
+
+
 ## About
 
 **Maintainer**: Landry  
