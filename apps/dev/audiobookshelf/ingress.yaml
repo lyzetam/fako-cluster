@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: audiobookshelf
+  namespace: dev-audiobookshelf
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - dev-audiobooks.landryzetam.net
+      secretName: dev-audiobooks-tls
+  rules:
+    - host: dev-audiobooks.landryzetam.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: audiobookshelf
+                port:
+                  number: 3005
