@@ -11,3 +11,4 @@ resources:
   - ingress.yaml
   - aws-secret-store.yaml
   - external-secret-gpustack.yaml
+  - external-secret-endpoints.yaml

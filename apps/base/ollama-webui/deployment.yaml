@@ -29,6 +29,8 @@ spec:
                 name: ollama-webui-configmap  # This loads ALL configmap values
             - secretRef:
                 name: gpustack-credentials    # This loads API keys from AWS Secrets Manager
+            - secretRef:
+                name: ollama-endpoints        # This loads endpoint URLs from AWS Secrets Manager
           # REMOVED the hardcoded env section that was overriding the configmap!
           volumeMounts:
             - mountPath: /app/backend/data
