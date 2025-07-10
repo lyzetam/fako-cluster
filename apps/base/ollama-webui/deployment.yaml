@@ -31,6 +31,7 @@ spec:
                 name: gpustack-credentials    # This loads API keys from AWS Secrets Manager
             - secretRef:
                 name: ollama-endpoints        # This loads endpoint URLs from AWS Secrets Manager
+                optional: true                # Make it optional until AWS secret is created
           # REMOVED the hardcoded env section that was overriding the configmap!
           volumeMounts:
             - mountPath: /app/backend/data
