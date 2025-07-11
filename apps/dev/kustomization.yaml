@@ -25,5 +25,4 @@ resources:
   - whisper        # CPU version for dev
   - piper          # Already CPU-based
   - openwakeword   # Already CPU-based
-  - voice-monitor  # UI only, no GPU required
   - node-labeling
