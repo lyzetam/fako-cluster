@@ -17,7 +17,7 @@ data:
   
   # Collection configuration
   COLLECTION_INTERVAL: "3600"  # 1 hour
-  DAYS_TO_BACKFILL: "7"
+  DAYS_TO_BACKFILL: "30"  # Increased from 7 to 30 days
   RUN_ONCE: "false"
   
   # Logging
