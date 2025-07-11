@@ -31,6 +31,14 @@ spec:
             - containerPort: 3005
               protocol: TCP
 
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
           volumeMounts:
             - mountPath: /config
               name: audiobookshelf-config
