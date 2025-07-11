@@ -1,9 +1,77 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard"
+  ],
   "baseBranches": ["dev"],
+  "branchPrefix": "renovate/",
+  "labels": ["dependencies", "renovate"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "automerge": false,
+  "platformAutomerge": false,
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Renovate Dependency Dashboard",
+  "dependencyDashboardLabels": ["renovate", "dependencies"],
+  "rebaseWhen": "behind-base-branch",
   "kubernetes": {
     "fileMatch": [
-      "\\.yaml$"
+      "\\.yaml$",
+      "\\.yml$"
     ]
-  }
+  },
+  "flux": {
+    "fileMatch": [
+      "(^|/)clusters/.+\\.ya?ml$",
+      "(^|/)infrastructure/.+\\.ya?ml$",
+      "(^|/)apps/.+\\.ya?ml$"
+    ]
+  },
+  "helm-values": {
+    "fileMatch": [
+      "(^|/)values.*\\.ya?ml$"
+    ]
+  },
+  "packageRules": [
+    {
+      "description": "Disable automerge for all packages",
+      "matchPackagePatterns": ["*"],
+      "automerge": false
+    },
+    {
+      "description": "Group Kubernetes packages",
+      "matchPackagePatterns": ["^k8s", "^kubernetes"],
+      "groupName": "kubernetes packages"
+    },
+    {
+      "description": "Group Flux packages",
+      "matchPackagePatterns": ["^fluxcd/"],
+      "groupName": "flux packages"
+    },
+    {
+      "description": "Group container image updates by application",
+      "matchDatasources": ["docker"],
+      "matchPaths": ["apps/base/*/**.yaml"],
+      "groupName": "{{parentDir}} container images"
+    }
+  ],
+  "commitMessagePrefix": "chore(deps):",
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageExtra": "to {{newVersion}}",
+  "prTitle": "chore(deps): update {{depName}} to {{newVersion}}",
+  "prBodyDefinitions": {
+    "Package": "{{{depNameLinked}}}",
+    "Type": "{{{depType}}}",
+    "Update": "{{{updateType}}}",
+    "Current value": "`{{{currentValue}}}`",
+    "New value": "`{{{newValue}}}`"
+  },
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/test/**",
+    "**/tests/**"
+  ],
+  "prCreation": "immediate",
+  "rangeStrategy": "auto"
 }
