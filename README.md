@@ -1,979 +1,446 @@
-# Fako Cluster - K3s HomeLab Documentation
+# Fako Cluster - K3s HomeLab
+
+A production-grade Kubernetes homelab running on K3s, managed through GitOps with FluxCD. This cluster combines enterprise patterns with homelab flexibility, featuring GPU-accelerated AI/ML workloads, comprehensive monitoring, and automated operations.
 
 ## Table of Contents
 - [Overview](#overview)
+- [Hardware Infrastructure](#hardware-infrastructure)
 - [Architecture](#architecture)
-- [Infrastructure Components](#infrastructure-components)
+- [Technology Stack](#technology-stack)
 - [Applications](#applications)
-- [Monitoring Stack](#monitoring-stack)
-- [Storage Configuration](#storage-configuration)
-- [GPU Support](#gpu-support)
-- [Security](#security)
+- [Infrastructure Components](#infrastructure-components)
+- [Security & Secret Management](#security--secret-management)
+- [Monitoring & Observability](#monitoring--observability)
+- [Storage Architecture](#storage-architecture)
 - [Backup Strategy](#backup-strategy)
+- [Development Environment](#development-environment)
 - [Deployment Guide](#deployment-guide)
-- [Maintenance](#maintenance)
+- [Maintenance & Operations](#maintenance--operations)
 
 ## Overview
 
-This is a K3s-based Kubernetes homelab cluster managed through GitOps with FluxCD. The cluster features a comprehensive monitoring stack, GPU support for AI/ML workloads, automated backups, and various self-hosted applications.
+This cluster represents a sophisticated homelab implementation that bridges the gap between personal projects and production-grade infrastructure. It's designed with several key principles:
 
-**Key Features:**
-- GitOps-driven deployment with FluxCD
-- Multi-node K3s cluster with GPU support
-- NFS-based persistent storage
-- PostgreSQL database cluster with CloudNative PG
-- Comprehensive monitoring with Prometheus, Loki, and Grafana
-- Voice assistant pipeline with Whisper, Piper, and OpenWakeWord
-- Automated dependency updates with Renovate
-- Secret management with AWS Secrets Manager and SOPS
+- **GitOps-First**: All changes are made through Git, with FluxCD ensuring the cluster state matches the repository
+- **Security by Design**: No sensitive data in Git, all secrets managed through AWS Secrets Manager
+- **Multi-Environment Support**: Separate dev and production environments with resource-appropriate configurations
+- **GPU Acceleration**: Dedicated GPU node for AI/ML workloads with proper scheduling and resource management
+- **Comprehensive Monitoring**: Full observability stack with Prometheus, Loki, and Grafana
+- **Automated Operations**: Self-updating dependencies, automated backups, and security scanning
+
+## Hardware Infrastructure
+
+The cluster runs on a heterogeneous mix of hardware, optimized for different workload types:
+
+| Node | Role | CPU | Memory | Storage | GPU | Purpose |
+|------|------|-----|---------|---------|-----|---------|
+| **yeezyai** | GPU Worker | 24 cores | 32GB | 957GB | 2x NVIDIA | AI/ML workloads, LLM inference |
+| **zz-macbookpro** | Control Plane | 12 cores | 16GB | 479GB | - | Cluster management, lightweight apps |
+| **thinkpad01** | Worker | 8 cores | 16GB | 102GB | - | General workloads |
+| **pgmac01** | Worker | 4 cores | 8GB | 102GB | - | Distributed services |
+| **pgmac02** | Worker | 4 cores | 8GB | 102GB | - | Distributed services |
+| **pglenovo01** | Worker | 4 cores | 8GB | 100GB | - | Distributed services |
+| **pglenovo02** | Worker | 4 cores | 8GB | 119GB | - | Distributed services |
+
+**External Storage**: Synology NAS providing NFS shares for persistent storage
 
 ## Architecture
 
-### Cluster Topology
+### GitOps Flow
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Git Repository                        │
-│                   (github.com/lyzetam/fako-cluster)         │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ FluxCD Sync
-┌──────────────────────────▼──────────────────────────────────┐
-│                      K3s Cluster                            │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │   Control Plane │  │  Worker Nodes   │  │  GPU Node   │ │
-│  │                 │  │                 │  │  (yeezyai)  │ │
-│  │  - zzmbp        │  │  - pgmac01      │  │             │ │
-│  │                 │  │  - pgmac02      │  │  RTX 5070   │ │
-│  │                 │  │  - pglenovo01   │  │  RTX 3050   │ │
-│  │                 │  │  - pglenovo02   │  │             │ │
-│  │                 │  │  - thinkpad01   │  │             │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│                    External Storage                         │
-│                  Synology NAS (NFS Server)                  │
-│  - General storage                                          │
-│  - Database storage                                         │
-│  - Backup storage                                           │
-└─────────────────────────────────────────────────────────────┘
+GitHub Repository (fako-cluster)
+         ↓
+    Flux Source Controller
+         ↓
+    Kustomize Controller
+         ↓
+    Helm Controller
+         ↓
+Kubernetes Resources (Apps, Config, Secrets)
 ```
 
-### GitOps Structure
+### Repository Structure
 ```
 fako-cluster/
 ├── apps/                    # Application deployments
-│   ├── base/               # Base configurations
-│   └── staging/            # Environment-specific overlays
-├── clusters/               # Cluster configurations
-│   └── staging/            # Staging cluster setup
-├── infrastructure/         # Infrastructure components
+│   ├── base/               # Base configurations (environment-agnostic)
+│   ├── dev/                # Development overlays
+│   └── staging/            # Production overlays
+├── clusters/               # Cluster bootstrapping
+│   ├── dev/                # Dev cluster configuration
+│   └── staging/            # Production cluster configuration
+├── infrastructure/         # Platform components
+│   ├── configs/            # Infrastructure configuration
 │   └── controllers/        # Operators and controllers
-└── monitoring/             # Monitoring stack
-    ├── configs/            # Monitoring configurations
+└── monitoring/             # Observability stack
+    ├── configs/            # Monitoring configuration
     └── controllers/        # Monitoring operators
 ```
 
-## Infrastructure Components
+## Technology Stack
 
-### Core Infrastructure
+### Core Platform
+- **Kubernetes Distribution**: K3s (lightweight, perfect for edge/homelab)
+- **GitOps**: FluxCD v2 (source, kustomize, helm, notification controllers)
+- **Service Mesh**: Traefik (built into K3s)
+- **Container Runtime**: containerd with NVIDIA runtime support
 
-#### FluxCD
-- **Version**: Latest
-- **Components**: Source Controller, Kustomize Controller, Helm Controller
-- **Purpose**: GitOps continuous delivery
+### Infrastructure Components
+- **Secret Management**: External Secrets Operator + AWS Secrets Manager
+- **Certificate Management**: cert-manager (for internal TLS)
+- **Storage**: NFS CSI Driver + Dynamic Provisioning
+- **Database**: CloudNative-PG (PostgreSQL operator)
+- **GPU Support**: NVIDIA GPU Operator
 
-#### External Secrets Operator
-- **Version**: ^0.10.0
-- **Integration**: AWS Secrets Manager
-- **Purpose**: Secure secret management
-
-#### CloudNative PG
-- **Version**: ^0.24.0
-- **Purpose**: PostgreSQL cluster management
-- **Configuration**: 3-node cluster with 50GB storage
-
-#### NFS CSI Driver
-- **Version**: ^4.8.0
-- **Storage Classes**:
-  - `nfs-csi-v2`: General purpose storage
-  - `nfs-postgres-v2`: Optimized for PostgreSQL
-  - `nfs-backup`: Dedicated backup storage
-
-#### NVIDIA GPU Operator
-- **Purpose**: GPU device plugin and container runtime
-- **Features**: 
-  - Driver validation disabled (pre-installed drivers)
-  - DCGM metrics exporter
-  - Container toolkit with K3s integration
+### Observability
+- **Metrics**: Prometheus + Grafana
+- **Logs**: Loki + Promtail/Alloy
+- **Traces**: OpenTelemetry (via Alloy)
+- **Dashboards**: Grafana with custom dashboards
 
 ## Applications
-
-### Web Applications
-
-#### Linkding
-- **Purpose**: Bookmark manager
-- **Access**: Via Cloudflare tunnel
-- **Storage**: 500Mi persistent volume
-- **Features**: Self-hosted bookmark management with tagging
-
-#### Audiobookshelf
-- **Purpose**: Audiobook and podcast server
-- **Port**: 3005
-- **Storage**: 
-  - Config: 1Gi
-  - Metadata: 5Gi
-  - Audiobooks: 5Gi
-- **Access**: Via Cloudflare tunnel
-
-#### Home Assistant (Homebot)
-- **Purpose**: Home automation platform
-- **Port**: 8123
-- **Storage**: 5Gi for configuration
-- **Features**: Reverse proxy support, timezone configuration
 
 ### AI/ML Stack
 
 #### Ollama
-- **Deployment**: GPU-enabled on dedicated node
-- **GPU**: RTX 5070 (primary)
-- **Storage**: 200Gi for models
-- **Models**: Multiple LLMs including Llama, Gemma, Mistral
-- **Access**: NodePort 31434
+- **Purpose**: Large Language Model inference server
+- **Deployment**: GPU-accelerated on dedicated node
+- **Models**: Multiple models including Llama, Mistral, Gemma variants
+- **Access**: Internal API on port 11434, NodePort 31434
+- **Storage**: 200GB for model storage
+- **Features**: 
+  - Automatic model management
+  - GPU memory optimization
+  - Multi-model support
 
 #### Ollama WebUI
-- **Purpose**: Web interface for Ollama
-- **Integration**: GPUStack backend
-- **Storage**: 5Gi for chat history
-- **Access**: ai.landryzetam.net
+- **Purpose**: Chat interface for LLMs
+- **Backend**: Integrates with GPUStack for additional models
+- **Features**: 
+  - Multi-model chat interface
+  - Conversation history
+  - Model switching
+- **Access**: https://ai.yourdomain.com
 
-#### Voice Pipeline Components
+#### Voice Assistant Pipeline
+A complete voice assistant system using Wyoming protocol:
 
-**Whisper (Speech-to-Text)**
-- **GPU**: RTX 3050 or RTX 5070
-- **Model**: Tiny (optimized for speed)
-- **Port**: 10300 (Wyoming protocol)
-- **Storage**: 10Gi for models
+- **Whisper** (Speech-to-Text)
+  - GPU-accelerated transcription
+  - Multiple model sizes (tiny for speed, base for accuracy)
+  - Wyoming protocol on port 10300
+  
+- **Piper** (Text-to-Speech)
+  - High-quality neural TTS
+  - Multiple voice options
+  - Auto-scaling based on load
+  - Wyoming protocol on port 10200
+  
+- **OpenWakeWord**
+  - Wake word detection (Alexa, Hey Jarvis, etc.)
+  - Low-latency activation
+  - Wyoming protocol on port 10400
 
-**Piper (Text-to-Speech)**
-- **Voices**: Multiple English voices
-- **Port**: 10200 (Wyoming protocol)
-- **Storage**: 15Gi for voice models
-- **Features**: Auto-scaling with HPA
+### Web Applications
 
-**OpenWakeWord**
-- **Wake words**: alexa, hey_jarvis, hey_mycroft, ok_nabu
-- **Port**: 10400 (Wyoming protocol)
-- **Storage**: 5Gi for models
+#### Audiobookshelf
+- **Purpose**: Audiobook and podcast server
+- **Features**: 
+  - Web-based player
+  - Progress syncing
+  - Multiple user support
+  - Mobile app support
+- **Storage**: Separate volumes for config, metadata, and media
+
+#### Linkding
+- **Purpose**: Bookmark manager
+- **Features**: 
+  - Tag-based organization
+  - Full-text search
+  - Import/export
+  - REST API
+- **Access**: Via Cloudflare tunnel
+
+#### PGAdmin
+- **Purpose**: PostgreSQL management
+- **Features**: 
+  - Multi-server support
+  - Query tool
+  - Backup/restore
+- **Integration**: Auto-configured for cluster databases
 
 ### Identity & Access Management
 
 #### Keycloak
-- **Version**: 26.3.0
-- **Deployment**: HA with 2 replicas
-- **Database**: PostgreSQL (managed)
-- **Access**: subdomain.landryzetam.net
+- **Purpose**: Enterprise-grade identity provider
+- **Version**: 26.x
 - **Features**: 
   - OIDC/SAML support
-  - Kubernetes clustering
-  - External Secrets integration
+  - User federation
+  - Multi-realm support
+  - HA deployment (2 replicas)
+- **Integration**: SSO for all cluster applications
 
 ### Health & Fitness
 
-#### Oura Collector
-- **Purpose**: Collect data from Oura Ring API
-- **Storage**: PostgreSQL + 10Gi volume
-- **Schedule**: Hourly collection
-- **Features**: AWS Secrets Manager integration
-
-#### Oura Dashboard
-- **Purpose**: Streamlit dashboard for Oura data
-- **Port**: 8501
-- **Authentication**: OAuth2 Proxy with Keycloak
-- **Access**: Via Cloudflare tunnel
+#### Oura Ring Integration
+- **Collector**: Automated data collection from Oura API
+- **Dashboard**: Custom Streamlit dashboard for data visualization
+- **Features**: 
+  - Sleep analysis
+  - Activity tracking
+  - Readiness scores
+  - Historical trends
+- **Storage**: PostgreSQL with time-series optimization
 
 #### Wger
-- **Purpose**: Workout manager
-- **Chart Version**: 0.2.4
+- **Purpose**: Workout and nutrition manager
 - **Features**: 
-  - Exercise tracking
-  - Redis caching
-  - Celery workers
-- **Access**: subdomain.landryzetam.net
+  - Exercise database
+  - Workout planning
+  - Progress tracking
+  - REST API
+- **Components**: Web app, Redis cache, Celery workers
 
 ### Security & Maintenance
 
-#### Gitleaks Scanner
-- **Schedule**: Every 6 hours
+#### Gitleaks
+- **Purpose**: Secret scanning and prevention
 - **Features**: 
-  - Automated secret detection
-  - BFG integration for cleanup
+  - Scheduled repository scanning
+  - Git history cleaning with BFG
+  - Automated remediation
   - Slack notifications
+- **Schedule**: Every 6 hours
 
 #### Renovate
-- **Schedule**: Hourly
 - **Purpose**: Automated dependency updates
-- **Target**: lyzetam/fako-cluster repository
+- **Features**: 
+  - Helm chart updates
+  - Container image updates
+  - Kubernetes manifest updates
+  - Grouped updates by type
+- **Schedule**: Hourly checks
 
-## Monitoring Stack
+## Infrastructure Components
 
-### Prometheus Stack
-- **Chart**: kube-prometheus-stack ^66.2.0
-- **Components**:
-  - Prometheus (30d retention, 50Gi storage)
-  - Grafana
-  - AlertManager
-  - Node Exporter
-  - kube-state-metrics
-- **Access**: grafana.landryzetam.net
+### External Secrets Operator
+Manages all sensitive data through AWS Secrets Manager:
+- Database credentials
+- API keys
+- OAuth secrets
+- Internal service endpoints
 
-### Loki Stack
-- **Version**: 6.30.1
-- **Mode**: Distributed (3 write replicas)
-- **Storage**: Filesystem-based
-- **Retention**: 31 days
-- **Components**: Write path, Read path, Backend, Gateway
+**Pattern**: Each namespace has its own SecretStore with scoped AWS IAM permissions
 
-### Grafana Alloy
-- **Purpose**: Telemetry collection pipeline
-- **Features**:
-  - Kubernetes pod log collection
-  - Service discovery
-  - Loki log forwarding
-  - Self-monitoring
+### CloudNative-PG
+Production-grade PostgreSQL:
+- 3-node HA cluster
+- Automated backups
+- Point-in-time recovery
+- Connection pooling
+- Monitoring integration
 
-### GPU Monitoring
-- **Exporter**: nvidia_gpu_exporter
-- **Port**: 9835
-- **Metrics**: Utilization, memory, temperature, power
-- **Deployment**: DaemonSet on GPU nodes
+### NFS Storage
+Dynamic storage provisioning without hardcoded IPs:
+- **StorageClasses**: 
+  - `nfs-csi-v2`: General purpose
+  - `nfs-postgres-v2`: Database optimized
+  - `nfs-backup`: Backup storage
+- **Implementation**: Dynamic job creates StorageClasses from AWS Secrets
 
-### Voice Pipeline Monitor
-- **Purpose**: Custom monitoring dashboard
-- **Features**: Real-time component status
-- **Access**: voice-monitor.landryzetam.net
+### GPU Operator
+NVIDIA GPU support:
+- Automatic driver validation
+- Device plugin for scheduling
+- DCGM metrics exporter
+- Container runtime configuration
+- MIG support (if available)
 
-## Security
+## Security & Secret Management
 
-### Secret Management
-1. **SOPS Encryption**
-   - Age encryption for Git-stored secrets
-   - Per-environment encryption keys
+### Zero-Trust Secrets
+No sensitive data in Git repository:
 
-2. **AWS Secrets Manager**
-   - Database credentials
-   - API keys
-   - OAuth credentials
-
-3. **External Secrets Operator**
-   - Automatic secret synchronization
-   - Namespace-scoped SecretStores
-
-### Credentials Management
-
-#### AWS Credentials
-AWS credentials for External Secrets Operator are managed through SOPS-encrypted secrets in environment-specific overlays:
-- **Location**: `apps/{dev,staging}/<app-name>/aws-credentials-secret.yaml`
-- **Encryption**: SOPS with Age
-
-#### Application Patterns
-
-**Example: GPUStack API Keys (ollama-webui)**
-1. **Base Configuration** (`apps/base/ollama-webui/`)
-   - `aws-secret-store.yaml`: Connects to AWS Secrets Manager
-   - `external-secret-gpustack.yaml`: Pulls API key from AWS
-   - `configmap.yaml`: Contains only non-sensitive configuration
-   - `deployment.yaml`: Mounts secrets as environment variables
-
-2. **Environment Overlays** (`apps/{dev,staging}/ollama-webui/`)
-   - `aws-credentials-secret.yaml`: SOPS-encrypted AWS credentials
-   - `kustomization.yaml`: Includes base + environment-specific resources
-
-**Supported Applications**
-- Keycloak: Database and admin credentials
-- Ollama WebUI: GPUStack API keys
-- Oura Dashboard: OAuth2 and AWS credentials
-- PostgreSQL: Database credentials
-- Wger: Application secrets
+1. **AWS Secrets Manager**: Central secret storage
+2. **External Secrets Operator**: Syncs secrets to Kubernetes
+3. **SOPS Encryption**: AWS credentials encrypted in Git
+4. **Dynamic Configuration**: IPs and endpoints from secrets
 
 ### Network Security
-- **Ingress**: Traefik with TLS
-- **Internal**: Cloudflare tunnels for select services
-- **Authentication**: Keycloak for SSO, OAuth2 Proxy
+- **Ingress**: Traefik with automatic TLS
+- **External Access**: Cloudflare tunnels for select services
+- **Internal**: Network policies for pod-to-pod communication
+- **Authentication**: OAuth2 proxy with Keycloak
 
-### RBAC Configuration
-- Service accounts for all components
+### RBAC
 - Minimal privilege principle
+- Service accounts for all workloads
 - Namespace isolation
+- Audit logging enabled
+
+## Monitoring & Observability
+
+### Metrics Stack
+- **Prometheus**: 30-day retention, 50GB storage
+- **Grafana**: Custom dashboards for all services
+- **Exporters**: Node, GPU, PostgreSQL, custom app metrics
+- **Alerts**: Critical infrastructure and application alerts
+
+### Logging Stack
+- **Loki**: Distributed mode, 31-day retention
+- **Alloy**: Modern telemetry collector
+- **Sources**: Container logs, system logs, application logs
+- **Features**: LogQL queries, Grafana integration
+
+### Custom Monitoring
+- **Voice Pipeline Monitor**: Real-time status dashboard
+- **GPU Metrics**: Utilization, memory, temperature, power
+- **Backup Status**: Job success/failure tracking
+
+## Storage Architecture
+
+### Dynamic NFS Configuration
+Revolutionary approach to storage configuration:
+- No hardcoded IPs in any configuration
+- NFS server details stored in AWS Secrets Manager
+- Kubernetes Job dynamically creates StorageClasses
+- Complete GitOps compatibility
+
+### Storage Tiers
+1. **Performance** (SSD-backed NFS)
+   - Database storage
+   - Application state
+   
+2. **Capacity** (HDD-backed NFS)
+   - Media files
+   - Model storage
+   - Backups
+
+3. **Local** (Node storage)
+   - Temporary data
+   - Cache
 
 ## Backup Strategy
 
 ### Automated Backups
-1. **Kubernetes Resources**
-   - **Schedule**: Daily at 2 AM
-   - **Retention**: 30 days
-   - **Scope**: All namespaces, cluster resources
+Three-tier backup approach:
 
-2. **ETCD Backups**
-   - **Schedule**: Daily at 2:30 AM
-   - **Type**: Snapshots
-   - **Storage**: NFS backup volume
+1. **Daily Backups** (2 AM)
+   - All Kubernetes resources
+   - Application configurations
+   - 30-day retention
 
-3. **Weekly Comprehensive**
-   - **Schedule**: Sundays at 3 AM
-   - **Includes**: All resources + PVC data
+2. **ETCD Backups** (2:30 AM)
+   - Cluster state snapshots
+   - Disaster recovery capability
 
-### Backup Structure
+3. **Weekly Full Backups** (Sundays 3 AM)
+   - Complete cluster state
+   - Persistent volume data
+   - Extended retention
+
+### Backup Storage
 ```
-backups/
+/backups/
 ├── daily/
 │   └── YYYYMMDD-HHMMSS/
-│       ├── namespaces/
-│       ├── cluster/
-│       └── backup-info.txt
 ├── weekly/
 │   └── YYYYMMDD-HHMMSS/
 └── etcd/
     └── YYYYMMDD-HHMMSS/
-        └── etcd-snapshot.db
 ```
+
+## Development Environment
+
+### CPU-Only Development
+Complete stack without GPU requirements:
+- **Ollama**: CPU mode with small models (tinyllama, phi3)
+- **Whisper**: INT8 optimized for CPU
+- **Same Architecture**: Identical service structure as production
+
+### Benefits
+- Local development without expensive hardware
+- Full integration testing
+- Reduced resource consumption
+- Faster iteration cycles
 
 ## Deployment Guide
 
 ### Prerequisites
-1. K3s cluster with:
-   - Minimum 3 nodes
-   - NVIDIA drivers (for GPU node)
-   - NFS server access
-   
-2. Tools:
-   - kubectl
-   - flux CLI
-   - sops
-   - age (for encryption)
+- K3s cluster (3+ nodes recommended)
+- NFS server
+- AWS account for Secrets Manager
+- GitHub account
+- Domain name (optional)
 
-### Initial Setup
-
-1. **Fork and Clone Repository**
+### Quick Start
 ```bash
-git clone https://github.com/lyzetam/fako-cluster
+# 1. Fork and clone
+git clone https://github.com/yourusername/fako-cluster
 cd fako-cluster
-```
 
-2. **Configure Environment**
-```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit .env with your values
-# - NFS_SERVER_IP
-# - POSTGRES_HOST
-# - Other environment-specific values
-```
-
-3. **Create Age Key**
-```bash
+# 2. Create age key for SOPS
 age-keygen -o age.agekey
-export SOPS_AGE_KEY_FILE="$PWD/age.agekey"
-```
 
-4. **Bootstrap FluxCD**
-```bash
+# 3. Configure AWS credentials
+export AWS_ACCESS_KEY_ID="your-key"
+export AWS_SECRET_ACCESS_KEY="your-secret"
+
+# 4. Bootstrap Flux
 flux bootstrap github \
-  --owner=YOUR_GITHUB_USER \
+  --owner=yourusername \
   --repository=fako-cluster \
   --branch=main \
-  --path=clusters/staging \
-  --personal
+  --path=clusters/staging
+
+# 5. Create required secrets in AWS
+# See individual app documentation
 ```
 
-5. **Configure AWS Credentials**
+## Maintenance & Operations
+
+### Daily Tasks
+- Monitor cluster health via Grafana
+- Review Renovate PRs
+- Check backup status
+
+### Common Operations
 ```bash
-# Create the secret using SOPS
-sops infrastructure/secrets/aws-credentials.yaml
+# Check cluster status
+flux get all -A
+
+# Force reconciliation
+flux reconcile source git flux-system
+
+# View logs
+flux logs --follow
+
+# Check GPU status
+kubectl exec -n gpu-operator -it $(kubectl get pods -n gpu-operator -l app=nvidia-device-plugin-daemonset -o jsonpath='{.items[0].metadata.name}') -- nvidia-smi
 ```
-
-6. **Create Required Secrets in AWS**
-- `postgres/admin-credentials`
-- `postgres/app-user`
-- `keycloak/admin-credentials`
-- `auth-service/super-user`
-- `oura/api-credentials`
-- `wger/db-credentials`
-- `gpustack/api-key` (key: OPENAI_API_KEYS)
-
-### Verify Deployment
-
-```bash
-# Check FluxCD status
-flux get all
-
-# Check applications
-kubectl get helmreleases -A
-
-# Check pods
-kubectl get pods -A
-
-# Check storage
-kubectl get pvc -A
-```
-
-## Maintenance
-
-### Daily Operations
-
-1. **Monitor Cluster Health**
-```bash
-kubectl top nodes
-kubectl top pods -A
-```
-
-2. **Check Backup Status**
-```bash
-kubectl get cronjobs -n backup-system
-kubectl logs -n backup-system -l job-name=k8s-backup-daily
-```
-
-3. **Review Renovate Updates**
-- Check GitHub PRs for dependency updates
-- Review and merge after testing
-
-### GPU Management
-
-1. **Check GPU Status**
-```bash
-kubectl exec -n gpu-operator $(kubectl get pods -n gpu-operator -l app=nvidia-device-plugin-daemonset -o name | head -1) -- nvidia-smi
-```
-
-2. **Monitor GPU Metrics**
-- Access Grafana dashboard
-- Check GPU utilization and temperature
 
 ### Troubleshooting
-
-1. **FluxCD Issues**
-```bash
-flux logs --follow
-flux reconcile source git flux-system
-```
-
-2. **Storage Issues**
-```bash
-# Test NFS connectivity
-kubectl apply -f infrastructure/controllers/base/nfs-storage/nfs-connectivity-test.yaml
-kubectl logs -n nfs-system job/nfs-connectivity-test
-```
-
-3. **Application Issues**
-```bash
-# Check specific app
-kubectl describe helmrelease APP_NAME -n NAMESPACE
-kubectl logs -n NAMESPACE deployment/APP_NAME
-```
-
-## Additional Resources
-
-- **Repository**: [github.com/lyzetam/fako-cluster](https://github.com/lyzetam/fako-cluster)
-- **FluxCD Documentation**: [fluxcd.io](https://fluxcd.io)
-- **K3s Documentation**: [k3s.io](https://k3s.io)
-
-# GPU/CPU Architecture for Dev vs Production
-
-## Current State (After Implementation)
-
-### Production/Staging Environment
-- **GPU-optimized services**: ollama, whisper (using GPU hardware)
-- **CPU services**: piper, openwakeword (already CPU-based)
-- **UI services**: ollama-webui, voice-monitor
-- **GPU Hardware**: RTX 5070 on yeezyai node
-
-### Development Environment
-- **CPU versions**: ollama (CPU mode), whisper (CPU mode)
-- **CPU services**: piper, openwakeword (same as prod)
-- **UI services**: ollama-webui, voice-monitor
-- **No GPU required**: All services run on CPU
-
-## Architecture Pattern
-
-### Services by Type
-
-#### GPU-Optimized (Production) / CPU-Mode (Dev)
-- `ollama`: 
-  - **Prod**: GPU-accelerated LLM inference on RTX 5070
-  - **Dev**: CPU-only with small models (tinyllama, phi3:mini)
-- `whisper`:
-  - **Prod**: GPU-accelerated speech-to-text
-  - **Dev**: CPU-optimized with int8 compute type
-
-#### CPU-Based (Same in Both Environments)
-- `piper`: Text-to-speech (CPU-based)
-- `openwakeword`: Wake word detection (CPU-based)
-
-#### UI Services (No Compute Required)
-- `ollama-webui`: Web interface (connects to GPUStack backend)
-- `voice-monitor`: Monitoring dashboard
-
-## Implementation Details
-
-### Dev CPU Patches
-1. **ollama**: `apps/dev/ollama/deployment-cpu-patch.yaml`
-   - Removes GPU node selector, tolerations, and runtime
-   - Sets `OLLAMA_GPU_LAYERS=0` to force CPU
-   - Reduces resource limits
-   - Downloads only small CPU-friendly models
-
-2. **whisper**: `apps/dev/whisper/deployment-cpu-patch.yaml`
-   - Uses CPU-optimized whisper image
-   - Sets compute type to int8 for CPU efficiency
-   - Removes GPU-specific configurations
-
-## Benefits
-- **Full Stack Testing**: Developers can test the complete AI/ML stack locally
-- **No GPU Required**: All services run on CPU in dev environment
-- **Resource Efficient**: CPU versions use minimal resources
-- **Consistent Architecture**: Same service structure in dev and prod
-
-# Ollama WebUI - External Secrets Configuration
-
-This application uses AWS Secrets Manager to store sensitive configuration data, including internal IP addresses and API keys.
-
-## Required AWS Secrets
-
-### 1. GPUStack API Key
-- **Secret Name**: `gpustack/api-key`
-- **Secret Value**: JSON object with the following structure:
-```json
-{
-  "OPENAI_API_KEYS": "your-gpustack-api-key-here"
-}
-```
-
-### 2. Endpoint URLs
-- **Secret Name**: `ollama-webui/endpoints`
-- **Secret Value**: JSON object with the following structure:
-```json
-{
-  "gpustack_base_url": "http://YOUR-INTERNAL-IP:80/v1-openai"
-}
-```
-
-## Setup Instructions
-
-1. **Create the secret in AWS Secrets Manager** (one-time setup):
-```bash
-# Create endpoints secret in AWS (replace with your actual internal IP)
-aws secretsmanager create-secret \
-  --name ollama-webui/endpoints \
-  --secret-string '{"gpustack_base_url":"http://***NFS-IP-REMOVED***:80/v1-openai"}'
-```
-
-2. **Deploy to Kubernetes**:
-```bash
-# The External Secrets Operator will automatically:
-# - Use the existing aws-credentials secret (managed by SOPS) to authenticate
-# - Fetch the secret from AWS Secrets Manager
-# - Create the Kubernetes secret with the endpoint URLs
-kubectl apply -k apps/base/ollama-webui/
-```
-
-3. **Verify the secret is created**:
-```bash
-# Check External Secret status
-kubectl get externalsecret -n ollama-webui endpoints-secret
-
-# Verify the Kubernetes secret was created
-kubectl get secret -n ollama-webui ollama-endpoints
-```
-
-## Architecture
-
-The application uses the following External Secrets:
-- `external-secret-gpustack.yaml`: Fetches API keys from AWS
-- `external-secret-endpoints.yaml`: Fetches endpoint URLs from AWS
-
-These secrets are mounted into the deployment via `envFrom` in the following order:
-1. ConfigMap (`ollama-webui-configmap`)
-2. GPUStack credentials secret
-3. Endpoint URLs secret
-
-## Benefits
-
-- No hardcoded IPs or sensitive data in the Git repository
-- Centralized secret management via AWS Secrets Manager
-- Easy rotation of credentials and endpoints
-- Follows GitOps best practices
-
-# Ollama WebUI - External Secrets Configuration
-
-This application uses AWS Secrets Manager to store sensitive configuration data, including internal IP addresses and API keys.
-
-## Required AWS Secrets
-
-### 1. GPUStack API Key
-- **Secret Name**: `gpustack/api-key`
-- **Secret Value**: JSON object with the following structure:
-```json
-{
-  "OPENAI_API_KEYS": "your-gpustack-api-key-here"
-}
-```
-
-### 2. Endpoint URLs
-- **Secret Name**: `ollama-webui/endpoints`
-- **Secret Value**: JSON object with the following structure:
-```json
-{
-  "gpustack_base_url": "http://YOUR-INTERNAL-IP:80/v1-openai"
-}
-```
-
-## Setup Instructions
-
-### 1. Create the secret in AWS Secrets Manager (one-time setup):
-```bash
-# Create endpoints secret in AWS (replace with your actual internal IP)
-aws secretsmanager create-secret \
-  --name ollama-webui/endpoints \
-  --secret-string '{"gpustack_base_url":"http://***NFS-IP-REMOVED***:80/v1-openai"}'
-```
-
-### 2. Update IAM Policy for External Secrets User
-The `external-secrets-user` IAM user needs permission to access the new secret. Add this to the user's policy:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret"
-      ],
-      "Resource": [
-        "arn:aws:secretsmanager:us-east-1:584144127892:secret:gpustack/api-key*",
-        "arn:aws:secretsmanager:us-east-1:584144127892:secret:ollama-webui/endpoints*"
-      ]
-    }
-  ]
-}
-```
-
-### 3. Deploy to Kubernetes:
-```bash
-# The External Secrets Operator will automatically:
-# - Use the existing aws-credentials secret (managed by SOPS) to authenticate
-# - Fetch the secret from AWS Secrets Manager
-# - Create the Kubernetes secret with the endpoint URLs
-kubectl apply -k apps/base/ollama-webui/
-```
-
-### 4. Verify the secret is created:
-```bash
-# Check External Secret status
-kubectl get externalsecret -n ollama-webui endpoints-secret
-
-# Verify the Kubernetes secret was created
-kubectl get secret -n ollama-webui ollama-endpoints
-```
-
-## Architecture
-
-The application uses the following External Secrets:
-- `external-secret-gpustack.yaml`: Fetches API keys from AWS
-- `external-secret-endpoints.yaml`: Fetches endpoint URLs from AWS
-
-These secrets are mounted into the deployment via `envFrom` in the following order:
-1. ConfigMap (`ollama-webui-configmap`)
-2. GPUStack credentials secret
-3. Endpoint URLs secret (marked as optional until AWS permissions are configured)
-
-## Troubleshooting
-
-If you see `SecretSyncedError` on the External Secret:
-1. Check the IAM policy for the external-secrets-user
-2. Ensure the secret exists in AWS Secrets Manager
-3. Check the External Secret logs: `kubectl describe externalsecret -n ollama-webui endpoints-secret`
-
-## Benefits
-
-- No hardcoded IPs or sensitive data in the Git repository
-- Centralized secret management via AWS Secrets Manager
-- Easy rotation of credentials and endpoints
-- Follows GitOps best practices
-
-# NFS Configuration Management
-
-This directory contains the centralized NFS configuration for the cluster, using AWS Secrets Manager to store sensitive IP addresses and paths.
-
-## Overview
-
-Instead of hardcoding NFS server IPs in multiple places, we store them in AWS Secrets Manager and use External Secrets Operator to sync them to Kubernetes.
-
-## AWS Secret Structure
-
-The secret `infrastructure/nfs-config` in AWS Secrets Manager contains:
-```json
-{
-  "server": "192.160.40.200",
-  "storage_path": "/volume1/k8s-storage",
-  "db_path": "/volume1/k8s-db",
-  "backup_path": "/volume1/k8s-backups"
-}
-```
-
-## Components
-
-1. **namespace.yaml** - Creates the `infrastructure` namespace
-2. **aws-secret-store.yaml** - Configures access to AWS Secrets Manager
-3. **external-secret-nfs.yaml** - Fetches NFS config from AWS
-4. **nfs-configmap.yaml** - ConfigMap placeholder for Kustomize replacements
-5. **sync-job.yaml** - Syncs secret values to ConfigMap for use in patches
-
-## Usage in StorageClasses
-
-Since StorageClasses don't support environment variables or ConfigMaps directly, we use Kustomize patches to inject the values. See the individual StorageClass configurations for examples.
-
-## Updating NFS Configuration
-
-To change the NFS server or paths:
-1. Update the secret in AWS Secrets Manager
-2. The External Secrets Operator will sync within 1 hour (or force sync)
-3. Run the sync job to update the ConfigMap
-4. Reapply the StorageClasses with Kustomize
-
-## Required IAM Permissions
-
-The `external-secrets-user` IAM user needs:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret"
-      ],
-      "Resource": [
-        "arn:aws:secretsmanager:us-east-1:*:secret:infrastructure/nfs-config*"
-      ]
-    }
-  ]
-}
-
-
-# NFS Configuration - Dynamic IP Management Solution
-
-## Overview
-
-This solution completely eliminates hardcoded IP addresses from all configuration files by using Kubernetes Jobs to dynamically create resources based on values stored in AWS Secrets Manager.
-
-## Architecture
-
-```
-AWS Secrets Manager
-    ↓
-External Secrets Operator
-    ↓
-Kubernetes Secret (nfs-config)
-    ↓
-Dynamic Jobs read the secret
-    ↓
-Create StorageClasses & PVs at runtime
-```
-
-## Key Components
-
-### 1. AWS Secrets Manager
-- **Secret Name**: `infrastructure/nfs-config`
-- **Content**: 
-  ```json
-  {
-    "server": "Not coded",
-    "storage_path": "/volume1/k8s-storage",
-    "db_path": "/volume1/k8s-db",
-    "backup_path": "/volume1/k8s-backups"
-  }
-  ```
-
-### 2. External Secret Configuration
-- **Location**: `infrastructure/configs/base/nfs-config/`
-- Fetches NFS configuration from AWS and creates a Kubernetes secret
-
-### 3. Dynamic StorageClass Job
-- **Location**: `infrastructure/controllers/base/nfs-storage/dynamic-storageclass-job.yaml`
-- Reads the secret and creates StorageClasses dynamically
-- No IPs in any configuration files!
-
-### 4. Dynamic Connectivity Test
-- **Location**: `infrastructure/controllers/base/nfs-storage/nfs-connectivity-test.yaml`
-- Also reads from the secret for testing
-
-## Benefits
-
-✅ **Zero hardcoded IPs** in the repository  
-✅ **Dynamic configuration** - Jobs create resources at runtime  
-✅ **Single source of truth** - AWS Secrets Manager  
-✅ **Easy updates** - Just change the AWS secret  
-✅ **GitOps compatible** - All configuration is declarative  
-
-## Deployment Steps
-
-1. **Deploy the NFS configuration infrastructure**:
-   ```bash
-   kubectl apply -k infrastructure/configs/base/
-   ```
-
-2. **Update IAM permissions** for `external-secrets-user`:
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [{
-       "Effect": "Allow",
-       "Action": [
-         "secretsmanager:GetSecretValue",
-         "secretsmanager:DescribeSecret"
-       ],
-       "Resource": [
-         "arn:aws:secretsmanager:us-east-1:*:secret:infrastructure/nfs-config*"
-       ]
-     }]
-   }
-   ```
-
-3. **Deploy the NFS storage controller**:
-   ```bash
-   kubectl apply -k infrastructure/controllers/{env}/nfs-storage/
-   ```
-
-4. **Verify StorageClasses were created**:
-   ```bash
-   kubectl get storageclass | grep nfs
-   ```
-
-## How It Works
-
-1. External Secrets Operator fetches NFS config from AWS
-2. Creates a Kubernetes secret with the configuration
-3. The dynamic-storageclass-job runs and:
-   - Reads the NFS configuration from the secret
-   - Creates StorageClasses with the actual IPs
-   - Creates PersistentVolumes as needed
-4. Applications can use the StorageClasses normally
-
-## Updating NFS Configuration
-
-To change the NFS server or paths:
-
-1. Update the secret in AWS Secrets Manager
-2. Delete and recreate the job to apply changes:
-   ```bash
-   kubectl delete job create-nfs-storageclasses -n nfs-system
-   kubectl apply -k infrastructure/controllers/{env}/nfs-storage/
-   ```
-
-## Comparison with Previous Approach
-
-### Before:
-- IPs hardcoded in YAML files
-- Visible in public repository
-- Required patches with IPs
-
-### After:
-- No IPs in any files
-- Dynamic creation at runtime
-- Secure storage in AWS
-
-This approach ensures complete separation of configuration from code, making your infrastructure more secure and maintainable.
-
-
-# NFS Configuration - Complete Solution
-
-## Overview
-
-We've successfully implemented a solution that completely removes ALL hardcoded IP addresses from the Git repository while maintaining full functionality.
-
-## How It Works
-
-1. **AWS Secrets Manager** stores the NFS configuration:
-   ```json
-   {
-     "server": "***NFS-IP-REMOVED***",
-     "storage_path": "/volume1/k8s-storage",
-     "db_path": "/volume1/k8s-db",
-     "backup_path": "/volume1/k8s-backups"
-   }
-   ```
-
-2. **External Secrets Operator** fetches this configuration and creates a Kubernetes secret
-
-3. **Dynamic Job** (`create-nfs-storageclasses`) reads the secret and creates:
-   - StorageClasses (nfs-csi-v2, nfs-postgres-v2, nfs-backup)
-   - PersistentVolume (k8s-backup-pv)
-
-## Key Benefits
-
-✅ **NO hardcoded IPs in Git** - The repository contains zero IP addresses
-✅ **Dynamic configuration** - Resources are created at runtime
-✅ **Secure storage** - IPs only exist in AWS Secrets Manager
-✅ **GitOps compatible** - Everything is declarative
-✅ **Easy updates** - Change the AWS secret, restart the job
-
-## Repository Structure
-
-```
-infrastructure/
-├── configs/
-│   └── base/
-│       └── nfs-config/
-│           ├── namespace.yaml              # Creates infrastructure namespace
-│           ├── aws-credentials-secret.yaml # SOPS-encrypted AWS credentials
-│           ├── aws-secret-store.yaml       # SecretStore configuration
-│           ├── external-secret-nfs.yaml    # Fetches from AWS
-│           └── kustomization.yaml
-└── controllers/
-    └── base/
-        └── nfs-storage/
-            ├── dynamic-storageclass-job.yaml  # Creates resources dynamically
-            └── nfs-connectivity-test.yaml     # Also reads from secret
-
-clusters/staging/
-└── infrastructure-configs.yaml  # Flux kustomization to deploy configs
-```
-
-## Deployment Process
-
-1. Flux applies `infrastructure-configs` kustomization
-2. This creates the External Secret infrastructure
-3. External Secrets fetches NFS config from AWS
-4. The dynamic job runs and creates StorageClasses/PVs
-5. Applications can use the StorageClasses normally
-
-## Security
-
-- AWS credentials are SOPS-encrypted (age encryption)
-- Only Flux can decrypt them in the cluster
-- NFS IPs never appear in Git history
-- Access controlled via IAM policies
-
-## Maintenance
-
-To update NFS configuration:
-1. Update the secret in AWS Secrets Manager
-2. Delete and recreate the job:
-   ```bash
-   kubectl delete job -n nfs-system create-nfs-storageclasses
-   kubectl rollout restart deployment -n flux-system kustomize-controller
-   ```
-
-This solution provides complete separation of sensitive configuration from code while maintaining full GitOps principles.
-
+1. **Application Issues**: Check Flux events and pod logs
+2. **Storage Issues**: Verify NFS connectivity test job
+3. **GPU Issues**: Check GPU operator and device plugin logs
+4. **Secret Issues**: Verify External Secrets Operator status
+
+## Philosophy
+
+This cluster embodies several key principles:
+
+1. **Everything as Code**: No manual changes, everything through Git
+2. **Security First**: No secrets in Git, defense in depth
+3. **Observability**: If you can't measure it, you can't improve it
+4. **Automation**: Humans shouldn't do what machines can do better
+5. **Learning Platform**: Every component is an opportunity to learn
 
 ## About
 
-**Maintainer**: Landry  
-*"A mechanical engineer by training. I enjoy tearing things down and rebuilding them, always eager to understand how things work and how they can be improved."*
+**Created by**: Landry  
+*"A mechanical engineer by training, I enjoy tearing things down and rebuilding them. This cluster is my digital workshop - a place to understand how modern infrastructure works and how it can be improved."*
 
 ---
 
-This cluster represents a comprehensive homelab setup combining traditional web applications with modern AI/ML capabilities, all managed through GitOps principles for reproducibility and ease of maintenance.
+This cluster demonstrates that homelab infrastructure can be both a learning platform and production-grade system. It's proof that with the right patterns and tools, you can run enterprise-level infrastructure on consumer hardware.
