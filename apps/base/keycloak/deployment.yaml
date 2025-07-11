@@ -142,8 +142,6 @@ spec:
           value: "false"  # Allow backend URLs to use different hostnames
         - name: KC_HOSTNAME_STRICT_HTTPS
           value: "false"  # Allow HTTP for backend (since we're behind a proxy)
-        - name: KC_PROXY_HEADERS
-          value: "xforwarded"  # Trust X-Forwarded headers from proxy
         - name: KC_HTTP_ENABLED
           value: "true"
         - name: KC_PROXY
