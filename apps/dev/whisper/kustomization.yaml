@@ -56,6 +56,5 @@ patches:
           - int8
           - --beam-size
           - "1"
-      - op: replace
-        path: /spec/template/spec/containers/0/env
-        value: []
+      - op: remove
+        path: /spec/template/spec/containers/0/envFrom
