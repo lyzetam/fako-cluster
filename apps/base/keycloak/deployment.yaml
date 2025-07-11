@@ -146,7 +146,7 @@ spec:
           value: "edge"  # Running behind a proxy that handles SSL termination
         - name: KC_PROXY_HEADERS
           value: "xforwarded"  # Trust X-Forwarded headers from proxy
-        
+   
         # Database configuration
         - name: KC_DB
           value: postgres
