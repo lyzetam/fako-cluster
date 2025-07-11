@@ -9,3 +9,7 @@ patches:
     target:
       kind: Deployment
       name: ollama-gpu
+  - path: nodeport-patch.yaml
+    target:
+      kind: Service
+      name: ollama-nodeport
