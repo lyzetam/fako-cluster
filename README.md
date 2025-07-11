@@ -1,6 +1,6 @@
 # The Fako Cluster: A Production-Gradish HomeLab
 
-*How I built a production-grade Kubernetes homelab that bridges the gap between learning and real-world engineering*
+*How I built a production-gradish Kubernetes homelab that connects learning and real-world engineering*
 
 ## The Story Behind This Project
 
