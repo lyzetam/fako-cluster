@@ -4,6 +4,7 @@ namespace: ollama
 resources:
   - namespace.yaml
   - configmap.yaml
+  - gpu-configmap.yaml
   - storage.yaml
   - deployment-gpu.yaml
   - service-gpu.yaml

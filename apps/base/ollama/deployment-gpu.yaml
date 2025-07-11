@@ -14,6 +14,11 @@ spec:
       labels:
         app: ollama-gpu
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       # Target the new yeezyai node with dual GPUs
       nodeSelector:
         kubernetes.io/hostname: yeezyai
@@ -40,44 +45,8 @@ spec:
         envFrom:
         - configMapRef:
             name: ollama-configmap
-        env:
-        # Use RTX 5070 (GPU 0) for Ollama - more powerful for LLM inference
-        - name: CUDA_VISIBLE_DEVICES
-          value: "0"
-        - name: NVIDIA_VISIBLE_DEVICES
-          value: "0"
-        - name: NVIDIA_DRIVER_CAPABILITIES
-          value: "compute,utility"
-
-        # Force GPU usage
-        - name: OLLAMA_GPU_LAYERS
-          value: "999"  # Force all layers to GPU
-        - name: OLLAMA_CUDA_FORCE_MMQ
-          value: "1"
-        
-        # Disable flash attention - not supported
-        - name: OLLAMA_FLASH_ATTENTION
-          value: "0"  # Use "0" instead of "false" 
-
-        # GPU memory control
-        - name: OLLAMA_GPU_MEMORY
-          value: "12G"  # Leave 0.5GB for system on 12GB card
-        
-        # GPU-optimized settings for RTX 5070
-        - name: OLLAMA_NUM_PARALLEL
-          value: "2"  # More parallel requests with RTX 5070
-        - name: OLLAMA_NUM_THREAD
-          value: "8"  
-        - name: OLLAMA_MAX_LOADED_MODELS
-          value: "1"  # Can keep more models in GPU memory with RTX 5070
-        - name: GOMAXPROCS
-          value: "8"
-        
-        # Memory management
-        - name: OLLAMA_KEEP_ALIVE
-          value: "5m"
-        - name: OLLAMA_MODELS_UNLOAD_AFTER_IDLE
-          value: "300"  # 5 minutes in seconds
+        - configMapRef:
+            name: ollama-gpu-configmap
         
         volumeMounts:
         - mountPath: /root/.ollama
@@ -190,4 +159,3 @@ spec:
       - name: ollama-models
         persistentVolumeClaim:
           claimName: ollama-models
-
