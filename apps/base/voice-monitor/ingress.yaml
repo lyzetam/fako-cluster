@@ -16,3 +16,7 @@ spec:
                 name: voice-monitor
                 port:
                   number: 80
+  tls:
+  - hosts:
+    - voice-monitor.landryzetam.net
+    secretName: voice-monitor-tls

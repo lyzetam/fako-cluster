@@ -16,3 +16,7 @@ spec:
             name: oura-dashboard
             port:
               number: 8501
+  tls:
+  - hosts:
+    - oura-health.landryzetam.net
+    secretName: oura-dashboard-tls

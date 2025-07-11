@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whisper-gpu-configmap
+  namespace: whisper
+data:
+  # Model Configuration
+  MODEL: "tiny"
+  LANGUAGE: "en"
+  COMPUTE_TYPE: "float16"
+  BEAM_SIZE: "1"
+  
+  # GPU Configuration
+  NVIDIA_VISIBLE_DEVICES: "all"
+  NVIDIA_DRIVER_CAPABILITIES: "compute,utility"

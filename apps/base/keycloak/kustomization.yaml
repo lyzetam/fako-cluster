@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: keycloak
 resources:
   - namespace.yaml
+  - configmap.yaml
   - rbac.yaml
   - local-secret-store.yaml       
   - external-secret-aws.yaml
@@ -11,4 +12,4 @@ resources:
   - service.yaml
   - ingress.yaml
   - secret-store.yaml        
-  - external-secret-postgres.yaml  
+  - external-secret-postgres.yaml

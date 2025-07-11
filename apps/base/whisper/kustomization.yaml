@@ -5,6 +5,7 @@ namespace: whisper
 resources:
   - namespace.yaml
   - configmap.yaml
+  - gpu-configmap.yaml
   - health-check-configmap.yaml
   - storage.yaml
   - deployment-gpu.yaml
