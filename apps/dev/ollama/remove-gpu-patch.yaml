@@ -1,0 +1,6 @@
+- op: remove
+  path: /spec/template/spec/nodeSelector
+- op: remove
+  path: /spec/template/spec/tolerations
+- op: remove
+  path: /spec/template/spec/runtimeClassName
