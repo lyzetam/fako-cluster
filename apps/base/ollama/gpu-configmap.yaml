@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-gpu-configmap
+  namespace: ollama
+data:
+  # GPU Configuration
+  CUDA_VISIBLE_DEVICES: "0"
+  NVIDIA_VISIBLE_DEVICES: "0"
+  NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+  
+  # Ollama GPU Settings
+  OLLAMA_GPU_LAYERS: "999"  # Force all layers to GPU
+  OLLAMA_CUDA_FORCE_MMQ: "1"
+  OLLAMA_FLASH_ATTENTION: "0"  # Disabled - not supported
+  OLLAMA_GPU_MEMORY: "12G"  # Leave 0.5GB for system on 12GB card
+  
+  # Performance Settings
+  OLLAMA_NUM_PARALLEL: "2"  # More parallel requests with RTX 5070
+  OLLAMA_NUM_THREAD: "8"
+  OLLAMA_MAX_LOADED_MODELS: "1"  # Can keep more models in GPU memory with RTX 5070
+  GOMAXPROCS: "8"
+  
+  # Memory Management
+  OLLAMA_KEEP_ALIVE: "5m"
+  OLLAMA_MODELS_UNLOAD_AFTER_IDLE: "300"  # 5 minutes in seconds
