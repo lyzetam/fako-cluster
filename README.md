@@ -1,446 +1,244 @@
-# Fako Cluster - K3s HomeLab
+# The Fako Cluster: A Systems Engineer's Journey into Modern Infrastructure
 
-A production-grade Kubernetes homelab running on K3s, managed through GitOps with FluxCD. This cluster combines enterprise patterns with homelab flexibility, featuring GPU-accelerated AI/ML workloads, comprehensive monitoring, and automated operations.
+*How I built a production-grade Kubernetes homelab that bridges the gap between learning and real-world engineering*
 
-## Table of Contents
-- [Overview](#overview)
-- [Hardware Infrastructure](#hardware-infrastructure)
-- [Architecture](#architecture)
-- [Technology Stack](#technology-stack)
-- [Applications](#applications)
-- [Infrastructure Components](#infrastructure-components)
-- [Security & Secret Management](#security--secret-management)
-- [Monitoring & Observability](#monitoring--observability)
-- [Storage Architecture](#storage-architecture)
-- [Backup Strategy](#backup-strategy)
-- [Development Environment](#development-environment)
-- [Deployment Guide](#deployment-guide)
-- [Maintenance & Operations](#maintenance--operations)
+## The Story Behind This Project
 
-## Overview
+As a mechanical engineer turned systems engineer, I've always been fascinated by how things work under the hood. Just as I used to tear down engines to understand every component, I wanted to deconstruct modern cloud infrastructure and rebuild it from scratch. The Fako Cluster is that journey – a homelab that doesn't just run applications, but demonstrates how enterprise-grade systems are designed, secured, and operated.
 
-This cluster represents a sophisticated homelab implementation that bridges the gap between personal projects and production-grade infrastructure. It's designed with several key principles:
+This isn't your typical homelab with hardcoded configurations and manual deployments. It's a fully automated, GitOps-driven platform that showcases modern DevOps practices while running real workloads that improve my daily life.
 
-- **GitOps-First**: All changes are made through Git, with FluxCD ensuring the cluster state matches the repository
-- **Security by Design**: No sensitive data in Git, all secrets managed through AWS Secrets Manager
-- **Multi-Environment Support**: Separate dev and production environments with resource-appropriate configurations
-- **GPU Acceleration**: Dedicated GPU node for AI/ML workloads with proper scheduling and resource management
-- **Comprehensive Monitoring**: Full observability stack with Prometheus, Loki, and Grafana
-- **Automated Operations**: Self-updating dependencies, automated backups, and security scanning
+## What Makes This Special?
 
-## Hardware Infrastructure
+### 🎯 Real Problems, Real Solutions
 
-The cluster runs on a heterogeneous mix of hardware, optimized for different workload types:
+Every application in this cluster solves an actual need:
+- **Health Tracking**: Automated collection and visualization of my Oura ring data
+- **AI Assistant**: Local LLM inference for privacy-conscious AI interactions
+- **Voice Pipeline**: Complete voice assistant system that respects my privacy
+- **Knowledge Management**: Self-hosted bookmarks and audiobook server
+- **Fitness Tracking**: Comprehensive workout and nutrition management
 
-| Node | Role | CPU | Memory | Storage | GPU | Purpose |
-|------|------|-----|---------|---------|-----|---------|
-| **yeezyai** | GPU Worker | 24 cores | 32GB | 957GB | 2x NVIDIA | AI/ML workloads, LLM inference |
-| **zz-macbookpro** | Control Plane | 12 cores | 16GB | 479GB | - | Cluster management, lightweight apps |
-| **thinkpad01** | Worker | 8 cores | 16GB | 102GB | - | General workloads |
-| **pgmac01** | Worker | 4 cores | 8GB | 102GB | - | Distributed services |
-| **pgmac02** | Worker | 4 cores | 8GB | 102GB | - | Distributed services |
-| **pglenovo01** | Worker | 4 cores | 8GB | 100GB | - | Distributed services |
-| **pglenovo02** | Worker | 4 cores | 8GB | 119GB | - | Distributed services |
+### 🔧 Engineering Philosophy in Action
 
-**External Storage**: Synology NAS providing NFS shares for persistent storage
+This project embodies several core principles I believe in:
 
-## Architecture
+1. **Everything as Code**: No clicking through UIs. Every configuration, every deployment, every secret reference – it's all in Git. This isn't just about automation; it's about reproducibility and understanding.
 
-### GitOps Flow
+2. **Security Without Compromise**: I store zero secrets in Git. Instead, I built a zero-trust architecture using AWS Secrets Manager and External Secrets Operator. Even the NFS server IPs are dynamically fetched from secrets!
+
+3. **Observable by Design**: You can't improve what you can't measure. Full Prometheus/Loki/Grafana stack with custom dashboards for everything from GPU temperatures to backup success rates.
+
+4. **Failure is a Feature**: The system assumes things will break. Automated backups, high availability deployments, and self-healing configurations ensure resilience.
+
+## The Technical Architecture
+
+### Infrastructure That Scales Down
+
+One of the unique challenges was making enterprise patterns work on consumer hardware. Here's how I approached it:
+
 ```
-GitHub Repository (fako-cluster)
-         ↓
-    Flux Source Controller
-         ↓
-    Kustomize Controller
-         ↓
-    Helm Controller
-         ↓
-Kubernetes Resources (Apps, Config, Secrets)
+7 Nodes, 1 Vision:
+├── yeezyai (GPU Node)     → 24 cores, 32GB RAM, 2x NVIDIA GPUs
+├── zz-macbookpro (Master) → 12 cores, 16GB RAM (my daily driver!)
+└── 5 Worker Nodes         → Various specs, distributed across the house
 ```
 
-### Repository Structure
-```
-fako-cluster/
-├── apps/                    # Application deployments
-│   ├── base/               # Base configurations (environment-agnostic)
-│   ├── dev/                # Development overlays
-│   └── staging/            # Production overlays
-├── clusters/               # Cluster bootstrapping
-│   ├── dev/                # Dev cluster configuration
-│   └── staging/            # Production cluster configuration
-├── infrastructure/         # Platform components
-│   ├── configs/            # Infrastructure configuration
-│   └── controllers/        # Operators and controllers
-└── monitoring/             # Observability stack
-    ├── configs/            # Monitoring configuration
-    └── controllers/        # Monitoring operators
+### The GitOps Revolution
+
+Traditional homelab: SSH in, run commands, hope it works.
+My approach: 
+
+```yaml
+Git Push → Flux Detects → Kustomize Builds → Kubernetes Applies → Monitoring Alerts
 ```
 
-## Technology Stack
+Every change is tracked, reviewed, and automatically deployed. It's not just automation – it's a complete audit trail of how the infrastructure evolved.
 
-### Core Platform
-- **Kubernetes Distribution**: K3s (lightweight, perfect for edge/homelab)
-- **GitOps**: FluxCD v2 (source, kustomize, helm, notification controllers)
-- **Service Mesh**: Traefik (built into K3s)
-- **Container Runtime**: containerd with NVIDIA runtime support
+### Dynamic Storage Without the Pain
 
-### Infrastructure Components
-- **Secret Management**: External Secrets Operator + AWS Secrets Manager
-- **Certificate Management**: cert-manager (for internal TLS)
-- **Storage**: NFS CSI Driver + Dynamic Provisioning
-- **Database**: CloudNative-PG (PostgreSQL operator)
-- **GPU Support**: NVIDIA GPU Operator
+Here's a problem every homelab faces: hardcoded NFS server IPs. When your NAS changes IPs, you're updating dozens of files. My solution? A Kubernetes job that:
 
-### Observability
-- **Metrics**: Prometheus + Grafana
-- **Logs**: Loki + Promtail/Alloy
-- **Traces**: OpenTelemetry (via Alloy)
-- **Dashboards**: Grafana with custom dashboards
+1. Fetches NFS configuration from AWS Secrets Manager
+2. Dynamically creates StorageClasses
+3. Deletes itself when done
 
-## Applications
+Zero hardcoded IPs. Pure GitOps.
 
-### AI/ML Stack
+## The Application Ecosystem
 
-#### Ollama
-- **Purpose**: Large Language Model inference server
-- **Deployment**: GPU-accelerated on dedicated node
-- **Models**: Multiple models including Llama, Mistral, Gemma variants
-- **Access**: Internal API on port 11434, NodePort 31434
-- **Storage**: 200GB for model storage
-- **Features**: 
-  - Automatic model management
-  - GPU memory optimization
-  - Multi-model support
+### 🤖 AI/ML Stack: Privacy-First Intelligence
 
-#### Ollama WebUI
-- **Purpose**: Chat interface for LLMs
-- **Backend**: Integrates with GPUStack for additional models
-- **Features**: 
-  - Multi-model chat interface
-  - Conversation history
-  - Model switching
-- **Access**: https://ai.yourdomain.com
+Running LLMs locally isn't just about avoiding API costs – it's about data sovereignty:
 
-#### Voice Assistant Pipeline
-A complete voice assistant system using Wyoming protocol:
+- **Ollama**: GPU-accelerated inference server running models like Llama 3 and Mistral
+- **Custom WebUI**: Beautiful interface that connects to both local and cloud models
+- **Voice Pipeline**: Whisper → LLM → Piper for completely offline voice interactions
 
-- **Whisper** (Speech-to-Text)
-  - GPU-accelerated transcription
-  - Multiple model sizes (tiny for speed, base for accuracy)
-  - Wyoming protocol on port 10300
-  
-- **Piper** (Text-to-Speech)
-  - High-quality neural TTS
-  - Multiple voice options
-  - Auto-scaling based on load
-  - Wyoming protocol on port 10200
-  
-- **OpenWakeWord**
-  - Wake word detection (Alexa, Hey Jarvis, etc.)
-  - Low-latency activation
-  - Wyoming protocol on port 10400
+### 🏥 Health & Fitness: Data-Driven Wellness
 
-### Web Applications
+The Oura integration showcases full-stack development:
+- **Collector Service**: Smart backfill logic that only fetches new data
+- **PostgreSQL Storage**: Time-series optimized schema
+- **Streamlit Dashboard**: Real-time visualization of sleep, activity, and readiness
 
-#### Audiobookshelf
-- **Purpose**: Audiobook and podcast server
-- **Features**: 
-  - Web-based player
-  - Progress syncing
-  - Multiple user support
-  - Mobile app support
-- **Storage**: Separate volumes for config, metadata, and media
+[Check out the application code here →](https://github.com/lyzetam/fakocluster-apps)
 
-#### Linkding
-- **Purpose**: Bookmark manager
-- **Features**: 
-  - Tag-based organization
-  - Full-text search
-  - Import/export
-  - REST API
-- **Access**: Via Cloudflare tunnel
+### 🔐 Security: Enterprise Patterns at Home
 
-#### PGAdmin
-- **Purpose**: PostgreSQL management
-- **Features**: 
-  - Multi-server support
-  - Query tool
-  - Backup/restore
-- **Integration**: Auto-configured for cluster databases
+- **Keycloak**: Full OIDC provider with HA deployment
+- **OAuth2 Proxy**: Every app protected by SSO
+- **Gitleaks**: Automated secret scanning with remediation
+- **Network Policies**: Zero-trust networking between pods
 
-### Identity & Access Management
+## The Monitoring Story
 
-#### Keycloak
-- **Purpose**: Enterprise-grade identity provider
-- **Version**: 26.x
-- **Features**: 
-  - OIDC/SAML support
-  - User federation
-  - Multi-realm support
-  - HA deployment (2 replicas)
-- **Integration**: SSO for all cluster applications
+### Beyond Basic Metrics
 
-### Health & Fitness
+Most homelabs have Grafana. Mine has:
 
-#### Oura Ring Integration
-- **Collector**: Automated data collection from Oura API
-- **Dashboard**: Custom Streamlit dashboard for data visualization
-- **Features**: 
-  - Sleep analysis
-  - Activity tracking
-  - Readiness scores
-  - Historical trends
-- **Storage**: PostgreSQL with time-series optimization
+- **Custom Dashboards**: GPU utilization, voice pipeline latency, backup status
+- **Distributed Tracing**: OpenTelemetry integration for request flow analysis
+- **Log Aggregation**: Every log searchable, correlated with metrics
+- **Proactive Alerts**: Know about issues before they impact services
 
-#### Wger
-- **Purpose**: Workout and nutrition manager
-- **Features**: 
-  - Exercise database
-  - Workout planning
-  - Progress tracking
-  - REST API
-- **Components**: Web app, Redis cache, Celery workers
+### The 3 AM Test
 
-### Security & Maintenance
+Can I diagnose and fix issues at 3 AM when I'm half asleep? The monitoring stack ensures:
+- Clear error messages in logs
+- Runbook links in alerts
+- One-click rollback via Flux
+- Automated recovery where possible
 
-#### Gitleaks
-- **Purpose**: Secret scanning and prevention
-- **Features**: 
-  - Scheduled repository scanning
-  - Git history cleaning with BFG
-  - Automated remediation
-  - Slack notifications
-- **Schedule**: Every 6 hours
+## Development Workflow: From Idea to Production
 
-#### Renovate
-- **Purpose**: Automated dependency updates
-- **Features**: 
-  - Helm chart updates
-  - Container image updates
-  - Kubernetes manifest updates
-  - Grouped updates by type
-- **Schedule**: Hourly checks
+### The Two-Environment Strategy
 
-## Infrastructure Components
-
-### External Secrets Operator
-Manages all sensitive data through AWS Secrets Manager:
-- Database credentials
-- API keys
-- OAuth secrets
-- Internal service endpoints
-
-**Pattern**: Each namespace has its own SecretStore with scoped AWS IAM permissions
-
-### CloudNative-PG
-Production-grade PostgreSQL:
-- 3-node HA cluster
-- Automated backups
-- Point-in-time recovery
-- Connection pooling
-- Monitoring integration
-
-### NFS Storage
-Dynamic storage provisioning without hardcoded IPs:
-- **StorageClasses**: 
-  - `nfs-csi-v2`: General purpose
-  - `nfs-postgres-v2`: Database optimized
-  - `nfs-backup`: Backup storage
-- **Implementation**: Dynamic job creates StorageClasses from AWS Secrets
-
-### GPU Operator
-NVIDIA GPU support:
-- Automatic driver validation
-- Device plugin for scheduling
-- DCGM metrics exporter
-- Container runtime configuration
-- MIG support (if available)
-
-## Security & Secret Management
-
-### Zero-Trust Secrets
-No sensitive data in Git repository:
-
-1. **AWS Secrets Manager**: Central secret storage
-2. **External Secrets Operator**: Syncs secrets to Kubernetes
-3. **SOPS Encryption**: AWS credentials encrypted in Git
-4. **Dynamic Configuration**: IPs and endpoints from secrets
-
-### Network Security
-- **Ingress**: Traefik with automatic TLS
-- **External Access**: Cloudflare tunnels for select services
-- **Internal**: Network policies for pod-to-pod communication
-- **Authentication**: OAuth2 proxy with Keycloak
-
-### RBAC
-- Minimal privilege principle
-- Service accounts for all workloads
-- Namespace isolation
-- Audit logging enabled
-
-## Monitoring & Observability
-
-### Metrics Stack
-- **Prometheus**: 30-day retention, 50GB storage
-- **Grafana**: Custom dashboards for all services
-- **Exporters**: Node, GPU, PostgreSQL, custom app metrics
-- **Alerts**: Critical infrastructure and application alerts
-
-### Logging Stack
-- **Loki**: Distributed mode, 31-day retention
-- **Alloy**: Modern telemetry collector
-- **Sources**: Container logs, system logs, application logs
-- **Features**: LogQL queries, Grafana integration
-
-### Custom Monitoring
-- **Voice Pipeline Monitor**: Real-time status dashboard
-- **GPU Metrics**: Utilization, memory, temperature, power
-- **Backup Status**: Job success/failure tracking
-
-## Storage Architecture
-
-### Dynamic NFS Configuration
-Revolutionary approach to storage configuration:
-- No hardcoded IPs in any configuration
-- NFS server details stored in AWS Secrets Manager
-- Kubernetes Job dynamically creates StorageClasses
-- Complete GitOps compatibility
-
-### Storage Tiers
-1. **Performance** (SSD-backed NFS)
-   - Database storage
-   - Application state
-   
-2. **Capacity** (HDD-backed NFS)
-   - Media files
-   - Model storage
-   - Backups
-
-3. **Local** (Node storage)
-   - Temporary data
-   - Cache
-
-## Backup Strategy
-
-### Automated Backups
-Three-tier backup approach:
-
-1. **Daily Backups** (2 AM)
-   - All Kubernetes resources
-   - Application configurations
-   - 30-day retention
-
-2. **ETCD Backups** (2:30 AM)
-   - Cluster state snapshots
-   - Disaster recovery capability
-
-3. **Weekly Full Backups** (Sundays 3 AM)
-   - Complete cluster state
-   - Persistent volume data
-   - Extended retention
-
-### Backup Storage
 ```
-/backups/
-├── daily/
-│   └── YYYYMMDD-HHMMSS/
-├── weekly/
-│   └── YYYYMMDD-HHMMSS/
-└── etcd/
-    └── YYYYMMDD-HHMMSS/
+main branch → Production (GPU-enabled, full resources)
+dev branch  → Development (CPU-only, resource-constrained)
 ```
 
-## Development Environment
+This isn't just about saving resources – it's about proving the applications work everywhere. If it runs in dev, it'll run in production.
 
-### CPU-Only Development
-Complete stack without GPU requirements:
-- **Ollama**: CPU mode with small models (tinyllama, phi3)
-- **Whisper**: INT8 optimized for CPU
-- **Same Architecture**: Identical service structure as production
+### Continuous Everything
 
-### Benefits
-- Local development without expensive hardware
-- Full integration testing
-- Reduced resource consumption
-- Faster iteration cycles
+- **Continuous Deployment**: Git push triggers automatic rollout
+- **Continuous Monitoring**: Every deployment tracked in Grafana
+- **Continuous Updates**: Renovate bot keeps dependencies fresh
+- **Continuous Learning**: Every failure documented and fixed in code
 
-## Deployment Guide
+## Lessons Learned: The Hard-Won Wisdom
 
-### Prerequisites
-- K3s cluster (3+ nodes recommended)
-- NFS server
-- AWS account for Secrets Manager
-- GitHub account
-- Domain name (optional)
+### What Worked Brilliantly
 
-### Quick Start
+1. **External Secrets Operator**: Game-changer for secret management
+2. **Flux's Kustomization Controller**: Perfect balance of flexibility and structure
+3. **CloudNative-PG**: Production-grade PostgreSQL that "just works"
+4. **GPU Operator**: Simplified what could have been driver hell
+
+### What I'd Do Differently
+
+1. Start with observability from day one (added it later, wished I hadn't)
+2. Use Flux's multi-tenancy features earlier
+3. Implement network policies from the start
+4. Document as I go (hence this README!)
+
+## The Human Side of Engineering
+
+### Why This Matters
+
+This cluster isn't just about running services – it's about understanding the entire stack. When I deploy an application, I know:
+- How the container runtime works
+- How service discovery happens
+- How storage is provisioned
+- How secrets are managed
+- How traffic flows through the system
+
+### The Learning Never Stops
+
+Every week brings new challenges:
+- Optimizing GPU memory for larger models
+- Reducing cold starts for serverless-style workloads
+- Improving backup strategies
+- Enhancing security postures
+
+## Getting Started: Your Own Journey
+
+### Prerequisites (The Honest Version)
+
+- **Hardware**: At least 3 nodes (VMs work too!)
+- **Patience**: This isn't a weekend project
+- **Curiosity**: You'll learn Kubernetes, GitOps, and about 20 other technologies
+- **Coffee**: Lots of it
+
+### Quick Start for the Brave
+
 ```bash
-# 1. Fork and clone
+# Fork this repo and the apps repo
 git clone https://github.com/yourusername/fako-cluster
-cd fako-cluster
+git clone https://github.com/yourusername/fakocluster-apps
 
-# 2. Create age key for SOPS
+# Set up age encryption for secrets
 age-keygen -o age.agekey
 
-# 3. Configure AWS credentials
-export AWS_ACCESS_KEY_ID="your-key"
-export AWS_SECRET_ACCESS_KEY="your-secret"
-
-# 4. Bootstrap Flux
+# Bootstrap Flux (this is where the magic begins)
 flux bootstrap github \
   --owner=yourusername \
   --repository=fako-cluster \
   --branch=main \
   --path=clusters/staging
 
-# 5. Create required secrets in AWS
-# See individual app documentation
+# Watch your cluster come alive
+watch flux get all -A
 ```
 
-## Maintenance & Operations
+## The Future: What's Next?
 
-### Daily Tasks
-- Monitor cluster health via Grafana
-- Review Renovate PRs
-- Check backup status
+### Immediate Roadmap
 
-### Common Operations
-```bash
-# Check cluster status
-flux get all -A
+- **Service Mesh**: Exploring Linkerd for advanced traffic management
+- **Backup to S3**: Extending backups beyond local NFS
+- **Multi-Cluster**: Federation across multiple physical locations
+- **Edge ML**: Deploying models to edge devices
 
-# Force reconciliation
-flux reconcile source git flux-system
+### The Bigger Picture
 
-# View logs
-flux logs --follow
+This cluster is a living laboratory. It's where I test ideas before implementing them in production environments. It's where I learn new technologies in a safe space. Most importantly, it's where I can push boundaries without worrying about breaking someone else's infrastructure.
 
-# Check GPU status
-kubectl exec -n gpu-operator -it $(kubectl get pods -n gpu-operator -l app=nvidia-device-plugin-daemonset -o jsonpath='{.items[0].metadata.name}') -- nvidia-smi
-```
+## Connect and Contribute
 
-### Troubleshooting
-1. **Application Issues**: Check Flux events and pod logs
-2. **Storage Issues**: Verify NFS connectivity test job
-3. **GPU Issues**: Check GPU operator and device plugin logs
-4. **Secret Issues**: Verify External Secrets Operator status
+### Found a Bug? Have an Idea?
 
-## Philosophy
+This project thrives on collaboration. Whether you're fixing a typo or proposing a new architecture pattern, contributions are welcome.
 
-This cluster embodies several key principles:
+### The Code Behind the Magic
 
-1. **Everything as Code**: No manual changes, everything through Git
-2. **Security First**: No secrets in Git, defense in depth
-3. **Observability**: If you can't measure it, you can't improve it
-4. **Automation**: Humans shouldn't do what machines can do better
-5. **Learning Platform**: Every component is an opportunity to learn
+- **Infrastructure**: You're looking at it!
+- **Applications**: [github.com/lyzetam/fakocluster-apps](https://github.com/lyzetam/fakocluster-apps)
 
-## About
+### Let's Talk Shop
 
-**Created by**: Landry  
-*"A mechanical engineer by training, I enjoy tearing things down and rebuilding them. This cluster is my digital workshop - a place to understand how modern infrastructure works and how it can be improved."*
+I love discussing infrastructure, sharing war stories, and learning from others' experiences. If you're building something similar or have questions about any component, reach out!
 
 ---
 
-This cluster demonstrates that homelab infrastructure can be both a learning platform and production-grade system. It's proof that with the right patterns and tools, you can run enterprise-level infrastructure on consumer hardware.
+## Final Thoughts
+
+Building this cluster taught me more about modern infrastructure than any course or certification could. It forced me to understand not just the "how" but the "why" behind every architectural decision.
+
+To future employers: This is how I approach systems engineering. I don't just deploy applications – I build platforms. I don't just solve today's problems – I architect for tomorrow's challenges. And I document everything because the best code is the code that others can understand and improve.
+
+To fellow engineers: Your homelab doesn't have to be perfect. Start small, fail fast, and iterate. The journey is more valuable than the destination.
+
+*"In the end, we are all apprentices in a craft where no one ever becomes a master."* – Ernest Hemingway
+
+That's the beauty of systems engineering – there's always more to learn, always ways to improve, and always new problems to solve.
+
+**Happy clustering!** 🚀
+
+---
+
+*Built with ❤️ and probably too much ☕ by Landry*
+
+*Last updated: July 2025 | Running in production since: Forever in homelab years*
