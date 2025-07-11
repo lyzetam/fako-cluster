@@ -15,9 +15,6 @@ spec:
         app: ollama-gpu
     spec:
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
         fsGroup: 1000
       # Target the new yeezyai node with dual GPUs
       nodeSelector:
