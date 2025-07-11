@@ -8,6 +8,19 @@ As a mechanical engineer turned systems engineer, I've always been fascinated by
 
 This isn't your typical homelab with hardcoded configurations and manual deployments. It's a fully automated, GitOps-driven platform that showcases modern DevOps practices while running real workloads that improve my daily life.
 
+## Table of Contents
+- [What Makes This Special](#what-makes-this-special)
+- [Complete Stack Overview](#complete-stack-overview)
+- [Hardware Infrastructure](#hardware-infrastructure)
+- [Repository Structure](#repository-structure)
+- [The Application Ecosystem](#the-application-ecosystem)
+- [Infrastructure Components](#infrastructure-components)
+- [Security & Secret Management](#security--secret-management)
+- [Monitoring & Observability](#monitoring--observability)
+- [Development Workflow](#development-workflow)
+- [Getting Started](#getting-started)
+- [Lessons Learned](#lessons-learned)
+
 ## What Makes This Special?
 
 ### 🎯 Real Problems, Real Solutions
@@ -31,47 +44,125 @@ This project embodies several core principles I believe in:
 
 4. **Failure is a Feature**: The system assumes things will break. Automated backups, high availability deployments, and self-healing configurations ensure resilience.
 
-## The Technical Architecture
+## Complete Stack Overview
 
-### Infrastructure That Scales Down
+### 📊 Technology Stack by Category
 
-One of the unique challenges was making enterprise patterns work on consumer hardware. Here's how I approached it:
+| Category | Component | Purpose | Key Features |
+|----------|-----------|---------|--------------|
+| **Core Platform** | | | |
+| | K3s | Lightweight Kubernetes | Production-grade, edge-optimized |
+| | FluxCD | GitOps operator | Automated deployments, drift detection |
+| | Traefik | Ingress controller | Built-in K3s, automatic TLS |
+| | containerd | Container runtime | NVIDIA GPU support |
+| **AI/ML Stack** | | | |
+| | Ollama | LLM inference server | GPU-accelerated, multi-model support |
+| | OpenWebUI | Chat interface | GPUStack backend, family access |
+| | Whisper | Speech-to-text | GPU-accelerated, Wyoming protocol |
+| | Piper | Text-to-speech | Neural TTS, multiple voices |
+| | OpenWakeWord | Wake word detection | "Hey Jarvis", "Alexa" support |
+| **Data & Analytics** | | | |
+| | CloudNative-PG | PostgreSQL operator | 3-node HA, automated backups |
+| | Oura Collector | Health data ETL | Smart backfill, API integration |
+| | Oura Dashboard | Data visualization | Streamlit, real-time updates |
+| | Wger | Fitness tracking | Workouts, nutrition, progress |
+| **Identity & Security** | | | |
+| | Keycloak | Identity provider | OIDC/SAML, multi-realm |
+| | OAuth2 Proxy | SSO gateway | Protects all applications |
+| | External Secrets | Secret management | AWS Secrets Manager integration |
+| | Gitleaks | Secret scanning | Automated remediation |
+| **Storage & Backup** | | | |
+| | NFS CSI Driver | Dynamic storage | No hardcoded IPs |
+| | Velero | Backup solution | Scheduled backups, disaster recovery |
+| | CloudNative-PG | Database backups | Point-in-time recovery |
+| **Monitoring** | | | |
+| | Prometheus | Metrics collection | 30-day retention, HA setup |
+| | Loki | Log aggregation | Distributed mode, 31-day retention |
+| | Grafana | Visualization | Custom dashboards, alerting |
+| | Alloy | Telemetry collector | OpenTelemetry support |
+| **Web Applications** | | | |
+| | Audiobookshelf | Media server | Audiobooks, podcasts, progress sync |
+| | Linkding | Bookmark manager | Tags, search, API |
+| | PGAdmin | Database UI | Multi-server, query tools |
+| | Home Assistant | Smart home | Raspberry Pi, voice control |
+| **Development Tools** | | | |
+| | Renovate | Dependency updates | Automated PRs, grouped updates |
+| | Node Labeling | Cluster management | Automatic node configuration |
 
-```
-7 Nodes, 1 Vision:
-├── yeezyai (GPU Node)     → 24 cores, 32GB RAM, 2x NVIDIA GPUs (~$800)
-├── zz-macbookpro (Master) → 12 cores, 16GB RAM (my daily driver!)
-├── thinkpad01 (Worker)    → 8 cores, 16GB RAM, 102GB storage (~$80)
-├── pgmac01 (Worker)       → 4 cores, 8GB RAM, 102GB storage (~$80)
-├── pgmac02 (Worker)       → 4 cores, 8GB RAM, 102GB storage (~$80)
-├── pglenovo01 (Worker)    → 4 cores, 8GB RAM, 100GB storage (~$80)
-└── pglenovo02 (Worker)    → 4 cores, 8GB RAM, 119GB storage (~$80)
+## Hardware Infrastructure
 
-Total Investment: ~$1,200 (mostly refurbished hardware!)
-```
+### 🖥️ Detailed Node Specifications
+
+One of the unique challenges was making enterprise patterns work on consumer hardware. Here's the complete infrastructure:
+
+| Node | Role | CPU | Memory | Storage | GPU | Network | Cost |
+|------|------|-----|---------|---------|-----|---------|------|
+| **yeezyai** | GPU Worker | AMD Ryzen 9 3900X (24 cores @ 3.8GHz) | 32GB DDR4 | 957GB NVMe | 2x NVIDIA RTX 3060 | 1Gbps | ~$800 |
+| **zz-macbookpro** | Control Plane | Apple M1 Pro (12 cores) | 16GB | 479GB SSD | - | WiFi 6 | Daily driver |
+| **thinkpad01** | Worker | Intel i5-8250U (8 cores @ 1.6GHz) | 16GB DDR4 | 102GB SSD | - | 1Gbps | ~$80 |
+| **pgmac01** | Worker | Intel Core i5 (4 cores @ 2.4GHz) | 8GB DDR3 | 102GB SSD | - | 1Gbps | ~$80 |
+| **pgmac02** | Worker | Intel Core i5 (4 cores @ 2.4GHz) | 8GB DDR3 | 102GB SSD | - | 1Gbps | ~$80 |
+| **pglenovo01** | Worker | Intel i5-6200U (4 cores @ 2.3GHz) | 8GB DDR4 | 100GB SSD | - | 1Gbps | ~$80 |
+| **pglenovo02** | Worker | Intel i5-6200U (4 cores @ 2.3GHz) | 8GB DDR4 | 119GB SSD | - | 1Gbps | ~$80 |
+
+**External Infrastructure:**
+- **Synology NAS**: 12TB (4x3TB RAID5) for persistent storage
+- **Raspberry Pi 4**: Home Assistant server (4GB RAM)
+- **Network**: UniFi Dream Machine, managed switches
+
+**Total Investment**: ~$1,200 (mostly refurbished hardware!)
 
 The beauty? Each $80 node contributes to a distributed system that rivals cloud infrastructure costing thousands per month.
 
-### The GitOps Revolution
+## Repository Structure
 
-Traditional homelab: SSH in, run commands, hope it works.
-My approach: 
+### 📁 GitOps Organization
 
-```yaml
-Git Push → Flux Detects → Kustomize Builds → Kubernetes Applies → Monitoring Alerts
+```
+fako-cluster/
+├── apps/                    # Application deployments
+│   ├── base/               # Base configurations (environment-agnostic)
+│   │   ├── audiobookshelf/ # Each app has its own directory
+│   │   ├── keycloak/       # with Kubernetes manifests
+│   │   ├── ollama/         # ConfigMaps, Deployments, Services
+│   │   └── ...             # Ingress, Storage, Secrets
+│   ├── dev/                # Development overlays
+│   │   └── kustomization.yaml # Patches for dev environment
+│   └── staging/            # Production overlays
+│       └── kustomization.yaml # Patches for production
+│
+├── clusters/               # Cluster bootstrapping
+│   ├── dev/                # Dev cluster configuration
+│   │   ├── apps.yaml       # Apps kustomization
+│   │   ├── infrastructure.yaml # Infrastructure kustomization
+│   │   └── monitoring.yaml # Monitoring kustomization
+│   └── staging/            # Production cluster configuration
+│       └── flux-system/    # Flux components
+│
+├── infrastructure/         # Platform components
+│   ├── configs/            # Infrastructure configuration
+│   │   ├── base/           # Shared configs
+│   │   ├── dev/            # Dev-specific configs
+│   │   └── staging/        # Prod-specific configs
+│   └── controllers/        # Operators and controllers
+│       ├── base/           # External Secrets, CSI drivers
+│       ├── dev/            # Dev overrides
+│       └── staging/        # Prod overrides
+│
+└── monitoring/             # Observability stack
+    ├── configs/            # Dashboards, alerts
+    └── controllers/        # Prometheus, Loki, Grafana
 ```
 
-Every change is tracked, reviewed, and automatically deployed. It's not just automation – it's a complete audit trail of how the infrastructure evolved.
+### GitOps Flow
 
-### Dynamic Storage Without the Pain
-
-Here's a problem every homelab faces: hardcoded NFS server IPs. When your NAS changes IPs, you're updating dozens of files. My solution? A Kubernetes job that:
-
-1. Fetches NFS configuration from AWS Secrets Manager
-2. Dynamically creates StorageClasses
-3. Deletes itself when done
-
-Zero hardcoded IPs. Pure GitOps.
+```
+GitHub Repository → Flux Source Controller → Kustomize Controller → Kubernetes API
+                                         ↓
+                                    Helm Controller
+                                         ↓
+                                 Deployed Resources
+```
 
 ## The Application Ecosystem
 
@@ -125,7 +216,55 @@ The Oura integration showcases full-stack development:
 - **Gitleaks**: Automated secret scanning with remediation
 - **Network Policies**: Zero-trust networking between pods
 
-## The Monitoring Story
+## Infrastructure Components
+
+### Dynamic Storage Without the Pain
+
+Here's a problem every homelab faces: hardcoded NFS server IPs. When your NAS changes IPs, you're updating dozens of files. My solution? A Kubernetes job that:
+
+1. Fetches NFS configuration from AWS Secrets Manager
+2. Dynamically creates StorageClasses
+3. Deletes itself when done
+
+Zero hardcoded IPs. Pure GitOps.
+
+### External Secrets Operator
+
+Manages all sensitive data through AWS Secrets Manager:
+- Database credentials
+- API keys
+- OAuth secrets
+- Internal service endpoints
+
+**Pattern**: Each namespace has its own SecretStore with scoped AWS IAM permissions
+
+### CloudNative-PG
+
+Production-grade PostgreSQL:
+- 3-node HA cluster
+- Automated backups to NFS
+- Point-in-time recovery
+- Connection pooling with PgBouncer
+- Monitoring integration
+
+## Security & Secret Management
+
+### Zero-Trust Secrets
+
+No sensitive data in Git repository:
+
+1. **AWS Secrets Manager**: Central secret storage
+2. **External Secrets Operator**: Syncs secrets to Kubernetes
+3. **SOPS Encryption**: AWS credentials encrypted in Git
+4. **Dynamic Configuration**: IPs and endpoints from secrets
+
+### Network Security
+- **Ingress**: Traefik with automatic TLS
+- **External Access**: Cloudflare tunnels for select services
+- **Internal**: Network policies for pod-to-pod communication
+- **Authentication**: OAuth2 proxy with Keycloak
+
+## Monitoring & Observability
 
 ### Beyond Basic Metrics
 
@@ -144,7 +283,7 @@ Can I diagnose and fix issues at 3 AM when I'm half asleep? The monitoring stack
 - One-click rollback via Flux
 - Automated recovery where possible
 
-## Development Workflow: From Idea to Production
+## Development Workflow
 
 ### The Two-Environment Strategy
 
@@ -155,6 +294,13 @@ dev branch  → Development (CPU-only, resource-constrained)
 
 This isn't just about saving resources – it's about proving the applications work everywhere. If it runs in dev, it'll run in production.
 
+### CPU-Only Development
+
+Complete stack without GPU requirements:
+- **Ollama**: CPU mode with small models (tinyllama, phi3)
+- **Whisper**: INT8 optimized for CPU
+- **Same Architecture**: Identical service structure as production
+
 ### Continuous Everything
 
 - **Continuous Deployment**: Git push triggers automatic rollout
@@ -162,42 +308,7 @@ This isn't just about saving resources – it's about proving the applications w
 - **Continuous Updates**: Renovate bot keeps dependencies fresh
 - **Continuous Learning**: Every failure documented and fixed in code
 
-## Lessons Learned: The Hard-Won Wisdom
-
-### What Worked Brilliantly
-
-1. **External Secrets Operator**: Game-changer for secret management
-2. **Flux's Kustomization Controller**: Perfect balance of flexibility and structure
-3. **CloudNative-PG**: Production-grade PostgreSQL that "just works"
-4. **GPU Operator**: Simplified what could have been driver hell
-
-### What I'd Do Differently
-
-1. Start with observability from day one (added it later, wished I hadn't)
-2. Use Flux's multi-tenancy features earlier
-3. Implement network policies from the start
-4. Document as I go (hence this README!)
-
-## The Human Side of Engineering
-
-### Why This Matters
-
-This cluster isn't just about running services – it's about understanding the entire stack. When I deploy an application, I know:
-- How the container runtime works
-- How service discovery happens
-- How storage is provisioned
-- How secrets are managed
-- How traffic flows through the system
-
-### The Learning Never Stops
-
-Every week brings new challenges:
-- Optimizing GPU memory for larger models
-- Reducing cold starts for serverless-style workloads
-- Improving backup strategies
-- Enhancing security postures
-
-## Getting Started: Your Own Journey
+## Getting Started
 
 ### Prerequisites (The Honest Version)
 
@@ -216,6 +327,10 @@ git clone https://github.com/yourusername/fakocluster-apps
 # Set up age encryption for secrets
 age-keygen -o age.agekey
 
+# Configure AWS credentials
+export AWS_ACCESS_KEY_ID="your-key"
+export AWS_SECRET_ACCESS_KEY="your-secret"
+
 # Bootstrap Flux (this is where the magic begins)
 flux bootstrap github \
   --owner=yourusername \
@@ -227,7 +342,53 @@ flux bootstrap github \
 watch flux get all -A
 ```
 
-## The Future: What's Next?
+### Common Operations
+
+```bash
+# Check cluster status
+flux get all -A
+
+# Force reconciliation
+flux reconcile source git flux-system
+
+# View logs
+flux logs --follow
+
+# Check GPU status
+kubectl exec -n gpu-operator -it $(kubectl get pods -n gpu-operator -l app=nvidia-device-plugin-daemonset -o jsonpath='{.items[0].metadata.name}') -- nvidia-smi
+
+# Monitor backups
+kubectl get backups -A
+```
+
+## Lessons Learned
+
+### What Worked Brilliantly
+
+1. **External Secrets Operator**: Game-changer for secret management
+2. **Flux's Kustomization Controller**: Perfect balance of flexibility and structure
+3. **CloudNative-PG**: Production-grade PostgreSQL that "just works"
+4. **GPU Operator**: Simplified what could have been driver hell
+5. **Dynamic NFS Configuration**: No more hardcoded IPs!
+
+### What I'd Do Differently
+
+1. Start with observability from day one (added it later, wished I hadn't)
+2. Use Flux's multi-tenancy features earlier
+3. Implement network policies from the start
+4. Document as I go (hence this README!)
+5. Set up automated testing for manifests
+
+### The Human Side of Engineering
+
+This cluster isn't just about running services – it's about understanding the entire stack. When I deploy an application, I know:
+- How the container runtime works
+- How service discovery happens
+- How storage is provisioned
+- How secrets are managed
+- How traffic flows through the system
+
+## The Future
 
 ### Immediate Roadmap
 
@@ -250,6 +411,7 @@ This project thrives on collaboration. Whether you're fixing a typo or proposing
 
 - **Infrastructure**: You're looking at it!
 - **Applications**: [github.com/lyzetam/fakocluster-apps](https://github.com/lyzetam/fakocluster-apps)
+- **MLX Distributed**: [github.com/lyzetam/mlx-distributed-inference](https://github.com/lyzetam/mlx-distributed-inference)
 
 ### Let's Talk Shop
 
