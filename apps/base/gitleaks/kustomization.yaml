@@ -9,3 +9,4 @@ resources:
   - external-secret-github.yaml
   - configmap.yaml
   - cronjob.yaml
+  # - nfs-ip-cleanup-job.yaml  # Uncomment to run the IP cleanup job
