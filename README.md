@@ -1,12 +1,22 @@
-# The Fako Cluster: A Systems Engineer's Journey into Modern Infrastructure
+# The Fako Cluster: A Production-Gradish HomeLab
 
 *How I built a production-grade Kubernetes homelab that bridges the gap between learning and real-world engineering*
 
 ## The Story Behind This Project
 
-As a mechanical engineer turned systems engineer, I've always been fascinated by how things work under the hood. Just as I used to design complex mechanical systems and rebuild engines with my dad during the summers, I wanted to deconstruct modern cloud infrastructure and rebuild it from scratch. Those summer days taught me that understanding comes from getting your hands dirty – whether it's adjusting valve clearances or configuring Kubernetes operators. The Fako Cluster is that same journey in the digital realm – a homelab that doesn't just run applications, but demonstrates how enterprise-grade systems are designed, secured, and operated.
+As a mechanical engineer, I've always been fascinated by how things work under the hood. Just as I used to design complex mechanical systems and rebuild engines with my dad during the summers, I wanted to deconstruct modern cloud infrastructure and rebuild it from scratch, within my 4 walls. Those summer days taught me that understanding comes from getting your hands dirty – whether it's adjusting valve clearances or configuring Kubernetes operators. The Fako Cluster is that same journey in the digital realm – a homelab that doesn't just run applications, but tries to implement how enterprise-grade systems are designed, secured, and operated.
+What does this mean?
+1. If it's not in Git, it doesn't exist
+2. If its not declarative then its not happening
+3. Defense in depth with pragmatic choices
+4. Native and Open source first approach
+5. Small pieces, loosely coupled (mono repo with layers)
+6. Data should outlive containers
+7. You can't fix what you can't see
+8. Understand by building, improve by iterating
+9. Automate everything that happens twice
+10. Complexity is the enemy of reliability
 
-This isn't your typical homelab with hardcoded configurations and manual deployments. It's a fully automated, GitOps-driven platform that showcases modern DevOps practices while running real workloads that improve my daily life.
 
 ## Table of Contents
 - [What Makes This Special](#what-makes-this-special)
