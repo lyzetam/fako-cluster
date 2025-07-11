@@ -39,10 +39,18 @@ One of the unique challenges was making enterprise patterns work on consumer har
 
 ```
 7 Nodes, 1 Vision:
-├── yeezyai (GPU Node)     → 24 cores, 32GB RAM, 2x NVIDIA GPUs
+├── yeezyai (GPU Node)     → 24 cores, 32GB RAM, 2x NVIDIA GPUs (~$800)
 ├── zz-macbookpro (Master) → 12 cores, 16GB RAM (my daily driver!)
-└── 5 Worker Nodes         → Various specs, distributed across the house
+├── thinkpad01 (Worker)    → 8 cores, 16GB RAM, 102GB storage (~$80)
+├── pgmac01 (Worker)       → 4 cores, 8GB RAM, 102GB storage (~$80)
+├── pgmac02 (Worker)       → 4 cores, 8GB RAM, 102GB storage (~$80)
+├── pglenovo01 (Worker)    → 4 cores, 8GB RAM, 100GB storage (~$80)
+└── pglenovo02 (Worker)    → 4 cores, 8GB RAM, 119GB storage (~$80)
+
+Total Investment: ~$1,200 (mostly refurbished hardware!)
 ```
+
+The beauty? Each $80 node contributes to a distributed system that rivals cloud infrastructure costing thousands per month.
 
 ### The GitOps Revolution
 
@@ -72,8 +80,34 @@ Zero hardcoded IPs. Pure GitOps.
 Running LLMs locally isn't just about avoiding API costs – it's about data sovereignty:
 
 - **Ollama**: GPU-accelerated inference server running models like Llama 3 and Mistral
-- **Custom WebUI**: Beautiful interface that connects to both local and cloud models
-- **Voice Pipeline**: Whisper → LLM → Piper for completely offline voice interactions
+- **OpenWebUI + GPUStack**: Beautiful interface powered by a distributed macOS cluster for family-wide AI access
+- **MLX Distributed Inference**: Leveraging Apple Silicon for efficient model serving ([see the implementation →](https://github.com/lyzetam/mlx-distributed-inference))
+
+### 🏠 The Alexa Replacement: Voice-First Smart Home
+
+I built a complete voice assistant that respects privacy and runs entirely on-premises:
+
+- **Home Assistant**: Running on Raspberry Pi, the brain of my smart home
+- **Voice Preview Edition**: Captures voice input throughout the house
+- **YeezyAI Processing**: The GPU node handles:
+  - **Whisper**: Speech-to-text conversion
+  - **LLM Integration**: Natural language understanding
+  - **Piper**: Text-to-speech for responses
+- **Result**: Full voice control of my home + AI conversations, zero cloud dependency
+
+This isn't just about privacy – it's about ownership. My family's conversations stay in our home, processed by our hardware, under our control.
+
+### 👨‍👩‍👧‍👦 Family AI: Governance at Home
+
+The distributed AI infrastructure serves my entire family with proper governance:
+
+- **GPUStack Backend**: macOS nodes clustered together for distributed inference
+- **Multi-User Access**: Each family member has their own AI assistant access
+- **Usage Monitoring**: Track and understand AI usage patterns
+- **Content Filtering**: Age-appropriate responses for younger family members
+- **Data Sovereignty**: All conversations, queries, and responses stay within our network
+
+This demonstrates enterprise AI governance principles applied at home scale – proving that responsible AI doesn't require cloud providers.
 
 ### 🏥 Health & Fitness: Data-Driven Wellness
 
