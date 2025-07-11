@@ -223,16 +223,6 @@ The Oura integration showcases full-stack development:
 
 ## Infrastructure Components
 
-### Dynamic Storage Without the Pain
-
-Here's a problem every homelab faces: hardcoded NFS server IPs. When your NAS changes IPs, you're updating dozens of files. My solution? A Kubernetes job that:
-
-1. Fetches NFS configuration from AWS Secrets Manager
-2. Dynamically creates StorageClasses
-3. Deletes itself when done
-
-Zero hardcoded IPs. Pure GitOps.
-
 ### External Secrets Operator
 
 Manages all sensitive data through AWS Secrets Manager:
@@ -268,6 +258,25 @@ No sensitive data in Git repository:
 - **External Access**: Cloudflare tunnels for select services
 - **Internal**: Network policies for pod-to-pod communication
 - **Authentication**: OAuth2 proxy with Keycloak
+
+### Cloudflare Integration
+
+Cloudflare provides secure external access without exposing my home IP:
+
+- **Cloudflare Tunnels**: Zero-trust connectivity to internal services
+  - No port forwarding required
+  - DDoS protection built-in
+  - Encrypted tunnel from cluster to Cloudflare edge
+- **Services Exposed**:
+  - Keycloak (auth.landryzetam.net)
+  - Oura Dashboard (oura-health.landryzetam.net)
+  - OpenWebUI (ai.landryzetam.net)
+  - Selected applications based on need
+- **Security Benefits**:
+  - Hide home IP address
+  - Cloudflare's WAF and bot protection
+  - Access policies and authentication rules
+  - SSL/TLS termination at edge
 
 ## Monitoring & Observability
 
