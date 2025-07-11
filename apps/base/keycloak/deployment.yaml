@@ -39,6 +39,7 @@ spec:
       - name: database-init
         image: postgres:17-alpine
         securityContext:
+          runAsNonRoot: false
           runAsUser: 0
           runAsGroup: 0
         envFrom:
