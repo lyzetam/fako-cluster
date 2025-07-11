@@ -13,6 +13,11 @@ spec:
       labels:
         app: homebot
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       initContainers:
         # This init container copies the configuration to the persistent volume
         - name: config-init

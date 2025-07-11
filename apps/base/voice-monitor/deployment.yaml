@@ -18,6 +18,11 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: voice-monitor
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
       - name: voice-monitor
         image: lzetam/voice-monitor:latest

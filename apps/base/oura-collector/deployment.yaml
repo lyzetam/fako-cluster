@@ -14,6 +14,11 @@ spec:
         app: oura-collector
     spec:
       serviceAccountName: oura-collector
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
       - name: oura-collector
         image: lzetam/oura-collector:latest
@@ -60,4 +65,4 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: oura-collector-data  
+          claimName: oura-collector-data
