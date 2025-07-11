@@ -137,7 +137,7 @@ spec:
         
         # Hostname configuration for Keycloak 26.x
         - name: KC_HOSTNAME
-          value: auth.landryzetam.net
+          value: https://auth.landryzetam.net
         - name: KC_HOSTNAME_STRICT
           value: "false"  # Allow backend URLs to use different hostnames
         - name: KC_HTTP_ENABLED
