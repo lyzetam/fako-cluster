@@ -23,7 +23,7 @@ spec:
         - --http-address=0.0.0.0:4180
         - --reverse-proxy=true
         - --skip-provider-button=true
-        - --cookie-secure=false
+        - --cookie-secure=true
         - --cookie-domain=oura-health.landryzetam.net
         - --whitelist-domain=.landryzetam.net
         - --cookie-refresh=1h
