@@ -146,6 +146,8 @@ spec:
           value: "xforwarded"  # Trust X-Forwarded headers from proxy
         - name: KC_HTTP_ENABLED
           value: "true"
+        - name: KC_PROXY
+          value: "edge"  # Running behind a proxy that handles SSL termination
         
         # Database configuration
         - name: KC_DB
