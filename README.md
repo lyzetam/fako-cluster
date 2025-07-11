@@ -4,7 +4,7 @@
 
 ## The Story Behind This Project
 
-As a mechanical engineer turned systems engineer, I've always been fascinated by how things work under the hood. Just as I used to tear down engines to understand every component, I wanted to deconstruct modern cloud infrastructure and rebuild it from scratch. The Fako Cluster is that journey – a homelab that doesn't just run applications, but demonstrates how enterprise-grade systems are designed, secured, and operated.
+As a mechanical engineer turned systems engineer, I've always been fascinated by how things work under the hood. Just as I used to design complex mechanical systems and rebuild engines with my dad during the summers, I wanted to deconstruct modern cloud infrastructure and rebuild it from scratch. Those summer days taught me that understanding comes from getting your hands dirty – whether it's adjusting valve clearances or configuring Kubernetes operators. The Fako Cluster is that same journey in the digital realm – a homelab that doesn't just run applications, but demonstrates how enterprise-grade systems are designed, secured, and operated.
 
 This isn't your typical homelab with hardcoded configurations and manual deployments. It's a fully automated, GitOps-driven platform that showcases modern DevOps practices while running real workloads that improve my daily life.
 
@@ -97,7 +97,7 @@ One of the unique challenges was making enterprise patterns work on consumer har
 
 | Node | Role | CPU | Memory | Storage | GPU | Network | Cost |
 |------|------|-----|---------|---------|-----|---------|------|
-| **yeezyai** | GPU Worker | AMD Ryzen 9 3900X (24 cores @ 3.8GHz) | 32GB DDR4 | 957GB NVMe | 2x NVIDIA RTX 3060 | 1Gbps | ~$800 |
+| **yeezyai** | GPU Worker | AMD Ryzen 9 3900X (24 cores @ 3.8GHz) | 32GB DDR4 | 957GB NVMe | NVIDIA RTX 5070 (12GB) + RTX 3050 | 1Gbps | ~$800 |
 | **zz-macbookpro** | Control Plane | Apple M1 Pro (12 cores) | 16GB | 479GB SSD | - | WiFi 6 | Daily driver |
 | **thinkpad01** | Worker | Intel i5-8250U (8 cores @ 1.6GHz) | 16GB DDR4 | 102GB SSD | - | 1Gbps | ~$80 |
 | **pgmac01** | Worker | Intel Core i5 (4 cores @ 2.4GHz) | 8GB DDR3 | 102GB SSD | - | 1Gbps | ~$80 |
@@ -170,9 +170,14 @@ GitHub Repository → Flux Source Controller → Kustomize Controller → Kubern
 
 Running LLMs locally isn't just about avoiding API costs – it's about data sovereignty:
 
-- **Ollama**: GPU-accelerated inference server running models like Llama 3 and Mistral
+- **Ollama**: GPU-accelerated inference server running models like Llama 3 and Mistral on RTX 5070
 - **OpenWebUI + GPUStack**: Beautiful interface powered by a distributed macOS cluster for family-wide AI access
 - **MLX Distributed Inference**: Leveraging Apple Silicon for efficient model serving ([see the implementation →](https://github.com/lyzetam/mlx-distributed-inference))
+
+**GPU Assignment Strategy**: The yeezyai node's dual GPUs are strategically allocated:
+- **RTX 5070 (12GB GDDR7)**: Runs large language models with DLSS 4 and ray tracing capabilities
+- **RTX 3050**: Dedicated to Whisper for speech-to-text processing
+- Deployments use node affinity and GPU device selection for optimal resource utilization
 
 ### 🏠 The Alexa Replacement: Voice-First Smart Home
 
@@ -435,6 +440,8 @@ That's the beauty of systems engineering – there's always more to learn, alway
 
 ---
 
-*Built with ❤️ and probably too much ☕ by Landry*
+*Built with passion and probably too much ☕ by Landry*
+
+*Documentation enhanced with the help of Claude AI – because even engineers need a good editor*
 
 *Last updated: July 2025 | Running in production since: Forever in homelab years*
