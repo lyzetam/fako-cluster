@@ -42,17 +42,6 @@ Every application in this cluster solves an actual need:
 - **Knowledge Management**: Self-hosted bookmarks and audiobook server
 - **Fitness Tracking**: Comprehensive workout and nutrition management
 
-### 🔧 Engineering Philosophy in Action
-
-This project embodies several core principles I believe in:
-
-1. **Everything as Code**: No clicking through UIs. Every configuration, every deployment, every secret reference – it's all in Git. This isn't just about automation; it's about reproducibility and understanding.
-
-2. **Security Without Compromise**: I store zero secrets in Git. Instead, I built a zero-trust architecture using AWS Secrets Manager and External Secrets Operator. Even the NFS server IPs are dynamically fetched from secrets!
-
-3. **Observable by Design**: You can't improve what you can't measure. Full Prometheus/Loki/Grafana stack with custom dashboards for everything from GPU temperatures to backup success rates.
-
-4. **Failure is a Feature**: The system assumes things will break. Automated backups, high availability deployments, and self-healing configurations ensure resilience.
 
 ## Complete Stack Overview
 
@@ -107,7 +96,7 @@ One of the unique challenges was making enterprise patterns work on consumer har
 
 | Node | Role | CPU | Memory | Storage | GPU | Network | Cost |
 |------|------|-----|---------|---------|-----|---------|------|
-| **yeezyai** | GPU Worker | AMD Ryzen 9 3900X (24 cores @ 3.8GHz) | 32GB DDR4 | 957GB NVMe | NVIDIA RTX 5070 (12GB) + RTX 3050 | 1Gbps | ~$800 |
+| **yeezyai** | GPU Worker | AMD Ryzen 9 3900X (24 cores @ 3.8GHz) | 32GB DDR4 | 957GB NVMe | NVIDIA RTX 5070 (12GB) + RTX 3050 | 1Gbps | ~$1800 |
 | **zz-macbookpro** | Control Plane | Apple M1 Pro (12 cores) | 16GB | 479GB SSD | - | WiFi 6 | Daily driver |
 | **thinkpad01** | Worker | Intel i5-8250U (8 cores @ 1.6GHz) | 16GB DDR4 | 102GB SSD | - | 1Gbps | ~$80 |
 | **pgmac01** | Worker | Intel Core i5 (4 cores @ 2.4GHz) | 8GB DDR3 | 102GB SSD | - | 1Gbps | ~$80 |
@@ -116,13 +105,11 @@ One of the unique challenges was making enterprise patterns work on consumer har
 | **pglenovo02** | Worker | Intel i5-6200U (4 cores @ 2.3GHz) | 8GB DDR4 | 119GB SSD | - | 1Gbps | ~$80 |
 
 **External Infrastructure:**
-- **Synology NAS**: 12TB (4x3TB RAID5) for persistent storage
+- **UGREEN NAS**: 12TB (4x3TB RAID5) for persistent storage
 - **Raspberry Pi 4**: Home Assistant server (4GB RAM)
 - **Network**: UniFi Dream Machine, managed switches
 
-**Total Investment**: ~$1,200 (mostly refurbished hardware!)
-
-The beauty? Each $80 node contributes to a distributed system that rivals cloud infrastructure costing thousands per month.
+The beauty? I can touch and feel the hardware. There is something special about setting up a physical node, from purchasing it (facebook market or Amazon) to installing ubuntu, adding to network segment, like its truely special. I could do all of this with cheap vms or even EC2s but ... I think its worth the investment. 
 
 ## Repository Structure
 
@@ -461,6 +448,6 @@ That's the beauty of systems engineering – there's always more to learn, alway
 
 *Built with passion and probably too much ☕ by Landry*
 
-*Documentation enhanced with the help of Claude AI – because even engineers need a good editor*
+*Code and Documentation enhanced with the help of Claude AI – because even engineers need a Tech Lead and a good editor*
 
 *Last updated: July 2025 | Running in production since: Forever in homelab years*
