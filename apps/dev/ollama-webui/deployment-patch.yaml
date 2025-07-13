@@ -1,0 +1,22 @@
+# Add required WEBUI_SECRET_KEY environment variable
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-webui
+  namespace: ollama-webui
+spec:
+  template:
+    spec:
+      containers:
+      - name: ollama-webui
+        env:
+        - name: WEBUI_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: webui-secret
+              key: WEBUI_SECRET_KEY
+        # Add any other potentially missing required env vars
+        - name: DATABASE_URL
+          value: "sqlite:////app/backend/data/webui.db"
+        - name: DATA_DIR
+          value: "/app/backend/data"

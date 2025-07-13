@@ -7,3 +7,4 @@
 *.key
 notes/
 externalconnections/
+apps/dev/ollama-webui/webui-secret.yaml
