@@ -6,13 +6,16 @@ metadata:
   namespace: whisper
 data:
   # Model configuration
+  MODEL: "tiny"
   MODEL_SIZE: "medium"  # Options: tiny, base, small, medium, large
+  LANGUAGE: "en"
   COMPUTE_TYPE: "float16"  # FP16 for GPU optimization
+  BEAM_SIZE: "1"
   DEVICE: "cuda"
   
-  # Performance tuning
-  # BEAM_SIZE: "5"
-  # LANGUAGE: "en"  # Set default language for better performance
+  # GPU Configuration
+  NVIDIA_VISIBLE_DEVICES: "all"
+  NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
   
   # Wyoming protocol settings
   WYOMING_URI: "tcp://0.0.0.0:10300"

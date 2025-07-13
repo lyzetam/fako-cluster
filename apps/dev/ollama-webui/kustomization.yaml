@@ -6,9 +6,14 @@ resources:
   - ../../base/ollama-webui/
   - ollama-webui-tls-secret.yaml
   - aws-credentials-secret.yaml
+  - webui-secret.yaml
 
 patches:
   - path: ingress-patch.yaml
     target:
       kind: Ingress
+      name: ollama-webui
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
       name: ollama-webui

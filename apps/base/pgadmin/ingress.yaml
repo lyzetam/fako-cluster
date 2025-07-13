@@ -17,3 +17,7 @@ spec:
             name: pgadmin
             port:
               number: 80
+  tls:
+  - hosts:
+    - pgadmin.landryzetam.net
+    secretName: pgadmin-tls
