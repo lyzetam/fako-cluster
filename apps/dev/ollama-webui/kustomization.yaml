@@ -12,3 +12,7 @@ patches:
     target:
       kind: Ingress
       name: ollama-webui
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: ollama-webui
