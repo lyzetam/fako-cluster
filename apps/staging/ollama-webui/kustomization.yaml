@@ -6,6 +6,7 @@ resources:
   - ../../base/ollama-webui/
   - ollama-webui-tls-secret.yaml
   - aws-credentials-secret.yaml
+  - webui-secret.yaml
 
 patches:
   - path: deployment-patch.yaml
