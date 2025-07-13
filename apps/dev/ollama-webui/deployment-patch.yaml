@@ -11,7 +11,10 @@ spec:
       - name: ollama-webui
         env:
         - name: WEBUI_SECRET_KEY
-          value: "a7f8d9e2b4c6a1e3f5d7b9c1e3a5c7d9e1b3f5a7c9e1d3f5b7a9c1e3d5f7b9"
+          valueFrom:
+            secretKeyRef:
+              name: webui-secret
+              key: WEBUI_SECRET_KEY
         # Add any other potentially missing required env vars
         - name: DATABASE_URL
           value: "sqlite:////app/backend/data/webui.db"
