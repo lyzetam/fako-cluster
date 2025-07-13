@@ -17,3 +17,7 @@ patches:
     target:
       kind: Deployment
       name: ollama-gpu
+  - path: deployment-gpu-patch.yaml
+    target:
+      kind: Deployment
+      name: ollama-gpu
