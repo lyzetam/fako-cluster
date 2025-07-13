@@ -14,6 +14,11 @@ spec:
       labels:
         app: whisper-gpu
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       nodeSelector:
         kubernetes.io/hostname: yeezyai
         nvidia.com/gpu: "true"
@@ -31,20 +36,9 @@ spec:
         ports:
         - containerPort: 10300
           protocol: TCP
-        env:
-        - name: MODEL
-          value: "tiny"  # Try without int8 optimization
-        - name: LANGUAGE
-          value: "en"
-        - name: COMPUTE_TYPE
-          value: "float16"  # Try float16 instead of int8
-        - name: BEAM_SIZE
-          value: "1"
-        - name: NVIDIA_VISIBLE_DEVICES
-          value: "all"
-        - name: NVIDIA_DRIVER_CAPABILITIES
-          value: "compute,utility"
-        # Remove CUDA_VISIBLE_DEVICES to allow any GPU
+        envFrom:
+        - configMapRef:
+            name: whisper-gpu-configmap
         
         volumeMounts:
         - mountPath: /data

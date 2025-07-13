@@ -1,4 +1,4 @@
-# apps/base/ollama/configmap-optimized.yaml
+# apps/base/ollama/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,12 +7,38 @@ metadata:
 data:
   OLLAMA_HOST: "0.0.0.0"
   OLLAMA_ORIGINS: "*"
-  # OLLAMA_MODELS: "/root/.ollama/models"
-  OLLAMA_MODELS: "/root/.ollama/models" #"/models"
-  # Performance optimizations for Ryzen 7 5825U
+  OLLAMA_MODELS: "/root/.ollama/models"
   OLLAMA_DEBUG: "false"
-  OLLAMA_FLASH_ATTENTION: "true"  # Enable flash attention for faster inference
   OLLAMA_NOHISTORY: "false"  # Keep conversation history
+  
   # CPU-specific optimizations
   GOARCH: "amd64"
   GOOS: "linux"
+---
+# Separate ConfigMap for GPU-specific settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-gpu-configmap
+  namespace: ollama
+data:
+  # GPU Configuration
+  CUDA_VISIBLE_DEVICES: "0"
+  NVIDIA_VISIBLE_DEVICES: "0"
+  NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+  
+  # Ollama GPU Settings
+  OLLAMA_GPU_LAYERS: "999"  # Force all layers to GPU
+  OLLAMA_CUDA_FORCE_MMQ: "1"
+  OLLAMA_FLASH_ATTENTION: "0"  # Disabled - not supported
+  OLLAMA_GPU_MEMORY: "12G"  # Leave 0.5GB for system on 12GB card
+  
+  # Performance Settings
+  OLLAMA_NUM_PARALLEL: "2"  # More parallel requests with RTX 5070
+  OLLAMA_NUM_THREAD: "8"
+  OLLAMA_MAX_LOADED_MODELS: "1"  # Can keep more models in GPU memory with RTX 5070
+  GOMAXPROCS: "8"
+  
+  # Memory Management
+  OLLAMA_KEEP_ALIVE: "5m"
+  OLLAMA_MODELS_UNLOAD_AFTER_IDLE: "300"  # 5 minutes in seconds
