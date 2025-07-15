@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: ollama-webui
 resources:
   - ../../base/ollama-webui/
-  - ollama-webui-tls-secret.yaml
   - aws-credentials-secret.yaml
   - webui-secret.yaml
 
