@@ -3,20 +3,22 @@ kind: Ingress
 metadata:
   name: linkding
   namespace: dev-linkding
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
 spec:
   ingressClassName: traefik
-  tls:
-    - hosts:
-        - dev-linkding.landryzetam.net
-      secretName: dev-linkding-tls
   rules:
-    - host: dev-linkding.landryzetam.net
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: linkding
-                port:
-                  number: 9090
+  - host: linkding-dev.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: linkding
+            port:
+              number: 9090
+  tls:
+  - hosts:
+    - linkding-dev.landryzetam.net
+    secretName: linkding-tls-cert

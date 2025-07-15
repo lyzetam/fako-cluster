@@ -3,20 +3,22 @@ kind: Ingress
 metadata:
   name: audiobookshelf
   namespace: dev-audiobookshelf
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
 spec:
   ingressClassName: traefik
-  tls:
-    - hosts:
-        - dev-audiobooks.landryzetam.net
-      secretName: dev-audiobooks-tls
   rules:
-    - host: dev-audiobooks.landryzetam.net
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: audiobookshelf
-                port:
-                  number: 3005
+  - host: audiobookshelf-dev.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: audiobookshelf
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - audiobookshelf-dev.landryzetam.net
+    secretName: audiobookshelf-tls-cert

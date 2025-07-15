@@ -3,20 +3,22 @@ kind: Ingress
 metadata:
   name: homebot
   namespace: homebot
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
 spec:
   ingressClassName: traefik
   rules:
-    - host: homebot.landryzetam.net # Ensure this domain is correctly configured in DNS to point to the ingress controller
-      http:
-        paths:
-          - path: / # Root path for the application
-            pathType: Prefix
-            backend:
-              service:
-                name: homebot
-                port:
-                  number: 8123 # Home Assistant service
+  - host: homebot.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: homebot
+            port:
+              number: 8123
   tls:
-    - hosts:
-      - homebot.landryzetam.net
-      secretName: homebot-tls-secret
+  - hosts:
+    - homebot.landryzetam.net
+    secretName: homebot-tls-cert
