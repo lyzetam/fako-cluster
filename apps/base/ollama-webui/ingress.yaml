@@ -3,12 +3,14 @@ kind: Ingress
 metadata:
   name: ollama-webui
   namespace: ollama-webui
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
 spec:
   ingressClassName: traefik
   tls:
     - hosts:
       - ai.landryzetam.net
-      secretName: ollama-webui-tls-secret
+      secretName: ollama-webui-tls-cert
   rules:
     - host: ai.landryzetam.net
       http:
@@ -20,4 +22,3 @@ spec:
                 name: ollama-webui
                 port:
                   number: 8080
-

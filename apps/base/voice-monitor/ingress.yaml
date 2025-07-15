@@ -3,20 +3,22 @@ kind: Ingress
 metadata:
   name: voice-monitor
   namespace: voice-monitor
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
 spec:
   ingressClassName: traefik
   rules:
-    - host: voice-monitor.landryzetam.net
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: voice-monitor
-                port:
-                  number: 80
+  - host: voice-monitor.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: voice-monitor
+            port:
+              number: 8080
   tls:
   - hosts:
     - voice-monitor.landryzetam.net
-    secretName: voice-monitor-tls
+    secretName: voice-monitor-tls-cert
