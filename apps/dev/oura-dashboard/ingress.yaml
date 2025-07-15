@@ -15,9 +15,9 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: oura-dashboard
+            name: oauth2-proxy
             port:
-              number: 8501
+              number: 4180
   tls:
   - hosts:
     - oura-health-dev.landryzetam.net
