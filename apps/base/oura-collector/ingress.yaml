@@ -1,15 +1,14 @@
-# Optional: Ingress to expose health endpoint
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: oura-collector
   namespace: oura-collector
   annotations:
-    traefik.ingress.kubernetes.io/router.middlewares: default-headers@kubernetescrd
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
 spec:
   ingressClassName: traefik
   rules:
-  - host: oura-health.landryzetam.net
+  - host: oura-collector.landryzetam.net
     http:
       paths:
       - path: /
@@ -18,8 +17,8 @@ spec:
           service:
             name: oura-collector
             port:
-              number: 8080
+              number: 8000
   tls:
   - hosts:
-    - oura-health.landryzetam.net
-    secretName: oura-collector-tls
+    - oura-collector.landryzetam.net
+    secretName: oura-collector-tls-cert

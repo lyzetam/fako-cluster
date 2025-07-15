@@ -3,20 +3,22 @@ kind: Ingress
 metadata:
   name: oura-dashboard
   namespace: dev-oura-dashboard
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
 spec:
   ingressClassName: traefik
-  tls:
-    - hosts:
-        - dev-oura-health.landryzetam.net
-      secretName: dev-oura-health-tls
   rules:
-    - host: dev-oura-health.landryzetam.net
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: oura-dashboard
-                port:
-                  number: 8501
+  - host: oura-health-dev.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: oura-dashboard
+            port:
+              number: 8501
+  tls:
+  - hosts:
+    - oura-health-dev.landryzetam.net
+    secretName: oura-dashboard-tls-cert
