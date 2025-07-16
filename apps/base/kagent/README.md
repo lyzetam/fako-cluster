@@ -21,7 +21,7 @@ This setup deploys Kagent using:
 ### GPUStack Integration
 
 The deployment is configured to use GPUStack as the LLM provider:
-- API endpoint: `http://***NFS-IP-REMOVED***:80/v1`
+- API endpoint: Retrieved from AWS Secrets Manager at `ollama-webui/endpoints`
 - API key: Retrieved from AWS Secrets Manager at `gpustack/api-key`
 
 ### Resource Limits
@@ -51,7 +51,7 @@ curl https://raw.githubusercontent.com/kagent-dev/kagent/refs/heads/main/scripts
 
 ```bash
 export OPENAI_API_KEY="your-gpustack-api-key"
-export OPENAI_API_BASE="http://***NFS-IP-REMOVED***:80/v1"
+export OPENAI_API_BASE="your-gpustack-base-url"
 ```
 
 ### 3. Install Kagent
@@ -89,18 +89,29 @@ kagent >> run chat
 
 ## Integration with GPUStack
 
-The configuration files in this directory are set up to use GPUStack as the LLM provider. The External Secrets are configured to pull:
-- API key from `gpustack/api-key`
-- Base URL from `ollama-webui/endpoints`
+The configuration uses External Secrets to securely manage GPUStack credentials:
+- **API Key**: Retrieved from AWS Secrets Manager at `gpustack/api-key`
+- **Base URL**: Retrieved from AWS Secrets Manager at `ollama-webui/endpoints`
+
+Both values are automatically injected into the Kagent deployment, ensuring no sensitive information is hardcoded.
 
 ## Troubleshooting
 
-1. If you see CRD errors, ensure you've run `kagent install` first
-2. Check that your API key is correctly set
-3. Verify the GPUStack endpoint is accessible from your cluster
+1. **CRD Errors**: The Helm deployment handles CRD installation automatically
+2. **Secret Errors**: Ensure AWS credentials are properly configured for External Secrets
+3. **API Connection**: Verify the GPUStack endpoint is accessible from your cluster
+4. **Pod Issues**: Check `kubectl logs -n dev-kagent kagent-<pod-id>` for detailed errors
+
+## Current Deployment Status
+
+The Kagent deployment includes:
+- **CRDs**: Automatically installed via `kagent-crds` HelmRelease
+- **Main Application**: Deployed via `kagent` HelmRelease with dependency on CRDs
+- **External Secrets**: Configured to pull credentials from AWS Secrets Manager
+- **Ingress**: Available at kagent-dev.landryzetam.net (dev environment)
 
 ## Notes
 
-- Kagent cannot be deployed via Helm/Flux due to CRD dependencies
-- The CLI installation method is the recommended approach
-- For production use, consider setting up proper authentication and TLS
+- The deployment uses a two-step Helm installation process (CRDs first, then main app)
+- All sensitive configuration is managed through External Secrets
+- For production use, ensure proper AWS credentials and TLS configuration
