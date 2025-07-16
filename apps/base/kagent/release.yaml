@@ -4,6 +4,10 @@ metadata:
   name: kagent
 spec:
   interval: 10m
+  install:
+    crds: Create
+  upgrade:
+    crds: CreateReplace
   chart:
     spec:
       chart: kagent
