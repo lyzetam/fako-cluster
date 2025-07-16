@@ -7,7 +7,6 @@ spec:
   interval: 10m
   dependsOn:
     - name: kagent-crds
-      namespace: kagent
   chart:
     spec:
       chart: kagent
