@@ -8,10 +8,17 @@ resources:
   # - oura-dashboard-tls-secret.yaml  # TLS disabled for internal dev
 
 patches:
-  - path: ingress-patch.yaml
-    target:
+  - target:
       kind: Ingress
       name: oura-dashboard
+    patch: |-
+      - op: remove
+        path: /metadata/annotations/cert-manager.io~1cluster-issuer
+      - op: replace
+        path: /spec/rules/0/host
+        value: oura-dev.landryzetam.net
+      - op: remove
+        path: /spec/tls
   - target:
       kind: SecretStore
       name: local-secret-store
