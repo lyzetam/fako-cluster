@@ -1,4 +1,6 @@
-# One-time job for initial data backfill
+# Manual backfill job - NOT included in regular deployment
+# To run manually: kubectl apply -f apps/base/oura-collector/backfill-job.yaml
+# This should only be used for initial setup or recovering from extended outages
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -29,7 +31,7 @@ spec:
         
         # Collection configuration
         - name: DAYS_TO_BACKFILL
-          value: "1030"  # Collect last 30 days for initial backfill
+          value: "30"  # Collect last 30 days for initial backfill
         - name: RUN_ONCE
           value: "true"
         - name: LOG_LEVEL
