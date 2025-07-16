@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-landryzetam-net
+  namespace: cert-manager
+spec:
+  secretName: wildcard-landryzetam-net-tls
+  issuerRef:
+    name: letsencrypt-production-dns
+    kind: ClusterIssuer
+  commonName: "*.landryzetam.net"
+  dnsNames:
+  - "*.landryzetam.net"
+  - "landryzetam.net"
