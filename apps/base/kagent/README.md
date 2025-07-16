@@ -1,14 +1,44 @@
 # Kagent Installation Guide
 
-Kagent is an AI assistant for Kubernetes operations that requires special installation steps.
+Kagent is an AI assistant for Kubernetes operations. This deployment uses Helm with Flux to manage the installation.
 
-## Prerequisites
+## Overview
 
-1. OpenAI API Key (or compatible API like GPUStack)
-2. Kubernetes cluster access
-3. kubectl configured
+This setup deploys Kagent using:
+- Two Helm releases: one for CRDs and one for the main application
+- External Secrets for GPUStack API credentials
+- Ingress configuration for external access
 
-## Installation Steps
+## Architecture
+
+1. **kagent-crds**: Installs the Custom Resource Definitions
+2. **kagent**: Main application deployment (depends on CRDs)
+3. **External Secrets**: Pulls GPUStack API key from AWS Secrets Manager
+4. **Ingress**: Exposes Kagent at kagent-dev.landryzetam.net
+
+## Configuration
+
+### GPUStack Integration
+
+The deployment is configured to use GPUStack as the LLM provider:
+- API endpoint: `http://10.85.35.223:80/v1`
+- API key: Retrieved from AWS Secrets Manager at `gpustack/api-key`
+
+### Resource Limits
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+```
+
+## Manual Installation (Alternative)
+
+If you prefer to install Kagent manually using the CLI:
 
 ### 1. Install Kagent CLI
 
@@ -19,41 +49,22 @@ curl https://raw.githubusercontent.com/kagent-dev/kagent/refs/heads/main/scripts
 
 ### 2. Set up API Key
 
-For GPUStack integration (using the existing GPUStack server):
-
 ```bash
 export OPENAI_API_KEY="your-gpustack-api-key"
 export OPENAI_API_BASE="http://10.85.35.223:80/v1"
 ```
 
-### 3. Install Kagent to Cluster
+### 3. Install Kagent
 
 ```bash
 kagent install
 ```
 
-This will:
-- Install the necessary CRDs
-- Deploy the Kagent components
-- Set up the required agents
-
-### 4. Access Kagent Dashboard
+### 4. Access Dashboard
 
 ```bash
 kagent dashboard
 ```
-
-This will open the Kagent UI at http://localhost:8082
-
-### 5. Configure Ingress (Optional)
-
-If you want to expose Kagent externally, you can apply the ingress configuration:
-
-```bash
-kubectl apply -f apps/dev/kagent/ingress.yaml
-```
-
-This will make Kagent available at: http://kagent-dev.landryzetam.net
 
 ## Using Kagent
 
