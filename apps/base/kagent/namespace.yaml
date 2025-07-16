@@ -3,6 +3,5 @@ kind: Namespace
 metadata:
   name: kagent
   labels:
-    name: kagent
     app.kubernetes.io/name: kagent
     app.kubernetes.io/part-of: kagent
