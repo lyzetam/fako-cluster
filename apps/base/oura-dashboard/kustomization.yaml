@@ -15,4 +15,3 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
-  - ingress-acme.yaml       # ACME challenge ingress without auth
