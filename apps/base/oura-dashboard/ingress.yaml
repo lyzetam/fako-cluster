@@ -5,12 +5,23 @@ metadata:
   namespace: oura-dashboard
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-production"
+    # Allow HTTP-01 challenge to bypass auth
+    traefik.ingress.kubernetes.io/router.middlewares: ""
 spec:
   ingressClassName: traefik
   rules:
   - host: oura-health.landryzetam.net
     http:
       paths:
+      # ACME challenge path - must be first to take precedence
+      - path: /.well-known/acme-challenge
+        pathType: Prefix
+        backend:
+          service:
+            # This is a dummy service that cert-manager will replace
+            name: cm-acme-http-solver
+            port:
+              number: 8089
       - path: /
         pathType: Prefix
         backend:
