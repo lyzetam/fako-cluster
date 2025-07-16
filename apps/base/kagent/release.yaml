@@ -1,0 +1,57 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kagent
+  namespace: kagent
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: kagent
+      version: "*"  # Use latest version
+      sourceRef:
+        kind: HelmRepository
+        name: kagent
+        namespace: kagent
+  values:
+    # Configure to use GPUStack as OpenAI provider
+    llm:
+      provider: "openai"
+      openai:
+        # Base URL will be set from ConfigMap
+        model: "gpt-4o-mini"
+    
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 80
+    
+    # Ingress will be configured separately in dev overlay
+    ingress:
+      enabled: false
+    
+    # Resource limits
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+    
+    # Environment variables from secrets
+    envFrom:
+    - secretRef:
+        name: kagent-openai-secret
+    
+    # Additional environment variables
+    env:
+    - name: OPENAI_API_BASE
+      valueFrom:
+        secretKeyRef:
+          name: kagent-endpoints
+          key: OPENAI_API_BASE_URL
+    
+    # Persistence
+    persistence:
+      enabled: false
