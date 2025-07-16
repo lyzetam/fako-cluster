@@ -5,10 +5,13 @@ resources:
   - ../../base/oura-dashboard/
   # - aws-credentials-secret.yaml
   - aws-credentials-secret-local.yaml
-  - ingress.yaml
   # - oura-dashboard-tls-secret.yaml  # TLS disabled for internal dev
 
 patches:
+  - path: ingress-patch.yaml
+    target:
+      kind: Ingress
+      name: oura-dashboard
   - target:
       kind: SecretStore
       name: local-secret-store
