@@ -3,8 +3,6 @@ kind: Ingress
 metadata:
   name: oura-dashboard
   namespace: dev-oura-dashboard
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
 spec:
   ingressClassName: traefik
   rules:
@@ -21,4 +19,4 @@ spec:
   tls:
   - hosts:
     - oura-dev.landryzetam.net
-    secretName: oura-dashboard-tls-cert
+    secretName: oura-dashboard-tls-secret
