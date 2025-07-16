@@ -1,14 +1,5 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: cert-manager
 resources:
   - letsencrypt-staging.yaml
   - letsencrypt-production.yaml
-  - letsencrypt-production-dns.yaml
-  - aws-credentials-secret.yaml  # Temporary placeholder
-  - cloudflare-api-token-manual.yaml  # Temporary placeholder
-  # - aws-secret-store.yaml       # TODO: Enable after external-secrets is ready
-  # - cloudflare-api-token-secret.yaml  # TODO: Enable after external-secrets is ready
-  - wildcard-certificate.yaml
-  - certificate-copier-rbac.yaml
-  - certificate-copier-cronjob.yaml

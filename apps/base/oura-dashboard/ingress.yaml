@@ -16,7 +16,3 @@ spec:
             name: oauth2-proxy
             port:
               number: 4180
-  tls:
-  - hosts:
-    - oura-health.landryzetam.net
-    secretName: wildcard-landryzetam-net-tls
