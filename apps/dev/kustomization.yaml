@@ -26,3 +26,6 @@ resources:
   - piper          # Already CPU-based
   - openwakeword   # Already CPU-based
   - node-labeling
+  
+  # AI Agent
+  - kagent         # Kubernetes AI assistant

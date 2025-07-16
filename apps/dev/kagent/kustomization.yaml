@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: dev-kagent
+
+resources:
+  - ../../base/kagent
+  - aws-credentials-secret.yaml
+
+patchesStrategicMerge:
+  - ingress-patch.yaml
+
+nameSuffix: ""
+namePrefix: ""
