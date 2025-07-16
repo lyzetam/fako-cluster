@@ -21,8 +21,14 @@ spec:
         # API key will be set from ExternalSecret
         existingSecret: kagent-openai-secret
         existingSecretKey: OPENAI_API_KEY
-        # Base URL for GPUStack
-        baseURL: "http://10.85.35.223:80/v1"
+    
+    # Environment variables to set the base URL from external secret
+    env:
+    - name: OPENAI_API_BASE
+      valueFrom:
+        secretKeyRef:
+          name: kagent-endpoints
+          key: OPENAI_API_BASE_URL
     
     # Service configuration
     service:
