@@ -9,6 +9,7 @@ resources:
   - repository.yaml
   - aws-secret-store.yaml
   - external-secret-gpustack.yaml
+  - external-secret-endpoints.yaml
   - release-crds.yaml
   - release.yaml
 
