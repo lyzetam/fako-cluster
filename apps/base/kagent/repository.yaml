@@ -1,8 +1,0 @@
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
-metadata:
-  name: kagent
-spec:
-  type: oci
-  interval: 10m
-  url: oci://ghcr.io/kagent-dev/kagent/helm
