@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-  - host: oura-health-dev.landryzetam.net
+  - host: oura-dev.landryzetam.net
     http:
       paths:
       - path: /
@@ -20,5 +20,5 @@ spec:
               number: 4180
   tls:
   - hosts:
-    - oura-health-dev.landryzetam.net
+    - oura-dev.landryzetam.net
     secretName: oura-dashboard-tls-cert
