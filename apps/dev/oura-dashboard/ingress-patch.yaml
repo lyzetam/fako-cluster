@@ -3,10 +3,11 @@ kind: Ingress
 metadata:
   name: oura-dashboard
   namespace: dev-oura-dashboard
+  annotations:
+    cert-manager.io/cluster-issuer: null  # Remove cert-manager annotation
 spec:
-  ingressClassName: traefik
   rules:
-  - host: oura-dev.landryzetam.net
+  - host: oura-dev.landryzetam.net  # Change host for dev
     http:
       paths:
       - path: /
@@ -16,8 +17,4 @@ spec:
             name: oauth2-proxy
             port:
               number: 4180
-  # TLS disabled for internal dev environment
-  # tls:
-  # - hosts:
-  #   - oura-dev.landryzetam.net
-  #   secretName: oura-dashboard-tls-secret
+  tls: []  # Remove TLS configuration
