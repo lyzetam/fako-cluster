@@ -3,8 +3,6 @@ kind: Ingress
 metadata:
   name: oura-dashboard
   namespace: oura-dashboard
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
 spec:
   ingressClassName: traefik
   rules:
@@ -18,7 +16,4 @@ spec:
             name: oauth2-proxy
             port:
               number: 4180
-  tls:
-  - hosts:
-    - oura-health.landryzetam.net
-    secretName: oura-dashboard-tls-cert
+  # TLS is handled by Cloudflare Tunnel, not needed in ingress
