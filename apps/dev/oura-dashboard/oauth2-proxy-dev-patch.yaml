@@ -15,8 +15,8 @@ spec:
         - --http-address=0.0.0.0:4180
         - --reverse-proxy=true
         - --skip-provider-button=true
-        - --cookie-secure=true
-        - --cookie-domain=oura-dev.landryzetam.net
+        - --cookie-secure=false  # Allow non-HTTPS for dev
+        - --cookie-domain=.landryzetam.net  # More permissive domain
         - --whitelist-domain=.landryzetam.net
         - --cookie-refresh=1h
         - --cookie-expire=24h
@@ -29,6 +29,8 @@ spec:
         - --skip-oidc-discovery=true
         - --oidc-email-claim=email
         - --oidc-groups-claim=groups
+        - --set-xauthrequest=true
+        - --pass-access-token=true
         env:
         - name: OAUTH2_PROXY_REDIRECT_URL
           value: "https://oura-dev.landryzetam.net/oauth2/callback"
