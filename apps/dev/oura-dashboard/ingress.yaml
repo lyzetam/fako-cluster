@@ -16,7 +16,8 @@ spec:
             name: oauth2-proxy
             port:
               number: 4180
-  tls:
-  - hosts:
-    - oura-dev.landryzetam.net
-    secretName: oura-dashboard-tls-secret
+  # TLS disabled for internal dev environment
+  # tls:
+  # - hosts:
+  #   - oura-dev.landryzetam.net
+  #   secretName: oura-dashboard-tls-secret
