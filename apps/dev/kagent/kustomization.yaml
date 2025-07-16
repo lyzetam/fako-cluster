@@ -4,11 +4,18 @@ kind: Kustomization
 namespace: dev-kagent
 
 resources:
-  - ../../base/kagent
+  # Include individual base resources (excluding ingress)
+  - ../../base/kagent/namespace.yaml
+  - ../../base/kagent/rbac.yaml
+  - ../../base/kagent/aws-secret-store.yaml
+  - ../../base/kagent/external-secret-gpustack.yaml
+  - ../../base/kagent/external-secret-endpoints.yaml
+  - ../../base/kagent/configmap.yaml
+  - ../../base/kagent/deployment.yaml
+  - ../../base/kagent/service.yaml
+  # Dev-specific resources
   - aws-credentials-secret.yaml
-
-patchesStrategicMerge:
-  - ingress-patch.yaml
+  - ingress.yaml
 
 nameSuffix: ""
 namePrefix: ""
