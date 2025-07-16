@@ -15,7 +15,7 @@ patches:
       - op: replace
         path: /spec/provider/kubernetes/remoteNamespace
         value: keycloak
-  - path: oauth2-proxy-patch.yaml
+  - path: oauth2-proxy-dev-patch.yaml
     target:
       kind: Deployment
       name: oauth2-proxy
