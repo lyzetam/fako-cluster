@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: dev-kagent
+
+resources:
+  - ../../base/kagent
+  - aws-credentials-secret.yaml
+  - ingress.yaml
+
+patches:
+  - target:
+      kind: HelmRelease
+      name: kagent-crds
+    patch: |-
+      - op: replace
+        path: /spec/chart/spec/sourceRef/namespace
+        value: dev-kagent
+  - target:
+      kind: HelmRelease
+      name: kagent
+    patch: |-
+      - op: replace
+        path: /spec/chart/spec/sourceRef/namespace
+        value: dev-kagent
