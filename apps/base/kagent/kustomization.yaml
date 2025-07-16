@@ -5,14 +5,11 @@ namespace: kagent
 
 resources:
   - namespace.yaml
-  - rbac.yaml
+  - repository.yaml
   - aws-secret-store.yaml
   - external-secret-gpustack.yaml
   - external-secret-endpoints.yaml
-  - configmap.yaml
-  - deployment.yaml
-  - service.yaml
-  - ingress.yaml
+  - release.yaml
 
 commonLabels:
   app.kubernetes.io/name: kagent
