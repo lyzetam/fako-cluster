@@ -32,8 +32,6 @@ spec:
         - --insecure-oidc-allow-unverified-email=true
         - --insecure-oidc-skip-nonce=true
         - --skip-jwt-bearer-tokens=true
-        # Skip auth for ACME challenges
-        - --skip-auth-regex=^/.well-known/acme-challenge/
         # Add the audiences that Keycloak is sending
         - --oidc-extra-audience=master-realm
         - --oidc-extra-audience=account

@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: certificate-copier
+  namespace: cert-manager
+spec:
+  schedule: "*/5 * * * *"  # Run every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: certificate-copier
+          restartPolicy: OnFailure
+          containers:
+          - name: copier
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Get the wildcard certificate secret
+              if kubectl get secret wildcard-landryzetam-net-tls -n cert-manager; then
+                echo "Found wildcard certificate, copying to namespaces..."
+                
+                # Get all namespaces except kube-system, kube-public, kube-node-lease
+                for ns in $(kubectl get ns -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep -v -E '^(kube-system|kube-public|kube-node-lease|cert-manager)$'); do
+                  echo "Copying certificate to namespace: $ns"
+                  
+                  # Delete existing secret if it exists
+                  kubectl delete secret wildcard-landryzetam-net-tls -n "$ns" --ignore-not-found=true
+                  
+                  # Copy the secret
+                  kubectl get secret wildcard-landryzetam-net-tls -n cert-manager -o yaml | \
+                    sed 's/namespace: cert-manager/namespace: '"$ns"'/' | \
+                    kubectl apply -f -
+                done
+                
+                echo "Certificate copying completed"
+              else
+                echo "Wildcard certificate not found yet"
+              fi
