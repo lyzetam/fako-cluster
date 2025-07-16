@@ -5,8 +5,10 @@ resources:
   - letsencrypt-staging.yaml
   - letsencrypt-production.yaml
   - letsencrypt-production-dns.yaml
-  - aws-secret-store.yaml
-  - cloudflare-api-token-secret.yaml
+  - aws-credentials-secret.yaml  # Temporary placeholder
+  - cloudflare-api-token-manual.yaml  # Temporary placeholder
+  # - aws-secret-store.yaml       # TODO: Enable after external-secrets is ready
+  # - cloudflare-api-token-secret.yaml  # TODO: Enable after external-secrets is ready
   - wildcard-certificate.yaml
   - certificate-copier-rbac.yaml
   - certificate-copier-cronjob.yaml
