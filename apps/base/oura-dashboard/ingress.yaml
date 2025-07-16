@@ -5,6 +5,8 @@ metadata:
   namespace: oura-dashboard
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-production"
+    # Lower priority so cert-manager ingress takes precedence for ACME challenges
+    traefik.ingress.kubernetes.io/router.priority: "1"
 spec:
   ingressClassName: traefik
   rules:
