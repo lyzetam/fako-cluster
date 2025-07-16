@@ -12,4 +12,5 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
-  - backfill-job.yaml
+  # - backfill-job.yaml  # Removed: Should only be run manually when needed
+  - cronjob.yaml         # Added: Use CronJob for scheduled backfills instead

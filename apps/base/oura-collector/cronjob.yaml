@@ -34,7 +34,7 @@ spec:
             
             # Collection configuration
             - name: DAYS_TO_BACKFILL
-              value: "1"  # Only collect last day when running as cron
+              value: "3"  # Collect last 3 days to handle any gaps
             - name: RUN_ONCE
               value: "true"  # Important: run once and exit for CronJob
             - name: LOG_LEVEL
