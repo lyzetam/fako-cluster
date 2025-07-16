@@ -1,24 +1,20 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: oura-dashboard
+  name: oura-dashboard-acme
   namespace: oura-dashboard
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
+    # No auth annotations - this ingress is only for ACME challenges
 spec:
   ingressClassName: traefik
   rules:
   - host: oura-health.landryzetam.net
     http:
       paths:
-      - path: /
+      - path: /.well-known/acme-challenge
         pathType: Prefix
         backend:
           service:
-            name: oauth2-proxy
+            name: cm-acme-http-solver
             port:
-              number: 4180
-  tls:
-  - hosts:
-    - oura-health.landryzetam.net
-    secretName: oura-dashboard-tls-cert
+              number: 8089

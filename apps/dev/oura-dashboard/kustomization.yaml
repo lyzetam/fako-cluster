@@ -6,6 +6,7 @@ resources:
   # - aws-credentials-secret.yaml
   - aws-credentials-secret-local.yaml
   - ingress.yaml
+  - ingress-acme.yaml
 
 patches:
   - target:
