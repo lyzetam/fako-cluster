@@ -9,4 +9,4 @@ spec:
   model: deepseek-r1
   provider: OpenAI
   openAI:
-    baseUrl: "http://***NFS-IP-REMOVED***:80/v1-openai"
+    baseUrl: "http://gpustack.local/v1-openai"  # TODO: Update with actual GPUStack service URL
