@@ -4,7 +4,7 @@
     "config:recommended",
     ":dependencyDashboard"
   ],
-  "baseBranches": ["dev"],
+  "baseBranches": ["main"],
   "branchPrefix": "renovate/",
   "labels": ["dependencies", "renovate"],
   "prConcurrentLimit": 5,
