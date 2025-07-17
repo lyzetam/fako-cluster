@@ -12,7 +12,7 @@ resources:
   - external-secret-endpoints.yaml
   - release-crds.yaml
   - release.yaml
-  - modelconfig-gpustack.yaml
+  # - modelconfig-gpustack.yaml  # Temporarily disabled until CRDs are installed
 
 commonLabels:
   app.kubernetes.io/name: kagent
