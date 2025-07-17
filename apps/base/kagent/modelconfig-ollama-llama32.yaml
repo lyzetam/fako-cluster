@@ -1,17 +1,17 @@
 apiVersion: kagent.dev/v1alpha1
 kind: ModelConfig
 metadata:
-  name: ollama-llama3
+  name: ollama-llama32
   namespace: kagent
 spec:
-  model: llama3.1:8b
+  model: llama3.2:3b
   provider: Ollama
   ollama:
     host: "http://ollama-gpu.ollama.svc.cluster.local:11434"
   # Required for custom models
   modelInfo:
-    vision: false              # Llama3 doesn't support image inputs
-    functionCalling: false     # Llama3 doesn't support function/tool calling
+    vision: false              # Llama3.2:3b doesn't support image inputs
+    functionCalling: false     # Llama3.2:3b doesn't support function/tool calling
     jsonOutput: true          # Can generate JSON responses
     family: "llama"           # Model family identifier
     structuredOutput: true    # Supports structured output generation
