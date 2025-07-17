@@ -7,7 +7,7 @@ spec:
   model: deepseek-coder:6.7b-instruct
   provider: Ollama
   ollama:
-    host: "https://ollama.landryzetam.net"
+    host: "http://ollama-gpu.ollama.svc.cluster.local:11434"
   # Required for custom models
   modelInfo:
     vision: false              # DeepSeek Coder doesn't support image inputs
