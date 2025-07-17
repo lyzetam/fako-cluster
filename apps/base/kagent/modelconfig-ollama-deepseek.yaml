@@ -11,7 +11,7 @@ spec:
   # Required for custom models
   modelInfo:
     vision: false              # DeepSeek Coder doesn't support image inputs
-    functionCalling: false     # Does not support function/tool calling
+    functionCalling: true     # Does not support function/tool calling
     jsonOutput: true          # Can generate JSON responses
     family: "deepseek"        # Model family identifier
     structuredOutput: true    # Supports structured output generation
