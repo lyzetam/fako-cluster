@@ -4,13 +4,13 @@ metadata:
   name: ollama-qwen3-30b-a3b
   namespace: kagent
 spec:
-  model: Qwen3-30B-A3B
+  model: qwen3:30b-a3b
   provider: Ollama
   ollama:
     host: "http://ollama-gpu.ollama.svc.cluster.local:11434"
   # Required for custom models
   modelInfo:
-    vision: false              # Qwen3-30B-A3B doesn't support image inputs
+    vision: false              # qwen3:30b-a3b doesn't support image inputs
     functionCalling: true      # Enable function/tool calling for kagent agents
     jsonOutput: true          # Can generate JSON responses
     family: "qwen"            # Model family identifier
