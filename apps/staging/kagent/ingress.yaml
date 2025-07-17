@@ -6,7 +6,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-  - host: kagent-staging.landryzetam.net
+  - host: kagent.landryzetam.net
     http:
       paths:
       - path: /
