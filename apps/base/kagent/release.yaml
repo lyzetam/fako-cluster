@@ -21,14 +21,6 @@ spec:
         existingSecret: kagent-openai-secret
         existingSecretKey: OPENAI_API_KEY
     
-    # Environment variables to set the base URL from external secret
-    env:
-    - name: OPENAI_API_BASE
-      valueFrom:
-        secretKeyRef:
-          name: kagent-endpoints
-          key: OPENAI_API_BASE_URL
-    
     # Service configuration
     service:
       type: ClusterIP
