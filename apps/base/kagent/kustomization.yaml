@@ -16,6 +16,7 @@ resources:
   - external-secret-gpustack.yaml
   - modelconfig-ollama-deepseek.yaml
   - modelconfig-ollama-mistral.yaml
+  - modelconfig-ollama-llama3.yaml
 
 commonLabels:
   app.kubernetes.io/name: kagent
