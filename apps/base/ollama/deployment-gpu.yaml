@@ -107,6 +107,7 @@ spec:
           # PRIORITY 3: Small efficient models
           echo ""
           echo "=== SMALL EFFICIENT MODELS (1-4B) ==="
+          ollama pull qwen2.5:0.5b || echo "Failed qwen2.5:0.5b"
           # ollama pull llama3.2:3b || echo "Failed llama3.2:3b"
           # ollama pull phi3:mini || echo "Failed phi3:mini"
           
