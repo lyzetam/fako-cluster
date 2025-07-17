@@ -5,3 +5,88 @@ resources:
   - ../../base/kagent
   - aws-credentials-secret.yaml
   - ingress.yaml
+  - default-namespace-agents-patches.yaml
+
+# Patches to update all agents to use ollama-llama32 model
+patches:
+  # Agents in kagent namespace
+  - target:
+      kind: Agent
+      name: agent-test
+      namespace: kagent
+    patch: |-
+      - op: replace
+        path: /spec/modelConfig
+        value: ollama-llama32
+  - target:
+      kind: Agent
+      name: argo-rollouts-conversion-agent
+      namespace: kagent
+    patch: |-
+      - op: replace
+        path: /spec/modelConfig
+        value: ollama-llama32
+  - target:
+      kind: Agent
+      name: cilium-debug-agent
+      namespace: kagent
+    patch: |-
+      - op: replace
+        path: /spec/modelConfig
+        value: ollama-llama32
+  - target:
+      kind: Agent
+      name: cilium-manager-agent
+      namespace: kagent
+    patch: |-
+      - op: replace
+        path: /spec/modelConfig
+        value: ollama-llama32
+  - target:
+      kind: Agent
+      name: cilium-policy-agent
+      namespace: kagent
+    patch: |-
+      - op: replace
+        path: /spec/modelConfig
+        value: ollama-llama32
+  - target:
+      kind: Agent
+      name: helm-agent
+      namespace: kagent
+    patch: |-
+      - op: replace
+        path: /spec/modelConfig
+        value: ollama-llama32
+  - target:
+      kind: Agent
+      name: istio-agent
+      namespace: kagent
+    patch: |-
+      - op: replace
+        path: /spec/modelConfig
+        value: ollama-llama32
+  - target:
+      kind: Agent
+      name: kgateway-agent
+      namespace: kagent
+    patch: |-
+      - op: replace
+        path: /spec/modelConfig
+        value: ollama-llama32
+  - target:
+      kind: Agent
+      name: observability-agent
+      namespace: kagent
+    patch: |-
+      - op: replace
+        path: /spec/modelConfig
+        value: ollama-llama32
+  - target:
+      kind: Agent
+      name: promql-agent
+      namespace: kagent
+    patch: |-
+      - op: replace
+        path: /spec/modelConfig
+        value: ollama-llama32
