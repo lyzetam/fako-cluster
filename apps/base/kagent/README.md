@@ -43,9 +43,23 @@ Once the resources are applied to the cluster, the deepseek-r1 model will be ava
 - `aws-secret-store.yaml` - AWS Secrets Manager store configuration
 - `external-secret-gpustack.yaml` - External secret for GPUStack API key
 - `external-secret-endpoints.yaml` - External secret for GPUStack base URL
-- `modelconfig-gpustack.yaml` - Model configuration for deepseek-r1
+- `modelconfig-gpustack.yaml` - Model configuration for deepseek-r1 via GPUStack
+- `modelconfig-ollama-deepseek.yaml` - Model configuration for deepseek-coder via Ollama
 - `repository-crds.yaml` - Helm repository for CRDs
 - `repository.yaml` - Helm repository for Kagent
 - `release-crds.yaml` - Helm release for CRDs
 - `release.yaml` - Helm release for Kagent
 - `kustomization.yaml` - Kustomize configuration
+
+## Model Configurations
+
+### GPUStack Integration (deepseek-r1)
+- Uses GPUStack's OpenAI-compatible endpoint
+- Requires modelInfo for custom model capabilities
+- Note: Function calling requires vLLM backend (Linux only)
+
+### Ollama Integration (deepseek-coder)
+- Uses Ollama-hosted deepseek-coder:6.7b-instruct model
+- Better compatibility with Mac-based clusters
+- Supports function calling through Ollama's implementation
+- Endpoint: `https://ollama.landryzetam.net`
