@@ -18,13 +18,13 @@ The GPUStack OpenAI-compatible endpoint is configured through the following reso
   - API Key from secret: `kagent-openai`
   - Base URL: `http://gpustack-openai.kagent.svc.cluster.local/v1-openai` (via dynamic Service)
 
-### 3. Dynamic Endpoint Synchronization
-- **Endpoint Sync Job**: `gpustack-endpoint-sync-job.yaml` - Creates a CronJob that:
-  - Runs every 5 minutes to sync the GPUStack endpoint
+### 3. Dynamic Endpoint Setup
+- **Endpoint Setup Job**: `gpustack-endpoint-setup.yaml` - Creates a one-time Job that:
   - Reads the base URL from the `kagent-endpoints` secret (populated from AWS)
   - Extracts the IP and port from the URL
   - Creates/updates Kubernetes Endpoints to map the Service to the actual IP
   - This allows the ModelConfig to use a stable service name while the actual IP is managed in AWS
+  - Run this job whenever the GPUStack endpoint changes
 
 ## Prerequisites
 
@@ -45,7 +45,7 @@ Once the resources are applied to the cluster, the deepseek-r1 model will be ava
 - `aws-secret-store.yaml` - AWS Secrets Manager store configuration
 - `external-secret-gpustack.yaml` - External secret for GPUStack API key
 - `external-secret-endpoints.yaml` - External secret for GPUStack base URL
-- `gpustack-endpoint-sync-job.yaml` - CronJob to sync GPUStack endpoint from secret to Service
+- `gpustack-endpoint-setup.yaml` - One-time Job to setup GPUStack endpoint from secret to Service
 - `modelconfig-gpustack.yaml` - Model configuration for deepseek-r1
 - `repository-crds.yaml` - Helm repository for CRDs
 - `repository.yaml` - Helm repository for Kagent
