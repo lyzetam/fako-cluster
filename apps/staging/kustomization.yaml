@@ -26,3 +26,6 @@ resources:
   - piper           
   - openwakeword    
   - node-labeling
+  
+  # AI Agent
+  - kagent         # Kubernetes AI assistant
