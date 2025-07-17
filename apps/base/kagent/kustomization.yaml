@@ -11,8 +11,8 @@ resources:
   - release.yaml
   - aws-secret-store.yaml
   - external-secret-endpoints.yaml
-  - external-secret-gpustack.yaml
   - external-secret-openai.yaml
+  - external-secret-ollama.yaml
   - modelconfig-ollama-deepseek.yaml
   - modelconfig-ollama-mistral.yaml
 
