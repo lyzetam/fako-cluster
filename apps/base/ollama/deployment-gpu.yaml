@@ -123,6 +123,7 @@ spec:
           # PRIORITY 5: Larger models - RTX 5070 has the memory
           echo ""
           echo "=== LARGER MODELS (13B+) ==="
+          ollama pull qwen:32b || echo "Failed qwen:32b"
           # ollama pull llama2:13b-chat-q4_K_M || echo "Failed llama2:13b"
           # ollama pull deepseek-r1:14b || echo "Failed deepseek-r1:14b"
           # ollama pull phi-4:latest || echo "Failed phi-4"
