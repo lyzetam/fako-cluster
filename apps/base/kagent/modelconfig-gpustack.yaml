@@ -9,8 +9,4 @@ spec:
   model: deepseek-r1
   provider: OpenAI
   openAI:
-    baseURL:
-      valueFrom:
-        secretKeyRef:
-          name: kagent-endpoints
-          key: OPENAI_API_BASE_URL
+    baseUrl: "http://***NFS-IP-REMOVED***:80/v1-openai"

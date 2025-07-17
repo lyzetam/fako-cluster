@@ -16,7 +16,7 @@ The GPUStack OpenAI-compatible endpoint is configured through the following reso
   - Model name: `deepseek-r1`
   - Provider: OpenAI (GPUStack exposes an OpenAI-compatible endpoint)
   - API Key from secret: `kagent-openai-secret`
-  - Base URL from secret: `kagent-endpoints`
+  - Base URL: `http://***NFS-IP-REMOVED***:80/v1-openai` (GPUStack endpoint)
 
 ## Prerequisites
 
