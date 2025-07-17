@@ -5,14 +5,15 @@ namespace: kagent
 
 resources:
   - namespace.yaml
-  - repository-crds.yaml
   - repository.yaml
-  - aws-secret-store.yaml
-  - external-secret-gpustack.yaml
-  - external-secret-endpoints.yaml
+  - repository-crds.yaml
   - release-crds.yaml
   - release.yaml
+  - aws-secret-store.yaml
+  - external-secret-endpoints.yaml
+  - external-secret-gpustack.yaml
   - modelconfig-ollama-deepseek.yaml
+  - modelconfig-ollama-mistral.yaml
 
 commonLabels:
   app.kubernetes.io/name: kagent
