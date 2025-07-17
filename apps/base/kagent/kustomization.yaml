@@ -17,6 +17,7 @@ resources:
   - modelconfig-ollama-deepseek.yaml
   - modelconfig-ollama-mistral.yaml
   - modelconfig-ollama-llama3.yaml
+  - modelconfig-ollama-llama32.yaml
 
 commonLabels:
   app.kubernetes.io/name: kagent
