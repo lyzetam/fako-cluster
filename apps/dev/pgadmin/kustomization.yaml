@@ -1,5 +1,0 @@
-kind: Kustomization
-namespace: dev-pgadmin
-resources:
-  - ../../base/pgadmin/
-  - secret.yaml

@@ -27,7 +27,6 @@ What does this mean?
 - [Infrastructure Components](#infrastructure-components)
 - [Security & Secret Management](#security--secret-management)
 - [Monitoring & Observability](#monitoring--observability)
-- [Development Workflow](#development-workflow)
 - [Getting Started](#getting-started)
 - [Lessons Learned](#lessons-learned)
 
@@ -123,27 +122,19 @@ fako-cluster/
 │   │   ├── keycloak/       # with Kubernetes manifests
 │   │   ├── ollama/         # ConfigMaps, Deployments, Services
 │   │   └── ...             # Ingress, Storage, Secrets
-│   ├── dev/                # Development overlays
-│   │   └── kustomization.yaml # Patches for dev environment
 │   └── staging/            # Production overlays
 │       └── kustomization.yaml # Patches for production
 │
 ├── clusters/               # Cluster bootstrapping
-│   ├── dev/                # Dev cluster configuration
-│   │   ├── apps.yaml       # Apps kustomization
-│   │   ├── infrastructure.yaml # Infrastructure kustomization
-│   │   └── monitoring.yaml # Monitoring kustomization
 │   └── staging/            # Production cluster configuration
 │       └── flux-system/    # Flux components
 │
 ├── infrastructure/         # Platform components
 │   ├── configs/            # Infrastructure configuration
 │   │   ├── base/           # Shared configs
-│   │   ├── dev/            # Dev-specific configs
 │   │   └── staging/        # Prod-specific configs
 │   └── controllers/        # Operators and controllers
 │       ├── base/           # External Secrets, CSI drivers
-│       ├── dev/            # Dev overrides
 │       └── staging/        # Prod overrides
 │
 └── monitoring/             # Observability stack
@@ -293,31 +284,6 @@ Can I diagnose and fix issues at 3 AM when I'm half asleep? The monitoring stack
 - Runbook links in alerts
 - One-click rollback via Flux
 - Automated recovery where possible
-
-## Development Workflow
-
-### The Two-Environment Strategy
-
-```
-main branch → Production (GPU-enabled, full resources)
-dev branch  → Development (CPU-only, resource-constrained)
-```
-
-This isn't just about saving resources – it's about proving the applications work everywhere. If it runs in dev, it'll run in production.
-
-### CPU-Only Development
-
-Complete stack without GPU requirements:
-- **Ollama**: CPU mode with small models (tinyllama, phi3)
-- **Whisper**: INT8 optimized for CPU
-- **Same Architecture**: Identical service structure as production
-
-### Continuous Everything
-
-- **Continuous Deployment**: Git push triggers automatic rollout
-- **Continuous Monitoring**: Every deployment tracked in Grafana
-- **Continuous Updates**: Renovate bot keeps dependencies fresh
-- **Continuous Learning**: Every failure documented and fixed in code
 
 ## Getting Started
 
