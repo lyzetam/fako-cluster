@@ -9,4 +9,4 @@ spec:
   model: deepseek-r1
   provider: OpenAI
   openAI:
-    baseUrl: "http://gpustack-openai.kagent.svc.cluster.local/v1-openai"
+    baseUrl: "http://gpustack.example.com/v1-openai"  # TODO: Replace with actual GPUStack URL
