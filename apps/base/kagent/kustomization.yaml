@@ -12,6 +12,7 @@ resources:
   - external-secret-endpoints.yaml
   - release-crds.yaml
   - release.yaml
+  - modelconfig-gpustack.yaml
 
 commonLabels:
   app.kubernetes.io/name: kagent
