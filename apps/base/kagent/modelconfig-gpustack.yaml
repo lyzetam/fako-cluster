@@ -4,7 +4,7 @@ metadata:
   name: gpustack-deepseek-r1
   namespace: kagent
 spec:
-  apiKeySecretRef: kagent-openai-secret
+  apiKeySecretRef: kagent-openai
   apiKeySecretKey: OPENAI_API_KEY
   model: deepseek-r1
   provider: OpenAI

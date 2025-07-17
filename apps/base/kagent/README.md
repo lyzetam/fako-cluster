@@ -8,14 +8,14 @@ The GPUStack OpenAI-compatible endpoint is configured through the following reso
 
 ### 1. AWS Secrets Manager Integration
 - **Secret Store**: `aws-secret-store.yaml` - Configures access to AWS Secrets Manager
-- **API Key Secret**: `external-secret-gpustack.yaml` - Fetches the OpenAI API key from AWS secret `gpustack/api-key`
+- **API Key Secret**: `external-secret-gpustack.yaml` - Fetches the OpenAI API key from AWS secret `gpustack/api-key` and creates the `kagent-openai` secret
 - **Endpoints Secret**: `external-secret-endpoints.yaml` - Fetches the GPUStack base URL from AWS secret `ollama-webui/endpoints`
 
 ### 2. Model Configuration
 - **ModelConfig**: `modelconfig-gpustack.yaml` - Configures the deepseek-r1 model with:
   - Model name: `deepseek-r1`
   - Provider: OpenAI (GPUStack exposes an OpenAI-compatible endpoint)
-  - API Key from secret: `kagent-openai-secret`
+  - API Key from secret: `kagent-openai`
   - Base URL: `http://***NFS-IP-REMOVED***:80/v1-openai` (GPUStack endpoint)
 
 ## Prerequisites
