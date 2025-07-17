@@ -29,3 +29,6 @@ resources:
   
   # AI Agent
   - kagent         # Kubernetes AI assistant
+  
+  # GPUStack Proxy
+  - gpustack-proxy  # Proxy to GPUStack endpoint
