@@ -1,0 +1,16 @@
+apiVersion: kagent.dev/v1alpha1
+kind: ModelConfig
+metadata:
+  name: gpustack-deepseek-r1
+  namespace: kagent
+spec:
+  apiKeySecretRef: kagent-openai-secret
+  apiKeySecretKey: OPENAI_API_KEY
+  model: deepseek-r1
+  provider: OpenAI
+  openAI:
+    baseURL:
+      valueFrom:
+        secretKeyRef:
+          name: kagent-endpoints
+          key: OPENAI_API_BASE_URL

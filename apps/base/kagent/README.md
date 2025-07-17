@@ -1,117 +1,45 @@
-# Kagent Installation Guide
+# Kagent Configuration
 
-Kagent is an AI assistant for Kubernetes operations. This deployment uses Helm with Flux to manage the installation.
+This directory contains the configuration for Kagent, including model configurations and secrets management.
 
-## Overview
+## GPUStack Integration
 
-This setup deploys Kagent using:
-- Two Helm releases: one for CRDs and one for the main application
-- External Secrets for GPUStack API credentials
-- Ingress configuration for external access
+The GPUStack OpenAI-compatible endpoint is configured through the following resources:
 
-## Architecture
+### 1. AWS Secrets Manager Integration
+- **Secret Store**: `aws-secret-store.yaml` - Configures access to AWS Secrets Manager
+- **API Key Secret**: `external-secret-gpustack.yaml` - Fetches the OpenAI API key from AWS secret `gpustack/api-key`
+- **Endpoints Secret**: `external-secret-endpoints.yaml` - Fetches the GPUStack base URL from AWS secret `ollama-webui/endpoints`
 
-1. **kagent-crds**: Installs the Custom Resource Definitions
-2. **kagent**: Main application deployment (depends on CRDs)
-3. **External Secrets**: Pulls GPUStack API key from AWS Secrets Manager
-4. **Ingress**: Exposes Kagent at kagent-dev.landryzetam.net
+### 2. Model Configuration
+- **ModelConfig**: `modelconfig-gpustack.yaml` - Configures the deepseek-r1 model with:
+  - Model name: `deepseek-r1`
+  - Provider: OpenAI (GPUStack exposes an OpenAI-compatible endpoint)
+  - API Key from secret: `kagent-openai-secret`
+  - Base URL from secret: `kagent-endpoints`
 
-## Configuration
+## Prerequisites
 
-### GPUStack Integration
+Before applying these resources, ensure:
 
-The deployment is configured to use GPUStack as the LLM provider:
-- API endpoint: Retrieved from AWS Secrets Manager at `ollama-webui/endpoints`
-- API key: Retrieved from AWS Secrets Manager at `gpustack/api-key`
+1. AWS credentials are properly configured in the cluster
+2. The following AWS Secrets Manager secrets exist:
+   - `gpustack/api-key` with property `OPENAI_API_KEYS`
+   - `ollama-webui/endpoints` with property `gpustack_base_url`
 
-### Resource Limits
+## Usage
 
-```yaml
-resources:
-  requests:
-    memory: "512Mi"
-    cpu: "250m"
-  limits:
-    memory: "2Gi"
-    cpu: "1000m"
-```
+Once the resources are applied to the cluster, the deepseek-r1 model will be available in the Kagent UI model dropdown when creating or updating agents.
 
-## Manual Installation (Alternative)
+## Files
 
-If you prefer to install Kagent manually using the CLI:
-
-### 1. Install Kagent CLI
-
-```bash
-# Download and install the kagent CLI
-curl https://raw.githubusercontent.com/kagent-dev/kagent/refs/heads/main/scripts/get-kagent | bash
-```
-
-### 2. Set up API Key
-
-```bash
-export OPENAI_API_KEY="your-gpustack-api-key"
-export OPENAI_API_BASE="your-gpustack-base-url"
-```
-
-### 3. Install Kagent
-
-```bash
-kagent install
-```
-
-### 4. Access Dashboard
-
-```bash
-kagent dashboard
-```
-
-## Using Kagent
-
-### CLI Usage
-
-```bash
-# List available agents
-kagent >> get agents
-
-# Start a chat session
-kagent >> run chat
-
-# Select an agent and ask questions about your cluster
-```
-
-### Available Agents
-
-- **k8s-agent**: General Kubernetes operations
-- **helm-agent**: Helm chart management
-- **observability-agent**: Monitoring and metrics
-- **istio-agent**: Service mesh operations
-
-## Integration with GPUStack
-
-The configuration uses External Secrets to securely manage GPUStack credentials:
-- **API Key**: Retrieved from AWS Secrets Manager at `gpustack/api-key`
-- **Base URL**: Retrieved from AWS Secrets Manager at `ollama-webui/endpoints`
-
-Both values are automatically injected into the Kagent deployment, ensuring no sensitive information is hardcoded.
-
-## Troubleshooting
-
-1. **CRD Errors**: The Helm deployment handles CRD installation automatically
-2. **Secret Errors**: Ensure AWS credentials are properly configured for External Secrets
-3. **API Connection**: Verify the GPUStack endpoint is accessible from your cluster
-4. **Pod Issues**: Check `kubectl logs -n dev-kagent kagent-<pod-id>` for detailed errors
-
-## Current Deployment Status
-
-The Kagent deployment includes:
-- **CRDs**: Automatically installed via `kagent-crds` HelmRelease
-- **Main Application**: Deployed via `kagent` HelmRelease with dependency on CRDs
-- **External Secrets**: Configured to pull credentials from AWS Secrets Manager
-- **Ingress**: Available at kagent-dev.landryzetam.net (dev environment)
-
-## Notes
-
-- The deployment uses a two-step Helm installation process (CRDs first, then main app)
-- All sensitive configuration is managed through External Secrets
-- For production use, ensure proper AWS credentials and TLS configuration
+- `namespace.yaml` - Creates the kagent namespace
+- `aws-secret-store.yaml` - AWS Secrets Manager store configuration
+- `external-secret-gpustack.yaml` - External secret for GPUStack API key
+- `external-secret-endpoints.yaml` - External secret for GPUStack base URL
+- `modelconfig-gpustack.yaml` - Model configuration for deepseek-r1
+- `repository-crds.yaml` - Helm repository for CRDs
+- `repository.yaml` - Helm repository for Kagent
+- `release-crds.yaml` - Helm release for CRDs
+- `release.yaml` - Helm release for Kagent
+- `kustomization.yaml` - Kustomize configuration
