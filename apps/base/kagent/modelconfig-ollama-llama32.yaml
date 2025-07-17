@@ -11,7 +11,7 @@ spec:
   # Required for custom models
   modelInfo:
     vision: false              # Llama3.2:3b doesn't support image inputs
-    functionCalling: true     # Llama3.2:3b supports function/tool calling
+    functionCalling: true      # Enable function/tool calling for kagent agents
     jsonOutput: true          # Can generate JSON responses
     family: "llama"           # Model family identifier
     structuredOutput: true    # Supports structured output generation
