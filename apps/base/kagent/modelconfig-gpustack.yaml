@@ -10,3 +10,11 @@ spec:
   provider: OpenAI
   openAI:
     baseUrl: "https://gpustack.landryzetam.net/v1-openai"
+  # Required for custom models
+  modelInfo:
+    vision: false              # DeepSeek R1 doesn't support image inputs
+    functionCalling: true      # Supports function/tool calling
+    jsonOutput: true          # Can generate JSON responses
+    family: "deepseek"        # Model family identifier
+    structuredOutput: true    # Supports structured output generation
+    multipleSystemMessages: false  # Standard single system message support
