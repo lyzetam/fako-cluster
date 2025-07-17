@@ -7,7 +7,7 @@ spec:
   model: deepseek-coder:6.7b-instruct
   provider: Ollama
   ollama:
-    baseUrl: "https://ollama.landryzetam.net"
+    host: "https://ollama.landryzetam.net"
   # Required for custom models
   modelInfo:
     vision: false              # DeepSeek Coder doesn't support image inputs
