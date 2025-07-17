@@ -1,0 +1,20 @@
+apiVersion: kagent.dev/v1alpha1
+kind: ModelConfig
+metadata:
+  name: ollama-mistral
+  namespace: kagent
+spec:
+  apiKeySecretKey: OPENAI_API_KEY
+  apiKeySecretRef: kagent-openai
+  model: mistral:7b
+  provider: Ollama
+  ollama:
+    host: http://ollama-gpu.ollama.svc.cluster.local:11434
+  # Required: Specify model capabilities
+  modelInfo:
+    vision: false
+    functionCalling: true
+    jsonOutput: true
+    family: "mistral"
+    structuredOutput: true
+    multipleSystemMessages: false
