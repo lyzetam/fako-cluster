@@ -16,7 +16,13 @@ The GPUStack OpenAI-compatible endpoint is configured through the following reso
   - Model name: `deepseek-r1`
   - Provider: OpenAI (GPUStack exposes an OpenAI-compatible endpoint)
   - API Key from secret: `kagent-openai`
-  - Base URL: Placeholder URL (needs to be updated with actual GPUStack service URL)
+  - Base URL: `http://gpustack-openai.kagent.svc.cluster.local/v1-openai` (via Kubernetes Service)
+
+### 3. GPUStack Service
+- **Service & Endpoints**: `gpustack-service.yaml` - Creates a Kubernetes Service that:
+  - Provides a stable DNS name for the GPUStack endpoint
+  - Maps to the GPUStack IP address (fetched from AWS Secrets Manager)
+  - Allows the ModelConfig to use a service name instead of hardcoding the IP
 
 ## Prerequisites
 
@@ -37,6 +43,7 @@ Once the resources are applied to the cluster, the deepseek-r1 model will be ava
 - `aws-secret-store.yaml` - AWS Secrets Manager store configuration
 - `external-secret-gpustack.yaml` - External secret for GPUStack API key
 - `external-secret-endpoints.yaml` - External secret for GPUStack base URL
+- `gpustack-service.yaml` - Service and Endpoints for GPUStack
 - `modelconfig-gpustack.yaml` - Model configuration for deepseek-r1
 - `repository-crds.yaml` - Helm repository for CRDs
 - `repository.yaml` - Helm repository for Kagent
