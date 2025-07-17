@@ -31,19 +31,6 @@ subjects:
   name: gpustack-endpoint-sync
   namespace: gpustack-proxy
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: gpustack
-  namespace: gpustack-proxy
-spec:
-  type: ClusterIP
-  ports:
-  - port: 80
-    targetPort: 80
-    protocol: TCP
-    name: http
----
 apiVersion: batch/v1
 kind: CronJob
 metadata:

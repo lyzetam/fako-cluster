@@ -7,9 +7,6 @@ resources:
   - namespace.yaml
   - aws-secret-store.yaml
   - external-secret-endpoint.yaml
+  - service.yaml
   - endpoint-sync-job.yaml
   - ingress.yaml
-
-commonLabels:
-  app.kubernetes.io/name: gpustack-proxy
-  app.kubernetes.io/part-of: gpustack-proxy
