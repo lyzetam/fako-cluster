@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gpustack-endpoint-sync
+  namespace: kagent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gpustack-endpoint-sync
+  namespace: kagent
+rules:
+- apiGroups: [""]
+  resources: ["endpoints", "services"]
+  verbs: ["get", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gpustack-endpoint-sync
+  namespace: kagent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gpustack-endpoint-sync
+subjects:
+- kind: ServiceAccount
+  name: gpustack-endpoint-sync
+  namespace: kagent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gpustack-openai
+  namespace: kagent
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gpustack-endpoint-sync
+  namespace: kagent
+spec:
+  schedule: "*/5 * * * *"  # Run every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: gpustack-endpoint-sync
+          restartPolicy: OnFailure
+          containers:
+          - name: sync
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Get the base URL from the secret
+              BASE_URL=$(kubectl get secret kagent-endpoints -n kagent -o jsonpath='{.data.OPENAI_API_BASE_URL}' | base64 -d)
+              
+              # Extract IP and port from the URL (format: http://IP:PORT/path)
+              IP=$(echo $BASE_URL | sed -E 's|https?://([^:/]+)(:[0-9]+)?/.*|\1|')
+              PORT=$(echo $BASE_URL | sed -E 's|https?://[^:]+:([0-9]+)/.*|\1|' | grep -E '^[0-9]+$' || echo "80")
+              
+              echo "Extracted IP: $IP, Port: $PORT from URL: $BASE_URL"
+              
+              # Create or update the Endpoints
+              cat <<EOF | kubectl apply -f -
+              apiVersion: v1
+              kind: Endpoints
+              metadata:
+                name: gpustack-openai
+                namespace: kagent
+              subsets:
+              - addresses:
+                - ip: $IP
+                ports:
+                - port: $PORT
+                  protocol: TCP
+                  name: http
+              EOF

@@ -12,6 +12,7 @@ resources:
   - external-secret-endpoints.yaml
   - release-crds.yaml
   - release.yaml
+  - gpustack-endpoint-sync-job.yaml
   - modelconfig-gpustack.yaml
 
 commonLabels:
