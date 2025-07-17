@@ -13,6 +13,7 @@ resources:
   - external-secret-endpoints.yaml
   - external-secret-openai.yaml
   - external-secret-ollama.yaml
+  - external-secret-gpustack.yaml
   - modelconfig-ollama-deepseek.yaml
   - modelconfig-ollama-mistral.yaml
 
