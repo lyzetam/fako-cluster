@@ -11,7 +11,7 @@ spec:
   # Required for custom models
   modelInfo:
     vision: false              # Llama3 doesn't support image inputs
-    functionCalling: false     # Llama3 doesn't support function/tool calling
+    functionCalling: true     # Llama3 supports function/tool calling
     jsonOutput: true          # Can generate JSON responses
     family: "llama"           # Model family identifier
     structuredOutput: true    # Supports structured output generation
