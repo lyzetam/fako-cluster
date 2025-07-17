@@ -1,0 +1,26 @@
+# Patches for agents in default namespace to use ollama-llama32
+# These agents need the full kagent/ollama-llama32 path
+---
+apiVersion: kagent.dev/v1alpha1
+kind: Agent
+metadata:
+  name: k8sagent-openai
+  namespace: default
+spec:
+  modelConfig: kagent/ollama-llama32
+---
+apiVersion: kagent.dev/v1alpha1
+kind: Agent
+metadata:
+  name: my-first-k8s-agent
+  namespace: default
+spec:
+  modelConfig: kagent/ollama-llama32
+---
+apiVersion: kagent.dev/v1alpha1
+kind: Agent
+metadata:
+  name: testagent
+  namespace: default
+spec:
+  modelConfig: kagent/ollama-llama32
