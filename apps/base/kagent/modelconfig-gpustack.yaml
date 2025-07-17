@@ -9,4 +9,4 @@ spec:
   model: deepseek-r1
   provider: OpenAI
   openAI:
-    baseUrl: "http://gpustack-openai/v1-openai"
+    baseUrl: "https://gpustack.landryzetam.net/v1-openai"
