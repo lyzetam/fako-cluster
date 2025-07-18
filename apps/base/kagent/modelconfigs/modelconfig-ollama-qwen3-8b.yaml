@@ -1,0 +1,17 @@
+apiVersion: kagent.dev/v1alpha1
+kind: ModelConfig
+metadata:
+  name: ollama-qwen3-8b
+  namespace: kagent
+spec:
+  provider: Ollama
+  model: qwen3:8b
+  ollama:
+    host: http://ollama-gpu.ollama.svc.cluster.local:11434
+  modelInfo:
+    family: qwen
+    functionCalling: true
+    jsonOutput: true
+    structuredOutput: true
+    vision: false
+    multipleSystemMessages: false
