@@ -15,6 +15,7 @@ resources:
   - external-secret-ollama.yaml
   - external-secret-gpustack.yaml
   - modelconfig-ollama-deepseek.yaml
+  - modelconfig-ollama-deepseek-r1-coder.yaml
   - modelconfig-ollama-mistral.yaml
   - modelconfig-ollama-llama3.yaml
   - modelconfig-ollama-llama32.yaml
