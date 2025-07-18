@@ -29,8 +29,9 @@ spec:
       - name: mcp-server
         image: mcpk8s/server:latest
         imagePullPolicy: IfNotPresent
-        args:
-        - "--readonly"  # Read-only mode for safety
+        # Removed --readonly flag to enable full functionality for kagent
+        # args:
+        # - "--readonly"
         env:
         - name: KUBECONFIG
           value: "/var/run/secrets/kubernetes.io/serviceaccount"
