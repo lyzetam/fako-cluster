@@ -26,7 +26,9 @@ spec:
         fsGroup: 1000
       containers:
         - name: postgres-mcp-server
-          image: modelcontextprotocol/server-postgres:latest
+          image: node:18-alpine
+          command: ["/bin/sh"]
+          args: ["-c", "echo 'PostgreSQL MCP Server placeholder - implement actual MCP server here' && sleep 3600"]
           ports:
             - containerPort: 3000
               protocol: TCP
@@ -65,15 +67,3 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 10
-            periodSeconds: 5

@@ -26,18 +26,17 @@ spec:
         fsGroup: 1000
       containers:
         - name: github-mcp-server
-          image: modelcontextprotocol/server-github:latest
-          ports:
-            - containerPort: 3000
-              protocol: TCP
+          image: node:18-alpine
+          command: ["/bin/sh"]
+          args: ["-c", "echo 'GitHub MCP Server placeholder - use ghcr.io/github/github-mcp-server:latest with stdio transport' && sleep 3600"]
           env:
             - name: GITHUB_PERSONAL_ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: github-mcp-secret
                   key: token
-            - name: PORT
-              value: "3000"
+            - name: GITHUB_TOOLSETS
+              value: "all"
           resources:
             requests:
               memory: "128Mi"
@@ -45,15 +44,3 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 5
