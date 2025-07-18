@@ -19,6 +19,7 @@ resources:
   - modelconfig-ollama-llama3.yaml
   - modelconfig-ollama-llama32.yaml
   - modelconfig-ollama-qwen3-30b-a3b.yaml
+  - modelconfig-ollama-qwen25.yaml
 
 commonLabels:
   app.kubernetes.io/name: kagent
