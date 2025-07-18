@@ -3,6 +3,9 @@ kind: Agent
 metadata:
   name: k8s-operator
   namespace: kagent
+  labels:
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/name: k8s-operator
 spec:
   description: Advanced Kubernetes operator with MCP tools for comprehensive cluster management
   modelConfig: ollama-qwen3-30b-a3b
