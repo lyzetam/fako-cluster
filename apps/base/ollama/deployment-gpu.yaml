@@ -116,6 +116,7 @@ spec:
           echo "=== MEDIUM MODELS (7-8B) ==="
           ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
           ollama pull deepseek-coder:6.7b-instruct || echo "Failed deepseek-coder:6.7b-instruct"
+          ollama pull ishumilin/deepseek-r1-coder-tools || echo "Failed ishumilin/deepseek-r1-coder-tools"
           # ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed mistral:7b"
           # ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed qwen2.5:7b"
           # ollama pull orieg/gemma3-tools:4b || echo "Failed gemma3-tools:4b"
