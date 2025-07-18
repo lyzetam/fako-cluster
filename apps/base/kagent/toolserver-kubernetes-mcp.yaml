@@ -6,5 +6,8 @@ metadata:
 spec:
   description: Kubernetes cluster operations via MCP
   config:
-    sse:
-      url: http://kubernetes-mcp-server.mcp-servers.svc.cluster.local/sse
+    stdio:
+      command: ["mcpk8s"]
+      args: []
+      env:
+        KUBECONFIG: "/var/run/secrets/kubernetes.io/serviceaccount"
