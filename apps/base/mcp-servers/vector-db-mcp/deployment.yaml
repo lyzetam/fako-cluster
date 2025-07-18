@@ -20,47 +20,8 @@ spec:
         app.kubernetes.io/component: mcp-server
     spec:
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
         fsGroup: 1000
       containers:
-        - name: vector-db-mcp-server
-          image: ghcr.io/modelcontextprotocol/server-memory:latest
-          ports:
-            - containerPort: 3000
-              protocol: TCP
-          env:
-            - name: PORT
-              value: "3000"
-            - name: CHROMA_HOST
-              value: "localhost"
-            - name: CHROMA_PORT
-              value: "8000"
-            - name: COLLECTION_NAME
-              value: "mcp_memory"
-          volumeMounts:
-            - mountPath: /data
-              name: vector-db-data
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "200m"
-            limits:
-              memory: "1Gi"
-              cpu: "1000m"
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 10
-            periodSeconds: 5
         - name: chromadb
           image: chromadb/chroma:latest
           ports:
@@ -73,6 +34,8 @@ spec:
               value: "8000"
             - name: PERSIST_DIRECTORY
               value: "/chroma/chroma"
+            - name: ANONYMIZED_TELEMETRY
+              value: "false"
           volumeMounts:
             - mountPath: /chroma/chroma
               name: vector-db-data
@@ -83,6 +46,18 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/heartbeat
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/v1/heartbeat
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
       volumes:
         - name: vector-db-data
           persistentVolumeClaim:
