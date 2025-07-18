@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes-mcp-server
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: kubernetes-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: kagent
+  annotations:
+    kagent.dev/tool.type: "mcp"
+    kagent.dev/tool.description: "Kubernetes cluster operations including resource management, pod logs, exec, and manifest generation"
+    kagent.dev/tool.transport: "streamable-http"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: kubernetes-mcp-server
+    app.kubernetes.io/component: mcp-server
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
