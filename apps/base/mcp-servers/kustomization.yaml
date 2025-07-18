@@ -6,7 +6,6 @@ namespace: mcp-servers
 resources:
   - namespace.yaml
   - kubernetes-mcp
-  - website-fetcher-mcp
 
 labels:
 - pairs:
