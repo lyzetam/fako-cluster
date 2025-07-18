@@ -17,13 +17,15 @@ Services are annotated with:
 ### Deployed MCP Servers
 
 #### 1. Kubernetes MCP Server
-- **Image**: `ghcr.io/manusa/kubernetes-mcp-server:latest`
-- **Transport**: Streamable HTTP
+- **Image**: `mcpk8s/server:latest`
+- **Transport**: stdio (stdin/stdout)
 - **Capabilities**:
-  - List and get Kubernetes resources
-  - View pod logs and execute commands
-  - Generate Kubernetes manifests
-  - Manage deployments, services, and other resources
+  - List Kubernetes contexts and namespaces
+  - List and get any Kubernetes resources (pods, services, deployments, etc.)
+  - Get Kubernetes events
+  - Get pod logs
+  - Run commands in pods
+- **Mode**: Read-only (configured with `--readonly` flag for safety)
 - **RBAC**: Comprehensive permissions for cluster operations
 
 #### 2. Website Fetcher MCP Server
