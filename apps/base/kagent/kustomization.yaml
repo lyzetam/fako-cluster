@@ -20,7 +20,6 @@ resources:
   - modelconfig-ollama-llama32.yaml
   - modelconfig-ollama-qwen3-30b-a3b.yaml
   - modelconfig-ollama-qwen25.yaml
-  - toolserver-kubernetes-mcp.yaml
   - agent-k8s-operator.yaml
 
 labels:

@@ -38,7 +38,10 @@ spec:
     - Provide command outputs in code blocks
     - Summarize actions taken and their results
   tools:
-  # Use the Kubernetes MCP server
-  - type: McpServer
-    mcpServer:
-      toolServer: kubernetes-mcp-server
+  # Use automatic discovery for MCP servers
+  - type: AutoDiscovered
+    autoDiscovered:
+      namespace: mcp-servers
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: kubernetes-mcp-server
