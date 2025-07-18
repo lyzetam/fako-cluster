@@ -4,7 +4,7 @@ metadata:
   name: ollama-deepseek-r1-coder
   namespace: kagent
 spec:
-  model: ishumilin/deepseek-r1-coder-tools
+  model: deepseek-r1:14b
   provider: Ollama
   ollama:
     host: "http://ollama-gpu.ollama.svc.cluster.local:11434"
