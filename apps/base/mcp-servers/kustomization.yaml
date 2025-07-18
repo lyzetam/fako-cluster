@@ -6,6 +6,11 @@ namespace: mcp-servers
 resources:
   - namespace.yaml
   - kubernetes-mcp
+  - github-mcp
+  - vector-db-mcp
+  - weather-mcp
+  - filesystem-mcp
+  - postgres-mcp
 
 labels:
 - pairs:
