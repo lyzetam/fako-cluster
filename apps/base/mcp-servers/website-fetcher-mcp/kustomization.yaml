@@ -7,7 +7,8 @@ resources:
   - deployment.yaml
   - service.yaml
 
-commonLabels:
-  app.kubernetes.io/name: mcp-website-fetcher
-  app.kubernetes.io/component: mcp-server
-  app.kubernetes.io/part-of: kagent
+labels:
+- pairs:
+    app.kubernetes.io/name: mcp-website-fetcher
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: kagent

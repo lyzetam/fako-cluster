@@ -33,8 +33,6 @@ spec:
   # Using the website fetcher MCP server
   - type: McpServer
     mcpServer:
-      service:
-        name: mcp-website-fetcher
-        namespace: mcp-servers
+      toolServer: mcp-website-fetcher
       toolNames:
       - fetch
