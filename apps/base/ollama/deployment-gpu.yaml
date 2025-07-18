@@ -116,6 +116,11 @@ spec:
           echo "=== MEDIUM MODELS (7-8B) ==="
           ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
           ollama pull deepseek-coder:6.7b-instruct || echo "Failed deepseek-coder:6.7b-instruct"
+          
+          # PRIORITY 4.5: Enhanced DeepSeek R1 Coder for autonomous agents
+          echo ""
+          echo "=== DEEPSEEK R1 CODER TOOLS (Enhanced for Cline) ==="
+          ollama pull ishumilin/deepseek-r1-coder-tools:14b || echo "Failed ishumilin/deepseek-r1-coder-tools:14b"
           ollama pull deepseek-r1:14b || echo "Failed deepseek-r1:14b"
           # ollama pull mistral:7b-instruct-v0.3-q5_K_M || echo "Failed mistral:7b"
           # ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed qwen2.5:7b"
