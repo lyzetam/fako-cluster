@@ -35,3 +35,6 @@ resources:
   
   # GPUStack Proxy
   - gpustack-proxy  # Proxy to GPUStack endpoint
+  
+  # Workflow Automation
+  - n8n             # Workflow automation platform
