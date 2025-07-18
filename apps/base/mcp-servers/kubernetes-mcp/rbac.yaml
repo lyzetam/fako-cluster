@@ -34,7 +34,7 @@ rules:
   - pods/log
   - pods/exec
   - pods/portforward
-  verbs: ["get", "create"]
+  verbs: ["get", "list", "create"]
 # Apps resources - read operations
 - apiGroups: ["apps"]
   resources:
