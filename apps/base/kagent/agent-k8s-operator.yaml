@@ -29,17 +29,7 @@ spec:
     - Provide command outputs in code blocks
     - Summarize actions taken and their results
   tools:
-  # Auto-discover all MCP tools from the mcp-servers namespace
-  - type: AutoDiscovered
-    autoDiscovered:
-      namespace: mcp-servers
-      selector:
-        matchLabels:
-          app.kubernetes.io/component: mcp-server
-  # Also include built-in Kagent tools
-  - type: Builtin
-    builtin:
-      name: kagent.tools.k8s.GetResources
-  - type: Builtin
-    builtin:
-      name: kagent.tools.k8s.GetAvailableAPIResources
+  # Use the Kubernetes MCP server
+  - type: McpServer
+    mcpServer:
+      toolServer: kubernetes-mcp-server
