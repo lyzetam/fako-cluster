@@ -1,0 +1,12 @@
+apiVersion: kagent.dev/v1alpha1
+kind: ToolServer
+metadata:
+  name: mcp-website-fetcher
+  namespace: kagent
+spec:
+  description: Fetch and process web content from URLs
+  config:
+    mcp:
+      service:
+        name: mcp-website-fetcher
+        namespace: mcp-servers
