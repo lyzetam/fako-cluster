@@ -6,7 +6,5 @@ metadata:
 spec:
   description: Kubernetes cluster operations via MCP
   config:
-    mcp:
-      service:
-        name: kubernetes-mcp-server
-        namespace: mcp-servers
+    sse:
+      url: http://kubernetes-mcp-server.mcp-servers.svc.cluster.local/sse
