@@ -16,6 +16,7 @@ resources:
   - external-secret-gpustack.yaml
   - modelconfigs/modelconfig-ollama-deepseek.yaml
   - modelconfigs/modelconfig-ollama-deepseek-r1-coder.yaml
+  - modelconfigs/modelconfig-ollama-deepseek-r1-coder-tools.yaml
   - modelconfigs/modelconfig-ollama-mistral.yaml
   - modelconfigs/modelconfig-ollama-llama3.yaml
   - modelconfigs/modelconfig-ollama-llama32.yaml
@@ -23,6 +24,7 @@ resources:
   - modelconfigs/modelconfig-ollama-qwen25.yaml
   - agents/agent-k8s-operator.yaml
   - agents/agent-deepseek-r1-coder.yaml
+  - agents/agent-deepseek-r1-coder-tools.yaml
 
 labels:
 - pairs:
