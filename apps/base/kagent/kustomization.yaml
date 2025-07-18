@@ -20,8 +20,7 @@ resources:
   - modelconfigs/modelconfig-ollama-qwen3-30b-a3b.yaml
   - modelconfigs/modelconfig-ollama-qwen25.yaml
   - modelconfigs/modelconfig-ollama-qwen3-8b.yaml
-  - agents/agent-k8s-operator.yaml
-  - agents/agent-deepseek-r1-coder-tools.yaml
+  - agents/agent-qwen3-8b.yaml
 
 labels:
 - pairs:
