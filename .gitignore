@@ -7,3 +7,5 @@
 *.key
 notes/
 externalconnections/
+.continue/
+.vscode/
