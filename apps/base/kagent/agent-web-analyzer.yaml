@@ -3,6 +3,9 @@ kind: Agent
 metadata:
   name: web-analyzer
   namespace: kagent
+  labels:
+    app.kubernetes.io/instance: kagent
+    app.kubernetes.io/name: web-analyzer
 spec:
   description: Web content analyzer and information extractor using MCP tools
   modelConfig: ollama-deepseek-coder
@@ -34,5 +37,3 @@ spec:
   - type: McpServer
     mcpServer:
       toolServer: mcp-website-fetcher
-      toolNames:
-      - fetch
