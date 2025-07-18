@@ -22,6 +22,7 @@ resources:
   - modelconfig-ollama-qwen3-30b-a3b.yaml
   - modelconfig-ollama-qwen25.yaml
   - agent-k8s-operator.yaml
+  - agent-deepseek-r1-coder.yaml
 
 labels:
 - pairs:
