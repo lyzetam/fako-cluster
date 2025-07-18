@@ -1,0 +1,100 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubernetes-mcp-server
+  labels:
+    app.kubernetes.io/name: kubernetes-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: kagent
+rules:
+# Core resources - read operations
+- apiGroups: [""]
+  resources: 
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - configmaps
+  - secrets
+  - namespaces
+  - nodes
+  - events
+  verbs: ["get", "list", "watch"]
+# Core resources - write operations (for manifest generation)
+- apiGroups: [""]
+  resources:
+  - pods
+  - services
+  - configmaps
+  - secrets
+  verbs: ["create", "update", "patch"]
+# Pod operations
+- apiGroups: [""]
+  resources:
+  - pods/log
+  - pods/exec
+  - pods/portforward
+  verbs: ["get", "create"]
+# Apps resources - read operations
+- apiGroups: ["apps"]
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs: ["get", "list", "watch"]
+# Apps resources - write operations
+- apiGroups: ["apps"]
+  resources:
+  - deployments
+  - statefulsets
+  verbs: ["create", "update", "patch"]
+# Batch resources
+- apiGroups: ["batch"]
+  resources:
+  - jobs
+  - cronjobs
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Networking resources
+- apiGroups: ["networking.k8s.io"]
+  resources:
+  - ingresses
+  - networkpolicies
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# RBAC resources (read-only)
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources:
+  - roles
+  - rolebindings
+  - clusterroles
+  - clusterrolebindings
+  verbs: ["get", "list", "watch"]
+# Storage resources
+- apiGroups: ["storage.k8s.io"]
+  resources:
+  - storageclasses
+  verbs: ["get", "list", "watch"]
+# API discovery
+- apiGroups: [""]
+  resources:
+  - namespaces/status
+  - pods/status
+  - services/status
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubernetes-mcp-server
+  labels:
+    app.kubernetes.io/name: kubernetes-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: kagent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubernetes-mcp-server
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-mcp-server
+  namespace: mcp-servers
