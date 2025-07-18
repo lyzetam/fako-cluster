@@ -3,9 +3,15 @@ kind: Agent
 metadata:
   name: k8s-operator
   namespace: kagent
+  annotations:
+    meta.helm.sh/release-name: kagent
+    meta.helm.sh/release-namespace: kagent
   labels:
     app.kubernetes.io/instance: kagent
+    app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: k8s-operator
+    app.kubernetes.io/version: 0.4.3
+    helm.sh/chart: k8s-agent-0.4.3
 spec:
   description: Advanced Kubernetes operator with MCP tools for comprehensive cluster management
   modelConfig: ollama-qwen3-30b-a3b
