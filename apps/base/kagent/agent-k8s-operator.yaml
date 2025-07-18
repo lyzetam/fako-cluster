@@ -37,10 +37,6 @@ spec:
     - Include relevant YAML snippets when showing manifests
     - Provide command outputs in code blocks
     - Summarize actions taken and their results
-  tools:
-  # Use direct service reference for MCP server
-  - type: McpServer
-    mcpServer:
-      service:
-        name: kubernetes-mcp-server
-        namespace: mcp-servers
+  # Tools configuration removed temporarily
+  # The kubernetes-mcp-server needs to be properly configured
+  # before it can be used with this agent
