@@ -21,9 +21,7 @@ resources:
   - modelconfig-ollama-qwen3-30b-a3b.yaml
   - modelconfig-ollama-qwen25.yaml
   - toolserver-kubernetes-mcp.yaml
-  - toolserver-website-fetcher.yaml
   - agent-k8s-operator.yaml
-  - agent-web-analyzer.yaml
 
 labels:
 - pairs:
