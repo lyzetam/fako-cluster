@@ -87,7 +87,7 @@ resources:
 |----------|------------|---------------|---------|
 | `ALLOW_DANGEROUS` | `false` | `false` | Prevents dangerous launch options |
 | `PUPPETEER_DISABLE_LOCAL_ACCESS` | `true` | `true` | Blocks local file access |
-| `PUPPETEER_ALLOWED_DOMAINS` | `*.example.com,*.trusted-domain.com` | `*.staging-domain.com,*.test-domain.com,httpbin.org,jsonplaceholder.typicode.com` | Domain allowlist |
+| `PUPPETEER_ALLOWED_DOMAINS` | `*.example.com,*.trusted-site.com` | `*.staging-site.com,*.test-site.com,httpbin.org,jsonplaceholder.typicode.com` | Domain allowlist |
 | `PUPPETEER_MAX_PAGES` | `5` | `3` | Concurrent page limit |
 | `PUPPETEER_PAGE_TIMEOUT` | `30000` | `20000` | Page timeout (ms) |
 | `PUPPETEER_NAVIGATION_TIMEOUT` | `30000` | `20000` | Navigation timeout (ms) |
