@@ -1,0 +1,80 @@
+# apps/base/mcp-servers/filesystem-mcp/image-builder-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: filesystem-mcp-image-builder
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: filesystem-mcp-server
+    app.kubernetes.io/component: image-builder
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: filesystem-mcp-server
+        app.kubernetes.io/component: image-builder
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: false  # Docker-in-Docker requires root
+      containers:
+        - name: image-builder
+          image: docker:24-dind
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              set -e
+              echo "Starting Docker daemon..."
+              dockerd-entrypoint.sh &
+              
+              # Wait for Docker daemon to be ready
+              until docker info >/dev/null 2>&1; do
+                echo "Waiting for Docker daemon..."
+                sleep 2
+              done
+              
+              echo "Docker daemon ready. Building image..."
+              
+              # Create build context
+              mkdir -p /build
+              cd /build
+              
+              # Copy source files from ConfigMap
+              cp /source/* /build/
+              
+              # Build the Docker image
+              echo "Building filesystem-mcp:latest..."
+              docker build -t filesystem-mcp:latest .
+              
+              # Tag for local registry (if using one)
+              docker tag filesystem-mcp:latest localhost:5000/filesystem-mcp:latest
+              
+              echo "Image build completed successfully!"
+              docker images | grep filesystem-mcp
+          volumeMounts:
+            - name: source-code
+              mountPath: /source
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          securityContext:
+            privileged: true  # Required for Docker-in-Docker
+      volumes:
+        - name: source-code
+          configMap:
+            name: filesystem-mcp-source
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
