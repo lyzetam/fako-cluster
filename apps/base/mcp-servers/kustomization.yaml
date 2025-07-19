@@ -15,6 +15,7 @@ resources:
   - sequentialthinking-mcp
   - time-mcp
   - puppeteer-mcp
+  - fetch-mcp
 
 labels:
 - pairs:

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fetch-mcp-server
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: fetch-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+  annotations:
+    mcp.dev/server.type: "mcp"
+    mcp.dev/server.description: "Web content fetching server - provides secure web scraping and HTML to markdown conversion capabilities"
+    mcp.dev/server.transport: "http"
+    mcp.dev/server.version: "1.0.0"
+    mcp.dev/server.security: "restricted"
+    mcp.dev/server.risks: "Can access web content, respects robots.txt, rate limited"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: fetch-mcp-server
+    app.kubernetes.io/component: mcp-server
+  ports:
+  - name: mcp
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
