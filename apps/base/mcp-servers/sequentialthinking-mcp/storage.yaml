@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sequentialthinking-data
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: sequentialthinking-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path
