@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sequentialthinking-mcp-server
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: sequentialthinking-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sequentialthinking-mcp-server
+      app.kubernetes.io/component: mcp-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sequentialthinking-mcp-server
+        app.kubernetes.io/component: mcp-server
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: sequentialthinking-mcp-server
+          image: mcp/sequentialthinking:latest
+          # Keep container running since it's a stdio-based MCP server
+          command: ["/bin/sh"]
+          args: ["-c", "while true; do sleep 3600; done"]
+          volumeMounts:
+            - mountPath: /app/data
+              name: sequentialthinking-data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: MCP_SERVER_NAME
+              value: "sequentialthinking"
+      volumes:
+        - name: sequentialthinking-data
+          persistentVolumeClaim:
+            claimName: sequentialthinking-data
