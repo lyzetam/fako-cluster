@@ -12,6 +12,7 @@ resources:
   - filesystem-mcp
   - postgres-mcp
   - memory-mcp
+  - sequentialthinking-mcp
 
 labels:
 - pairs:
