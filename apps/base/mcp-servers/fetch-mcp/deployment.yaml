@@ -36,11 +36,17 @@ spec:
           args: 
             - "-c"
             - |
+              echo 'Starting fetch MCP server setup...'
+              echo 'Available commands:'
+              which uv || echo 'uv not found in PATH'
+              ls -la /usr/local/bin/ || echo 'No /usr/local/bin'
+              ls -la /usr/bin/ | grep -E '(uv|python|touch)' || echo 'No uv/python/touch in /usr/bin'
+              echo 'PATH is:' $PATH
               echo 'Installing mcp-server-fetch...'
-              uv tool install mcp-server-fetch
+              /usr/local/bin/uv tool install mcp-server-fetch || echo 'uv tool install failed'
               echo 'Fetch MCP Server ready'
               # Create readiness file for health checks
-              touch /tmp/mcp-server-ready
+              echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
               # Keep container running since it's a stdio-based MCP server
               while true; do
                 # Simple infinite loop - container will stay running
