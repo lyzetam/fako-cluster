@@ -30,7 +30,7 @@ spec:
           # GitHub MCP server is stdio-based, so we use a placeholder container
           # The actual MCP server can be accessed via kubectl exec for stdio communication
           command: ["/bin/sh"]
-          args: ["-c", "npm install @modelcontextprotocol/server-github && while true; do sleep 3600; done"]
+          args: ["-c", "npm cache clean --force && npm install @modelcontextprotocol/server-github && while true; do sleep 3600; done"]
           env:
             - name: GITHUB_PERSONAL_ACCESS_TOKEN
               valueFrom:
