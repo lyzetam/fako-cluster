@@ -39,6 +39,8 @@ spec:
               echo 'Installing mcp-server-fetch...'
               uv tool install mcp-server-fetch
               echo 'Fetch MCP Server ready'
+              # Create readiness file for health checks
+              touch /tmp/mcp-server-ready
               # Keep container running since it's a stdio-based MCP server
               while true; do /usr/bin/python3 -c "import time; time.sleep(3600)"; done
           ports:
@@ -100,14 +102,14 @@ spec:
           volumeMounts:
             - name: fetch-cache
               mountPath: /app/cache
-          # Health checks
+          # Health checks - use simple file-based approach since ps/grep not available in minimal image
           livenessProbe:
             exec:
               command:
                 - /bin/sh
                 - -c
-                - "ps aux | grep -v grep | grep python3"
-            initialDelaySeconds: 30
+                - "test -f /tmp/mcp-server-ready"
+            initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3
@@ -116,8 +118,8 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - "ps aux | grep -v grep | grep python3"
-            initialDelaySeconds: 10
+                - "test -f /tmp/mcp-server-ready"
+            initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
