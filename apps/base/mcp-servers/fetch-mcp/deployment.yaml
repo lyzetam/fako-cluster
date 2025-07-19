@@ -42,7 +42,10 @@ spec:
               # Create readiness file for health checks
               touch /tmp/mcp-server-ready
               # Keep container running since it's a stdio-based MCP server
-              while true; do /usr/bin/python3 -c "import time; time.sleep(3600)"; done
+              while true; do
+                # Use a simple shell loop with built-in read timeout
+                read -t 3600 || true
+              done
           ports:
             - containerPort: 3000
               protocol: TCP
