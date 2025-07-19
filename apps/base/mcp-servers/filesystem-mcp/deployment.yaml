@@ -1,3 +1,4 @@
+# apps/base/mcp-servers/filesystem-mcp/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,17 +27,14 @@ spec:
         fsGroup: 1000
       containers:
         - name: filesystem-mcp-server
-          image: node:18-alpine
-          command: ["/bin/sh"]
-          args: ["-c", "echo 'Filesystem MCP Server placeholder - implement actual MCP server here' && sleep 3600"]
-          ports:
-            - containerPort: 3000
-              protocol: TCP
+          image: mcp/filesystem:latest
+          stdin: true
+          tty: true
           env:
-            - name: PORT
-              value: "3000"
             - name: ALLOWED_DIRECTORIES
               value: "/data,/logs,/config"
+            - name: MAX_FILE_SIZE
+              value: "10485760"
           volumeMounts:
             - mountPath: /data
               name: shared-data
