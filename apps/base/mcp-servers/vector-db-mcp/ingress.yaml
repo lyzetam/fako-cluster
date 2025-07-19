@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vector-db-mcp-server
+  namespace: mcp-servers
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+  labels:
+    app.kubernetes.io/name: vector-db-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: chroma.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: vector-db-mcp-server
+            port:
+              number: 8000
+  tls:
+  - hosts:
+    - chroma.landryzetam.net
+    secretName: vector-db-mcp-tls-cert
