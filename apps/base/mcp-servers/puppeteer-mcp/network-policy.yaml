@@ -1,0 +1,61 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: puppeteer-mcp-network-policy
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: puppeteer-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: puppeteer-mcp-server
+      app.kubernetes.io/component: mcp-server
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from other MCP servers and clients within the namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: mcp-servers
+    ports:
+    - protocol: TCP
+      port: 3000
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow HTTPS traffic to external sites (restricted by application-level controls)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow HTTP traffic to external sites (restricted by application-level controls)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+  # Block access to private IP ranges (RFC 1918)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8      # Private Class A
+        - 172.16.0.0/12   # Private Class B
+        - 192.168.0.0/16  # Private Class C
+        - 127.0.0.0/8     # Loopback
+        - 169.254.0.0/16  # Link-local
+        - 224.0.0.0/4     # Multicast
+        - 240.0.0.0/4     # Reserved
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
