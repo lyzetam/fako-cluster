@@ -13,6 +13,7 @@ resources:
   - postgres-mcp
   - memory-mcp
   - sequentialthinking-mcp
+  - time-mcp
 
 labels:
 - pairs:
