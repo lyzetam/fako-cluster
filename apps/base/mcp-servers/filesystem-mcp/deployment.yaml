@@ -28,7 +28,6 @@ spec:
       initContainers:
         - name: setup-app
           image: node:22-alpine
-          workingDir: /tmp/build
           command: ["/bin/sh"]
           args:
             - -c
@@ -36,22 +35,17 @@ spec:
               set -e
               echo "Setting up MCP server..."
               
-              # Create build directory with proper permissions
-              mkdir -p /tmp/build
-              cd /tmp/build
+              # Work directly in the app directory
+              cd /app
               
               # Copy source files from ConfigMap
               echo "Copying source files..."
-              cp /source/package.json .
-              cp /source/index.js .
+              cp /source/package.json /app/
+              cp /source/index.js /app/
               
               # Install dependencies
               echo "Installing dependencies..."
               npm install --production --silent
-              
-              # Copy everything to app directory
-              echo "Copying to app directory..."
-              cp -r /tmp/build/* /app/
               
               echo "Setup completed successfully!"
           volumeMounts:
@@ -59,9 +53,6 @@ spec:
               mountPath: /source
             - name: app-volume
               mountPath: /app
-          securityContext:
-            runAsUser: 1000
-            runAsGroup: 1000
           resources:
             requests:
               memory: "256Mi"
