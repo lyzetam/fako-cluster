@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fetch-mcp-server-netpol
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: fetch-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: fetch-mcp-server
+      app.kubernetes.io/component: mcp-server
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from other MCP servers and clients within the namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: mcp-servers
+    - namespaceSelector:
+        matchLabels:
+          name: kagent
+    ports:
+    - protocol: TCP
+      port: 3000
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow HTTPS traffic for web fetching
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow HTTP traffic for web fetching
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+  # Block access to private IP ranges for security
+  # This is handled at the application level through configuration
