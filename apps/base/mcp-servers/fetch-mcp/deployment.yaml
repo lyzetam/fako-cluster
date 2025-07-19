@@ -51,9 +51,17 @@ spec:
               value: "production"
             - name: MCP_SERVER_NAME
               value: "fetch"
-            # Fix uv cache directory permissions
+            # Fix uv directory permissions - redirect all uv paths to writable locations
             - name: UV_CACHE_DIR
               value: "/app/cache/.uv"
+            - name: UV_TOOL_DIR
+              value: "/app/cache/.uv/tools"
+            - name: UV_PYTHON_INSTALL_DIR
+              value: "/app/cache/.uv/python"
+            - name: XDG_DATA_HOME
+              value: "/app/cache/.local/share"
+            - name: XDG_CACHE_HOME
+              value: "/app/cache/.cache"
             # Security configurations
             - name: FETCH_MAX_LENGTH
               value: "5000"
