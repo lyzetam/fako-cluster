@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: puppeteer-mcp-server
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: puppeteer-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: puppeteer-mcp-server
+      app.kubernetes.io/component: mcp-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: puppeteer-mcp-server
+        app.kubernetes.io/component: mcp-server
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        # Additional security hardening
+        seccompProfile:
+          type: RuntimeDefault
+        supplementalGroups: []
+      containers:
+        - name: puppeteer-mcp-server
+          image: mcp/puppeteer:latest
+          # Keep container running since it's a stdio-based MCP server
+          command: ["/bin/sh"]
+          args: ["-c", "while true; do sleep 3600; done"]
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "3000"
+            - name: NODE_ENV
+              value: "production"
+            - name: MCP_SERVER_NAME
+              value: "puppeteer"
+            # Security guard rails - enforce safe defaults
+            - name: PUPPETEER_LAUNCH_OPTIONS
+              value: '{"headless": true, "args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--disable-web-security", "--disable-features=VizDisplayCompositor", "--single-process", "--no-zygote"]}'
+            - name: ALLOW_DANGEROUS
+              value: "false"
+            # Network restrictions
+            - name: PUPPETEER_DISABLE_LOCAL_ACCESS
+              value: "true"
+            - name: PUPPETEER_ALLOWED_DOMAINS
+              value: "*.example.com,*.trusted-domain.com"
+            # Resource limits for browser processes
+            - name: PUPPETEER_MAX_PAGES
+              value: "5"
+            - name: PUPPETEER_PAGE_TIMEOUT
+              value: "30000"
+            - name: PUPPETEER_NAVIGATION_TIMEOUT
+              value: "30000"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: puppeteer-data
+              mountPath: /app/data
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: puppeteer-data
+          persistentVolumeClaim:
+            claimName: puppeteer-data
+      # Pod-level security constraints
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      # Prevent access to host filesystem
+      automountServiceAccountToken: false
