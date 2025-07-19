@@ -26,40 +26,16 @@ spec:
         fsGroup: 1000
       containers:
         - name: postgres-mcp-server
-          image: node:18-alpine
+          image: mcp/postgres:latest
+          # Keep container running since it's a stdio-based MCP server
           command: ["/bin/sh"]
-          args: ["-c", "echo 'PostgreSQL MCP Server placeholder - implement actual MCP server here' && sleep 3600"]
-          ports:
-            - containerPort: 3000
-              protocol: TCP
+          args: ["-c", "while true; do sleep 3600; done"]
           env:
-            - name: PORT
-              value: "3000"
-            - name: POSTGRES_HOST
+            - name: PG_URL
               valueFrom:
                 secretKeyRef:
                   name: postgres-mcp-secret
-                  key: host
-            - name: POSTGRES_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-mcp-secret
-                  key: port
-            - name: POSTGRES_DB
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-mcp-secret
-                  key: database
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-mcp-secret
-                  key: username
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-mcp-secret
-                  key: password
+                  key: pg_url
           resources:
             requests:
               memory: "256Mi"
