@@ -51,6 +51,9 @@ spec:
               value: "production"
             - name: MCP_SERVER_NAME
               value: "fetch"
+            # Fix uv cache directory permissions
+            - name: UV_CACHE_DIR
+              value: "/app/cache/.uv"
             # Security configurations
             - name: FETCH_MAX_LENGTH
               value: "5000"
