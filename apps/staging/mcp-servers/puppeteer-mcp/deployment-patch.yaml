@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: puppeteer-mcp-server
+spec:
+  template:
+    spec:
+      containers:
+        - name: puppeteer-mcp-server
+          env:
+            - name: PUPPETEER_ALLOWED_DOMAINS
+              value: "*.staging-domain.com,*.test-domain.com,httpbin.org,jsonplaceholder.typicode.com"
+            - name: PUPPETEER_MAX_PAGES
+              value: "3"
+            - name: PUPPETEER_PAGE_TIMEOUT
+              value: "20000"
+            - name: PUPPETEER_NAVIGATION_TIMEOUT
+              value: "20000"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
