@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: mcp-servers
 resources:
   - configmap.yaml
-  - image-builder-job.yaml
   - deployment.yaml
   - service.yaml
   - storage.yaml

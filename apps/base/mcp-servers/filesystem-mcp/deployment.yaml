@@ -25,12 +25,52 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+      initContainers:
+        - name: setup-app
+          image: node:22-alpine
+          workingDir: /build
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              set -e
+              echo "Setting up MCP server..."
+              
+              # Copy source files from ConfigMap
+              cp /source/package.json /build/
+              cp /source/index.js /build/
+              
+              # Install dependencies
+              echo "Installing dependencies..."
+              npm install --production --silent
+              
+              # Copy everything to app directory
+              echo "Copying to app directory..."
+              cp -r /build/* /app/
+              
+              echo "Setup completed successfully!"
+          volumeMounts:
+            - name: source-code
+              mountPath: /source
+            - name: app-volume
+              mountPath: /app
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
       containers:
         - name: filesystem-mcp-server
-          image: filesystem-mcp:latest
-          imagePullPolicy: Never  # Use locally built image
+          image: node:22-alpine
           stdin: true
           tty: true
+          workingDir: /app
+          command: ["node", "index.js"]
           args: ["/data", "/logs", "/config"]
           env:
             - name: MAX_FILE_SIZE
@@ -38,12 +78,17 @@ spec:
             - name: NODE_ENV
               value: "production"
           volumeMounts:
+            - name: app-volume
+              mountPath: /app
             - mountPath: /data
               name: shared-data
             - mountPath: /logs
               name: log-storage
             - mountPath: /config
               name: config-storage
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
           resources:
             requests:
               memory: "128Mi"
@@ -52,6 +97,11 @@ spec:
               memory: "512Mi"
               cpu: "500m"
       volumes:
+        - name: source-code
+          configMap:
+            name: filesystem-mcp-source
+        - name: app-volume
+          emptyDir: {}
         - name: shared-data
           persistentVolumeClaim:
             claimName: filesystem-mcp-data
