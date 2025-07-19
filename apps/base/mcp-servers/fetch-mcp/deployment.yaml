@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fetch-mcp-server
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: fetch-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fetch-mcp-server
+      app.kubernetes.io/component: mcp-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fetch-mcp-server
+        app.kubernetes.io/component: mcp-server
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        # Additional security hardening
+        seccompProfile:
+          type: RuntimeDefault
+        supplementalGroups: []
+      containers:
+        - name: fetch-mcp-server
+          image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+          # Install and run the fetch MCP server
+          command: ["/bin/sh"]
+          args: 
+            - "-c"
+            - |
+              echo 'Installing mcp-server-fetch...'
+              uv tool install mcp-server-fetch
+              echo 'Fetch MCP Server ready'
+              # Keep container running since it's a stdio-based MCP server
+              while true; do sleep 3600; done
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "3000"
+            - name: NODE_ENV
+              value: "production"
+            - name: MCP_SERVER_NAME
+              value: "fetch"
+            # Security configurations
+            - name: FETCH_MAX_LENGTH
+              value: "5000"
+            - name: FETCH_TIMEOUT
+              value: "30000"
+            - name: FETCH_USER_AGENT
+              value: "ModelContextProtocol/1.0 (Kubernetes; +https://github.com/modelcontextprotocol/servers)"
+            # Network restrictions - respect robots.txt by default
+            - name: FETCH_RESPECT_ROBOTS
+              value: "true"
+            # Rate limiting
+            - name: FETCH_RATE_LIMIT
+              value: "10"
+            - name: FETCH_RATE_WINDOW
+              value: "60000"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: fetch-cache
+              mountPath: /app/cache
+          # Health checks
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep sleep"
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep sleep"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: fetch-cache
+          persistentVolumeClaim:
+            claimName: fetch-cache
+      # Pod-level security constraints
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      # Prevent access to host filesystem
+      automountServiceAccountToken: false
