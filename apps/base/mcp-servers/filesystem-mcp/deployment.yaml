@@ -27,14 +27,16 @@ spec:
         fsGroup: 1000
       containers:
         - name: filesystem-mcp-server
-          image: mcp/filesystem:latest
+          image: filesystem-mcp:latest
+          imagePullPolicy: Never  # Use locally built image
           stdin: true
           tty: true
+          args: ["/data", "/logs", "/config"]
           env:
-            - name: ALLOWED_DIRECTORIES
-              value: "/data,/logs,/config"
             - name: MAX_FILE_SIZE
               value: "10485760"
+            - name: NODE_ENV
+              value: "production"
           volumeMounts:
             - mountPath: /data
               name: shared-data
