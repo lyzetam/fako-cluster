@@ -58,7 +58,7 @@ This server provides browser automation capabilities and has been deployed with 
 
 Currently configured to allow:
 - `*.example.com`
-- `*.trusted-domain.com`
+- `*.trusted-site.com`
 
 **To modify allowed domains**, update the `PUPPETEER_ALLOWED_DOMAINS` environment variable in the deployment.
 
