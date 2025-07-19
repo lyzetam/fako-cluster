@@ -56,16 +56,14 @@ spec:
               memory: "2Gi"
               cpu: "1000m"
           livenessProbe:
-            httpGet:
-              path: /api/v1/heartbeat
+            tcpSocket:
               port: 8000
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
-            httpGet:
-              path: /api/v1/heartbeat
+            tcpSocket:
               port: 8000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 15
             periodSeconds: 5
       volumes:
         - name: vector-db-data
