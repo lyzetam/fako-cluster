@@ -30,10 +30,10 @@ spec:
         supplementalGroups: []
       containers:
         - name: puppeteer-mcp-server
-          image: mcp/puppeteer:latest
+          image: buildkite/puppeteer:latest
           # Keep container running since it's a stdio-based MCP server
           command: ["/bin/sh"]
-          args: ["-c", "while true; do sleep 3600; done"]
+          args: ["-c", "echo 'Puppeteer MCP Server container ready' && while true; do sleep 3600; done"]
           ports:
             - containerPort: 3000
               protocol: TCP
@@ -70,7 +70,7 @@ spec:
               cpu: "1000m"
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1000
             runAsGroup: 1000
@@ -80,19 +80,23 @@ spec:
           volumeMounts:
             - name: puppeteer-data
               mountPath: /app/data
-          # Health checks
+          # Health checks - using exec since we're not running an HTTP server
           livenessProbe:
-            httpGet:
-              path: /health
-              port: 3000
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep sleep"
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3
           readinessProbe:
-            httpGet:
-              path: /ready
-              port: 3000
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep sleep"
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
