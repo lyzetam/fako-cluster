@@ -20,6 +20,9 @@ spec:
         app.kubernetes.io/component: mcp-server
     spec:
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
       containers:
         - name: chromadb
@@ -33,12 +36,18 @@ spec:
             - name: CHROMA_SERVER_HTTP_PORT
               value: "8000"
             - name: PERSIST_DIRECTORY
-              value: "/chroma/chroma"
+              value: "/data"
             - name: ANONYMIZED_TELEMETRY
               value: "false"
           volumeMounts:
-            - mountPath: /chroma/chroma
+            - mountPath: /data
               name: vector-db-data
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
           resources:
             requests:
               memory: "512Mi"
