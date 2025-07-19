@@ -6,4 +6,3 @@ resources:
   - service.yaml
   - storage.yaml
   - network-policy.yaml
-  - pod-security-policy.yaml
