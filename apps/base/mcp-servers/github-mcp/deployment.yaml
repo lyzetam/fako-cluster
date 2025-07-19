@@ -24,13 +24,27 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+      initContainers:
+        - name: npm-install
+          image: node:20-alpine
+          command: ["/bin/sh"]
+          args: ["-c", "cd /app && npm init -y && npm install @modelcontextprotocol/server-github"]
+          volumeMounts:
+            - name: app-volume
+              mountPath: /app
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
       containers:
         - name: github-mcp-server
-          image: node:18-alpine
+          image: node:20-alpine
           # GitHub MCP server is stdio-based, so we use a placeholder container
           # The actual MCP server can be accessed via kubectl exec for stdio communication
           command: ["/bin/sh"]
-          args: ["-c", "npm cache clean --force && npm install @modelcontextprotocol/server-github && while true; do sleep 3600; done"]
+          args: ["-c", "cd /app && ls -la && while true; do sleep 3600; done"]
+          volumeMounts:
+            - name: app-volume
+              mountPath: /app
           env:
             - name: GITHUB_PERSONAL_ACCESS_TOKEN
               valueFrom:
@@ -46,3 +60,6 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+      volumes:
+        - name: app-volume
+          emptyDir: {}
