@@ -25,6 +25,23 @@ spec:
             - containerPort: 5678
               protocol: TCP
           env:
+            # Database Configuration
+            - name: DB_TYPE
+              value: "postgresdb"
+            - name: DB_POSTGRESDB_HOST
+              value: "postgres-cluster-rw.postgres.svc.cluster.local"
+            - name: DB_POSTGRESDB_PORT
+              value: "5432"
+            - name: DB_POSTGRESDB_DATABASE
+              value: "app"
+            - name: DB_POSTGRESDB_USER
+              value: "app"
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-user-secret
+                  key: password
+            # n8n Configuration
             - name: N8N_HOST
               value: "n8n.landryzetam.net"
             - name: N8N_PORT

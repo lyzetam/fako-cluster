@@ -7,3 +7,6 @@ resources:
   - service.yaml
   - deployment.yaml
   - ingress.yaml
+  - aws-credentials-secret.yaml
+  - secret-store.yaml
+  - external-secret-postgres.yaml
