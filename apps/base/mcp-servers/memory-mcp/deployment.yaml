@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: github-mcp-server
+  name: memory-mcp-server
   namespace: mcp-servers
   labels:
-    app.kubernetes.io/name: github-mcp-server
+    app.kubernetes.io/name: memory-mcp-server
     app.kubernetes.io/component: mcp-server
     app.kubernetes.io/part-of: mcp-servers
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: github-mcp-server
+      app.kubernetes.io/name: memory-mcp-server
       app.kubernetes.io/component: mcp-server
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: github-mcp-server
+        app.kubernetes.io/name: memory-mcp-server
         app.kubernetes.io/component: mcp-server
     spec:
       securityContext:
@@ -25,19 +25,14 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
       containers:
-        - name: github-mcp-server
-          image: ghcr.io/github/github-mcp-server:latest
+        - name: memory-mcp-server
+          image: mcp/memory:latest
           # Keep container running since it's a stdio-based MCP server
           command: ["/bin/sh"]
           args: ["-c", "while true; do sleep 3600; done"]
-          env:
-            - name: GITHUB_PERSONAL_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: github-mcp-secret
-                  key: token
-            - name: GITHUB_TOOLSETS
-              value: "repos,issues,pull_requests,actions,code_security,experiments"
+          volumeMounts:
+            - mountPath: /app/dist
+              name: memory-data
           resources:
             requests:
               memory: "128Mi"
@@ -45,3 +40,7 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+      volumes:
+        - name: memory-data
+          persistentVolumeClaim:
+            claimName: memory-data
