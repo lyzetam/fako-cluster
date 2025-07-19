@@ -11,6 +11,7 @@ resources:
   - weather-mcp
   - filesystem-mcp
   - postgres-mcp
+  - memory-mcp
 
 labels:
 - pairs:
