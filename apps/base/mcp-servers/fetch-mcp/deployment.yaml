@@ -43,8 +43,8 @@ spec:
               touch /tmp/mcp-server-ready
               # Keep container running since it's a stdio-based MCP server
               while true; do
-                # Use a simple shell loop with built-in read timeout
-                read -t 3600 || true
+                # Simple infinite loop - container will stay running
+                true
               done
           ports:
             - containerPort: 3000
