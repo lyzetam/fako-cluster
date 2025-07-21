@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n-mcp-server
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: n8n-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: n8n-mcp-server
+      app.kubernetes.io/component: mcp-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: n8n-mcp-server
+        app.kubernetes.io/component: mcp-server
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      initContainers:
+        - name: npm-install
+          image: node:20-alpine
+          command: ["/bin/sh"]
+          args: ["-c", "cd /app && cp /config/* . && npm install"]
+          volumeMounts:
+            - name: app-volume
+              mountPath: /app
+            - name: config-volume
+              mountPath: /config
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
+      containers:
+        - name: n8n-mcp-server
+          image: node:20-alpine
+          command: ["/bin/sh"]
+          args: ["-c", "cd /app && while true; do sleep 3600; done"]
+          volumeMounts:
+            - name: app-volume
+              mountPath: /app
+          env:
+            - name: N8N_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-mcp-secret
+                  key: api-key
+            - name: N8N_URL
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-mcp-secret
+                  key: n8n-url
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep node"
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -f /app/server.js"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: app-volume
+          emptyDir: {}
+        - name: config-volume
+          configMap:
+            name: n8n-mcp-server-config
+            defaultMode: 0755

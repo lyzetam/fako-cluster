@@ -1,0 +1,53 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: n8n-mcp-server-netpol
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: n8n-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: n8n-mcp-server
+      app.kubernetes.io/component: mcp-server
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from kagent pods (MCP client)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: kagent
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: kagent
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow access to n8n service
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: n8n
+        - podSelector:
+            matchLabels:
+              app: n8n
+      ports:
+        - protocol: TCP
+          port: 5678
+    # Allow HTTPS for npm installs during init
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
