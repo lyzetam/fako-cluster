@@ -34,12 +34,18 @@ spec:
           env:
             - name: MCP_MODE
               value: "http"
+            - name: NODE_ENV
+              value: "production"
             - name: LOG_LEVEL
               value: "info"
             - name: DISABLE_CONSOLE_OUTPUT
               value: "false"
             - name: PORT
               value: "3000"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: USE_FIXED_HTTP
+              value: "true"
             - name: AUTH_TOKEN
               valueFrom:
                 secretKeyRef:
