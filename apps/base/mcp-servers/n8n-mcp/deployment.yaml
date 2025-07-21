@@ -46,7 +46,7 @@ spec:
         - name: n8n-mcp-server
           image: node:20-alpine
           command: ["/bin/sh"]
-          args: ["-c", "cd /app && while true; do sleep 3600; done"]
+          args: ["-c", "cd /app && node server.js"]
           volumeMounts:
             - name: app-volume
               mountPath: /app
