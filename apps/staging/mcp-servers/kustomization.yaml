@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base/mcp-servers
+  - n8n-mcp-auth-secret.yaml
 
 patches:
   - path: puppeteer-mcp-deployment-patch.yaml
