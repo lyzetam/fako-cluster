@@ -105,6 +105,16 @@ Weather data retrieval and forecasting capabilities.
 - Location-based weather data
 - Multiple weather data sources
 
+### [n8n MCP Server](./n8n-mcp.md)
+Comprehensive n8n workflow automation capabilities for AI-driven workflow management.
+
+**Key Features:**
+- Workflow CRUD operations (create, read, update, delete)
+- Execution control and monitoring
+- Credential management for secure API access
+- Template system for reusable workflows
+- Full administrative access to n8n instance
+
 ## Getting Started
 
 ### New Server Development
