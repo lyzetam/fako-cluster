@@ -41,7 +41,10 @@ spec:
             - name: PORT
               value: "3000"
             - name: AUTH_TOKEN
-              value: "mcp-auth-token-2025"
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-mcp-auth-secret
+                  key: auth-token
             - name: N8N_API_KEY
               valueFrom:
                 secretKeyRef:
