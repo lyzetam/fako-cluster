@@ -27,15 +27,19 @@ spec:
       containers:
         - name: n8n-mcp-server
           image: ghcr.io/czlonkowski/n8n-mcp:latest
-          stdin: true
-          tty: false
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+              name: http
           env:
             - name: MCP_MODE
-              value: "stdio"
+              value: "http"
             - name: LOG_LEVEL
-              value: "error"
+              value: "info"
             - name: DISABLE_CONSOLE_OUTPUT
-              value: "true"
+              value: "false"
+            - name: PORT
+              value: "3000"
             - name: N8N_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -62,21 +66,17 @@ spec:
                 - ALL
             readOnlyRootFilesystem: true
           livenessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - "ps aux | grep -v grep | grep node"
+            httpGet:
+              path: /health
+              port: 3000
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - "ps aux | grep -v grep | grep node"
+            httpGet:
+              path: /health
+              port: 3000
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
