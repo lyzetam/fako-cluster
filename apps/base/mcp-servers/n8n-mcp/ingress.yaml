@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n-mcp-server
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: n8n-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: n8n-mcp.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: n8n-mcp-server
+            port:
+              number: 3000
+  tls:
+  - hosts:
+    - n8n-mcp.landryzetam.net
+    secretName: n8n-mcp-tls-cert
