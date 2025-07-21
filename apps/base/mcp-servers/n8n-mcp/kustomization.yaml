@@ -6,6 +6,7 @@ namespace: mcp-servers
 resources:
   - deployment.yaml
   - service.yaml
+  - ingress.yaml
   - networkpolicy.yaml
   - aws-credentials-secret.yaml
   - aws-secret-store.yaml
