@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: mcp-servers
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+  - networkpolicy.yaml
+  - aws-credentials-secret.yaml
+  - aws-secret-store.yaml
+  - external-secret-n8n.yaml
+
+labels:
+- pairs:
+    app.kubernetes.io/name: n8n-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+    app.kubernetes.io/managed-by: kustomize

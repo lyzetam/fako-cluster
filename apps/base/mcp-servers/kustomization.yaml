@@ -16,6 +16,7 @@ resources:
   - time-mcp
   - puppeteer-mcp
   - fetch-mcp
+  - n8n-mcp
 
 labels:
 - pairs:

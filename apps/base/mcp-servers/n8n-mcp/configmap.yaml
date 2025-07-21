@@ -1,0 +1,585 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: n8n-mcp-server-config
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: n8n-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+data:
+  package.json: |
+    {
+      "name": "n8n-mcp-server",
+      "version": "1.0.0",
+      "description": "MCP server for n8n workflow automation",
+      "main": "server.js",
+      "scripts": {
+        "start": "node server.js"
+      },
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.0.0",
+        "axios": "^1.6.0"
+      }
+    }
+  
+  server.js: |
+    #!/usr/bin/env node
+    
+    const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
+    const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
+    const { 
+      CallToolRequestSchema,
+      ListToolsRequestSchema,
+    } = require('@modelcontextprotocol/sdk/types.js');
+    const axios = require('axios');
+    
+    class N8nMcpServer {
+      constructor() {
+        this.server = new Server(
+          {
+            name: 'n8n-mcp-server',
+            version: '1.0.0',
+          },
+          {
+            capabilities: {
+              tools: {},
+            },
+          }
+        );
+        
+        this.n8nUrl = process.env.N8N_URL || 'http://n8n.n8n.svc.cluster.local:5678';
+        this.apiKey = process.env.N8N_API_KEY;
+        
+        if (!this.apiKey) {
+          console.error('N8N_API_KEY environment variable is required');
+          process.exit(1);
+        }
+        
+        this.setupToolHandlers();
+      }
+      
+      getAxiosConfig() {
+        return {
+          headers: {
+            'X-N8N-API-KEY': this.apiKey,
+            'Content-Type': 'application/json',
+          },
+        };
+      }
+      
+      setupToolHandlers() {
+        this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+          return {
+            tools: [
+              {
+                name: 'create_workflow',
+                description: 'Create a new n8n workflow',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    name: {
+                      type: 'string',
+                      description: 'Name of the workflow',
+                    },
+                    workflow: {
+                      type: 'object',
+                      description: 'Workflow definition (nodes, connections, settings)',
+                    },
+                    active: {
+                      type: 'boolean',
+                      description: 'Whether to activate the workflow immediately',
+                      default: false,
+                    },
+                  },
+                  required: ['name', 'workflow'],
+                },
+              },
+              {
+                name: 'list_workflows',
+                description: 'List all workflows',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    active: {
+                      type: 'boolean',
+                      description: 'Filter by active status (optional)',
+                    },
+                  },
+                },
+              },
+              {
+                name: 'get_workflow',
+                description: 'Get a specific workflow by ID',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      description: 'Workflow ID',
+                    },
+                  },
+                  required: ['id'],
+                },
+              },
+              {
+                name: 'update_workflow',
+                description: 'Update an existing workflow',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      description: 'Workflow ID',
+                    },
+                    name: {
+                      type: 'string',
+                      description: 'New name for the workflow (optional)',
+                    },
+                    workflow: {
+                      type: 'object',
+                      description: 'Updated workflow definition',
+                    },
+                    active: {
+                      type: 'boolean',
+                      description: 'Whether the workflow should be active',
+                    },
+                  },
+                  required: ['id'],
+                },
+              },
+              {
+                name: 'delete_workflow',
+                description: 'Delete a workflow',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      description: 'Workflow ID',
+                    },
+                  },
+                  required: ['id'],
+                },
+              },
+              {
+                name: 'execute_workflow',
+                description: 'Execute a workflow manually',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      description: 'Workflow ID',
+                    },
+                    data: {
+                      type: 'object',
+                      description: 'Input data for the workflow (optional)',
+                    },
+                  },
+                  required: ['id'],
+                },
+              },
+              {
+                name: 'get_execution',
+                description: 'Get execution details by execution ID',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      description: 'Execution ID',
+                    },
+                  },
+                  required: ['id'],
+                },
+              },
+              {
+                name: 'list_executions',
+                description: 'List workflow executions',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    workflowId: {
+                      type: 'string',
+                      description: 'Filter by workflow ID (optional)',
+                    },
+                    limit: {
+                      type: 'number',
+                      description: 'Number of executions to return (default: 20)',
+                      default: 20,
+                    },
+                  },
+                },
+              },
+              {
+                name: 'activate_workflow',
+                description: 'Activate or deactivate a workflow',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      description: 'Workflow ID',
+                    },
+                    active: {
+                      type: 'boolean',
+                      description: 'Whether to activate (true) or deactivate (false)',
+                    },
+                  },
+                  required: ['id', 'active'],
+                },
+              },
+              {
+                name: 'create_credential',
+                description: 'Create a new credential',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    name: {
+                      type: 'string',
+                      description: 'Credential name',
+                    },
+                    type: {
+                      type: 'string',
+                      description: 'Credential type (e.g., "smtp", "postgres", "httpBasicAuth")',
+                    },
+                    data: {
+                      type: 'object',
+                      description: 'Credential data',
+                    },
+                  },
+                  required: ['name', 'type', 'data'],
+                },
+              },
+              {
+                name: 'list_credentials',
+                description: 'List all credentials',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    type: {
+                      type: 'string',
+                      description: 'Filter by credential type (optional)',
+                    },
+                  },
+                },
+              },
+            ],
+          };
+        });
+        
+        this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+          const { name, arguments: args } = request.params;
+          
+          try {
+            switch (name) {
+              case 'create_workflow':
+                return await this.createWorkflow(args);
+              case 'list_workflows':
+                return await this.listWorkflows(args);
+              case 'get_workflow':
+                return await this.getWorkflow(args);
+              case 'update_workflow':
+                return await this.updateWorkflow(args);
+              case 'delete_workflow':
+                return await this.deleteWorkflow(args);
+              case 'execute_workflow':
+                return await this.executeWorkflow(args);
+              case 'get_execution':
+                return await this.getExecution(args);
+              case 'list_executions':
+                return await this.listExecutions(args);
+              case 'activate_workflow':
+                return await this.activateWorkflow(args);
+              case 'create_credential':
+                return await this.createCredential(args);
+              case 'list_credentials':
+                return await this.listCredentials(args);
+              default:
+                throw new Error(`Unknown tool: ${name}`);
+            }
+          } catch (error) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Error: ${error.message}`,
+                },
+              ],
+            };
+          }
+        });
+      }
+      
+      async createWorkflow(args) {
+        const { name, workflow, active = false } = args;
+        
+        const workflowData = {
+          name,
+          nodes: workflow.nodes || [],
+          connections: workflow.connections || {},
+          active,
+          settings: workflow.settings || {},
+          staticData: workflow.staticData || {},
+        };
+        
+        const response = await axios.post(
+          `${this.n8nUrl}/api/v1/workflows`,
+          workflowData,
+          this.getAxiosConfig()
+        );
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Workflow "${name}" created successfully with ID: ${response.data.id}`,
+            },
+          ],
+        };
+      }
+      
+      async listWorkflows(args) {
+        const { active } = args || {};
+        
+        let url = `${this.n8nUrl}/api/v1/workflows`;
+        if (active !== undefined) {
+          url += `?active=${active}`;
+        }
+        
+        const response = await axios.get(url, this.getAxiosConfig());
+        
+        const workflows = response.data.data || response.data;
+        const workflowList = workflows.map(w => ({
+          id: w.id,
+          name: w.name,
+          active: w.active,
+          createdAt: w.createdAt,
+          updatedAt: w.updatedAt,
+        }));
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Found ${workflowList.length} workflows:\n${JSON.stringify(workflowList, null, 2)}`,
+            },
+          ],
+        };
+      }
+      
+      async getWorkflow(args) {
+        const { id } = args;
+        
+        const response = await axios.get(
+          `${this.n8nUrl}/api/v1/workflows/${id}`,
+          this.getAxiosConfig()
+        );
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Workflow details:\n${JSON.stringify(response.data, null, 2)}`,
+            },
+          ],
+        };
+      }
+      
+      async updateWorkflow(args) {
+        const { id, name, workflow, active } = args;
+        
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (workflow) {
+          updateData.nodes = workflow.nodes;
+          updateData.connections = workflow.connections;
+          updateData.settings = workflow.settings;
+          updateData.staticData = workflow.staticData;
+        }
+        if (active !== undefined) updateData.active = active;
+        
+        const response = await axios.patch(
+          `${this.n8nUrl}/api/v1/workflows/${id}`,
+          updateData,
+          this.getAxiosConfig()
+        );
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Workflow ${id} updated successfully`,
+            },
+          ],
+        };
+      }
+      
+      async deleteWorkflow(args) {
+        const { id } = args;
+        
+        await axios.delete(
+          `${this.n8nUrl}/api/v1/workflows/${id}`,
+          this.getAxiosConfig()
+        );
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Workflow ${id} deleted successfully`,
+            },
+          ],
+        };
+      }
+      
+      async executeWorkflow(args) {
+        const { id, data } = args;
+        
+        const response = await axios.post(
+          `${this.n8nUrl}/api/v1/workflows/${id}/execute`,
+          { data: data || {} },
+          this.getAxiosConfig()
+        );
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Workflow execution started. Execution ID: ${response.data.executionId}`,
+            },
+          ],
+        };
+      }
+      
+      async getExecution(args) {
+        const { id } = args;
+        
+        const response = await axios.get(
+          `${this.n8nUrl}/api/v1/executions/${id}`,
+          this.getAxiosConfig()
+        );
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Execution details:\n${JSON.stringify(response.data, null, 2)}`,
+            },
+          ],
+        };
+      }
+      
+      async listExecutions(args) {
+        const { workflowId, limit = 20 } = args || {};
+        
+        let url = `${this.n8nUrl}/api/v1/executions?limit=${limit}`;
+        if (workflowId) {
+          url += `&workflowId=${workflowId}`;
+        }
+        
+        const response = await axios.get(url, this.getAxiosConfig());
+        
+        const executions = response.data.data || response.data;
+        const executionList = executions.map(e => ({
+          id: e.id,
+          workflowId: e.workflowId,
+          mode: e.mode,
+          status: e.status,
+          startedAt: e.startedAt,
+          stoppedAt: e.stoppedAt,
+        }));
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Found ${executionList.length} executions:\n${JSON.stringify(executionList, null, 2)}`,
+            },
+          ],
+        };
+      }
+      
+      async activateWorkflow(args) {
+        const { id, active } = args;
+        
+        const response = await axios.patch(
+          `${this.n8nUrl}/api/v1/workflows/${id}`,
+          { active },
+          this.getAxiosConfig()
+        );
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Workflow ${id} ${active ? 'activated' : 'deactivated'} successfully`,
+            },
+          ],
+        };
+      }
+      
+      async createCredential(args) {
+        const { name, type, data } = args;
+        
+        const credentialData = {
+          name,
+          type,
+          data,
+        };
+        
+        const response = await axios.post(
+          `${this.n8nUrl}/api/v1/credentials`,
+          credentialData,
+          this.getAxiosConfig()
+        );
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Credential "${name}" created successfully with ID: ${response.data.id}`,
+            },
+          ],
+        };
+      }
+      
+      async listCredentials(args) {
+        const { type } = args || {};
+        
+        let url = `${this.n8nUrl}/api/v1/credentials`;
+        if (type) {
+          url += `?type=${type}`;
+        }
+        
+        const response = await axios.get(url, this.getAxiosConfig());
+        
+        const credentials = response.data.data || response.data;
+        const credentialList = credentials.map(c => ({
+          id: c.id,
+          name: c.name,
+          type: c.type,
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt,
+        }));
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Found ${credentialList.length} credentials:\n${JSON.stringify(credentialList, null, 2)}`,
+            },
+          ],
+        };
+      }
+      
+      async run() {
+        const transport = new StdioServerTransport();
+        await this.server.connect(transport);
+        console.error('N8n MCP server running on stdio');
+      }
+    }
+    
+    const server = new N8nMcpServer();
+    server.run().catch(console.error);
