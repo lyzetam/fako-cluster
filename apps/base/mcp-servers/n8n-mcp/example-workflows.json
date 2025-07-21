@@ -1,0 +1,218 @@
+{
+  "oura-sleep-score-email": {
+    "name": "Oura Sleep Score Daily Email",
+    "description": "Daily email notification with yesterday's Oura sleep score from PostgreSQL",
+    "workflow": {
+      "nodes": [
+        {
+          "id": "cron-trigger",
+          "name": "Daily Trigger",
+          "type": "n8n-nodes-base.cron",
+          "typeVersion": 1,
+          "position": [100, 300],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "0 8 * * *"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "postgres-query",
+          "name": "Get Sleep Score",
+          "type": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "position": [300, 300],
+          "parameters": {
+            "query": "SELECT sleep_score, date, deep_sleep_duration, rem_sleep_duration, light_sleep_duration FROM oura_sleep WHERE date = CURRENT_DATE - INTERVAL '1 day' ORDER BY date DESC LIMIT 1",
+            "credentials": {
+              "postgres": {
+                "id": "postgres-oura-cred"
+              }
+            }
+          }
+        },
+        {
+          "id": "condition-check",
+          "name": "Check Sleep Quality",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 1,
+          "position": [500, 300],
+          "parameters": {
+            "conditions": {
+              "number": [
+                {
+                  "value1": "={{$node['Get Sleep Score'].json['sleep_score']}}",
+                  "operation": "smaller",
+                  "value2": 70
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "email-good-sleep",
+          "name": "Good Sleep Email",
+          "type": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "position": [700, 200],
+          "parameters": {
+            "toEmail": "user@example.com",
+            "subject": "✅ Great Sleep Score: {{$node['Get Sleep Score'].json['sleep_score']}}",
+            "text": "Good morning! 🌅\n\nYour sleep score for {{$node['Get Sleep Score'].json['date']}} was {{$node['Get Sleep Score'].json['sleep_score']}} - excellent work!\n\nSleep Breakdown:\n- Deep Sleep: {{$node['Get Sleep Score'].json['deep_sleep_duration']}} minutes\n- REM Sleep: {{$node['Get Sleep Score'].json['rem_sleep_duration']}} minutes\n- Light Sleep: {{$node['Get Sleep Score'].json['light_sleep_duration']}} minutes\n\nKeep up the great sleep habits! 💤",
+            "credentials": {
+              "smtp": {
+                "id": "smtp-email-cred"
+              }
+            }
+          }
+        },
+        {
+          "id": "email-poor-sleep",
+          "name": "Poor Sleep Alert",
+          "type": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "position": [700, 400],
+          "parameters": {
+            "toEmail": "user@example.com",
+            "subject": "⚠️ Sleep Score Alert: {{$node['Get Sleep Score'].json['sleep_score']}}",
+            "text": "Good morning! 🌅\n\nYour sleep score for {{$node['Get Sleep Score'].json['date']}} was {{$node['Get Sleep Score'].json['sleep_score']}} - below your target of 70.\n\nSleep Breakdown:\n- Deep Sleep: {{$node['Get Sleep Score'].json['deep_sleep_duration']}} minutes\n- REM Sleep: {{$node['Get Sleep Score'].json['rem_sleep_duration']}} minutes\n- Light Sleep: {{$node['Get Sleep Score'].json['light_sleep_duration']}} minutes\n\nConsider:\n- Earlier bedtime tonight\n- Limiting screen time before bed\n- Keeping bedroom cool and dark\n- Avoiding caffeine after 2 PM\n\nYou've got this! 💪",
+            "credentials": {
+              "smtp": {
+                "id": "smtp-email-cred"
+              }
+            }
+          }
+        }
+      ],
+      "connections": {
+        "cron-trigger": {
+          "main": [
+            [
+              {
+                "node": "postgres-query",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "postgres-query": {
+          "main": [
+            [
+              {
+                "node": "condition-check",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "condition-check": {
+          "main": [
+            [
+              {
+                "node": "email-good-sleep",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "email-poor-sleep",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "timezone": "America/New_York",
+        "saveManualExecutions": true,
+        "callerPolicy": "workflowsFromSameOwner"
+      }
+    },
+    "active": true
+  },
+  "simple-oura-notification": {
+    "name": "Simple Oura Sleep Notification",
+    "description": "Basic daily sleep score email without conditions",
+    "workflow": {
+      "nodes": [
+        {
+          "id": "manual-trigger",
+          "name": "Manual Trigger",
+          "type": "n8n-nodes-base.manualTrigger",
+          "typeVersion": 1,
+          "position": [100, 300],
+          "parameters": {}
+        },
+        {
+          "id": "postgres-simple",
+          "name": "Get Yesterday's Sleep",
+          "type": "n8n-nodes-base.postgres",
+          "typeVersion": 1,
+          "position": [300, 300],
+          "parameters": {
+            "query": "SELECT sleep_score, date FROM oura_sleep WHERE date = CURRENT_DATE - INTERVAL '1 day' LIMIT 1",
+            "credentials": {
+              "postgres": {
+                "id": "postgres-oura-cred"
+              }
+            }
+          }
+        },
+        {
+          "id": "email-simple",
+          "name": "Send Sleep Report",
+          "type": "n8n-nodes-base.emailSend",
+          "typeVersion": 1,
+          "position": [500, 300],
+          "parameters": {
+            "toEmail": "user@example.com",
+            "subject": "Daily Sleep Report: {{$node['Get Yesterday\\'s Sleep'].json['sleep_score']}}",
+            "text": "Your sleep score for {{$node['Get Yesterday\\'s Sleep'].json['date']}} was {{$node['Get Yesterday\\'s Sleep'].json['sleep_score']}}.\n\nHave a great day! 🌟",
+            "credentials": {
+              "smtp": {
+                "id": "smtp-email-cred"
+              }
+            }
+          }
+        }
+      ],
+      "connections": {
+        "manual-trigger": {
+          "main": [
+            [
+              {
+                "node": "postgres-simple",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "postgres-simple": {
+          "main": [
+            [
+              {
+                "node": "email-simple",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "timezone": "America/New_York"
+      }
+    },
+    "active": false
+  }
+}
