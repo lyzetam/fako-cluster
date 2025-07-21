@@ -10,8 +10,8 @@ The n8n MCP server allows Claude Desktop to interact with n8n workflows and docu
 
 ✅ **Deployment**: Running successfully in Kubernetes  
 ✅ **Service**: Internal cluster access working  
-✅ **Port-forward**: Local access via `kubectl port-forward`  
-⚠️ **External Access**: DNS/Ingress issues preventing external access  
+✅ **External Access**: HTTPS access via ingress working  
+✅ **Claude Desktop Integration**: Successfully connected  
 
 ## Components
 
@@ -24,10 +24,10 @@ The n8n MCP server allows Claude Desktop to interact with n8n workflows and docu
 ### Authentication
 - Uses Bearer token authentication
 - Token stored in SOPS-encrypted secret: `n8n-mcp-auth-secret`
-- Current token: `YOUR_AUTH_TOKEN_HERE`
+- **Security Note**: Never expose authentication tokens in documentation or code
 
 ### Configuration
-- **AUTH_TOKEN**: From `n8n-mcp-auth-secret` secret
+- **AUTH_TOKEN**: From `n8n-mcp-auth-secret` secret (SOPS encrypted)
 - **N8N_API_KEY**: From `n8n-mcp-secret` (external secret from AWS)
 - **N8N_API_URL**: From `n8n-mcp-secret` (external secret from AWS)
 - **MCP_MODE**: `http` (fixed session mode)
@@ -35,24 +35,24 @@ The n8n MCP server allows Claude Desktop to interact with n8n workflows and docu
 
 ## Access Methods
 
-### 1. Port-forward (Currently Working)
+### 1. External Access (Recommended)
+- **Domain**: `n8n-mcp.landryzetam.net`
+- **Protocol**: HTTPS with self-signed certificate
+- **Status**: ✅ Working
+
+### 2. Port-forward (Development/Debugging)
 ```bash
 # Start port-forward
 kubectl port-forward -n mcp-servers service/n8n-mcp-server 8080:3000 &
 
-# Test health endpoint
-curl -H "Authorization: Bearer YOUR_AUTH_TOKEN_HERE" \
+# Test health endpoint (replace YOUR_TOKEN with actual token)
+curl -H "Authorization: Bearer YOUR_TOKEN" \
      http://localhost:8080/health
 
-# Test MCP endpoint
-curl -H "Authorization: Bearer YOUR_AUTH_TOKEN_HERE" \
+# Test MCP endpoint (replace YOUR_TOKEN with actual token)
+curl -H "Authorization: Bearer YOUR_TOKEN" \
      http://localhost:8080/mcp
 ```
-
-### 2. External Access (Currently Not Working)
-- **Domain**: `n8n-mcp.landryzetam.net`
-- **Issue**: DNS resolves to `10.85.39.214` but load balancer is at `10.85.30.x`
-- **Status**: 502 Bad Gateway due to TLS certificate issues
 
 ## Claude Desktop Integration
 
@@ -66,37 +66,54 @@ The server is configured in Claude Desktop via:
       "args": [
         "-y",
         "mcp-remote",
-        "http://localhost:8080/mcp",
+        "https://n8n-mcp.landryzetam.net/mcp",
         "--header",
         "Authorization: Bearer YOUR_AUTH_TOKEN_HERE"
-      ]
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
     }
   }
 }
 ```
 
-## Troubleshooting
+**Important Security Notes:**
+- Replace `YOUR_AUTH_TOKEN_HERE` with the actual token from the SOPS-encrypted secret
+- The `NODE_TLS_REJECT_UNAUTHORIZED=0` environment variable is required for self-signed certificates
+- Never commit actual tokens to version control
 
-### Port-forward Script
-Use the provided script to ensure port-forward is running:
-```bash
-./scripts/start-n8n-mcp-portforward.sh
-```
+## Security Best Practices
+
+1. **Token Management**:
+   - All authentication tokens are stored in SOPS-encrypted secrets
+   - Tokens are never exposed in plain text in documentation
+   - Use `sops -d` to decrypt secrets when needed
+
+2. **SSL/TLS**:
+   - External access uses HTTPS with self-signed certificates
+   - Claude Desktop configured to accept self-signed certificates via environment variable
+
+3. **Access Control**:
+   - Bearer token authentication required for all endpoints
+   - Tokens rotated regularly (recommended)
+
+## Troubleshooting
 
 ### Common Issues
 
-1. **502 Bad Gateway on external access**
-   - TLS certificate not ready
-   - DNS pointing to wrong IP
-   - Use port-forward as workaround
+1. **SSL Certificate Errors in Claude Desktop**
+   - Ensure `NODE_TLS_REJECT_UNAUTHORIZED=0` is set in the environment
+   - This allows connection to self-signed certificates
 
-2. **Connection refused**
+2. **Authentication errors**
+   - Verify token is correctly retrieved from SOPS secret
+   - Check secret exists: `kubectl get secret -n mcp-servers n8n-mcp-auth-secret`
+   - Decrypt secret to verify token: `sops -d path/to/secret.yaml`
+
+3. **Connection refused**
    - Pod may be restarting
    - Check pod status: `kubectl get pods -n mcp-servers -l app.kubernetes.io/name=n8n-mcp-server`
-
-3. **Authentication errors**
-   - Verify token in request headers
-   - Check secret exists: `kubectl get secret -n mcp-servers n8n-mcp-auth-secret`
 
 ## Logs
 
@@ -128,3 +145,14 @@ The server provides 39 tools for n8n interactions including:
 - Template search and management
 
 Access the MCP endpoint info at `/mcp` (GET request) for full capabilities.
+
+## Token Retrieval
+
+To get the authentication token for configuration:
+
+```bash
+# Decrypt the SOPS secret to get the token
+sops -d apps/base/mcp-servers/n8n-mcp/auth-secret.yaml
+
+# Or use kubectl to get the token (base64 encoded)
+kubectl get secret -n mcp-servers n8n-mcp-auth-secret -o jsonpath='{.data.token}' | base64 -d
