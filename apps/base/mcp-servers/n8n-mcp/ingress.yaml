@@ -8,7 +8,9 @@ metadata:
     app.kubernetes.io/component: mcp-server
     app.kubernetes.io/part-of: mcp-servers
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
+    # Temporarily disable TLS until DNS is fixed
+    # cert-manager.io/cluster-issuer: "letsencrypt-production"
+    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   ingressClassName: traefik
   rules:
@@ -22,7 +24,3 @@ spec:
             name: n8n-mcp-server
             port:
               number: 3000
-  tls:
-  - hosts:
-    - n8n-mcp.landryzetam.net
-    secretName: n8n-mcp-tls-cert
