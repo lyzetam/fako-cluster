@@ -500,6 +500,9 @@ data:
         data = await request.json()
         method = data.get("method", "")
         
+        # Debug logging
+        print(f"DEBUG: Received JSON-RPC request - method: {method}, data: {json.dumps(data)}")
+        
         if method == "initialize":
             return await handle_initialize(request)
         elif method == "tools/list":
