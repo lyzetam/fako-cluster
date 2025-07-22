@@ -28,10 +28,6 @@ spec:
       - name: source-code
         configMap:
           name: n8n-workflow-server-src
-      - name: n8n-api-key
-        secret:
-          secretName: n8n-api-credentials
-          optional: true
       containers:
         - name: n8n-workflow-server
           image: python:3.11-slim
@@ -49,15 +45,9 @@ spec:
             - name: HOME
               value: "/tmp"
             - name: MCP_SERVER_NAME
-              value: "n8n-workflow-server"
-            - name: N8N_API_URL
-              value: "http://n8n.n8n.svc.cluster.local:5678"
-            - name: N8N_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: n8n-api-credentials
-                  key: api-key
-                  optional: true
+              value: "n8n-workflow-library"
+            - name: WORKFLOW_API_URL
+              value: "http://n8n-workflow-library.default.svc.cluster.local:8000"
           ports:
             - containerPort: 3000
               protocol: TCP
