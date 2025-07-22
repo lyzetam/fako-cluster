@@ -25,57 +25,50 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-      initContainers:
-        - name: setup-app
-          image: node:22-alpine
-          command: ["/bin/sh"]
-          args:
-            - -c
-            - |
-              set -e
-              echo "Setting up MCP server..."
-              
-              # Work directly in the app directory
-              cd /app
-              
-              # Copy source files from ConfigMap
-              echo "Copying source files..."
-              cp /source/package.json /app/
-              cp /source/index.js /app/
-              
-              # Install dependencies
-              echo "Installing dependencies..."
-              npm install --production --silent
-              
-              echo "Setup completed successfully!"
-          volumeMounts:
-            - name: source-code
-              mountPath: /source
-            - name: app-volume
-              mountPath: /app
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "200m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
       containers:
         - name: filesystem-mcp-server
-          image: node:22-alpine
-          stdin: true
-          tty: true
-          workingDir: /app
-          command: ["node", "index.js"]
-          args: ["/data", "/logs", "/config"]
+          image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+          # Install and run the official filesystem MCP server with HTTP transport
+          command: ["/bin/sh"]
+          args: 
+            - "-c"
+            - |
+              echo 'Starting filesystem MCP server setup...'
+              echo 'Installing @modelcontextprotocol/server-filesystem...'
+              /usr/local/bin/uv tool install @modelcontextprotocol/server-filesystem || echo 'uv tool install failed'
+              echo 'Starting HTTP server on port 3000...'
+              # Create readiness file for health checks
+              echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
+              # Start the MCP server with HTTP transport pointing to the mounted directories
+              exec /app/cache/.uv/bin/mcp-server-filesystem --transport http --port 3000 /data /logs /config
+          ports:
+            - containerPort: 3000
+              protocol: TCP
           env:
-            - name: MAX_FILE_SIZE
-              value: "10485760"
+            - name: PORT
+              value: "3000"
             - name: NODE_ENV
               value: "production"
+            - name: MCP_SERVER_NAME
+              value: "filesystem"
+            # Fix uv directory permissions - redirect all uv paths to writable locations
+            - name: UV_CACHE_DIR
+              value: "/app/cache/.uv"
+            - name: UV_TOOL_DIR
+              value: "/app/cache/.uv/tools"
+            - name: UV_TOOL_BIN_DIR
+              value: "/app/cache/.uv/bin"
+            - name: UV_PYTHON_INSTALL_DIR
+              value: "/app/cache/.uv/python"
+            - name: XDG_DATA_HOME
+              value: "/app/cache/.local/share"
+            - name: XDG_CACHE_HOME
+              value: "/app/cache/.cache"
+            - name: PATH
+              value: "/app/cache/.uv/bin:$PATH"
           volumeMounts:
-            - name: app-volume
-              mountPath: /app
+            - name: filesystem-cache
+              mountPath: /app/cache
             - mountPath: /data
               name: shared-data
             - mountPath: /logs
@@ -83,21 +76,46 @@ spec:
             - mountPath: /config
               name: config-storage
           securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
             runAsUser: 1000
             runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
-              memory: "128Mi"
+              memory: "256Mi"
               cpu: "100m"
             limits:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "500m"
+          # Health checks - use simple file-based approach since ps/grep not available in minimal image
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -f /tmp/mcp-server-ready"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -f /tmp/mcp-server-ready"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
       volumes:
-        - name: source-code
-          configMap:
-            name: filesystem-mcp-source
-        - name: app-volume
-          emptyDir: {}
+        - name: filesystem-cache
+          persistentVolumeClaim:
+            claimName: filesystem-cache
         - name: shared-data
           persistentVolumeClaim:
             claimName: filesystem-mcp-data
