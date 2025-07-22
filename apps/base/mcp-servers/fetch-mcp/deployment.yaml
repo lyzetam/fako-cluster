@@ -38,12 +38,13 @@ spec:
             - |
               echo 'Starting fetch MCP server setup...'
               echo 'Installing @modelcontextprotocol/server-fetch...'
-              npm install -g @modelcontextprotocol/server-fetch
+              # Install locally to avoid permission issues
+              npm install @modelcontextprotocol/server-fetch
               echo 'Starting HTTP server on port 3000...'
               # Create readiness file for health checks
               echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
               # Start the MCP server with HTTP transport
-              exec mcp-server-fetch --transport http --port 3000
+              exec npx mcp-server-fetch --transport http --port 3000
           ports:
             - containerPort: 3000
               protocol: TCP
