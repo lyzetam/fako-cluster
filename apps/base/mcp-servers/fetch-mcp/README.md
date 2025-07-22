@@ -38,13 +38,20 @@ Parameters:
 
 The server is exposed via Ingress at: `https://fetch-mcp.landryzetam.net`
 
-Example MCP configuration:
+For Claude Desktop, add this to your claude_desktop_config.json:
 ```json
 {
   "mcpServers": {
-    "fetch": {
-      "transport": "http",
-      "url": "https://fetch-mcp.landryzetam.net"
+    "fetch-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://fetch-mcp.landryzetam.net"
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
     }
   }
 }

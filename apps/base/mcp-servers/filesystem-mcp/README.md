@@ -28,14 +28,21 @@ The server automatically starts with access to three directories:
 
 ### MCP Client Configuration
 
-For Claude Desktop or other MCP clients, configure as follows:
+For Claude Desktop, add this to your claude_desktop_config.json:
 
 ```json
 {
   "mcpServers": {
-    "filesystem": {
-      "transport": "http",
-      "url": "https://filesystem-mcp.landryzetam.net"
+    "filesystem-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://filesystem-mcp.landryzetam.net"
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
     }
   }
 }
