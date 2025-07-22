@@ -30,43 +30,35 @@ spec:
         supplementalGroups: []
       containers:
         - name: fetch-mcp-server
-          image: node:22-alpine
+          image: python:3.11-alpine
           # Install and run the fetch MCP server with HTTP transport
           command: ["/bin/sh"]
           args: 
             - "-c"
             - |
               echo 'Starting fetch MCP server setup...'
-              echo 'Starting HTTP server on port 3000...'
+              # Install necessary packages
+              apk add --no-cache gcc musl-dev libffi-dev
+              # Install uv for faster Python package management
+              pip install --no-cache-dir uv
               # Create readiness file for health checks
               echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
-              # Start the MCP server with HTTP transport using npx (auto-installs)
-              exec npx -y @modelcontextprotocol/server-fetch --transport http --port 3000
+              echo 'Starting HTTP server on port 3000...'
+              # Start the MCP server with HTTP transport using uvx
+              exec uvx mcp-server-fetch --transport http --port 3000
           ports:
             - containerPort: 3000
               protocol: TCP
           env:
             - name: PORT
               value: "3000"
-            - name: NODE_ENV
-              value: "production"
             - name: MCP_SERVER_NAME
               value: "fetch"
-            # Security configurations
-            - name: FETCH_MAX_LENGTH
-              value: "5000"
-            - name: FETCH_TIMEOUT
-              value: "30000"
-            - name: FETCH_USER_AGENT
-              value: "ModelContextProtocol/1.0 (Kubernetes; +https://github.com/modelcontextprotocol/servers)"
-            # Network restrictions - respect robots.txt by default
-            - name: FETCH_RESPECT_ROBOTS
-              value: "true"
-            # Rate limiting
-            - name: FETCH_RATE_LIMIT
-              value: "10"
-            - name: FETCH_RATE_WINDOW
-              value: "60000"
+            # Python environment
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
           resources:
             requests:
               memory: "256Mi"
