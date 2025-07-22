@@ -1,44 +1,64 @@
-# N8N Workflow MCP Server
+# N8N Workflow Library MCP Server
 
-This MCP server provides tools to interact with N8N workflows from Claude Desktop.
+This MCP server provides Claude Desktop with access to a rich library of 2,053 N8N workflow templates, enabling Claude to search, analyze, and suggest workflows when helping you create automations.
 
 ## Features
 
 The server provides the following tools:
 
-- **list_workflows**: List all workflows in N8N (with optional filtering by active status)
-- **execute_workflow**: Execute a specific N8N workflow with optional input data
-- **get_workflow**: Get details of a specific workflow
-- **get_executions**: Get execution history for a workflow
+- **search_workflows**: Search workflows by text, trigger type, complexity, or category
+- **get_workflow_details**: Get detailed information about a specific workflow
+- **download_workflow**: Download workflow JSON for import into N8N
+- **get_workflow_stats**: View library statistics (2,053 workflows, 365 integrations)
+- **list_categories**: Browse 12 service categories (messaging, AI/ML, database, etc.)
+- **get_workflows_by_integration**: Find all workflows using a specific service
+
+## Workflow Library Contents
+
+- **Total Workflows**: 2,053 automation templates
+- **Active Workflows**: 215 (10.5% active rate)
+- **Total Nodes**: 29,445 (avg 14.3 nodes per workflow)
+- **Unique Integrations**: 365 different services and APIs
+
+### Categories Available:
+- messaging (Telegram, Discord, Slack, WhatsApp)
+- ai_ml (OpenAI, Anthropic, Hugging Face)
+- database (PostgreSQL, MySQL, MongoDB, Airtable)
+- email (Gmail, Mailjet, Outlook)
+- cloud_storage (Google Drive, Dropbox)
+- project_management (Jira, GitHub, GitLab)
+- social_media (LinkedIn, Twitter/X)
+- ecommerce (Shopify, Stripe, PayPal)
+- analytics (Google Analytics, Mixpanel)
+- calendar_tasks (Google Calendar, Calendly)
+- forms (Typeform, Google Forms)
+- development (Webhook, HTTP Request, GraphQL)
 
 ## Configuration
 
-### 1. Deploy to Kubernetes
+### 1. Deploy Workflow Library API (if not already running)
 
-The server is deployed as part of the fako-cluster MCP servers:
+The MCP server expects the workflow library API to be running. You can either:
+
+a) Run it locally:
+```bash
+git clone <workflow-library-repo>
+cd n8n-workflows
+pip install -r requirements.txt
+python run.py  # Runs on http://localhost:8000
+```
+
+b) Or deploy it to Kubernetes and update the WORKFLOW_API_URL in the deployment
+
+### 2. Deploy the MCP Server
 
 ```bash
 kubectl apply -k apps/base/mcp-servers/n8n-workflow-server/
 ```
 
-### 2. Set up N8N API Key
-
-Create the N8N API key in AWS Secrets Manager:
-
-```bash
-aws secretsmanager create-secret \
-  --name n8n/api-key \
-  --secret-string '{"value":"your-n8n-api-key-here"}'
-```
-
-You can get your N8N API key from the N8N UI:
-1. Go to Settings → API
-2. Create a new API key
-3. Copy the key value
-
 ### 3. Configure Claude Desktop
 
-Add the following to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+The configuration is already added to your Claude Desktop config:
 
 ```json
 {
@@ -59,41 +79,32 @@ Add the following to your Claude Desktop config (`~/Library/Application Support/
 }
 ```
 
-Alternatively, if you're using port-forwarding:
-
-```json
-{
-  "mcpServers": {
-    "n8n-workflow-server": {
-      "command": "python",
-      "args": ["-m", "mcp.client.stdio", "http://localhost:8080"]
-    }
-  }
-}
-```
-
 ## Usage Examples
 
-Once configured, you can use the N8N tools in Claude:
+Once configured, Claude can help you find and create workflows:
 
-1. **List all active workflows:**
+1. **Find messaging workflows:**
    ```
-   Use the list_workflows tool with active=true
-   ```
-
-2. **Execute a workflow:**
-   ```
-   Use the execute_workflow tool with workflow_id="your-workflow-id" and data={"key": "value"}
+   "Show me Telegram bot workflows"
+   "Find Discord automation templates"
    ```
 
-3. **Get workflow details:**
+2. **Search by complexity:**
    ```
-   Use the get_workflow tool with workflow_id="your-workflow-id"
+   "Find simple workflows with less than 5 nodes"
+   "Show me complex enterprise workflows"
    ```
 
-4. **Check execution history:**
+3. **Browse categories:**
    ```
-   Use the get_executions tool with workflow_id="your-workflow-id" and limit=10
+   "What AI/ML workflow templates are available?"
+   "Show me all database integration workflows"
+   ```
+
+4. **Get specific workflow:**
+   ```
+   "Get details for workflow 0001_Telegram_Bot_Webhook.json"
+   "Download the workflow template for Telegram automation"
    ```
 
 ## Architecture
@@ -101,7 +112,7 @@ Once configured, you can use the N8N tools in Claude:
 This MCP server follows the GitOps pattern:
 - Source code is stored in a ConfigMap
 - No external dependencies or Docker registry required
-- Secrets are managed through AWS Secrets Manager
+- Connects to the workflow library API for template access
 - Deployment is fully declarative
 
 ## Troubleshooting
@@ -116,13 +127,23 @@ This MCP server follows the GitOps pattern:
    kubectl logs -n mcp-servers -l app.kubernetes.io/name=n8n-workflow-server
    ```
 
-3. **Verify API key secret:**
+3. **Test MCP server directly:**
    ```bash
-   kubectl get secret -n mcp-servers n8n-api-credentials
+   kubectl exec -it -n mcp-servers deployment/n8n-workflow-server -- python /app/server.py
    ```
 
-4. **Test connectivity to N8N:**
+4. **Verify workflow library API connectivity:**
    ```bash
    kubectl exec -n mcp-servers deployment/n8n-workflow-server -- \
-     curl -H "X-N8N-API-KEY: $(kubectl get secret -n mcp-servers n8n-api-credentials -o jsonpath='{.data.api-key}' | base64 -d)" \
-     http://n8n.n8n.svc.cluster.local:5678/api/v1/workflows
+     curl -s http://n8n-workflow-library.default.svc.cluster.local:8000/api/stats
+   ```
+
+## How Claude Uses This
+
+When you ask Claude to help create an N8N workflow, Claude can:
+1. Search the library for similar workflows
+2. Analyze existing templates for best practices
+3. Suggest modifications based on proven patterns
+4. Provide complete workflow JSON ready for import
+
+This gives Claude contextual knowledge of 2,053 real-world workflow patterns across 365 integrations!
