@@ -58,6 +58,13 @@ spec:
                 });
                 
                 req.on('end', () => {
+                  // Handle both root and /mcp paths
+                  if (req.url !== '/' && req.url !== '/mcp') {
+                    res.writeHead(404, { 'Content-Type': 'text/plain' });
+                    res.end('Not Found');
+                    return;
+                  }
+                  
                   // Spawn the MCP server with the mounted directories
                   const mcp = spawn('npx', ['-y', '@modelcontextprotocol/server-filesystem', '/data', '/logs', '/config'], {
                     stdio: ['pipe', 'pipe', 'pipe']
