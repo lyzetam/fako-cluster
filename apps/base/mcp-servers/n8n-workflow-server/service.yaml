@@ -12,7 +12,7 @@ spec:
     app.kubernetes.io/name: n8n-workflow-server
   ports:
     - protocol: TCP
-      port: 3000
-      targetPort: 3000
-      name: mcp
+      port: 8000
+      targetPort: 8000
+      name: http
   type: ClusterIP
