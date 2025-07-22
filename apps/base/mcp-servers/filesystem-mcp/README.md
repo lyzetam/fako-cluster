@@ -13,18 +13,18 @@ The filesystem MCP server provides secure filesystem operations including:
 
 ## Transport Type
 
-This is a **stdio-based** MCP server, not HTTP. It must be accessed via `kubectl exec`.
+This server uses an HTTP-to-stdio bridge, making it accessible via HTTP while the underlying MCP server uses stdio transport.
 
 ## Usage
 
 ### Access the Server
 
-To use the filesystem MCP server, execute it via kubectl:
+The filesystem MCP server is now accessible via HTTP at: `https://filesystem-mcp.landryzetam.net`
 
-```bash
-kubectl exec -n mcp-servers deployment/filesystem-mcp-server -- \
-  npx -y @modelcontextprotocol/server-filesystem /data /logs /config
-```
+The server automatically starts with access to three directories:
+- `/data` - Main data storage
+- `/logs` - Log storage  
+- `/config` - Configuration storage
 
 ### MCP Client Configuration
 
@@ -34,15 +34,8 @@ For Claude Desktop or other MCP clients, configure as follows:
 {
   "mcpServers": {
     "filesystem": {
-      "command": "kubectl",
-      "args": [
-        "exec",
-        "-n", "mcp-servers",
-        "deployment/filesystem-mcp-server",
-        "--",
-        "npx", "-y", "@modelcontextprotocol/server-filesystem",
-        "/data", "/logs", "/config"
-      ]
+      "transport": "http",
+      "url": "https://filesystem-mcp.landryzetam.net"
     }
   }
 }
@@ -75,13 +68,17 @@ kubectl logs -n mcp-servers deployment/filesystem-mcp-server
 
 ### Test Server
 ```bash
-# This will show an error about missing directories, confirming the server is working
+# Test the health endpoint
 kubectl exec -n mcp-servers deployment/filesystem-mcp-server -- \
-  npx -y @modelcontextprotocol/server-filesystem
+  node -e "require('http').get('http://localhost:3000/health', res => { res.on('data', d => process.stdout.write(d)); });"
+
+# Or check via the ingress URL
+curl https://filesystem-mcp.landryzetam.net/health
 ```
 
 ## Notes
 
 - The server requires at least one allowed directory to operate
 - All arguments are interpreted as directory paths (no flags like --help)
-- The container runs a sleep loop to keep it available for kubectl exec
+- The container runs an HTTP bridge on port 3000 that forwards requests to the MCP server
+- Health checks available at `/health` endpoint

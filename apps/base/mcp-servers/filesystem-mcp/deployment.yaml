@@ -28,18 +28,77 @@ spec:
       containers:
         - name: filesystem-mcp-server
           image: node:22-alpine
-          # Keep container running for stdio-based MCP server access
+          # Install and run the filesystem MCP server with HTTP transport wrapper
           command: ["/bin/sh"]
           args: 
             - "-c"
             - |
-              echo 'Starting filesystem MCP server container...'
+              echo 'Starting filesystem MCP server setup...'
+              # Create a simple HTTP-to-stdio bridge for the MCP server
+              cat > /tmp/mcp_http_bridge.js << 'EOF'
+              const http = require('http');
+              const { spawn } = require('child_process');
+              
+              const server = http.createServer((req, res) => {
+                if (req.method === 'GET' && req.url === '/health') {
+                  res.writeHead(200, { 'Content-Type': 'text/plain' });
+                  res.end('OK');
+                  return;
+                }
+                
+                if (req.method !== 'POST') {
+                  res.writeHead(405, { 'Content-Type': 'text/plain' });
+                  res.end('Method Not Allowed');
+                  return;
+                }
+                
+                let body = '';
+                req.on('data', chunk => {
+                  body += chunk.toString();
+                });
+                
+                req.on('end', () => {
+                  // Spawn the MCP server with the mounted directories
+                  const mcp = spawn('npx', ['-y', '@modelcontextprotocol/server-filesystem', '/data', '/logs', '/config'], {
+                    stdio: ['pipe', 'pipe', 'pipe']
+                  });
+                  
+                  let output = '';
+                  let errorOutput = '';
+                  
+                  mcp.stdout.on('data', (data) => {
+                    output += data.toString();
+                  });
+                  
+                  mcp.stderr.on('data', (data) => {
+                    errorOutput += data.toString();
+                  });
+                  
+                  mcp.on('close', (code) => {
+                    if (code !== 0) {
+                      console.error('MCP server exited with code:', code);
+                      console.error('Error output:', errorOutput);
+                    }
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(output);
+                  });
+                  
+                  // Send the request to the MCP server
+                  mcp.stdin.write(body);
+                  mcp.stdin.end();
+                });
+              });
+              
+              const PORT = 3000;
+              server.listen(PORT, '0.0.0.0', () => {
+                console.log(`MCP HTTP Bridge listening on port ${PORT}...`);
+              });
+              EOF
               # Create readiness file for health checks
               echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
-              echo 'Container ready for kubectl exec access'
-              echo 'Usage: kubectl exec -n mcp-servers deployment/filesystem-mcp-server -- npx -y @modelcontextprotocol/server-filesystem /data /logs /config'
-              # Keep container running
-              while true; do sleep 3600; done
+              echo 'Starting MCP HTTP bridge on port 3000...'
+              # Start the HTTP bridge
+              exec node /tmp/mcp_http_bridge.js
           ports:
             - containerPort: 3000
               protocol: TCP
