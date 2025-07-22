@@ -30,7 +30,7 @@ spec:
         supplementalGroups: []
       containers:
         - name: fetch-mcp-server
-          image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+          image: node:22-alpine
           # Install and run the fetch MCP server with HTTP transport
           command: ["/bin/sh"]
           args: 
@@ -38,12 +38,12 @@ spec:
             - |
               echo 'Starting fetch MCP server setup...'
               echo 'Installing @modelcontextprotocol/server-fetch...'
-              /usr/local/bin/uv tool install @modelcontextprotocol/server-fetch || echo 'uv tool install failed'
+              npm install -g @modelcontextprotocol/server-fetch
               echo 'Starting HTTP server on port 3000...'
               # Create readiness file for health checks
               echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
               # Start the MCP server with HTTP transport
-              exec /app/cache/.uv/bin/mcp-server-fetch --transport http --port 3000
+              exec mcp-server-fetch --transport http --port 3000
           ports:
             - containerPort: 3000
               protocol: TCP
@@ -54,21 +54,6 @@ spec:
               value: "production"
             - name: MCP_SERVER_NAME
               value: "fetch"
-            # Fix uv directory permissions - redirect all uv paths to writable locations
-            - name: UV_CACHE_DIR
-              value: "/app/cache/.uv"
-            - name: UV_TOOL_DIR
-              value: "/app/cache/.uv/tools"
-            - name: UV_TOOL_BIN_DIR
-              value: "/app/cache/.uv/bin"
-            - name: UV_PYTHON_INSTALL_DIR
-              value: "/app/cache/.uv/python"
-            - name: XDG_DATA_HOME
-              value: "/app/cache/.local/share"
-            - name: XDG_CACHE_HOME
-              value: "/app/cache/.cache"
-            - name: PATH
-              value: "/app/cache/.uv/bin:$PATH"
             # Security configurations
             - name: FETCH_MAX_LENGTH
               value: "5000"

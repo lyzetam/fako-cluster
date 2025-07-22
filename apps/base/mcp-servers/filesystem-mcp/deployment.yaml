@@ -27,7 +27,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: filesystem-mcp-server
-          image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+          image: node:22-alpine
           # Install and run the official filesystem MCP server with HTTP transport
           command: ["/bin/sh"]
           args: 
@@ -35,12 +35,12 @@ spec:
             - |
               echo 'Starting filesystem MCP server setup...'
               echo 'Installing @modelcontextprotocol/server-filesystem...'
-              /usr/local/bin/uv tool install @modelcontextprotocol/server-filesystem || echo 'uv tool install failed'
+              npm install -g @modelcontextprotocol/server-filesystem
               echo 'Starting HTTP server on port 3000...'
               # Create readiness file for health checks
               echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
               # Start the MCP server with HTTP transport pointing to the mounted directories
-              exec /app/cache/.uv/bin/mcp-server-filesystem --transport http --port 3000 /data /logs /config
+              exec mcp-server-filesystem --transport http --port 3000 /data /logs /config
           ports:
             - containerPort: 3000
               protocol: TCP
@@ -51,21 +51,6 @@ spec:
               value: "production"
             - name: MCP_SERVER_NAME
               value: "filesystem"
-            # Fix uv directory permissions - redirect all uv paths to writable locations
-            - name: UV_CACHE_DIR
-              value: "/app/cache/.uv"
-            - name: UV_TOOL_DIR
-              value: "/app/cache/.uv/tools"
-            - name: UV_TOOL_BIN_DIR
-              value: "/app/cache/.uv/bin"
-            - name: UV_PYTHON_INSTALL_DIR
-              value: "/app/cache/.uv/python"
-            - name: XDG_DATA_HOME
-              value: "/app/cache/.local/share"
-            - name: XDG_CACHE_HOME
-              value: "/app/cache/.cache"
-            - name: PATH
-              value: "/app/cache/.uv/bin:$PATH"
           volumeMounts:
             - name: filesystem-cache
               mountPath: /app/cache
