@@ -419,12 +419,13 @@ data:
     # HTTP endpoint handlers
     async def handle_initialize(request):
         """Handle MCP initialization"""
+        capabilities = server.get_capabilities(
+            notification_options=NotificationOptions(),
+            experimental_capabilities={},
+        )
         return JSONResponse({
             "protocolVersion": "2025-06-18",
-            "capabilities": server.get_capabilities(
-                notification_options=NotificationOptions(),
-                experimental_capabilities={},
-            ),
+            "capabilities": capabilities.model_dump(),
             "serverInfo": {
                 "name": "n8n-workflow-library",
                 "version": "2.0.0"
