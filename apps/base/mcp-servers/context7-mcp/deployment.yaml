@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: context7-mcp-server
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: context7-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: context7-mcp-server
+      app.kubernetes.io/component: mcp-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: context7-mcp-server
+        app.kubernetes.io/component: mcp-server
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: context7-mcp-server
+          image: node:18-alpine
+          workingDir: /home/node
+          # Run the Context7 MCP server with HTTP transport
+          command: ["/bin/sh"]
+          args: ["-c", "cd /home/node && npm init -y && npm install @upstash/context7-mcp && npx context7-mcp --transport http --port 3000"]
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "3000"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
