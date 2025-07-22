@@ -28,17 +28,18 @@ spec:
       containers:
         - name: filesystem-mcp-server
           image: node:22-alpine
-          # Install and run the official filesystem MCP server with HTTP transport
+          # Keep container running for stdio-based MCP server access
           command: ["/bin/sh"]
           args: 
             - "-c"
             - |
-              echo 'Starting filesystem MCP server setup...'
-              echo 'Starting HTTP server on port 3000...'
+              echo 'Starting filesystem MCP server container...'
               # Create readiness file for health checks
               echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
-              # Start the MCP server with HTTP transport using npx (auto-installs)
-              exec npx -y @modelcontextprotocol/server-filesystem --transport http --port 3000 /data /logs /config
+              echo 'Container ready for kubectl exec access'
+              echo 'Usage: kubectl exec -n mcp-servers deployment/filesystem-mcp-server -- npx -y @modelcontextprotocol/server-filesystem /data /logs /config'
+              # Keep container running
+              while true; do sleep 3600; done
           ports:
             - containerPort: 3000
               protocol: TCP
