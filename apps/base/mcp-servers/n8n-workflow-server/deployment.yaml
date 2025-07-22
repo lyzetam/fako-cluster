@@ -24,7 +24,7 @@ spec:
         emptyDir: {}
       - name: mcp-server-src
         configMap:
-          name: n8n-workflow-mcp-src
+          name: n8n-workflow-mcp-http-src
       initContainers:
         - name: setup
           image: python:3.11-slim
@@ -109,9 +109,9 @@ spec:
             - -c
             - |
               cd /mcp
-              pip install --user --no-cache-dir mcp httpx pydantic
+              pip install --user --no-cache-dir mcp httpx pydantic uvicorn starlette sse-starlette
               export PATH=$PATH:/tmp/.local/bin
-              # Run the MCP server
+              # Run the MCP server in HTTP mode
               python /mcp/server.py
           securityContext:
             runAsNonRoot: true
@@ -122,6 +122,8 @@ spec:
               value: "/tmp"
             - name: WORKFLOW_API_URL
               value: "http://localhost:8000"
+            - name: PORT
+              value: "3000"
           ports:
             - containerPort: 3000
               protocol: TCP
@@ -129,3 +131,19 @@ spec:
           volumeMounts:
             - name: mcp-server-src
               mountPath: /mcp
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
