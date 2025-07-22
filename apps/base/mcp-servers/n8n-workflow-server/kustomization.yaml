@@ -3,5 +3,6 @@ kind: Kustomization
 namespace: mcp-servers
 resources:
   - configmap.yaml
+  - mcp-configmap.yaml
   - deployment.yaml
   - service.yaml

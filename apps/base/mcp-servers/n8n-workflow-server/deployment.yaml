@@ -19,15 +19,35 @@ spec:
         app.kubernetes.io/name: n8n-workflow-server
         app.kubernetes.io/component: mcp-server
     spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
       volumes:
-      - name: source-code
+      - name: workflow-data
+        emptyDir: {}
+      - name: mcp-server-src
         configMap:
-          name: n8n-workflow-server-src
+          name: n8n-workflow-mcp-src
+      initContainers:
+        - name: setup
+          image: python:3.11-slim
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              # Install git as root
+              apt-get update && apt-get install -y git
+              
+              # Clone the n8n-workflows repository
+              cd /app
+              git clone https://github.com/n8n-io/n8n-workflows-collection.git n8n-workflows || true
+              cd n8n-workflows
+              
+              # Set permissions for non-root user
+              chown -R 1000:1000 /app
+          volumeMounts:
+            - name: workflow-data
+              mountPath: /app
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
       containers:
         - name: n8n-workflow-server
           image: python:3.11-slim
@@ -35,31 +55,74 @@ spec:
           args: 
             - -c
             - |
-              cd /app
+              cd /app/n8n-workflows
+              
+              # Install dependencies
               pip install --user --no-cache-dir -r requirements.txt
-              export PATH=$PATH:/tmp/.local/bin
-              # Keep container running for kubectl exec access
-              echo "MCP server ready. Use kubectl exec to run: python /app/server.py"
-              while true; do sleep 3600; done
+              export PATH=$PATH:/home/1000/.local/bin
+              
+              # Start the FastAPI workflow library server
+              python run.py --host 0.0.0.0 --port 8000
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
           env:
             - name: HOME
               value: "/tmp"
-            - name: MCP_SERVER_NAME
-              value: "n8n-workflow-library"
-            - name: WORKFLOW_API_URL
-              value: "http://n8n-workflow-library.default.svc.cluster.local:8000"
+            - name: PYTHONUNBUFFERED
+              value: "1"
           ports:
-            - containerPort: 3000
+            - containerPort: 8000
               protocol: TCP
-              name: mcp
+              name: http
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: "256Mi"
+              cpu: "200m"
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: "1Gi"
+              cpu: "1000m"
           volumeMounts:
-            - name: source-code
+            - name: workflow-data
               mountPath: /app
-              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /api/stats
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/stats
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+        - name: mcp-server
+          image: python:3.11-slim
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              cd /mcp
+              pip install --user --no-cache-dir mcp httpx pydantic
+              export PATH=$PATH:/tmp/.local/bin
+              # Keep container running for kubectl exec access
+              echo "MCP server ready. Use kubectl exec to run: python /mcp/server.py"
+              while true; do sleep 3600; done
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+          env:
+            - name: HOME
+              value: "/tmp"
+            - name: WORKFLOW_API_URL
+              value: "http://localhost:8000"
+          volumeMounts:
+            - name: mcp-server-src
+              mountPath: /mcp
