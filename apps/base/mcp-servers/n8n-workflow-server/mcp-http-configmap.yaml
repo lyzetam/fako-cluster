@@ -446,11 +446,16 @@ data:
             }
         })
 
-    async def handle_list_tools(request):
+    async def handle_list_tools_http(request):
         """Handle list tools request"""
+        data = await request.json()
         tools = await handle_list_tools()
         return JSONResponse({
-            "tools": [tool.model_dump() for tool in tools]
+            "jsonrpc": "2.0",
+            "id": data.get("id"),
+            "result": {
+                "tools": [tool.model_dump() for tool in tools]
+            }
         })
 
     async def handle_call_tool_http(request):
@@ -490,14 +495,47 @@ data:
         
         return EventSourceResponse(event_generator())
 
+    async def handle_json_rpc(request):
+        """Handle generic JSON-RPC requests"""
+        data = await request.json()
+        method = data.get("method", "")
+        
+        if method == "initialize":
+            return await handle_initialize(request)
+        elif method == "tools/list":
+            return await handle_list_tools_http(request)
+        elif method == "tools/call":
+            # Extract tool name and arguments from params
+            params = data.get("params", {})
+            tool_name = params.get("name")
+            arguments = params.get("arguments", {})
+            
+            results = await handle_call_tool(tool_name, arguments)
+            return JSONResponse({
+                "jsonrpc": "2.0",
+                "id": data.get("id"),
+                "result": {
+                    "content": [result.model_dump() for result in results]
+                }
+            })
+        else:
+            return JSONResponse({
+                "jsonrpc": "2.0",
+                "id": data.get("id"),
+                "error": {
+                    "code": -32601,
+                    "message": f"Method not found: {method}"
+                }
+            })
+
     # Create Starlette app
     routes = [
         Route("/health", health_check, methods=["GET"]),
         Route("/initialize", handle_initialize, methods=["POST"]),
-        Route("/tools/list", handle_list_tools, methods=["POST"]),
+        Route("/tools/list", handle_list_tools_http, methods=["POST"]),
         Route("/tools/call", handle_call_tool_http, methods=["POST"]),
         Route("/sse", handle_sse, methods=["GET"]),
-        Route("/", handle_initialize, methods=["POST"]),  # Default MCP endpoint
+        Route("/", handle_json_rpc, methods=["POST"]),  # Default MCP endpoint
     ]
 
     app = Starlette(routes=routes)
