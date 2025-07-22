@@ -52,9 +52,12 @@ Example MCP configuration:
 
 ## Implementation Details
 
-- Uses `uvx` to run `mcp-server-fetch` Python package
+- Uses Python 3.11 Alpine Linux base image
+- Installs `mcp-server-fetch` Python package
+- Implements an HTTP-to-stdio bridge since the fetch server only supports stdio transport
+- The HTTP bridge listens on port 3000 and forwards requests to the MCP server
 - Includes cache volume mounted at `/app/cache`
-- Health checks via file-based readiness probe
+- Health checks via file-based readiness probe and HTTP health endpoint
 - Network policy restricts egress to external IPs only
 
 ## Troubleshooting

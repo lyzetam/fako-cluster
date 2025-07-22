@@ -31,21 +31,68 @@ spec:
       containers:
         - name: fetch-mcp-server
           image: python:3.11-alpine
-          # Install and run the fetch MCP server with HTTP transport
+          # Install and run the fetch MCP server with HTTP transport wrapper
           command: ["/bin/sh"]
           args: 
             - "-c"
             - |
               echo 'Starting fetch MCP server setup...'
-              # Install necessary packages
-              apk add --no-cache gcc musl-dev libffi-dev
-              # Install uv for faster Python package management
-              pip install --no-cache-dir uv
+              # Use /tmp for writable directory
+              export HOME=/tmp
+              export PATH="/tmp/.local/bin:$PATH"
+              # Install pip packages
+              pip install --user --no-cache-dir mcp-server-fetch mcp
+              # Create a simple HTTP-to-stdio bridge for the MCP server
+              cat > /tmp/mcp_http_bridge.py << 'EOF'
+              import asyncio
+              import json
+              import subprocess
+              import sys
+              from http.server import HTTPServer, BaseHTTPRequestHandler
+              import threading
+              
+              class MCPBridgeHandler(BaseHTTPRequestHandler):
+                  def do_POST(self):
+                      content_length = int(self.headers['Content-Length'])
+                      post_data = self.rfile.read(content_length)
+                      
+                      # Run the MCP server as a subprocess
+                      proc = subprocess.Popen(
+                          [sys.executable, '-m', 'mcp_server_fetch'],
+                          stdin=subprocess.PIPE,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE
+                      )
+                      
+                      # Send the request and get response
+                      stdout, stderr = proc.communicate(input=post_data)
+                      
+                      # Send response
+                      self.send_response(200)
+                      self.send_header('Content-Type', 'application/json')
+                      self.end_headers()
+                      self.wfile.write(stdout)
+                  
+                  def do_GET(self):
+                      if self.path == '/health':
+                          self.send_response(200)
+                          self.send_header('Content-Type', 'text/plain')
+                          self.end_headers()
+                          self.wfile.write(b'OK')
+                      else:
+                          self.send_response(404)
+                          self.end_headers()
+              
+              if __name__ == '__main__':
+                  server = HTTPServer(('0.0.0.0', 3000), MCPBridgeHandler)
+                  print('MCP HTTP Bridge listening on port 3000...')
+                  server.serve_forever()
+              EOF
               # Create readiness file for health checks
               echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
-              echo 'Starting HTTP server on port 3000...'
-              # Start the MCP server with HTTP transport using uvx
-              exec uvx mcp-server-fetch --transport http --port 3000
+              echo 'Starting MCP HTTP bridge on port 3000...'
+              # Start the HTTP bridge
+              exec python /tmp/mcp_http_bridge.py
           ports:
             - containerPort: 3000
               protocol: TCP
@@ -78,6 +125,8 @@ spec:
           volumeMounts:
             - name: fetch-cache
               mountPath: /app/cache
+            - name: tmp-volume
+              mountPath: /tmp
           # Health checks - use simple file-based approach since ps/grep not available in minimal image
           livenessProbe:
             exec:
@@ -103,6 +152,8 @@ spec:
         - name: fetch-cache
           persistentVolumeClaim:
             claimName: fetch-cache
+        - name: tmp-volume
+          emptyDir: {}
       # Pod-level security constraints
       hostNetwork: false
       hostPID: false
