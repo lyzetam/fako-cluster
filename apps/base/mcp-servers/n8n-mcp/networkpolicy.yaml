@@ -35,6 +35,17 @@ spec:
       ports:
         - protocol: TCP
           port: 3000
+    # Allow ingress from n8n pods (for callbacks/webhooks)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: n8n
+        - podSelector:
+            matchLabels:
+              app: n8n
+      ports:
+        - protocol: TCP
+          port: 3000
   egress:
     # Allow DNS resolution
     - to: []
