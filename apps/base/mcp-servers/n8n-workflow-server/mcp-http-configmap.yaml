@@ -420,16 +420,25 @@ data:
     async def handle_initialize(request):
         """Handle MCP initialization"""
         data = await request.json()
-        capabilities = server.get_capabilities(
-            notification_options=NotificationOptions(),
-            experimental_capabilities={},
-        )
+        
+        # Build capabilities object with proper structure
+        capabilities = {
+            "tools": {
+                "listChanged": False
+            },
+            "resources": {},
+            "prompts": {},
+            "logging": {},
+            "completions": {},
+            "experimental": {}
+        }
+        
         return JSONResponse({
             "jsonrpc": "2.0",
             "id": data.get("id"),
             "result": {
                 "protocolVersion": "2025-06-18",
-                "capabilities": capabilities.model_dump(),
+                "capabilities": capabilities,
                 "serverInfo": {
                     "name": "n8n-workflow-library",
                     "version": "2.0.0"
