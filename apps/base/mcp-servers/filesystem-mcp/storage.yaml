@@ -48,3 +48,20 @@ spec:
   resources:
     requests:
       storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: filesystem-cache
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: filesystem-mcp-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 1Gi
