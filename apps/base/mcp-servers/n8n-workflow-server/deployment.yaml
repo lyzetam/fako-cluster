@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n-workflow-server
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: n8n-workflow-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: n8n-workflow-server
+      app.kubernetes.io/component: mcp-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: n8n-workflow-server
+        app.kubernetes.io/component: mcp-server
+      annotations:
+        # Force pod restart when ConfigMap changes
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      volumes:
+      - name: source-code
+        configMap:
+          name: n8n-workflow-server-src
+      - name: n8n-api-key
+        secret:
+          secretName: n8n-api-credentials
+          optional: true
+      containers:
+        - name: n8n-workflow-server
+          image: python:3.11-slim
+          command: ["/bin/sh"]
+          args: 
+            - -c
+            - |
+              cd /app
+              pip install --no-cache-dir -r requirements.txt
+              exec python server.py
+          env:
+            - name: MCP_SERVER_NAME
+              value: "n8n-workflow-server"
+            - name: N8N_API_URL
+              value: "http://n8n.n8n.svc.cluster.local:5678"
+            - name: N8N_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-api-credentials
+                  key: api-key
+                  optional: true
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+              name: mcp
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: source-code
+              mountPath: /app
+              readOnly: true
