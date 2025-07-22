@@ -17,6 +17,7 @@ resources:
   - puppeteer-mcp
   - fetch-mcp
   - n8n-mcp
+  - n8n-workflow-server
 
 labels:
 - pairs:
