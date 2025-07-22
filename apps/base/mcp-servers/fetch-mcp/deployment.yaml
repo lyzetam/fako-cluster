@@ -31,27 +31,19 @@ spec:
       containers:
         - name: fetch-mcp-server
           image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
-          # Install and run the fetch MCP server
+          # Install and run the fetch MCP server with HTTP transport
           command: ["/bin/sh"]
           args: 
             - "-c"
             - |
               echo 'Starting fetch MCP server setup...'
-              echo 'Available commands:'
-              which uv || echo 'uv not found in PATH'
-              ls -la /usr/local/bin/ || echo 'No /usr/local/bin'
-              ls -la /usr/bin/ | grep -E '(uv|python|touch)' || echo 'No uv/python/touch in /usr/bin'
-              echo 'PATH is:' $PATH
-              echo 'Installing mcp-server-fetch...'
-              /usr/local/bin/uv tool install mcp-server-fetch || echo 'uv tool install failed'
-              echo 'Fetch MCP Server ready'
+              echo 'Installing @modelcontextprotocol/server-fetch...'
+              /usr/local/bin/uv tool install @modelcontextprotocol/server-fetch || echo 'uv tool install failed'
+              echo 'Starting HTTP server on port 3000...'
               # Create readiness file for health checks
               echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
-              # Keep container running since it's a stdio-based MCP server
-              while true; do
-                # Simple infinite loop - container will stay running
-                true
-              done
+              # Start the MCP server with HTTP transport
+              exec /app/cache/.uv/bin/mcp-server-fetch --transport http --port 3000
           ports:
             - containerPort: 3000
               protocol: TCP

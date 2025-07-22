@@ -37,6 +37,7 @@ data:
 
     const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
     const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
+    const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse.js');
     const {
       CallToolRequestSchema,
       ErrorCode,
@@ -413,9 +414,23 @@ data:
       }
 
       async run() {
-        const transport = new StdioServerTransport();
-        await this.server.connect(transport);
-        console.error('Filesystem MCP server running on stdio');
+        // Check if we should use HTTP transport (when PORT is set) or stdio
+        const port = process.env.PORT;
+        
+        if (port) {
+          // HTTP transport mode
+          const transport = new SSEServerTransport('/mcp', {
+            port: parseInt(port),
+            host: '0.0.0.0'
+          });
+          await this.server.connect(transport);
+          console.error(`Filesystem MCP server running on HTTP port ${port}`);
+        } else {
+          // Stdio transport mode (default)
+          const transport = new StdioServerTransport();
+          await this.server.connect(transport);
+          console.error('Filesystem MCP server running on stdio');
+        }
       }
     }
 
