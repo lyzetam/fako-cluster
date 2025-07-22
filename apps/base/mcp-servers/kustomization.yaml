@@ -18,6 +18,7 @@ resources:
   - fetch-mcp
   - n8n-mcp
   - n8n-workflow-server
+  - context7-mcp
 
 labels:
 - pairs:
