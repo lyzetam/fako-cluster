@@ -1,10 +1,25 @@
 # N8N Workflow Library MCP Server
 
-This MCP server provides Claude Desktop with access to a rich library of 2,053 N8N workflow templates, enabling Claude to search, analyze, and suggest workflows when helping you create automations.
+This deployment runs the n8n-workflows collection - a FastAPI application containing 2,053 N8N workflow templates with a lightning-fast documentation system. It includes an MCP server that gives Claude Desktop access to search, analyze, and suggest workflows.
+
+## Architecture
+
+The deployment consists of two containers in a single pod:
+
+1. **n8n-workflow-server**: Runs the FastAPI workflow library application (port 8000)
+   - Clones the n8n-workflows repository
+   - Serves the web interface and API endpoints
+   - Contains SQLite database with FTS5 search
+   - Hosts 2,053 workflow JSON files
+
+2. **mcp-server**: Provides MCP interface for Claude Desktop
+   - Connects to the workflow server on localhost:8000
+   - Exposes 9 tools for workflow operations
+   - Runs via kubectl exec when Claude needs it
 
 ## Features
 
-The server provides the following tools:
+The MCP server provides Claude with these tools:
 
 - **search_workflows**: Search workflows by text, trigger type, complexity, or category
 - **get_workflow_details**: Get detailed information about a specific workflow
@@ -12,6 +27,9 @@ The server provides the following tools:
 - **get_workflow_stats**: View library statistics (2,053 workflows, 365 integrations)
 - **list_categories**: Browse 12 service categories (messaging, AI/ML, database, etc.)
 - **get_workflows_by_integration**: Find all workflows using a specific service
+- **get_workflow_diagram**: Generate Mermaid diagrams for workflows
+- **get_integration_stats**: Get statistics about integrations
+- **reindex_workflows**: Trigger database reindexing
 
 ## Workflow Library Contents
 
@@ -19,6 +37,8 @@ The server provides the following tools:
 - **Active Workflows**: 215 (10.5% active rate)
 - **Total Nodes**: 29,445 (avg 14.3 nodes per workflow)
 - **Unique Integrations**: 365 different services and APIs
+- **SQLite Database**: With FTS5 full-text search
+- **Performance**: Sub-100ms response times
 
 ### Categories Available:
 - messaging (Telegram, Discord, Slack, WhatsApp)
@@ -34,49 +54,44 @@ The server provides the following tools:
 - forms (Typeform, Google Forms)
 - development (Webhook, HTTP Request, GraphQL)
 
-## Configuration
+## Deployment
 
-### 1. Deploy Workflow Library API (if not already running)
-
-The MCP server expects the workflow library API to be running. You can either:
-
-a) Run it locally:
-```bash
-git clone <workflow-library-repo>
-cd n8n-workflows
-pip install -r requirements.txt
-python run.py  # Runs on http://localhost:8000
-```
-
-b) Or deploy it to Kubernetes and update the WORKFLOW_API_URL in the deployment
-
-### 2. Deploy the MCP Server
+### 1. Deploy the Server
 
 ```bash
 kubectl apply -k apps/base/mcp-servers/n8n-workflow-server/
 ```
 
-### 3. Configure Claude Desktop
+### 2. Configure Claude Desktop
 
-The configuration is already added to your Claude Desktop config:
+Add to your Claude Desktop config:
 
 ```json
 {
   "mcpServers": {
-    "n8n-workflow-server": {
+    "n8n-workflow-library": {
       "command": "kubectl",
       "args": [
         "exec",
         "-i",
         "-n", "mcp-servers",
         "deployment/n8n-workflow-server",
+        "-c", "mcp-server",
         "--",
         "python",
-        "/app/server.py"
+        "/mcp/server.py"
       ]
     }
   }
 }
+```
+
+### 3. Access the Web Interface (Optional)
+
+Port-forward to access the workflow library web UI:
+```bash
+kubectl port-forward -n mcp-servers deployment/n8n-workflow-server 8000:8000
+# Open http://localhost:8000
 ```
 
 ## Usage Examples
@@ -107,13 +122,33 @@ Once configured, Claude can help you find and create workflows:
    "Download the workflow template for Telegram automation"
    ```
 
-## Architecture
+## Technical Details
 
-This MCP server follows the GitOps pattern:
-- Source code is stored in a ConfigMap
-- No external dependencies or Docker registry required
-- Connects to the workflow library API for template access
-- Deployment is fully declarative
+### GitOps Pattern
+- All source code stored in ConfigMaps
+- No external Docker registry dependencies
+- Fully declarative deployment
+
+### Pod Structure
+```yaml
+Pod: n8n-workflow-server
+├── Container: n8n-workflow-server (FastAPI app on :8000)
+│   └── Volume: /app (workflow repository)
+└── Container: mcp-server (MCP interface)
+    └── Volume: /mcp (MCP server code)
+```
+
+### API Endpoints (FastAPI)
+- `GET /` - Web interface
+- `GET /api/stats` - Database statistics
+- `GET /api/workflows` - Search workflows
+- `GET /api/workflows/{filename}` - Workflow details
+- `GET /api/workflows/{filename}/download` - Download JSON
+- `GET /api/workflows/{filename}/diagram` - Mermaid diagram
+- `GET /api/workflows/category/{category}` - By category
+- `GET /api/categories` - List categories
+- `GET /api/integrations` - Integration stats
+- `POST /api/reindex` - Reindex database
 
 ## Troubleshooting
 
@@ -122,20 +157,25 @@ This MCP server follows the GitOps pattern:
    kubectl get pods -n mcp-servers -l app.kubernetes.io/name=n8n-workflow-server
    ```
 
-2. **View logs:**
+2. **View FastAPI logs:**
    ```bash
-   kubectl logs -n mcp-servers -l app.kubernetes.io/name=n8n-workflow-server
+   kubectl logs -n mcp-servers deployment/n8n-workflow-server -c n8n-workflow-server
    ```
 
-3. **Test MCP server directly:**
+3. **View MCP server logs:**
    ```bash
-   kubectl exec -it -n mcp-servers deployment/n8n-workflow-server -- python /app/server.py
+   kubectl logs -n mcp-servers deployment/n8n-workflow-server -c mcp-server
    ```
 
-4. **Verify workflow library API connectivity:**
+4. **Test MCP server directly:**
    ```bash
-   kubectl exec -n mcp-servers deployment/n8n-workflow-server -- \
-     curl -s http://n8n-workflow-library.default.svc.cluster.local:8000/api/stats
+   kubectl exec -it -n mcp-servers deployment/n8n-workflow-server -c mcp-server -- python /mcp/server.py
+   ```
+
+5. **Test API connectivity:**
+   ```bash
+   kubectl exec -n mcp-servers deployment/n8n-workflow-server -c mcp-server -- \
+     curl -s http://localhost:8000/api/stats
    ```
 
 ## How Claude Uses This

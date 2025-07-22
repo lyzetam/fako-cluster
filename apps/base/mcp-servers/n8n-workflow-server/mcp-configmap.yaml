@@ -1,0 +1,434 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: n8n-workflow-mcp-src
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: n8n-workflow-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+data:
+  server.py: |
+    import asyncio
+    import json
+    import os
+    from typing import Any, Sequence
+    from mcp.server.models import InitializationOptions
+    from mcp.server import NotificationOptions, Server
+    from mcp.server.stdio import stdio_server
+    from pydantic import AnyUrl
+    from mcp.types import (
+        Tool,
+        TextContent,
+        ImageContent,
+        EmbeddedResource,
+        LoggingLevel
+    )
+    import httpx
+
+    # Initialize the MCP server
+    server = Server("n8n-workflow-library")
+
+    # Configure workflow library API - talks to localhost since it's in same pod
+    WORKFLOW_API_URL = os.getenv("WORKFLOW_API_URL", "http://localhost:8000")
+
+    # Service categories
+    CATEGORIES = [
+        "messaging", "ai_ml", "database", "email", "cloud_storage",
+        "project_management", "social_media", "ecommerce", "analytics",
+        "calendar_tasks", "forms", "development"
+    ]
+
+    @server.list_tools()
+    async def handle_list_tools() -> list[Tool]:
+        """List available tools for workflow library operations."""
+        return [
+            Tool(
+                name="search_workflows",
+                description="Search the workflow library with filters for trigger type, complexity, category, or text query",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Text search query (searches names, descriptions, integrations)"
+                        },
+                        "trigger": {
+                            "type": "string",
+                            "enum": ["Complex", "Webhook", "Manual", "Scheduled"],
+                            "description": "Filter by trigger type"
+                        },
+                        "complexity": {
+                            "type": "string",
+                            "enum": ["low", "medium", "high"],
+                            "description": "Filter by complexity (low: ≤5 nodes, medium: 6-15 nodes, high: 16+ nodes)"
+                        },
+                        "category": {
+                            "type": "string",
+                            "enum": CATEGORIES,
+                            "description": "Filter by service category"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Number of results to return",
+                            "default": 20
+                        }
+                    }
+                }
+            ),
+            Tool(
+                name="get_workflow_details",
+                description="Get detailed information about a specific workflow from the library",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "filename": {
+                            "type": "string",
+                            "description": "The filename of the workflow (e.g., '0001_Telegram_Bot_Webhook.json')"
+                        }
+                    },
+                    "required": ["filename"]
+                }
+            ),
+            Tool(
+                name="download_workflow",
+                description="Download the JSON content of a workflow template for import into n8n",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "filename": {
+                            "type": "string",
+                            "description": "The filename of the workflow to download"
+                        }
+                    },
+                    "required": ["filename"]
+                }
+            ),
+            Tool(
+                name="get_workflow_stats",
+                description="Get statistics about the workflow library (total workflows, categories, etc.)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {}
+                }
+            ),
+            Tool(
+                name="list_categories",
+                description="List all available workflow categories with counts",
+                inputSchema={
+                    "type": "object",
+                    "properties": {}
+                }
+            ),
+            Tool(
+                name="get_workflows_by_integration",
+                description="Find all workflows that use a specific integration/service",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "integration": {
+                            "type": "string",
+                            "description": "Integration name (e.g., 'Telegram', 'OpenAI', 'PostgreSQL')"
+                        }
+                    },
+                    "required": ["integration"]
+                }
+            ),
+            Tool(
+                name="get_workflow_diagram",
+                description="Generate a Mermaid diagram for a workflow",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "filename": {
+                            "type": "string",
+                            "description": "The filename of the workflow"
+                        }
+                    },
+                    "required": ["filename"]
+                }
+            ),
+            Tool(
+                name="get_integration_stats",
+                description="Get statistics about all integrations used in the workflow library",
+                inputSchema={
+                    "type": "object",
+                    "properties": {}
+                }
+            ),
+            Tool(
+                name="reindex_workflows",
+                description="Trigger a background reindexing of the workflow database",
+                inputSchema={
+                    "type": "object",
+                    "properties": {}
+                }
+            )
+        ]
+
+    @server.call_tool()
+    async def handle_call_tool(name: str, arguments: dict | None) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+        """Handle tool execution requests."""
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                if name == "search_workflows":
+                    params = {}
+                    if arguments:
+                        if "query" in arguments:
+                            params["q"] = arguments["query"]
+                        if "trigger" in arguments:
+                            params["trigger"] = arguments["trigger"]
+                        if "complexity" in arguments:
+                            params["complexity"] = arguments["complexity"]
+                        if "limit" in arguments:
+                            params["limit"] = arguments["limit"]
+                    
+                    # Handle category separately
+                    if arguments and "category" in arguments:
+                        url = f"{WORKFLOW_API_URL}/api/workflows/category/{arguments['category']}"
+                    else:
+                        url = f"{WORKFLOW_API_URL}/api/workflows"
+                    
+                    response = await client.get(url, params=params)
+                    response.raise_for_status()
+                    workflows = response.json()
+                    
+                    # Format the results nicely
+                    result_text = f"Found {len(workflows)} workflows:\n\n"
+                    for wf in workflows[:20]:  # Limit display to 20
+                        result_text += f"📄 {wf['name']}\n"
+                        result_text += f"   File: {wf['filename']}\n"
+                        result_text += f"   Trigger: {wf['trigger_type']} | Nodes: {wf['node_count']} | Complexity: {wf['complexity']}\n"
+                        if wf.get('integrations'):
+                            result_text += f"   Integrations: {', '.join(json.loads(wf['integrations'])[:5])}\n"
+                        result_text += "\n"
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=result_text
+                        )
+                    ]
+                
+                elif name == "get_workflow_details":
+                    filename = arguments["filename"]
+                    
+                    response = await client.get(
+                        f"{WORKFLOW_API_URL}/api/workflows/{filename}"
+                    )
+                    response.raise_for_status()
+                    workflow = response.json()
+                    
+                    # Format the details
+                    details = f"📋 Workflow Details: {workflow['name']}\n"
+                    details += f"{'=' * 50}\n"
+                    details += f"File: {workflow['filename']}\n"
+                    details += f"Active: {'✅' if workflow['active'] else '❌'}\n"
+                    details += f"Trigger Type: {workflow['trigger_type']}\n"
+                    details += f"Complexity: {workflow['complexity']} ({workflow['node_count']} nodes)\n"
+                    
+                    if workflow.get('integrations'):
+                        integrations = json.loads(workflow['integrations'])
+                        details += f"\nIntegrations ({len(integrations)}):\n"
+                        for i in integrations:
+                            details += f"  • {i}\n"
+                    
+                    if workflow.get('description'):
+                        details += f"\nDescription:\n{workflow['description']}\n"
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=details
+                        )
+                    ]
+                
+                elif name == "download_workflow":
+                    filename = arguments["filename"]
+                    
+                    response = await client.get(
+                        f"{WORKFLOW_API_URL}/api/workflows/{filename}/download"
+                    )
+                    response.raise_for_status()
+                    workflow_json = response.json()
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=f"Downloaded workflow: {filename}\n\n```json\n{json.dumps(workflow_json, indent=2)}\n```"
+                        )
+                    ]
+                
+                elif name == "get_workflow_stats":
+                    response = await client.get(f"{WORKFLOW_API_URL}/api/stats")
+                    response.raise_for_status()
+                    stats = response.json()
+                    
+                    stats_text = "📊 Workflow Library Statistics\n"
+                    stats_text += f"{'=' * 40}\n"
+                    stats_text += f"Total Workflows: {stats['total']:,}\n"
+                    stats_text += f"Active Workflows: {stats['active']:,} ({stats['active']/stats['total']*100:.1f}%)\n"
+                    stats_text += f"Total Nodes: {stats['total_nodes']:,} (avg {stats['total_nodes']/stats['total']:.1f} per workflow)\n"
+                    stats_text += f"Unique Integrations: {stats['unique_integrations']}\n\n"
+                    
+                    stats_text += "Trigger Distribution:\n"
+                    for trigger, count in stats['triggers'].items():
+                        percentage = count / stats['total'] * 100
+                        stats_text += f"  • {trigger}: {count:,} ({percentage:.1f}%)\n"
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=stats_text
+                        )
+                    ]
+                
+                elif name == "list_categories":
+                    response = await client.get(f"{WORKFLOW_API_URL}/api/categories")
+                    response.raise_for_status()
+                    categories = response.json()
+                    
+                    cat_text = "📁 Workflow Categories\n"
+                    cat_text += f"{'=' * 40}\n"
+                    for cat in categories:
+                        cat_text += f"\n{cat['name']} ({cat['count']} workflows):\n"
+                        for service in cat['services'][:10]:  # Show top 10 services
+                            cat_text += f"  • {service}\n"
+                        if len(cat['services']) > 10:
+                            cat_text += f"  ... and {len(cat['services']) - 10} more\n"
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=cat_text
+                        )
+                    ]
+                
+                elif name == "get_workflows_by_integration":
+                    integration = arguments["integration"]
+                    
+                    response = await client.get(
+                        f"{WORKFLOW_API_URL}/api/workflows",
+                        params={"q": integration, "limit": 50}
+                    )
+                    response.raise_for_status()
+                    workflows = response.json()
+                    
+                    # Filter to exact matches
+                    matching = []
+                    for wf in workflows:
+                        if wf.get('integrations'):
+                            integrations = json.loads(wf['integrations'])
+                            if any(integration.lower() in i.lower() for i in integrations):
+                                matching.append(wf)
+                    
+                    result_text = f"Found {len(matching)} workflows using {integration}:\n\n"
+                    for wf in matching[:20]:
+                        result_text += f"📄 {wf['name']}\n"
+                        result_text += f"   File: {wf['filename']}\n"
+                        result_text += f"   Complexity: {wf['complexity']} | Nodes: {wf['node_count']}\n\n"
+                    
+                    if len(matching) > 20:
+                        result_text += f"... and {len(matching) - 20} more workflows\n"
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=result_text
+                        )
+                    ]
+                
+                elif name == "get_workflow_diagram":
+                    filename = arguments["filename"]
+                    
+                    response = await client.get(
+                        f"{WORKFLOW_API_URL}/api/workflows/{filename}/diagram"
+                    )
+                    response.raise_for_status()
+                    diagram = response.text  # Mermaid diagram as text
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=f"Mermaid diagram for {filename}:\n\n```mermaid\n{diagram}\n```"
+                        )
+                    ]
+                
+                elif name == "get_integration_stats":
+                    response = await client.get(f"{WORKFLOW_API_URL}/api/integrations")
+                    response.raise_for_status()
+                    integrations = response.json()
+                    
+                    stats_text = "📊 Integration Statistics\n"
+                    stats_text += f"{'=' * 40}\n"
+                    stats_text += f"Total Unique Integrations: {len(integrations)}\n\n"
+                    
+                    # Sort by usage count
+                    sorted_integrations = sorted(integrations.items(), key=lambda x: x[1], reverse=True)
+                    
+                    stats_text += "Top 20 Most Used Integrations:\n"
+                    for i, (name, count) in enumerate(sorted_integrations[:20], 1):
+                        stats_text += f"{i:2d}. {name}: {count} workflows\n"
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=stats_text
+                        )
+                    ]
+                
+                elif name == "reindex_workflows":
+                    response = await client.post(f"{WORKFLOW_API_URL}/api/reindex")
+                    response.raise_for_status()
+                    result = response.json()
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=f"Reindexing triggered: {result.get('message', 'Background reindexing started')}"
+                        )
+                    ]
+                
+                else:
+                    return [
+                        TextContent(
+                            type="text",
+                            text=f"Unknown tool: {name}"
+                        )
+                    ]
+                    
+            except httpx.HTTPStatusError as e:
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"HTTP error: {e.response.status_code} - {e.response.text}"
+                    )
+                ]
+            except Exception as e:
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"Error executing tool {name}: {str(e)}"
+                    )
+                ]
+
+    async def main():
+        """Run the MCP server."""
+        # Run the server using stdio transport
+        async with stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="n8n-workflow-library",
+                    server_version="2.0.0",
+                    capabilities=server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
+                ),
+            )
+
+    if __name__ == "__main__":
+        asyncio.run(main())
