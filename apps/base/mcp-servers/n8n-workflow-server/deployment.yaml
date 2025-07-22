@@ -37,7 +37,7 @@ spec:
               
               # Clone the n8n-workflows repository
               cd /app
-              git clone https://github.com/n8n-io/n8n-workflows-collection.git n8n-workflows || true
+              git clone https://github.com/Zie619/n8n-workflows.git n8n-workflows
               cd n8n-workflows
               
               # Set permissions for non-root user
