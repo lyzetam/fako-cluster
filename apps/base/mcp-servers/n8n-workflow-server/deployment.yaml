@@ -18,9 +18,6 @@ spec:
       labels:
         app.kubernetes.io/name: n8n-workflow-server
         app.kubernetes.io/component: mcp-server
-      annotations:
-        # Force pod restart when ConfigMap changes
-        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       securityContext:
         runAsNonRoot: true
