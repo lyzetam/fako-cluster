@@ -1,0 +1,264 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: n8n-workflow-server-src
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: n8n-workflow-server
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: mcp-servers
+data:
+  requirements.txt: |
+    mcp
+    pydantic
+    httpx
+    asyncio
+    uvicorn[standard]
+    fastapi
+  
+  server.py: |
+    import asyncio
+    import json
+    import os
+    from typing import Any, Sequence
+    from mcp.server.models import InitializationOptions
+    from mcp.server import NotificationOptions, Server
+    from mcp.server.stdio import stdio_server
+    from pydantic import AnyUrl
+    from mcp.types import (
+        Tool,
+        TextContent,
+        ImageContent,
+        EmbeddedResource,
+        LoggingLevel
+    )
+    import httpx
+
+    # Initialize the MCP server
+    server = Server("n8n-workflow-server")
+
+    # Configure N8N API details from environment
+    N8N_API_URL = os.getenv("N8N_API_URL", "http://n8n.n8n.svc.cluster.local:5678")
+    N8N_API_KEY = os.getenv("N8N_API_KEY", "")
+
+    @server.list_tools()
+    async def handle_list_tools() -> list[Tool]:
+        """List available tools for N8N workflow operations."""
+        return [
+            Tool(
+                name="list_workflows",
+                description="List all workflows in N8N",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "active": {
+                            "type": "boolean",
+                            "description": "Filter by active status"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Number of workflows to return",
+                            "default": 50
+                        }
+                    }
+                }
+            ),
+            Tool(
+                name="execute_workflow",
+                description="Execute a specific N8N workflow",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "workflow_id": {
+                            "type": "string",
+                            "description": "The ID of the workflow to execute"
+                        },
+                        "data": {
+                            "type": "object",
+                            "description": "Input data for the workflow",
+                            "default": {}
+                        }
+                    },
+                    "required": ["workflow_id"]
+                }
+            ),
+            Tool(
+                name="get_workflow",
+                description="Get details of a specific workflow",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "workflow_id": {
+                            "type": "string",
+                            "description": "The ID of the workflow to retrieve"
+                        }
+                    },
+                    "required": ["workflow_id"]
+                }
+            ),
+            Tool(
+                name="get_executions",
+                description="Get execution history for a workflow",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "workflow_id": {
+                            "type": "string",
+                            "description": "The ID of the workflow"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Number of executions to return",
+                            "default": 10
+                        }
+                    },
+                    "required": ["workflow_id"]
+                }
+            )
+        ]
+
+    @server.call_tool()
+    async def handle_call_tool(name: str, arguments: dict | None) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+        """Handle tool execution requests."""
+        headers = {
+            "X-N8N-API-KEY": N8N_API_KEY,
+            "Content-Type": "application/json"
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                if name == "list_workflows":
+                    params = {}
+                    if arguments and "active" in arguments:
+                        params["active"] = arguments["active"]
+                    if arguments and "limit" in arguments:
+                        params["limit"] = arguments["limit"]
+                    
+                    response = await client.get(
+                        f"{N8N_API_URL}/api/v1/workflows",
+                        headers=headers,
+                        params=params
+                    )
+                    response.raise_for_status()
+                    workflows = response.json()
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=json.dumps(workflows, indent=2)
+                        )
+                    ]
+                
+                elif name == "execute_workflow":
+                    workflow_id = arguments["workflow_id"]
+                    data = arguments.get("data", {})
+                    
+                    response = await client.post(
+                        f"{N8N_API_URL}/api/v1/workflows/{workflow_id}/execute",
+                        headers=headers,
+                        json=data
+                    )
+                    response.raise_for_status()
+                    result = response.json()
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=f"Workflow executed successfully. Execution ID: {result.get('executionId', 'unknown')}\n"
+                                 f"Result: {json.dumps(result, indent=2)}"
+                        )
+                    ]
+                
+                elif name == "get_workflow":
+                    workflow_id = arguments["workflow_id"]
+                    
+                    response = await client.get(
+                        f"{N8N_API_URL}/api/v1/workflows/{workflow_id}",
+                        headers=headers
+                    )
+                    response.raise_for_status()
+                    workflow = response.json()
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=json.dumps(workflow, indent=2)
+                        )
+                    ]
+                
+                elif name == "get_executions":
+                    workflow_id = arguments["workflow_id"]
+                    limit = arguments.get("limit", 10)
+                    
+                    response = await client.get(
+                        f"{N8N_API_URL}/api/v1/executions",
+                        headers=headers,
+                        params={"workflowId": workflow_id, "limit": limit}
+                    )
+                    response.raise_for_status()
+                    executions = response.json()
+                    
+                    return [
+                        TextContent(
+                            type="text",
+                            text=json.dumps(executions, indent=2)
+                        )
+                    ]
+                
+                else:
+                    return [
+                        TextContent(
+                            type="text",
+                            text=f"Unknown tool: {name}"
+                        )
+                    ]
+                    
+            except httpx.HTTPStatusError as e:
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"HTTP error: {e.response.status_code} - {e.response.text}"
+                    )
+                ]
+            except Exception as e:
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"Error executing tool {name}: {str(e)}"
+                    )
+                ]
+
+    async def main():
+        """Run the MCP server."""
+        # Run the server using stdio transport
+        async with stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="n8n-workflow-server",
+                    server_version="1.0.0",
+                    capabilities=server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
+                ),
+            )
+
+    if __name__ == "__main__":
+        asyncio.run(main())
+
+  Dockerfile: |
+    FROM python:3.11-slim
+    
+    WORKDIR /app
+    
+    # Copy requirements and install dependencies
+    COPY requirements.txt .
+    RUN pip install --no-cache-dir -r requirements.txt
+    
+    # Copy the server code
+    COPY server.py .
+    
+    # Set the entry point for MCP server
+    ENTRYPOINT ["python", "server.py"]
