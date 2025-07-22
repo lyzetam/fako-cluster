@@ -6,3 +6,4 @@ resources:
   - mcp-configmap.yaml
   - deployment.yaml
   - service.yaml
+  - ingress.yaml
