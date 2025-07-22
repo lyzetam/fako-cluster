@@ -15,4 +15,8 @@ spec:
       port: 8000
       targetPort: 8000
       name: http
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      name: mcp
   type: ClusterIP
