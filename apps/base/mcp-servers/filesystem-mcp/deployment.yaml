@@ -34,14 +34,11 @@ spec:
             - "-c"
             - |
               echo 'Starting filesystem MCP server setup...'
-              echo 'Installing @modelcontextprotocol/server-filesystem...'
-              # Install locally to avoid permission issues
-              npm install @modelcontextprotocol/server-filesystem
               echo 'Starting HTTP server on port 3000...'
               # Create readiness file for health checks
               echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
-              # Start the MCP server with HTTP transport pointing to the mounted directories
-              exec npx mcp-server-filesystem --transport http --port 3000 /data /logs /config
+              # Start the MCP server with HTTP transport using npx (auto-installs)
+              exec npx -y @modelcontextprotocol/server-filesystem --transport http --port 3000 /data /logs /config
           ports:
             - containerPort: 3000
               protocol: TCP
