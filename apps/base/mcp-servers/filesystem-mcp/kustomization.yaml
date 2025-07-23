@@ -3,4 +3,6 @@ kind: Kustomization
 namespace: mcp-servers
 resources:
   - deployment.yaml
+  - service.yaml
   - storage.yaml
+  - ingress.yaml
