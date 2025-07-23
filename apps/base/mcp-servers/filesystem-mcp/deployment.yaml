@@ -36,19 +36,45 @@ spec:
               echo "Available directories: /data /logs /config"
               ls -la /data /logs /config 2>/dev/null || true
               
-              # Keep the MCP server running indefinitely by creating a simple loop
-              # The MCP server normally expects stdin/stdout communication, but we'll keep it alive
-              node /app/dist/index.js /data /logs /config &
+              # Create a named pipe to keep stdin open for the MCP server
+              mkfifo /tmp/mcp_stdin
+              
+              # Keep feeding empty lines to stdin to prevent the MCP server from exiting
+              (while true; do echo ""; sleep 60; done) > /tmp/mcp_stdin &
+              STDIN_PID=$!
+              
+              echo "Starting MCP server with persistent stdin..."
+              # Start the MCP server with the named pipe as stdin
+              node /app/dist/index.js /data /logs /config < /tmp/mcp_stdin &
               MCP_PID=$!
               
-              echo "MCP server started with PID: $MCP_PID"
+              echo "MCP server started with PID: $MCP_PID (stdin feeder: $STDIN_PID)"
+              
+              # Function to cleanup on exit
+              cleanup() {
+                echo "Cleaning up processes..."
+                kill $STDIN_PID 2>/dev/null || true
+                kill $MCP_PID 2>/dev/null || true
+                rm -f /tmp/mcp_stdin
+                exit 0
+              }
+              
+              # Set up signal handlers
+              trap cleanup SIGTERM SIGINT
               
               # Keep container alive and monitor the MCP process
               while kill -0 $MCP_PID 2>/dev/null; do
                 sleep 30
+                # Check if stdin feeder is still running, restart if needed
+                if ! kill -0 $STDIN_PID 2>/dev/null; then
+                  echo "Restarting stdin feeder..."
+                  (while true; do echo ""; sleep 60; done) > /tmp/mcp_stdin &
+                  STDIN_PID=$!
+                fi
               done
               
               echo "MCP server process ended"
+              cleanup
           volumeMounts:
             - mountPath: /data
               name: shared-data
