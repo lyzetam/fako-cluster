@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: headlamp-kubescape-info
+  namespace: headlamp
+data:
+  kubescape-info.md: |
+    # Viewing Kubescape Security Reports in Headlamp
+    
+    ## Current Status
+    The Kubescape operator (v1.28.4) is running but with limited CRDs because it's configured without the cloud component.
+    
+    ## Available Resources
+    In Headlamp, navigate to:
+    
+    1. **Custom Resources** section
+       - `operatorcommands.kubescape.io` - View operator commands
+       - `runtimerulealertbindings.kubescape.io` - View runtime security alerts
+    
+    2. **Workloads > Jobs** (in kubescape namespace)
+       - View scheduled scan jobs
+       - Check job logs for scan results
+    
+    3. **Workloads > CronJobs** (in kubescape namespace)
+       - `kubescape-scheduler` - NSA, MITRE, CIS scans
+       - `kubevuln-scheduler` - Vulnerability scans
+    
+    ## Manual Commands
+    To trigger scans manually:
+    ```
+    # Trigger framework scan
+    kubectl create job --from=cronjob/kubescape-scheduler manual-scan-$(date +%s) -n kubescape
+    
+    # Check scan results
+    kubectl logs -n kubescape -l job-name=manual-scan-<timestamp>
+    ```
+    
+    ## Viewing Results
+    Since full CRDs are not available, check:
+    - Operator logs: `kubectl logs -n kubescape deployment/operator`
+    - Storage service: `kubectl logs -n kubescape deployment/storage`
+    - Job outputs in the kubescape namespace
