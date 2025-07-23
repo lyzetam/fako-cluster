@@ -4,3 +4,4 @@ namespace: mcp-servers
 resources:
   - deployment.yaml
   - storage.yaml
+  - ../shared-workspace-storage.yaml
