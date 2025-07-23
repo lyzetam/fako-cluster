@@ -1,9 +1,21 @@
 # How to View Kubescape Security Reports in Headlamp
 
 ## Current Setup
-- **Kubescape Operator**: v1.28.4 (running without cloud component)
-- **Available CRDs**: Limited (operatorcommands, runtimerulealertbindings)
+- **Kubescape Operator**: v1.28.4 with continuous scanning enabled
+- **Headlamp Plugin**: Official Kubescape plugin installed (ghcr.io/kubebeam/kubescape-headlamp-plugin)
+- **Available CRDs**: workloadconfigurationscans, operatorcommands, runtimerulealertbindings
 - **Scan Schedule**: Automated scans run daily
+
+## Accessing Kubescape Plugin in Headlamp
+
+1. Navigate to https://headlamp.landryzetam.net
+2. Login with your token
+3. Look for the **Kubescape** menu item in the sidebar
+4. The plugin provides:
+   - **Security Dashboard**: Overview of cluster security posture
+   - **Workload Scans**: Configuration scan results for each workload
+   - **Compliance Reports**: Framework compliance visualization
+   - **Risk Assessment**: Security risk scoring
 
 ## Viewing Security Data in Headlamp
 
