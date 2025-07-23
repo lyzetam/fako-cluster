@@ -26,19 +26,45 @@ This deployment uses the **official MCP filesystem Docker image** (`mcp/filesyst
 
 ## Usage
 
-The server automatically starts with access to three directories mounted from PVCs:
-- `/data` - Main data storage (filesystem-mcp-data PVC)
-- `/logs` - Log storage (filesystem-mcp-logs PVC) 
-- `/config` - Configuration storage (filesystem-mcp-config PVC)
+The server follows the official MCP filesystem Docker pattern with all directories mounted under `/projects`:
 
-**Note**: Currently running in Phase 1 - the MCP server container only. HTTP bridge for remote access will be added in Phase 2.
+- `/projects/data` - Main data storage (filesystem-mcp-data PVC: 10GB)
+- `/projects/logs` - Log storage (filesystem-mcp-logs PVC: 5GB) 
+- `/projects/config` - Configuration storage (filesystem-mcp-config PVC: 2GB)
+- `/projects/workspace` - **Shared workspace** for N8N workflows (mcp-shared-workspace PVC: 20GB)
+
+**Note**: The shared workspace enables seamless integration with N8N workflows and other MCP servers.
 
 ## Volumes
 
-The server has access to three persistent volumes:
-- `/data` - Main data storage (filesystem-mcp-data PVC)
-- `/logs` - Log storage (filesystem-mcp-logs PVC)
-- `/config` - Configuration storage (filesystem-mcp-config PVC)
+The server has access to four persistent volumes mounted under `/projects`:
+
+- `/projects/data` - Main data storage (10GB, NFS)
+- `/projects/logs` - Log storage (5GB, NFS)
+- `/projects/config` - Configuration storage (2GB, NFS)
+- `/projects/workspace` - **Shared workspace for workflows** (20GB, NFS, ReadWriteMany)
+
+## N8N Workflow Integration
+
+The shared workspace (`/projects/workspace`) enables powerful workflow integrations:
+
+**File Exchange Pattern:**
+1. **fetch-mcp** downloads content → `/projects/workspace/downloads/`
+2. **N8N workflow** processes files → `/projects/workspace/processing/`
+3. **LLM analysis** reads/writes → `/projects/workspace/analysis/`
+4. **filesystem-mcp** manages all file operations across the entire `/projects` tree
+
+**Directory Structure:**
+```
+/projects/
+├── data/           # Persistent app data
+├── logs/           # Application logs  
+├── config/         # Configuration files
+└── workspace/      # SHARED: N8N workflows, downloads, processing
+    ├── downloads/  # Files fetched by fetch-mcp
+    ├── processing/ # Files being processed by N8N
+    └── analysis/   # LLM analysis results
+```
 
 ## Security
 

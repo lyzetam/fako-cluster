@@ -33,8 +33,10 @@ spec:
           args: 
             - |
               echo "Starting MCP filesystem server..."
-              echo "Available directories: /data /logs /config /workspace"
-              ls -la /data /logs /config /workspace 2>/dev/null || true
+              echo "Available projects directory: /projects"
+              ls -la /projects 2>/dev/null || true
+              echo "Contents of /projects:"
+              find /projects -maxdepth 2 -type d 2>/dev/null || true
               
               # Create a named pipe to keep stdin open for the MCP server
               mkfifo /tmp/mcp_stdin
@@ -44,8 +46,8 @@ spec:
               STDIN_PID=$!
               
               echo "Starting MCP server with persistent stdin..."
-              # Start the MCP server with the named pipe as stdin
-              node /app/dist/index.js /data /logs /config /workspace < /tmp/mcp_stdin &
+              # Start the MCP server with /projects as the root directory
+              node /app/dist/index.js /projects < /tmp/mcp_stdin &
               MCP_PID=$!
               
               echo "MCP server started with PID: $MCP_PID (stdin feeder: $STDIN_PID)"
@@ -76,13 +78,13 @@ spec:
               echo "MCP server process ended"
               cleanup
           volumeMounts:
-            - mountPath: /data
+            - mountPath: /projects/data
               name: shared-data
-            - mountPath: /logs
+            - mountPath: /projects/logs
               name: log-storage
-            - mountPath: /config
+            - mountPath: /projects/config
               name: config-storage
-            - mountPath: /workspace
+            - mountPath: /projects/workspace
               name: shared-workspace
           securityContext:
             allowPrivilegeEscalation: false
