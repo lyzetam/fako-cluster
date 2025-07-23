@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
   # Core applications
   - linkding
-  - audiobookshelf
+  # - audiobookshelf
   # - homebot
   - oura-collector
   - oura-dashboard
