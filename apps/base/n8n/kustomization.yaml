@@ -11,3 +11,5 @@ resources:
   - aws-credentials-secret.yaml
   - secret-store.yaml
   - external-secret-postgres.yaml
+  - cloudflare.yaml
+  - cloudflare-secret.yaml
