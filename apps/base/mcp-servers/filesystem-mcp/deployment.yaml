@@ -34,8 +34,6 @@ spec:
             - "-c"
             - |
               echo 'Starting filesystem MCP server setup...'
-              # Install the filesystem MCP server globally
-              npm install -g @modelcontextprotocol/server-filesystem
               # Create a simple HTTP-to-stdio bridge for the MCP server
               cat > /tmp/mcp_http_bridge.js << 'EOF'
               const http = require('http');
@@ -68,7 +66,7 @@ spec:
                   }
                   
                   // Spawn the MCP server with the mounted directories
-                  const mcp = spawn('server-filesystem', ['/data', '/logs', '/config'], {
+                  const mcp = spawn('npx', ['-y', '@modelcontextprotocol/server-filesystem', '/data', '/logs', '/config'], {
                     stdio: ['pipe', 'pipe', 'pipe']
                   });
                   
