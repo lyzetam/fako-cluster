@@ -62,30 +62,19 @@ kubectl logs -n mcp-servers deployment/filesystem-mcp-server
 ```bash
 # Check if the MCP server process is running
 kubectl exec -n mcp-servers deployment/filesystem-mcp-server -- \
-  ps aux | grep mcp-server-filesystem
-```
-
-### Test HTTP Bridge
-```bash
-# Test the health endpoint
-curl https://filesystem-mcp.landryzetam.net/health
-
-# Test WebSocket connection (requires wscat)
-wscat -c wss://filesystem-mcp.landryzetam.net
+  ps aux | grep 'node.*index.js'
 ```
 
 ## Architecture Details
 
-The bridge implementation:
-1. **Starts ONE persistent MCP server** with access to `/data`, `/logs`, `/config`
-2. **Provides HTTP endpoints** at `/health` and `/mcp` for health checks and HTTP requests
-3. **Provides WebSocket endpoint** for bidirectional MCP communication
-4. **Properly handles MCP JSON-RPC protocol** with message queuing and session management
-5. **Maintains state** across multiple client interactions
+**Phase 1** - MCP Server Container:
+1. **Uses official MCP filesystem Docker image** (`mcp/filesystem`)
+2. **Runs persistent MCP server process** with access to `/data`, `/logs`, `/config`
+3. **Process monitoring** to keep container alive and healthy
+4. **Proper security context** with non-root user and dropped capabilities
 
 ## Notes
 
 - The server requires at least one allowed directory to operate
-- The HTTP bridge properly handles the MCP initialization sequence
-- WebSocket communication is preferred for real-time bidirectional messaging
-- HTTP POST to `/mcp` endpoint is available as fallback for simple requests
+- Currently runs the MCP server process in a monitoring loop to keep the container alive
+- Phase 2 will add HTTP bridge for remote access
