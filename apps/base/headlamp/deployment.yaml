@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headlamp
+  namespace: headlamp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: headlamp
+      app.kubernetes.io/instance: headlamp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: headlamp
+        app.kubernetes.io/instance: headlamp
+    spec:
+      serviceAccountName: headlamp
+      containers:
+      - name: headlamp
+        image: ghcr.io/headlamp-k8s/headlamp:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - "-in-cluster"
+        - "-plugins-dir=/headlamp/plugins"
+        ports:
+        - name: http
+          containerPort: 4466
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          timeoutSeconds: 30
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: plugins
+          mountPath: /headlamp/plugins
+      initContainers:
+      # Initialize with Kubescape plugin
+      - name: install-kubescape-plugin
+        image: busybox:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "Preparing plugins directory..."
+          mkdir -p /headlamp/plugins
+          echo "Plugins directory ready for manual plugin installation"
+          echo "To install Kubescape plugin:"
+          echo "1. Access Headlamp UI"
+          echo "2. Go to Settings -> Plugins"
+          echo "3. Search for 'kubescape' in the plugin catalog"
+          echo "4. Click Install"
+        volumeMounts:
+        - name: plugins
+          mountPath: /headlamp/plugins
+      volumes:
+      - name: plugins
+        emptyDir: {}

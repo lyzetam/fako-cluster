@@ -1,0 +1,77 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: kubescape-operator
+  namespace: kubescape
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: kubescape-operator
+      version: "1.x"
+      sourceRef:
+        kind: HelmRepository
+        name: kubescape
+        namespace: kubescape
+  values:
+    # Enable continuous scanning for real-time monitoring
+    capabilities:
+      continuousScan: enable
+      networkPolicyService: enable
+      
+    # Configure storage for scan results
+    storage:
+      enabled: true
+      storageClass: nfs-security-logs  # Use our dedicated security logs storage
+      size: 20Gi
+      
+    # Configure the Kubescape cloud component (optional - for cloud dashboard)
+    kubescapeCloud:
+      enabled: false  # Set to true if you have a Kubescape cloud account
+      
+    # Configure scanning intervals
+    scanSchedule:
+      frameworks:
+        - name: "nsa"
+          cronTabSchedule: "0 */6 * * *"  # Every 6 hours
+        - name: "mitre"
+          cronTabSchedule: "0 */6 * * *"
+        - name: "cis-v1.23-t1.0.1"
+          cronTabSchedule: "0 2 * * *"    # Daily at 2 AM
+          
+    # Network policy configuration
+    networkPolicy:
+      enabled: true
+      scanInterval: 15m
+      
+    # Resource requests and limits
+    operator:
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+          
+    kubevuln:
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "200m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+          
+    gateway:
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "300m"
+          
+    # Enable prometheus metrics
+    prometheus:
+      enabled: true
