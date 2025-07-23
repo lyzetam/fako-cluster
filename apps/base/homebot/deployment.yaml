@@ -43,7 +43,7 @@ spec:
               mountPath: /config
       containers:
         - name: homebot
-          image: ghcr.io/home-assistant/home-assistant:2025.7.2
+          image: ghcr.io/home-assistant/home-assistant:2025.7.3
           ports:
             - containerPort: 8123
               protocol: TCP
