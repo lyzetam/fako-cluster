@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: headlamp
+
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+labels:
+- pairs:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/part-of: dashboard
+    app.kubernetes.io/managed-by: kustomize
