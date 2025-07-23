@@ -27,7 +27,7 @@ spec:
           name: n8n-workflow-mcp-http-src
       initContainers:
         - name: setup
-          image: python:3.11-slim
+          image: python:3.13-slim
           command: ["/bin/sh"]
           args:
             - -c
@@ -50,7 +50,7 @@ spec:
             runAsNonRoot: false
       containers:
         - name: n8n-workflow-server
-          image: python:3.11-slim
+          image: python:3.13-slim
           command: ["/bin/sh"]
           args: 
             - -c
@@ -103,7 +103,7 @@ spec:
             timeoutSeconds: 3
             failureThreshold: 3
         - name: mcp-server
-          image: python:3.11-slim
+          image: python:3.13-slim
           command: ["/bin/sh"]
           args:
             - -c
