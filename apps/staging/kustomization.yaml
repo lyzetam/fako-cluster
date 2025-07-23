@@ -19,6 +19,7 @@ resources:
   # Security Scanning
   - gitleaks
   - kube-bench
+  - kubescape
   
   # AI/ML stack with GPU support
   - ollama         
