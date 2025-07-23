@@ -1,0 +1,236 @@
+# apps/base/mcp-servers/filesystem-mcp/bridge-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filesystem-mcp-bridge
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: filesystem-mcp-bridge
+    app.kubernetes.io/component: mcp-bridge
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: filesystem-mcp-bridge
+      app.kubernetes.io/component: mcp-bridge
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: filesystem-mcp-bridge
+        app.kubernetes.io/component: mcp-bridge
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        # HTTP/WebSocket bridge to connect to filesystem MCP server
+        - name: mcp-http-bridge
+          image: node:18-alpine
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Installing dependencies for MCP HTTP bridge..."
+              npm install -g express ws
+              
+              echo "Creating MCP HTTP bridge..."
+              
+              # Create bridge script that connects to the MCP server via Docker exec
+              cat > /tmp/bridge.js << 'EOF'
+              const express = require('express');
+              const WebSocket = require('ws');
+              const http = require('http');
+              const { spawn, exec } = require('child_process');
+              
+              const app = express();
+              const server = http.createServer(app);
+              const wss = new WebSocket.Server({ server });
+              
+              app.use(express.json());
+              
+              // Health endpoint
+              app.get('/health', (req, res) => {
+                res.json({ 
+                  status: 'healthy', 
+                  service: 'filesystem-mcp-bridge',
+                  timestamp: new Date().toISOString()
+                });
+              });
+              
+              // MCP HTTP endpoint for simple requests
+              app.post('/mcp', async (req, res) => {
+                try {
+                  const { method, params, id } = req.body;
+                  
+                  // Forward request to MCP server via kubectl exec
+                  const mcpRequest = JSON.stringify({
+                    jsonrpc: '2.0',
+                    method,
+                    params: params || {},
+                    id: id || 1
+                  });
+                  
+                  console.log('HTTP -> MCP:', mcpRequest);
+                  
+                  // Execute command in the MCP server container
+                  const kubectlCmd = \`kubectl exec -n mcp-servers deployment/filesystem-mcp-server -c mcp-filesystem-server -- sh -c 'echo "\${mcpRequest}" | socat - EXEC:"node /app/dist/index.js /projects"'\`;
+                  
+                  exec(kubectlCmd, { timeout: 30000 }, (error, stdout, stderr) => {
+                    if (error) {
+                      console.error('MCP Error:', error);
+                      return res.status(500).json({
+                        jsonrpc: '2.0',
+                        error: { code: -32000, message: error.message },
+                        id: id || 1
+                      });
+                    }
+                    
+                    try {
+                      const response = JSON.parse(stdout.trim());
+                      console.log('MCP -> HTTP:', response);
+                      res.json(response);
+                    } catch (parseError) {
+                      console.error('Parse Error:', parseError, 'Raw output:', stdout);
+                      res.status(500).json({
+                        jsonrpc: '2.0',
+                        error: { code: -32700, message: 'Parse error', data: stdout },
+                        id: id || 1
+                      });
+                    }
+                  });
+                  
+                } catch (error) {
+                  console.error('Bridge Error:', error);
+                  res.status(500).json({
+                    jsonrpc: '2.0',
+                    error: { code: -32603, message: error.message },
+                    id: req.body.id || 1
+                  });
+                }
+              });
+              
+              // WebSocket handler for real-time MCP communication
+              wss.on('connection', (ws) => {
+                console.log('New MCP WebSocket connection');
+                
+                let mcpProcess = null;
+                
+                ws.on('message', (data) => {
+                  try {
+                    const message = JSON.parse(data.toString());
+                    console.log('WS -> MCP:', message);
+                    
+                    // For WebSocket, we'll use a persistent connection via kubectl exec
+                    if (!mcpProcess) {
+                      mcpProcess = spawn('kubectl', [
+                        'exec', '-n', 'mcp-servers', 
+                        'deployment/filesystem-mcp-server', 
+                        '-c', 'mcp-filesystem-server', 
+                        '--', 'node', '/app/dist/index.js', '/projects'
+                      ], {
+                        stdio: ['pipe', 'pipe', 'pipe']
+                      });
+                      
+                      mcpProcess.stdout.on('data', (data) => {
+                        const response = data.toString().trim();
+                        if (response) {
+                          console.log('MCP -> WS:', response);
+                          try {
+                            ws.send(response);
+                          } catch (e) {
+                            console.error('WebSocket send error:', e);
+                          }
+                        }
+                      });
+                      
+                      mcpProcess.stderr.on('data', (data) => {
+                        console.error('MCP Process Error:', data.toString());
+                      });
+                      
+                      mcpProcess.on('exit', (code) => {
+                        console.log(\`MCP process exited with code \${code}\`);
+                        mcpProcess = null;
+                      });
+                    }
+                    
+                    if (mcpProcess && mcpProcess.stdin.writable) {
+                      mcpProcess.stdin.write(JSON.stringify(message) + '\n');
+                    }
+                    
+                  } catch (error) {
+                    console.error('WebSocket message error:', error);
+                    ws.send(JSON.stringify({
+                      jsonrpc: '2.0',
+                      error: { code: -32700, message: 'Parse error' },
+                      id: null
+                    }));
+                  }
+                });
+                
+                ws.on('close', () => {
+                  console.log('WebSocket connection closed');
+                  if (mcpProcess) {
+                    mcpProcess.kill();
+                    mcpProcess = null;
+                  }
+                });
+                
+                ws.on('error', (error) => {
+                  console.error('WebSocket error:', error);
+                  if (mcpProcess) {
+                    mcpProcess.kill();
+                    mcpProcess = null;
+                  }
+                });
+              });
+              
+              const PORT = 8080;
+              server.listen(PORT, () => {
+                console.log(\`Filesystem MCP Bridge listening on port \${PORT}\`);
+                console.log('Ready to route traffic to filesystem-mcp-server');
+              });
+              EOF
+              
+              echo "Starting bridge server..."
+              node /tmp/bridge.js
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: "production"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3

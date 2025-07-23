@@ -8,16 +8,15 @@ metadata:
     app.kubernetes.io/component: mcp-server
     app.kubernetes.io/part-of: mcp-servers
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.middlewares: mcp-servers-filesystem-mcp-headers@kubernetescrd
 spec:
-  ingressClassName: traefik
   tls:
     - hosts:
         - filesystem-mcp.landryzetam.net
-      secretName: filesystem-mcp-server-tls
+      secretName: filesystem-mcp-tls
   rules:
     - host: filesystem-mcp.landryzetam.net
       http:
@@ -26,6 +25,20 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: filesystem-mcp-server
+                name: filesystem-mcp-bridge
                 port:
-                  number: 3000
+                  number: 8080
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: filesystem-mcp-headers
+  namespace: mcp-servers
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: "https"
+    customResponseHeaders:
+      Access-Control-Allow-Origin: "*"
+      Access-Control-Allow-Methods: "GET, POST, PUT, DELETE, OPTIONS"
+      Access-Control-Allow-Headers: "Content-Type, Authorization"
