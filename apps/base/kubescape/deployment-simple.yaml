@@ -17,31 +17,16 @@ spec:
         app.kubernetes.io/name: kubescape
     spec:
       serviceAccountName: kubescape
-      containers:
-      - name: kubescape
+      initContainers:
+      - name: initial-scan
         image: quay.io/kubescape/kubescape:latest
         command:
-        - /bin/sh
-        - -c
-        - |
-          echo "Starting Kubescape in server mode..."
-          # Run initial scan
-          kubescape scan --format json --output /results/initial-scan-$(date +%Y%m%d-%H%M%S).json
-          # Start HTTP server for API access
-          kubescape completion bash > /tmp/kubescape-completion.bash
-          echo "Kubescape scan completed. Starting HTTP server..."
-          python3 -m http.server 8080 --directory /results &
-          # Keep container running and perform periodic scans
-          while true; do
-            echo "Running scheduled Kubescape scan..."
-            TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-            kubescape scan --format json --output /results/scan-${TIMESTAMP}.json
-            echo "Scan completed at $(date), results saved to scan-${TIMESTAMP}.json"
-            sleep 3600  # Scan every hour
-          done
-        ports:
-        - containerPort: 8080
-          name: http
+        - kubescape
+        - scan
+        - --format
+        - json
+        - --output
+        - /results/initial-scan.json
         volumeMounts:
         - name: results-storage
           mountPath: /results
@@ -52,11 +37,7 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "300m"
-        env:
-        - name: KS_LOGGER_LEVEL
-          value: "info"
-        - name: KS_LOGGER_NAME
-          value: "kubescape"
+      containers:
       - name: web-ui
         image: nginx:alpine
         ports:

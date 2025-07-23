@@ -6,9 +6,7 @@ resources:
   - serviceaccount.yaml
   - rbac.yaml
   - configmap.yaml
-  - storage.yaml
-  - cronjob.yaml
-  - web-deployment.yaml
+  - deployment-no-pvc.yaml  # Use deployment without PVC
   - service.yaml
   - ingress.yaml
 
