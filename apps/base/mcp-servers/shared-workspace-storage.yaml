@@ -1,0 +1,17 @@
+# Shared workspace for MCP servers to exchange data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mcp-shared-workspace
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: mcp-shared-workspace
+    app.kubernetes.io/component: shared-storage
+    app.kubernetes.io/part-of: mcp-servers
+spec:
+  accessModes:
+    - ReadWriteMany  # Allows multiple pods to mount the same volume
+  storageClassName: nfs-csi-v2  # NFS supports ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi  # Large enough for fetched content and processing
