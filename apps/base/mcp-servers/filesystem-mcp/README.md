@@ -22,7 +22,7 @@ This deployment uses the **official MCP filesystem Docker image** (`mcp/filesyst
 
 ### Current Status:
 - **Phase 1**: Running the official MCP server container ✅
-- **Phase 2**: HTTP bridge for remote access (planned)
+- **Phase 2**: HTTP bridge for remote access ✅
 
 ## Usage
 
@@ -93,14 +93,56 @@ kubectl exec -n mcp-servers deployment/filesystem-mcp-server -- \
 
 ## Architecture Details
 
-**Phase 1** - MCP Server Container:
-1. **Uses official MCP filesystem Docker image** (`mcp/filesystem`)
-2. **Runs persistent MCP server process** with access to `/data`, `/logs`, `/config`
-3. **Process monitoring** to keep container alive and healthy
-4. **Proper security context** with non-root user and dropped capabilities
+**Two-Deployment Architecture:**
+
+**1. MCP Server Deployment** (`filesystem-mcp-server`):
+- **Uses official MCP filesystem Docker image** (`mcp/filesystem`)
+- **Runs persistent MCP server process** with access to `/projects/*` directories
+- **Process monitoring** to keep container alive and healthy
+- **No network exposure** - internal container only
+
+**2. HTTP Bridge Deployment** (`filesystem-mcp-bridge`):
+- **Separate Node.js container** that routes HTTP/WebSocket traffic
+- **Connects to MCP server** via `kubectl exec` commands
+- **Exposes HTTP endpoints** at `/health` and `/mcp`
+- **WebSocket support** for real-time bidirectional communication
+- **Ingress-accessible** at `https://filesystem-mcp.landryzetam.net`
+
+## Claude Desktop Configuration
+
+Your Claude Desktop is already configured correctly:
+
+```json
+{
+  "mcpServers": {
+    "filesystem-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://filesystem-mcp.landryzetam.net/mcp"
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
+    }
+  }
+}
+```
+
+The bridge deployment will handle routing traffic from Claude Desktop to the MCP server container.
+
+## Benefits of Two-Deployment Architecture
+
+✅ **Clean Separation**: MCP server stays as official container  
+✅ **Easy Updates**: Update MCP server without touching bridge code  
+✅ **Scalability**: Can run multiple bridge instances for load balancing  
+✅ **Security**: MCP server has no network exposure  
+✅ **Flexibility**: Bridge can add additional HTTP endpoints as needed  
 
 ## Notes
 
-- The server requires at least one allowed directory to operate
-- Currently runs the MCP server process in a monitoring loop to keep the container alive
-- Phase 2 will add HTTP bridge for remote access
+- The MCP server runs the official Docker image exactly as designed
+- The bridge provides HTTP/WebSocket access for remote clients
+- Both deployments share access to the same persistent volumes
+- N8N workflows can mount the shared workspace PVC directly
