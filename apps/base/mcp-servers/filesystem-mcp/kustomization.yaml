@@ -3,5 +3,8 @@ kind: Kustomization
 namespace: mcp-servers
 resources:
   - deployment.yaml
+  - bridge-deployment.yaml
+  - bridge-service.yaml
+  - ingress.yaml
   - storage.yaml
   - ../shared-workspace-storage.yaml
