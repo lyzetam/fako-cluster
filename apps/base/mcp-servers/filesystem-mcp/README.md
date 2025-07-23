@@ -13,22 +13,24 @@ The filesystem MCP server provides secure filesystem operations including:
 
 ## Transport Type
 
-This server uses an HTTP-to-stdio bridge, making it accessible via HTTP while the underlying MCP server uses stdio transport.
+This server uses the standard stdio transport protocol. It runs as a persistent service in Kubernetes but is designed to be used locally via direct execution.
 
 ## Usage
 
-### Access the Server
+### Kubernetes Deployment
 
-The filesystem MCP server is now accessible via HTTP at: `https://filesystem-mcp.landryzetam.net`
+This Kubernetes deployment runs the filesystem MCP server with access to persistent volumes, but the server itself uses stdio transport.
 
 The server automatically starts with access to three directories:
-- `/data` - Main data storage
-- `/logs` - Log storage  
-- `/config` - Configuration storage
+- `/data` - Main data storage (filesystem-mcp-data PVC)
+- `/logs` - Log storage (filesystem-mcp-logs PVC)
+- `/config` - Configuration storage (filesystem-mcp-config PVC)
 
 ### MCP Client Configuration
 
-For Claude Desktop, add this to your claude_desktop_config.json:
+**Recommended Approach - Local Installation:**
+
+For Claude Desktop, use the local NPX approach instead of the Kubernetes deployment:
 
 ```json
 {
@@ -37,16 +39,37 @@ For Claude Desktop, add this to your claude_desktop_config.json:
       "command": "npx",
       "args": [
         "-y",
-        "mcp-remote",
-        "https://filesystem-mcp.landryzetam.net"
-      ],
-      "env": {
-        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
-      }
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/username/Documents",
+        "/Users/username/Desktop"
+      ]
     }
   }
 }
 ```
+
+**Alternative - Docker Approach:**
+
+```json
+{
+  "mcpServers": {
+    "filesystem-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--mount", "type=bind,src=/Users/username/Desktop,dst=/projects/Desktop",
+        "--mount", "type=bind,src=/path/to/other/dir,dst=/projects/other,ro",
+        "mcp/filesystem",
+        "/projects"
+      ]
+    }
+  }
+}
+```
+
+**Note:** The Kubernetes deployment is primarily for persistent storage management. MCP filesystem servers work best when run locally via stdio transport.
 
 ## Volumes
 
@@ -73,19 +96,16 @@ kubectl get pods -n mcp-servers -l app.kubernetes.io/name=filesystem-mcp-server
 kubectl logs -n mcp-servers deployment/filesystem-mcp-server
 ```
 
-### Test Server
+### Test Server Process
 ```bash
-# Test the health endpoint
+# Check if the MCP server process is running
 kubectl exec -n mcp-servers deployment/filesystem-mcp-server -- \
-  node -e "require('http').get('http://localhost:3000/health', res => { res.on('data', d => process.stdout.write(d)); });"
-
-# Or check via the ingress URL
-curl https://filesystem-mcp.landryzetam.net/health
+  ps aux | grep mcp-server-filesystem
 ```
 
 ## Notes
 
 - The server requires at least one allowed directory to operate
-- All arguments are interpreted as directory paths (no flags like --help)
-- The container runs an HTTP bridge on port 3000 that forwards requests to the MCP server
-- Health checks available at `/health` endpoint
+- All arguments are interpreted as directory paths (no flags like --help)  
+- The server uses stdio transport and runs as a persistent process in the pod
+- For production use, consider running the MCP server locally via NPX or Docker
