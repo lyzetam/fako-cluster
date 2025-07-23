@@ -27,91 +27,20 @@ spec:
         fsGroup: 1000
       containers:
         - name: filesystem-mcp-server
+          # Use Node.js Alpine image and install the official MCP filesystem server
           image: node:22-alpine
-          # Install and run the filesystem MCP server with HTTP transport wrapper
+          # Install and run the filesystem MCP server properly
           command: ["/bin/sh"]
           args: 
             - "-c"
             - |
-              echo 'Starting filesystem MCP server setup...'
-              # Create a simple HTTP-to-stdio bridge for the MCP server
-              cat > /tmp/mcp_http_bridge.js << 'EOF'
-              const http = require('http');
-              const { spawn } = require('child_process');
-              
-              const server = http.createServer((req, res) => {
-                if (req.method === 'GET' && req.url === '/health') {
-                  res.writeHead(200, { 'Content-Type': 'text/plain' });
-                  res.end('OK');
-                  return;
-                }
-                
-                if (req.method !== 'POST') {
-                  res.writeHead(405, { 'Content-Type': 'text/plain' });
-                  res.end('Method Not Allowed');
-                  return;
-                }
-                
-                let body = '';
-                req.on('data', chunk => {
-                  body += chunk.toString();
-                });
-                
-                req.on('end', () => {
-                  // Handle both root and /mcp paths
-                  if (req.url !== '/' && req.url !== '/mcp') {
-                    res.writeHead(404, { 'Content-Type': 'text/plain' });
-                    res.end('Not Found');
-                    return;
-                  }
-                  
-                  // Spawn the MCP server with the mounted directories
-                  const mcp = spawn('npx', ['-y', '@modelcontextprotocol/server-filesystem', '/data', '/logs', '/config'], {
-                    stdio: ['pipe', 'pipe', 'pipe']
-                  });
-                  
-                  let output = '';
-                  let errorOutput = '';
-                  
-                  mcp.stdout.on('data', (data) => {
-                    output += data.toString();
-                  });
-                  
-                  mcp.stderr.on('data', (data) => {
-                    errorOutput += data.toString();
-                  });
-                  
-                  mcp.on('close', (code) => {
-                    if (code !== 0) {
-                      console.error('MCP server exited with code:', code);
-                      console.error('Error output:', errorOutput);
-                    }
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(output);
-                  });
-                  
-                  // Send the request to the MCP server
-                  mcp.stdin.write(body);
-                  mcp.stdin.end();
-                });
-              });
-              
-              const PORT = 3000;
-              server.listen(PORT, '0.0.0.0', () => {
-                console.log(`MCP HTTP Bridge listening on port ${PORT}...`);
-              });
-              EOF
-              # Create readiness file for health checks
-              echo 'ready' > /tmp/mcp-server-ready || echo 'Cannot create readiness file'
-              echo 'Starting MCP HTTP bridge on port 3000...'
-              # Start the HTTP bridge
-              exec node /tmp/mcp_http_bridge.js
-          ports:
-            - containerPort: 3000
-              protocol: TCP
+              echo 'Installing MCP filesystem server...'
+              npm install -g @modelcontextprotocol/server-filesystem
+              echo 'Starting MCP filesystem server...'
+              echo 'Server is running with access to: /data, /logs, /config directories'
+              # Run the server and keep it alive
+              exec mcp-server-filesystem /data /logs /config
           env:
-            - name: PORT
-              value: "3000"
             - name: NODE_ENV
               value: "production"
             - name: MCP_SERVER_NAME
@@ -141,14 +70,14 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "500m"
-          # Health checks - use simple file-based approach since ps/grep not available in minimal image
+          # Health checks using process check
           livenessProbe:
             exec:
               command:
                 - /bin/sh
                 - -c
-                - "test -f /tmp/mcp-server-ready"
-            initialDelaySeconds: 60
+                - "ps aux | grep '[n]ode.*index.js' | wc -l | grep -q '^1$'"
+            initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3
@@ -157,8 +86,8 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - "test -f /tmp/mcp-server-ready"
-            initialDelaySeconds: 30
+                - "ps aux | grep '[n]ode.*index.js' | wc -l | grep -q '^1$'"
+            initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
