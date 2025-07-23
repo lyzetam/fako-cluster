@@ -1,0 +1,151 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kube-bench-scanner
+  namespace: kube-bench
+  labels:
+    app.kubernetes.io/name: kube-bench
+    app.kubernetes.io/part-of: security
+spec:
+  schedule: "0 2 * * *"  # Run daily at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: kube-bench
+        spec:
+          serviceAccountName: kube-bench
+          hostPID: true
+          containers:
+          - name: kube-bench
+            image: aquasec/kube-bench:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+              RESULT_FILE="/results/kube-bench-results-${TIMESTAMP}.json"
+              echo "Starting kube-bench scan, results will be saved to ${RESULT_FILE}"
+              kube-bench --json --outputfile "${RESULT_FILE}" --logtostderr
+              echo "Scan completed, results saved to ${RESULT_FILE}"
+            volumeMounts:
+            - name: var-lib-etcd
+              mountPath: /var/lib/etcd
+              readOnly: true
+            - name: var-lib-kubelet
+              mountPath: /var/lib/kubelet
+              readOnly: true
+            - name: var-lib-kube-scheduler
+              mountPath: /var/lib/kube-scheduler
+              readOnly: true
+            - name: var-lib-kube-controller-manager
+              mountPath: /var/lib/kube-controller-manager
+              readOnly: true
+            - name: etc-systemd
+              mountPath: /etc/systemd
+              readOnly: true
+            - name: lib-systemd
+              mountPath: /lib/systemd/
+              readOnly: true
+            - name: srv-kubernetes
+              mountPath: /srv/kubernetes/
+              readOnly: true
+            - name: etc-kubernetes
+              mountPath: /etc/kubernetes
+              readOnly: true
+            - name: usr-bin
+              mountPath: /usr/local/mount-from-host/bin
+              readOnly: true
+            - name: etc-cni-netd
+              mountPath: /etc/cni/net.d/
+              readOnly: true
+            - name: opt-cni-bin
+              mountPath: /opt/cni/bin/
+              readOnly: true
+            - name: results-storage
+              mountPath: /results
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "300m"
+            securityContext:
+              privileged: true
+          - name: results-processor
+            image: busybox:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Monitoring results directory for new scan results..."
+              sleep 10  # Give kube-bench time to start
+              
+              # Wait for any new result files
+              while true; do
+                LATEST_FILE=$(ls -t /results/kube-bench-results-*.json 2>/dev/null | head -1)
+                if [ -n "$LATEST_FILE" ]; then
+                  echo "Found latest scan result: $LATEST_FILE"
+                  echo "=== Kube-bench Scan Results ==="
+                  cat "$LATEST_FILE"
+                  echo "================================"
+                  echo "Results saved to: $LATEST_FILE"
+                  break
+                fi
+                sleep 5
+              done
+            volumeMounts:
+            - name: results-storage
+              mountPath: /results
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "100m"
+          volumes:
+          - name: var-lib-etcd
+            hostPath:
+              path: "/var/lib/etcd"
+          - name: var-lib-kubelet
+            hostPath:
+              path: "/var/lib/kubelet"
+          - name: var-lib-kube-scheduler
+            hostPath:
+              path: "/var/lib/kube-scheduler"
+          - name: var-lib-kube-controller-manager
+            hostPath:
+              path: "/var/lib/kube-controller-manager"
+          - name: etc-systemd
+            hostPath:
+              path: "/etc/systemd"
+          - name: lib-systemd
+            hostPath:
+              path: "/lib/systemd"
+          - name: srv-kubernetes
+            hostPath:
+              path: "/srv/kubernetes"
+          - name: etc-kubernetes
+            hostPath:
+              path: "/etc/kubernetes"
+          - name: usr-bin
+            hostPath:
+              path: "/usr/bin"
+          - name: etc-cni-netd
+            hostPath:
+              path: "/etc/cni/net.d/"
+          - name: opt-cni-bin
+            hostPath:
+              path: "/opt/cni/bin/"
+          - name: results-storage
+            persistentVolumeClaim:
+              claimName: kube-bench-results
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/os: linux
