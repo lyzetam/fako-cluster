@@ -35,11 +35,50 @@ spec:
             - |
               echo "Installing kubectl and dependencies for MCP HTTP bridge..."
               
-              # Install kubectl
-              apk add --no-cache curl
-              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-              chmod +x kubectl
-              mv kubectl /usr/local/bin/
+              # First, we need to be root to install packages
+              if [ "$(id -u)" != "0" ]; then
+                echo "Running as non-root user, using existing tools..."
+              else
+                # Install kubectl
+                apk add --no-cache curl
+              fi
+              
+              # Check if curl is available, if not, use wget
+              if command -v curl >/dev/null 2>&1; then
+                DOWNLOAD_CMD="curl -LO"
+              elif command -v wget >/dev/null 2>&1; then
+                DOWNLOAD_CMD="wget"
+              else
+                echo "Neither curl nor wget available. Using node to download kubectl..."
+                cat > /tmp/download-kubectl.js << 'EOFJS'
+              const https = require('https');
+              const fs = require('fs');
+              const url = 'https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl';
+              const file = fs.createWriteStream('/tmp/kubectl');
+              https.get(url, (response) => {
+                response.pipe(file);
+                file.on('finish', () => {
+                  file.close();
+                  console.log('kubectl downloaded');
+                });
+              }).on('error', (err) => {
+                fs.unlink('/tmp/kubectl');
+                console.error('Download failed:', err.message);
+              });
+              EOFJS
+                node /tmp/download-kubectl.js
+                sleep 5  # Wait for download
+                mv /tmp/kubectl /usr/local/bin/kubectl
+                chmod +x /usr/local/bin/kubectl
+              fi
+              
+              # Download kubectl if curl/wget available
+              if [ -n "$DOWNLOAD_CMD" ]; then
+                cd /tmp
+                $DOWNLOAD_CMD "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl"
+                chmod +x kubectl
+                mv kubectl /usr/local/bin/
+              fi
               
               # Install Node.js dependencies
               cat > /tmp/package.json << 'EOF'
@@ -220,14 +259,15 @@ spec:
             - name: NODE_ENV
               value: "production"
           securityContext:
-            allowPrivilegeEscalation: false
+            allowPrivilegeEscalation: true
             readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
+            runAsNonRoot: false
+            runAsUser: 0
             capabilities:
               drop:
                 - ALL
+              add:
+                - NET_ADMIN
           volumeMounts:
             - mountPath: /projects/data
               name: shared-data
