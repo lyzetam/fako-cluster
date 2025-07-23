@@ -5,6 +5,7 @@ resources:
   - deployment.yaml
   - bridge-deployment.yaml
   - bridge-service.yaml
+  - rbac.yaml
   - ingress.yaml
   - storage.yaml
   - ../shared-workspace-storage.yaml
