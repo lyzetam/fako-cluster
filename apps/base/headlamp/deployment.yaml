@@ -22,7 +22,7 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
         - "-in-cluster"
-        - "-plugins-dir=/headlamp/plugins"
+        - "-plugins-dir=/build/plugins"
         ports:
         - name: http
           containerPort: 4466
@@ -41,27 +41,18 @@ spec:
             cpu: 100m
             memory: 128Mi
         volumeMounts:
-        - name: plugins
-          mountPath: /headlamp/plugins
+        - name: headlamp-plugins
+          mountPath: /build/plugins
       initContainers:
-      # Initialize with Kubescape plugin
-      - name: install-kubescape-plugin
-        image: busybox:latest
+      - name: kubescape-plugin
+        image: ghcr.io/kubebeam/kubescape-headlamp-plugin:latest
         command:
-        - sh
+        - /bin/sh
         - -c
-        - |
-          echo "Preparing plugins directory..."
-          mkdir -p /headlamp/plugins
-          echo "Plugins directory ready for manual plugin installation"
-          echo "To install Kubescape plugin:"
-          echo "1. Access Headlamp UI"
-          echo "2. Go to Settings -> Plugins"
-          echo "3. Search for 'kubescape' in the plugin catalog"
-          echo "4. Click Install"
+        - mkdir -p /build/plugins && cp -r /plugins/* /build/plugins/
         volumeMounts:
-        - name: plugins
-          mountPath: /headlamp/plugins
+        - name: headlamp-plugins
+          mountPath: /build/plugins
       volumes:
-      - name: plugins
+      - name: headlamp-plugins
         emptyDir: {}
