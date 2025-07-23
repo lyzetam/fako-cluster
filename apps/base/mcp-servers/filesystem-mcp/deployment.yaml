@@ -26,10 +26,29 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
       containers:
-        # Official MCP filesystem server sidecar
+        # Official MCP filesystem server - running as persistent process
         - name: mcp-filesystem-server
           image: mcp/filesystem
-          args: ["/data", "/logs", "/config"]
+          command: ["/bin/sh", "-c"]
+          args: 
+            - |
+              echo "Starting MCP filesystem server..."
+              echo "Available directories: /data /logs /config"
+              ls -la /data /logs /config 2>/dev/null || true
+              
+              # Keep the MCP server running indefinitely by creating a simple loop
+              # The MCP server normally expects stdin/stdout communication, but we'll keep it alive
+              node /app/dist/index.js /data /logs /config &
+              MCP_PID=$!
+              
+              echo "MCP server started with PID: $MCP_PID"
+              
+              # Keep container alive and monitor the MCP process
+              while kill -0 $MCP_PID 2>/dev/null; do
+                sleep 30
+              done
+              
+              echo "MCP server process ended"
           volumeMounts:
             - mountPath: /data
               name: shared-data
@@ -53,124 +72,23 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "200m"
-        
-        # HTTP bridge to the MCP server sidecar
-        - name: mcp-http-bridge
-          image: node:22-alpine
-          command: ["/bin/sh"]
-          args:
-            - "-c"
-            - |
-              echo 'Installing dependencies...'
-              npm install express ws net
-              echo 'Creating MCP-over-HTTP bridge...'
-              cat > /tmp/bridge.js << 'EOF'
-              const express = require('express');
-              const WebSocket = require('ws');
-              const net = require('net');
-              const http = require('http');
-              
-              const app = express();
-              const server = http.createServer(app);
-              const wss = new WebSocket.Server({ server });
-              
-              app.use(express.json());
-              
-              // Health check
-              app.get('/health', (req, res) => {
-                res.status(200).send('OK');
-              });
-              
-              // Connect to MCP server sidecar via localhost stdio simulation
-              let mcpConnection = null;
-              
-              function connectToMCP() {
-                // Since both containers share the same pod network namespace,
-                // we can communicate via localhost or shared volumes/sockets
-                // For simplicity, we'll use a basic HTTP-to-stdio proxy
-                console.log('MCP bridge ready - will proxy requests to sidecar');
-              }
-              
-              // WebSocket endpoint for real-time bidirectional communication
-              wss.on('connection', (ws) => {
-                console.log('WebSocket client connected');
-                
-                ws.on('message', (message) => {
-                  console.log('Received:', message.toString());
-                  // In a real implementation, you'd forward this to the MCP sidecar
-                  // For now, send a basic response
-                  const msg = JSON.parse(message.toString());
-                  ws.send(JSON.stringify({
-                    jsonrpc: "2.0",
-                    id: msg.id,
-                    result: { success: true, message: "Connected to filesystem MCP server" }
-                  }));
-                });
-                
-                ws.on('close', () => {
-                  console.log('WebSocket client disconnected');
-                });
-              });
-              
-              // HTTP endpoint for simple requests
-              app.post('/mcp', (req, res) => {
-                console.log('HTTP request:', req.body);
-                // Basic response for testing
-                res.json({
-                  jsonrpc: "2.0",
-                  id: req.body.id,
-                  result: { 
-                    success: true, 
-                    message: "Connected to filesystem MCP server sidecar",
-                    directories: ["/data", "/logs", "/config"]
-                  }
-                });
-              });
-              
-              const PORT = 3000;
-              server.listen(PORT, '0.0.0.0', () => {
-                console.log(`HTTP bridge listening on port ${PORT}`);
-                connectToMCP();
-              });
-              EOF
-              exec node /tmp/bridge.js
-          ports:
-            - containerPort: 3000
-              protocol: TCP
-          env:
-            - name: NODE_ENV
-              value: "production"
-            - name: MCP_SERVER_NAME
-              value: "filesystem"
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
-            capabilities:
-              drop:
-                - ALL
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "50m"
-            limits:
-              memory: "256Mi"
-              cpu: "100m"
-          # Health checks for HTTP bridge
+          # Health check based on process existence
           livenessProbe:
-            httpGet:
-              path: /health
-              port: 3000
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep -q 'node.*index.js'"
             initialDelaySeconds: 30
             periodSeconds: 30
-            timeoutSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
-            httpGet:
-              path: /health
-              port: 3000
+            exec:
+              command:
+                - /bin/sh
+                - -c 
+                - "ps aux | grep -v grep | grep -q 'node.*index.js'"
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5

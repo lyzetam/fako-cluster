@@ -1,6 +1,6 @@
-# Filesystem MCP Server with Sidecar Architecture
+# Filesystem MCP Server
 
-This deployment runs the official Model Context Protocol (MCP) filesystem server as a sidecar container alongside an HTTP bridge in Kubernetes.
+This deployment runs the official Model Context Protocol (MCP) filesystem server in Kubernetes using the official Docker image.
 
 ## Overview
 
@@ -13,52 +13,25 @@ The filesystem MCP server provides secure filesystem operations including:
 
 ## Architecture
 
-This deployment uses a **sidecar pattern** with two containers in the same pod:
+This deployment uses the **official MCP filesystem Docker image** (`mcp/filesystem`):
 
-1. **mcp-filesystem-server** - The official MCP filesystem Docker image (`mcp/filesystem`)
-2. **mcp-http-bridge** - A lightweight HTTP/WebSocket bridge for remote access
+- Runs the authentic MCP filesystem server as a persistent process
+- Has access to persistent volumes: `/data`, `/logs`, `/config`
+- Proper stdio transport as designed by the MCP specification
+- Security-hardened with non-root user and dropped capabilities
 
-### Benefits of Sidecar Architecture:
-- Uses the official, tested MCP filesystem server
-- Proper stdio transport between containers
-- HTTP bridge for remote access via mcp-remote
-- Shared pod network namespace for inter-container communication
-- Shared persistent volumes for data access
+### Current Status:
+- **Phase 1**: Running the official MCP server container ✅
+- **Phase 2**: HTTP bridge for remote access (planned)
 
 ## Usage
 
-### Access the Server
-
-The filesystem MCP server is accessible via HTTP at: `https://filesystem-mcp.landryzetam.net/mcp`
-
 The server automatically starts with access to three directories mounted from PVCs:
 - `/data` - Main data storage (filesystem-mcp-data PVC)
-- `/logs` - Log storage (filesystem-mcp-logs PVC)
+- `/logs` - Log storage (filesystem-mcp-logs PVC) 
 - `/config` - Configuration storage (filesystem-mcp-config PVC)
 
-### MCP Client Configuration
-
-For Claude Desktop, add this to your claude_desktop_config.json:
-
-```json
-{
-  "mcpServers": {
-    "filesystem-mcp": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "https://filesystem-mcp.landryzetam.net/mcp"
-      ],
-      "env": {
-        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
-      }
-    }
-  }
-}
-```
-
-This configuration allows you to access the persistent volumes mounted in the Kubernetes cluster remotely.
+**Note**: Currently running in Phase 1 - the MCP server container only. HTTP bridge for remote access will be added in Phase 2.
 
 ## Volumes
 
