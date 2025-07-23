@@ -9,7 +9,6 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
-  - kubescape-integration.yaml
 
 labels:
 - pairs:
