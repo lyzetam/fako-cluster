@@ -5,6 +5,7 @@ namespace: headlamp
 resources:
   - namespace.yaml
   - rbac.yaml
+  - admin-serviceaccount.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
