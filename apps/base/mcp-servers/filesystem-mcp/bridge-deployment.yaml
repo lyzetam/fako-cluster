@@ -20,6 +20,7 @@ spec:
         app.kubernetes.io/name: filesystem-mcp-bridge
         app.kubernetes.io/component: mcp-bridge
     spec:
+      serviceAccountName: filesystem-mcp-bridge
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -32,13 +33,34 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              echo "Installing dependencies for MCP HTTP bridge..."
-              npm install -g express ws
+              echo "Installing kubectl and dependencies for MCP HTTP bridge..."
+              
+              # Install kubectl
+              apk add --no-cache curl
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x kubectl
+              mv kubectl /usr/local/bin/
+              
+              # Install Node.js dependencies
+              cat > /tmp/package.json << 'EOF'
+              {
+                "name": "mcp-bridge",
+                "version": "1.0.0",
+                "main": "server.js",
+                "dependencies": {
+                  "express": "^4.18.0",
+                  "ws": "^8.14.0"
+                }
+              }
+              EOF
+              
+              cd /tmp
+              npm install
               
               echo "Creating MCP HTTP bridge..."
               
-              # Create bridge script that connects to the MCP server via Docker exec
-              cat > /tmp/bridge.js << 'EOF'
+              # Create bridge that routes HTTP traffic to the MCP server container
+              cat > /tmp/server.js << 'EOF'
               const express = require('express');
               const WebSocket = require('ws');
               const http = require('http');
@@ -59,142 +81,137 @@ spec:
                 });
               });
               
-              // MCP HTTP endpoint for simple requests
-              app.post('/mcp', async (req, res) => {
+              // Simple endpoint to test connectivity to MCP server
+              app.get('/test', async (req, res) => {
                 try {
-                  const { method, params, id } = req.body;
+                  // Test connection by checking if the MCP server process is running
+                  const testCmd = 'kubectl exec -n mcp-servers deployment/filesystem-mcp-server -c mcp-filesystem-server -- ps aux | grep "node.*index.js"';
                   
-                  // Forward request to MCP server via kubectl exec
-                  const mcpRequest = JSON.stringify({
-                    jsonrpc: '2.0',
-                    method,
-                    params: params || {},
-                    id: id || 1
-                  });
-                  
-                  console.log('HTTP -> MCP:', mcpRequest);
-                  
-                  // Execute command in the MCP server container
-                  const kubectlCmd = \`kubectl exec -n mcp-servers deployment/filesystem-mcp-server -c mcp-filesystem-server -- sh -c 'echo "\${mcpRequest}" | socat - EXEC:"node /app/dist/index.js /projects"'\`;
-                  
-                  exec(kubectlCmd, { timeout: 30000 }, (error, stdout, stderr) => {
+                  exec(testCmd, (error, stdout, stderr) => {
                     if (error) {
-                      console.error('MCP Error:', error);
                       return res.status(500).json({
-                        jsonrpc: '2.0',
-                        error: { code: -32000, message: error.message },
-                        id: id || 1
+                        status: 'error',
+                        message: 'Cannot connect to MCP server',
+                        error: error.message
                       });
                     }
                     
-                    try {
-                      const response = JSON.parse(stdout.trim());
-                      console.log('MCP -> HTTP:', response);
-                      res.json(response);
-                    } catch (parseError) {
-                      console.error('Parse Error:', parseError, 'Raw output:', stdout);
-                      res.status(500).json({
-                        jsonrpc: '2.0',
-                        error: { code: -32700, message: 'Parse error', data: stdout },
-                        id: id || 1
-                      });
-                    }
+                    res.json({
+                      status: 'connected',
+                      message: 'MCP server is running',
+                      process: stdout.trim()
+                    });
                   });
-                  
                 } catch (error) {
-                  console.error('Bridge Error:', error);
                   res.status(500).json({
-                    jsonrpc: '2.0',
-                    error: { code: -32603, message: error.message },
-                    id: req.body.id || 1
+                    status: 'error', 
+                    message: error.message
                   });
                 }
               });
               
-              // WebSocket handler for real-time MCP communication
+              // MCP HTTP endpoint - routes traffic to MCP server container
+              app.post('/mcp', (req, res) => {
+                console.log('HTTP -> MCP Bridge routing request:', req.body);
+                
+                // Send request to MCP server via kubectl exec with echo/socat
+                const mcpRequest = JSON.stringify(req.body);
+                
+                // Use kubectl to send the request to the MCP server
+                const cmd = \`kubectl exec -n mcp-servers deployment/filesystem-mcp-server -c mcp-filesystem-server -i -- sh -c 'echo '\\''${mcpRequest}'\\'' | socat - EXEC:"timeout 30 cat"'\`;
+                
+                exec(cmd, { timeout: 35000 }, (error, stdout, stderr) => {
+                  if (error) {
+                    console.error('MCP Server Error:', error);
+                    return res.status(500).json({
+                      jsonrpc: '2.0',
+                      error: { 
+                        code: -32000, 
+                        message: 'MCP server connection error',
+                        data: error.message 
+                      },
+                      id: req.body.id || null
+                    });
+                  }
+                  
+                  try {
+                    const response = JSON.parse(stdout.trim());
+                    console.log('MCP -> HTTP Bridge response:', response);
+                    res.json(response);
+                  } catch (parseError) {
+                    console.error('Response parse error:', parseError, 'Raw:', stdout);
+                    res.status(500).json({
+                      jsonrpc: '2.0',
+                      error: { 
+                        code: -32700, 
+                        message: 'Parse error',
+                        data: stdout.trim() || stderr.trim()
+                      },
+                      id: req.body.id || null
+                    });
+                  }
+                });
+              });
+              
+              // WebSocket handler for persistent MCP communication
               wss.on('connection', (ws) => {
-                console.log('New MCP WebSocket connection');
+                console.log('WebSocket connection established - bridging to MCP server');
                 
-                let mcpProcess = null;
+                // Create persistent connection to MCP server via kubectl exec
+                const mcpConnection = spawn('kubectl', [
+                  'exec', '-i', '-n', 'mcp-servers',
+                  'deployment/filesystem-mcp-server',
+                  '-c', 'mcp-filesystem-server',
+                  '--', 'sh', '-c', 'cat'
+                ], {
+                  stdio: ['pipe', 'pipe', 'pipe']
+                });
                 
+                // Forward WebSocket messages to MCP server
                 ws.on('message', (data) => {
                   try {
-                    const message = JSON.parse(data.toString());
-                    console.log('WS -> MCP:', message);
-                    
-                    // For WebSocket, we'll use a persistent connection via kubectl exec
-                    if (!mcpProcess) {
-                      mcpProcess = spawn('kubectl', [
-                        'exec', '-n', 'mcp-servers', 
-                        'deployment/filesystem-mcp-server', 
-                        '-c', 'mcp-filesystem-server', 
-                        '--', 'node', '/app/dist/index.js', '/projects'
-                      ], {
-                        stdio: ['pipe', 'pipe', 'pipe']
-                      });
-                      
-                      mcpProcess.stdout.on('data', (data) => {
-                        const response = data.toString().trim();
-                        if (response) {
-                          console.log('MCP -> WS:', response);
-                          try {
-                            ws.send(response);
-                          } catch (e) {
-                            console.error('WebSocket send error:', e);
-                          }
-                        }
-                      });
-                      
-                      mcpProcess.stderr.on('data', (data) => {
-                        console.error('MCP Process Error:', data.toString());
-                      });
-                      
-                      mcpProcess.on('exit', (code) => {
-                        console.log(\`MCP process exited with code \${code}\`);
-                        mcpProcess = null;
-                      });
-                    }
-                    
-                    if (mcpProcess && mcpProcess.stdin.writable) {
-                      mcpProcess.stdin.write(JSON.stringify(message) + '\n');
-                    }
-                    
+                    const message = data.toString();
+                    console.log('WS -> MCP Bridge:', message);
+                    mcpConnection.stdin.write(message + '\\n');
                   } catch (error) {
                     console.error('WebSocket message error:', error);
-                    ws.send(JSON.stringify({
-                      jsonrpc: '2.0',
-                      error: { code: -32700, message: 'Parse error' },
-                      id: null
-                    }));
                   }
                 });
                 
+                // Forward MCP server responses to WebSocket
+                mcpConnection.stdout.on('data', (data) => {
+                  const response = data.toString().trim();
+                  if (response) {
+                    console.log('MCP -> WS Bridge:', response);
+                    ws.send(response);
+                  }
+                });
+                
+                mcpConnection.stderr.on('data', (data) => {
+                  console.error('MCP Connection Error:', data.toString());
+                });
+                
+                // Clean up on WebSocket close
                 ws.on('close', () => {
-                  console.log('WebSocket connection closed');
-                  if (mcpProcess) {
-                    mcpProcess.kill();
-                    mcpProcess = null;
-                  }
+                  console.log('WebSocket closed - terminating MCP connection');
+                  mcpConnection.kill();
                 });
                 
-                ws.on('error', (error) => {
-                  console.error('WebSocket error:', error);
-                  if (mcpProcess) {
-                    mcpProcess.kill();
-                    mcpProcess = null;
-                  }
+                mcpConnection.on('exit', (code) => {
+                  console.log(\`MCP connection exited with code \${code}\`);
+                  ws.close();
                 });
               });
               
               const PORT = 8080;
-              server.listen(PORT, () => {
-                console.log(\`Filesystem MCP Bridge listening on port \${PORT}\`);
-                console.log('Ready to route traffic to filesystem-mcp-server');
+              server.listen(PORT, '0.0.0.0', () => {
+                console.log(\`Filesystem MCP HTTP Bridge listening on port \${PORT}\`);
+                console.log('Ready to route HTTP/WebSocket traffic to filesystem-mcp-server');
               });
               EOF
               
               echo "Starting bridge server..."
-              node /tmp/bridge.js
+              node /tmp/server.js
           ports:
             - name: http
               containerPort: 8080
@@ -211,6 +228,15 @@ spec:
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - mountPath: /projects/data
+              name: shared-data
+            - mountPath: /projects/logs
+              name: log-storage
+            - mountPath: /projects/config
+              name: config-storage
+            - mountPath: /projects/workspace
+              name: shared-workspace
           resources:
             requests:
               memory: "128Mi"
@@ -234,3 +260,16 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: filesystem-mcp-data
+        - name: log-storage
+          persistentVolumeClaim:
+            claimName: filesystem-mcp-logs
+        - name: config-storage
+          persistentVolumeClaim:
+            claimName: filesystem-mcp-config
+        - name: shared-workspace
+          persistentVolumeClaim:
+            claimName: mcp-shared-workspace
