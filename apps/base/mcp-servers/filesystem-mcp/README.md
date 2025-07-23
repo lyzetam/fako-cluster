@@ -1,6 +1,6 @@
-# Filesystem MCP Server
+# Filesystem MCP Server with Sidecar Architecture
 
-This deployment runs the official Model Context Protocol (MCP) filesystem server in Kubernetes.
+This deployment runs the official Model Context Protocol (MCP) filesystem server as a sidecar container alongside an HTTP bridge in Kubernetes.
 
 ## Overview
 
@@ -11,26 +11,34 @@ The filesystem MCP server provides secure filesystem operations including:
 - Search files
 - Get file metadata
 
-## Transport Type
+## Architecture
 
-This server uses the standard stdio transport protocol. It runs as a persistent service in Kubernetes but is designed to be used locally via direct execution.
+This deployment uses a **sidecar pattern** with two containers in the same pod:
+
+1. **mcp-filesystem-server** - The official MCP filesystem Docker image (`mcp/filesystem`)
+2. **mcp-http-bridge** - A lightweight HTTP/WebSocket bridge for remote access
+
+### Benefits of Sidecar Architecture:
+- Uses the official, tested MCP filesystem server
+- Proper stdio transport between containers
+- HTTP bridge for remote access via mcp-remote
+- Shared pod network namespace for inter-container communication
+- Shared persistent volumes for data access
 
 ## Usage
 
-### Kubernetes Deployment
+### Access the Server
 
-This Kubernetes deployment runs the filesystem MCP server with access to persistent volumes, but the server itself uses stdio transport.
+The filesystem MCP server is accessible via HTTP at: `https://filesystem-mcp.landryzetam.net/mcp`
 
-The server automatically starts with access to three directories:
+The server automatically starts with access to three directories mounted from PVCs:
 - `/data` - Main data storage (filesystem-mcp-data PVC)
 - `/logs` - Log storage (filesystem-mcp-logs PVC)
 - `/config` - Configuration storage (filesystem-mcp-config PVC)
 
 ### MCP Client Configuration
 
-**Recommended Approach - Local Installation:**
-
-For Claude Desktop, use the local NPX approach instead of the Kubernetes deployment:
+For Claude Desktop, add this to your claude_desktop_config.json:
 
 ```json
 {
@@ -39,37 +47,18 @@ For Claude Desktop, use the local NPX approach instead of the Kubernetes deploym
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/Users/username/Documents",
-        "/Users/username/Desktop"
-      ]
+        "mcp-remote",
+        "https://filesystem-mcp.landryzetam.net/mcp"
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
     }
   }
 }
 ```
 
-**Alternative - Docker Approach:**
-
-```json
-{
-  "mcpServers": {
-    "filesystem-mcp": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "--mount", "type=bind,src=/Users/username/Desktop,dst=/projects/Desktop",
-        "--mount", "type=bind,src=/path/to/other/dir,dst=/projects/other,ro",
-        "mcp/filesystem",
-        "/projects"
-      ]
-    }
-  }
-}
-```
-
-**Note:** The Kubernetes deployment is primarily for persistent storage management. MCP filesystem servers work best when run locally via stdio transport.
+This configuration allows you to access the persistent volumes mounted in the Kubernetes cluster remotely.
 
 ## Volumes
 
@@ -103,9 +92,27 @@ kubectl exec -n mcp-servers deployment/filesystem-mcp-server -- \
   ps aux | grep mcp-server-filesystem
 ```
 
+### Test HTTP Bridge
+```bash
+# Test the health endpoint
+curl https://filesystem-mcp.landryzetam.net/health
+
+# Test WebSocket connection (requires wscat)
+wscat -c wss://filesystem-mcp.landryzetam.net
+```
+
+## Architecture Details
+
+The bridge implementation:
+1. **Starts ONE persistent MCP server** with access to `/data`, `/logs`, `/config`
+2. **Provides HTTP endpoints** at `/health` and `/mcp` for health checks and HTTP requests
+3. **Provides WebSocket endpoint** for bidirectional MCP communication
+4. **Properly handles MCP JSON-RPC protocol** with message queuing and session management
+5. **Maintains state** across multiple client interactions
+
 ## Notes
 
 - The server requires at least one allowed directory to operate
-- All arguments are interpreted as directory paths (no flags like --help)  
-- The server uses stdio transport and runs as a persistent process in the pod
-- For production use, consider running the MCP server locally via NPX or Docker
+- The HTTP bridge properly handles the MCP initialization sequence
+- WebSocket communication is preferred for real-time bidirectional messaging
+- HTTP POST to `/mcp` endpoint is available as fallback for simple requests
