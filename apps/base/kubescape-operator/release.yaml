@@ -75,3 +75,23 @@ spec:
     # Enable prometheus metrics
     prometheus:
       enabled: true
+      
+    # Node agent configuration
+    nodeAgent:
+      # Only deploy on Linux nodes (BTF support required)
+      nodeSelector:
+        kubernetes.io/os: linux
+      # Skip nodes without proper kernel support
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                - zz-macbookpro  # Exclude macOS node
