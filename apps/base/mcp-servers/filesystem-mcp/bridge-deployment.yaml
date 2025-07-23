@@ -157,7 +157,7 @@ spec:
                 const mcpRequest = JSON.stringify(req.body);
                 
                 // Use kubectl to send the request to the MCP server
-                const cmd = \`kubectl exec -n mcp-servers deployment/filesystem-mcp-server -c mcp-filesystem-server -i -- sh -c 'echo '\\''${mcpRequest}'\\'' | socat - EXEC:"timeout 30 cat"'\`;
+                const cmd = `kubectl exec -n mcp-servers deployment/filesystem-mcp-server -c mcp-filesystem-server -i -- sh -c 'echo '\''${mcpRequest}'\'' | socat - EXEC:"timeout 30 cat"'`;
                 
                 exec(cmd, { timeout: 35000 }, (error, stdout, stderr) => {
                   if (error) {
@@ -237,14 +237,14 @@ spec:
                 });
                 
                 mcpConnection.on('exit', (code) => {
-                  console.log(\`MCP connection exited with code \${code}\`);
+                  console.log(`MCP connection exited with code ${code}`);
                   ws.close();
                 });
               });
               
               const PORT = 8080;
               server.listen(PORT, '0.0.0.0', () => {
-                console.log(\`Filesystem MCP HTTP Bridge listening on port \${PORT}\`);
+                console.log(`Filesystem MCP HTTP Bridge listening on port ${PORT}`);
                 console.log('Ready to route HTTP/WebSocket traffic to filesystem-mcp-server');
               });
               EOF
