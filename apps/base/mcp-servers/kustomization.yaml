@@ -15,7 +15,7 @@ resources:
   - sequentialthinking-mcp
   - time-mcp
   - puppeteer-mcp
-  - fetch-mcp
+  # - fetch-mcp  # Disabled - using local uvx fetch server instead
   - n8n-mcp
   - n8n-workflow-server
   - context7-mcp
