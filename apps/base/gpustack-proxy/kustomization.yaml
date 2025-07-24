@@ -10,3 +10,5 @@ resources:
   - service.yaml
   - endpoint-sync-job.yaml
   - ingress.yaml
+  - cloudflare.yaml
+  # - cloudflare-secret.yaml  # Commented out until proper credentials are provided
