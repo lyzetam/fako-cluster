@@ -3,8 +3,6 @@ kind: Ingress
 metadata:
   name: gpustack
   namespace: gpustack-proxy
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-production
 spec:
   ingressClassName: traefik
   rules:
@@ -18,7 +16,3 @@ spec:
             name: gpustack
             port:
               number: 80
-  tls:
-  - hosts:
-    - gpustack.landryzetam.net
-    secretName: gpustack-tls-cert
