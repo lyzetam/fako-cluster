@@ -7,9 +7,5 @@ resources:
   - aws-credentials-secret.yaml
   - webui-secret.yaml
   - open-webui-tls-secret.yaml
-
-patches:
-  - path: deployment-patch.yaml
-    target:
-      kind: Deployment
-      name: open-webui
+  - cloudflare.yaml
+  - cloudflare-secret.yaml
