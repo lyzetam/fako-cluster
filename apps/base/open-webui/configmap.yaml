@@ -18,6 +18,10 @@ data:
   WEBUI_NAME: "HomeLab AI (GPUStack) - Production"
   WEBUI_URL: ""
   
+  # Database configuration
+  DATABASE_URL: "sqlite:////app/backend/data/webui.db"
+  DATA_DIR: "/app/backend/data"
+  
   # Model configuration - Update with your GPUStack models
   DEFAULT_MODELS: "gemma-3-27b-it,glm4-0414"
   MODEL_FILTER_ENABLED: "false"
