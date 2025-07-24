@@ -1,0 +1,14 @@
+# apps/base/open-webui/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: open-webui
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - storage.yaml
+  - service.yaml
+  - deployment.yaml
+  - ingress.yaml
+  - aws-secret-store.yaml
+  - external-secret-gpustack.yaml
+  - external-secret-endpoints.yaml
