@@ -1,12 +1,28 @@
+# Using shared NFS volume to access the same data as ollama-webui
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: shared-webui-data
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: ***NFS-IP-REMOVED***
+    path: /mnt/k8s-nfs/ollama-webui-data
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: open-webui-data
+  name: shared-webui-data
   namespace: open-webui
 spec:
   accessModes:
-    - ReadWriteOnce
-  storageClassName: nfs-csi-v2
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: shared-webui-data
   resources:
     requests:
-      storage: 5Gi  # For chat history and user data
+      storage: 5Gi

@@ -26,7 +26,8 @@ resources:
   
   # AI/ML stack with GPU support
   - ollama         
-  - open-webui    
+  - ollama-webui    # Keep original running
+  - open-webui      # Test new namespace with shared storage
   - whisper         
   - piper           
   - openwakeword    
