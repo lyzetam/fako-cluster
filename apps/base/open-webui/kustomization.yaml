@@ -4,11 +4,11 @@ kind: Kustomization
 namespace: open-webui
 resources:
   - namespace.yaml
-  - configmap.yaml
-  - storage.yaml
-  - service.yaml
   - deployment.yaml
+  - service.yaml
+  - storage.yaml
+  - configmap.yaml
   - ingress.yaml
   - aws-secret-store.yaml
-  - external-secret-gpustack.yaml
   - external-secret-endpoints.yaml
+  - external-secret-gpustack.yaml
