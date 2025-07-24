@@ -32,7 +32,7 @@ data:
   
   # Authentication settings
   WEBUI_AUTH: "true"
-  ENABLE_SIGNUP: "true"
+  ENABLE_SIGNUP: "false"  # Disabled since we copied production user data
   DEFAULT_USER_ROLE: "user"
   WEBUI_SESSION_LIFETIME: "2592000"
   
