@@ -1,18 +1,18 @@
-# apps/base/ollama-webui/deployment.yaml
+# apps/base/open-webui/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ollama-webui
-  namespace: ollama-webui
+  name: open-webui
+  namespace: open-webui
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ollama-webui
+      app: open-webui
   template:
     metadata:
       labels:
-        app: ollama-webui
+        app: open-webui
     spec:
       securityContext:
         runAsNonRoot: true
@@ -20,14 +20,14 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
       containers:
-        - name: ollama-webui
+        - name: open-webui
           image: ghcr.io/open-webui/open-webui:v0.6.18
           ports:
             - containerPort: 8080
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: ollama-webui-configmap  # This loads ALL configmap values
+                name: open-webui-configmap  # This loads ALL configmap values
             - secretRef:
                 name: gpustack-credentials    # This loads API keys from AWS Secrets Manager
             - secretRef:
@@ -69,4 +69,4 @@ spec:
       volumes:
         - name: webui-data
           persistentVolumeClaim:
-            claimName: ollama-webui-data
+            claimName: open-webui-data
