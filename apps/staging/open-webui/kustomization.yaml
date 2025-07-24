@@ -1,0 +1,15 @@
+# apps/staging/open-webui/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: open-webui
+resources:
+  - ../../base/open-webui/
+  - aws-credentials-secret.yaml
+  - webui-secret.yaml
+  - open-webui-tls-secret.yaml
+
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: open-webui
