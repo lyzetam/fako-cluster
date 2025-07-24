@@ -12,3 +12,4 @@ resources:
   - aws-secret-store.yaml
   - external-secret-endpoints.yaml
   - external-secret-gpustack.yaml
+  - data-migration-job.yaml
