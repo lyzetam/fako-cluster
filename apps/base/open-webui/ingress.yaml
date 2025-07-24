@@ -9,10 +9,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-      - ai.landryzetam.net
+      - test-ai.landryzetam.net
       secretName: open-webui-tls-secret
   rules:
-    - host: ai.landryzetam.net
+    - host: test-ai.landryzetam.net
       http:
         paths:
           - path: /
