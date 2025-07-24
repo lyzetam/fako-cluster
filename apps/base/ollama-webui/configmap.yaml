@@ -15,7 +15,7 @@ data:
   # API keys are now loaded from AWS Secrets Manager via external-secret-gpustack.yaml
   
   # WebUI configuration
-  WEBUI_NAME: "HomeLab AI (GPUStack)"
+  WEBUI_NAME: "HomeLab AI (GPUStack) - Test"
   WEBUI_URL: ""
   
   # Model configuration - Update with your GPUStack models
@@ -32,7 +32,7 @@ data:
   
   # Authentication settings
   WEBUI_AUTH: "true"
-  ENABLE_SIGNUP: "true"
+  ENABLE_SIGNUP: "true"  # Enabled for test environment
   DEFAULT_USER_ROLE: "user"
   WEBUI_SESSION_LIFETIME: "2592000"
   

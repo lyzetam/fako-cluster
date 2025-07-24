@@ -15,7 +15,7 @@ data:
   # API keys are now loaded from AWS Secrets Manager via external-secret-gpustack.yaml
   
   # WebUI configuration
-  WEBUI_NAME: "HomeLab AI (GPUStack)"
+  WEBUI_NAME: "HomeLab AI (GPUStack) - Production"
   WEBUI_URL: ""
   
   # Model configuration - Update with your GPUStack models
