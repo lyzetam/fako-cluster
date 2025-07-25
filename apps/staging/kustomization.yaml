@@ -7,7 +7,7 @@ resources:
   # - homebot
   - oura-collector
   - oura-dashboard
-  - wger
+  # - wger
 
   # Database Management
   - postgres-cluster
