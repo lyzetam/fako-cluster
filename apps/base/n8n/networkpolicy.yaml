@@ -58,3 +58,11 @@ spec:
       ports:
         - protocol: TCP
           port: 443
+    # Allow access to PostgreSQL database
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
