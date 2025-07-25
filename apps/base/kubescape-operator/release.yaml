@@ -25,6 +25,14 @@ spec:
       storageClass: nfs-security-logs  # Use our dedicated security logs storage
       size: 20Gi
       
+    # Configure persistent storage for vulnerability database
+    vulnerabilityDB:
+      persistence:
+        enabled: true
+        storageClass: nfs-security-logs
+        size: 10Gi
+        accessMode: ReadWriteOnce
+        
     # Configure the Kubescape cloud component (optional - for cloud dashboard)
     kubescapeCloud:
       enabled: false  # Set to true if you have a Kubescape cloud account
@@ -50,27 +58,39 @@ spec:
         requests:
           memory: "256Mi"
           cpu: "100m"
+          ephemeral-storage: "1Gi"
         limits:
           memory: "512Mi"
           cpu: "500m"
+          ephemeral-storage: "2Gi"
           
     kubevuln:
       resources:
         requests:
           memory: "512Mi"
           cpu: "200m"
+          ephemeral-storage: "2Gi"
         limits:
           memory: "1Gi"
           cpu: "500m"
+          ephemeral-storage: "5Gi"
+      # Configure persistent volume for vulnerability database
+      persistence:
+        enabled: true
+        storageClass: nfs-security-logs
+        size: 10Gi
+        mountPath: /home/nonroot/.cache
           
     gateway:
       resources:
         requests:
           memory: "256Mi"
           cpu: "100m"
+          ephemeral-storage: "1Gi"
         limits:
           memory: "512Mi"
           cpu: "300m"
+          ephemeral-storage: "2Gi"
           
     # Enable prometheus metrics
     prometheus:
