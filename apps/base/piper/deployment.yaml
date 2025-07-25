@@ -61,7 +61,7 @@ spec:
         
         # Lightweight voice manager (only downloads what's missing)
         - name: voice-manager
-          image: busybox:latest
+          image: busybox:1.36.1
           command: ["/bin/sh"]
           args:
             - -c
@@ -122,7 +122,7 @@ spec:
 #       initContainers:
 #         # Quick check for essential voices only
 #         - name: voice-check
-#           image: busybox:latest
+#           image: busybox:1.36.1
 #           command: ["/bin/sh"]
 #           args:
 #             - -c

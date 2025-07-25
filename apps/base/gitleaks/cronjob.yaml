@@ -14,7 +14,7 @@ spec:
           initContainers:
           # Install dependencies
           - name: setup
-            image: alpine:latest
+            image: alpine:3.20
             command:
             - /bin/sh
             - -c
@@ -28,7 +28,7 @@ spec:
           
           containers:
           - name: gitleaks
-            image: zricethezav/gitleaks:latest
+            image: zricethezav/gitleaks:v8.28.0
             env:
             - name: GITHUB_TOKEN
               valueFrom:

@@ -22,7 +22,7 @@ spec:
         fsGroup: 5050
       containers:
       - name: pgadmin
-        image: dpage/pgadmin4:latest
+        image: dpage/pgadmin4:9.6.0
         ports:
         - containerPort: 80
           protocol: TCP
@@ -75,7 +75,7 @@ spec:
 #     spec:
 #       containers:
 #       - name: pgadmin
-#         image: dpage/pgadmin4:latest
+#         image: dpage/pgadmin4:9.6.0
 #         ports:
 #         - containerPort: 80
 #           protocol: TCP
