@@ -1,52 +1,54 @@
 #!/bin/bash
 
 # Script to update container image versions from :latest to specific versions
-# Usage: ./update-image-versions.sh
+# This updates high and medium priority images as identified in the analysis
 
-echo "Starting image version updates..."
+echo "Updating container image versions from :latest to specific versions..."
+echo "================================================"
 
-# High Priority Updates
+# High Priority Updates (Security & Stability)
+echo "Applying High Priority updates..."
 
-# 1. Update cloudflare/cloudflared:latest to 2025.7.0
-echo "Updating cloudflare/cloudflared images..."
-find apps -name "*.yaml" -type f -exec sed -i '' 's|image: cloudflare/cloudflared:latest|image: cloudflare/cloudflared:2025.7.0|g' {} +
+# cloudflare/cloudflared:latest → 2025.7.0
+find apps/ -name "*.yaml" -type f -exec sed -i '' 's|cloudflare/cloudflared:latest|cloudflare/cloudflared:2025.7.0|g' {} \;
+echo "✓ Updated cloudflare/cloudflared to 2025.7.0"
 
-# 2. Update bitnami/kubectl:latest to 1.33.3
-echo "Updating bitnami/kubectl images..."
-find apps -name "*.yaml" -type f -exec sed -i '' 's|image: bitnami/kubectl:latest|image: bitnami/kubectl:1.33.3|g' {} +
+# aquasec/kube-bench:latest → v0.11.1
+find apps/ -name "*.yaml" -type f -exec sed -i '' 's|aquasec/kube-bench:latest|aquasec/kube-bench:v0.11.1|g' {} \;
+echo "✓ Updated aquasec/kube-bench to v0.11.1"
 
-# 3. Update aquasec/kube-bench:latest to v0.11.1
-echo "Updating aquasec/kube-bench images..."
-find apps -name "*.yaml" -type f -exec sed -i '' 's|image: aquasec/kube-bench:latest|image: aquasec/kube-bench:v0.11.1|g' {} +
+# zricethezav/gitleaks:latest → v8.28.0
+find apps/ -name "*.yaml" -type f -exec sed -i '' 's|zricethezav/gitleaks:latest|zricethezav/gitleaks:v8.28.0|g' {} \;
+echo "✓ Updated zricethezav/gitleaks to v8.28.0"
 
-# 4. Update zricethezav/gitleaks:latest to v8.28.0
-echo "Updating zricethezav/gitleaks images..."
-find apps -name "*.yaml" -type f -exec sed -i '' 's|image: zricethezav/gitleaks:latest|image: zricethezav/gitleaks:v8.28.0|g' {} +
+# bitnami/kubectl:latest → 1.33.3
+find apps/ -name "*.yaml" -type f -exec sed -i '' 's|bitnami/kubectl:latest|bitnami/kubectl:1.33.3|g' {} \;
+echo "✓ Updated bitnami/kubectl to 1.33.3"
 
-# Medium Priority Updates
-
-# 5. Update n8nio/n8n:latest to 1.104.1
-echo "Updating n8nio/n8n images..."
-find apps -name "*.yaml" -type f -exec sed -i '' 's|image: n8nio/n8n:latest|image: n8nio/n8n:1.104.1|g' {} +
-
-# 6. Update dpage/pgadmin4:latest to 9.6.0
-echo "Updating dpage/pgadmin4 images..."
-find apps -name "*.yaml" -type f -exec sed -i '' 's|image: dpage/pgadmin4:latest|image: dpage/pgadmin4:9.6.0|g' {} +
-
-# 7. Update buildkite/puppeteer:latest to 10.0.0
-echo "Updating buildkite/puppeteer images..."
-find apps -name "*.yaml" -type f -exec sed -i '' 's|image: buildkite/puppeteer:latest|image: buildkite/puppeteer:10.0.0|g' {} +
-
-echo "Image version updates completed!"
 echo ""
-echo "Summary of changes:"
-echo "- cloudflare/cloudflared:latest → 2025.7.0"
-echo "- bitnami/kubectl:latest → 1.33.3"
-echo "- aquasec/kube-bench:latest → v0.11.1"
-echo "- zricethezav/gitleaks:latest → v8.28.0"
-echo "- n8nio/n8n:latest → 1.104.1"
-echo "- dpage/pgadmin4:latest → 9.6.0"
-echo "- buildkite/puppeteer:latest → 10.0.0"
+echo "Applying Medium Priority updates..."
+
+# n8nio/n8n:latest → 1.104.1
+find apps/ -name "*.yaml" -type f -exec sed -i '' 's|n8nio/n8n:latest|n8nio/n8n:1.104.1|g' {} \;
+echo "✓ Updated n8nio/n8n to 1.104.1"
+
+# dpage/pgadmin4:latest → 9.6.0
+find apps/ -name "*.yaml" -type f -exec sed -i '' 's|dpage/pgadmin4:latest|dpage/pgadmin4:9.6.0|g' {} \;
+echo "✓ Updated dpage/pgadmin4 to 9.6.0"
+
+# buildkite/puppeteer:latest → 10.0.0
+find apps/ -name "*.yaml" -type f -exec sed -i '' 's|buildkite/puppeteer:latest|buildkite/puppeteer:10.0.0|g' {} \;
+echo "✓ Updated buildkite/puppeteer to 10.0.0"
+
 echo ""
-echo "Please review the changes with: git diff"
-echo "To revert changes: git checkout -- apps/"
+echo "================================================"
+echo "Update complete!"
+echo ""
+echo "To review the changes, run:"
+echo "  git diff"
+echo ""
+echo "To commit the changes, run:"
+echo "  git add -A && git commit -m 'chore: update container images from latest to specific versions'"
+echo ""
+echo "Note: Low priority updates and custom images were not included in this script."
+echo "Refer to notes/image-version-recommendations.md for the complete list."
