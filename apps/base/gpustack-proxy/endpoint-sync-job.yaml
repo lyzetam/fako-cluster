@@ -46,7 +46,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: sync
-            image: bitnami/kubectl:latest
+            image: bitnami/kubectl:1.33.3
             command:
             - /bin/bash
             - -c
