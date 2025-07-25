@@ -30,7 +30,7 @@ spec:
         supplementalGroups: []
       containers:
         - name: puppeteer-mcp-server
-          image: buildkite/puppeteer:latest
+          image: buildkite/puppeteer:10.0.0
           # Keep container running since it's a stdio-based MCP server
           command: ["/bin/sh"]
           args: ["-c", "echo 'Puppeteer MCP Server container ready' && while true; do sleep 3600; done"]

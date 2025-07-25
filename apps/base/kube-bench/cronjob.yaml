@@ -22,7 +22,7 @@ spec:
           hostPID: true
           containers:
           - name: kube-bench
-            image: aquasec/kube-bench:latest
+            image: aquasec/kube-bench:v0.11.1
             command:
             - /bin/sh
             - -c
@@ -78,7 +78,7 @@ spec:
             securityContext:
               privileged: true
           - name: results-processor
-            image: busybox:latest
+            image: busybox:1.36.1
             command:
             - /bin/sh
             - -c
