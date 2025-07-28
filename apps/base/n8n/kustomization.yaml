@@ -7,6 +7,7 @@ resources:
   - service.yaml
   - deployment.yaml
   - ingress.yaml
+  - cert-challenge-ingress.yaml
   - networkpolicy.yaml
   - aws-credentials-secret.yaml
   - secret-store.yaml
