@@ -5,7 +5,6 @@ metadata:
   namespace: n8n
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-production"
-    traefik.ingress.kubernetes.io/router.middlewares: "n8n-redirect-to-https@kubernetescrd"
 spec:
   ingressClassName: traefik
   rules:
@@ -23,13 +22,3 @@ spec:
   - hosts:
     - n8n.landryzetam.net
     secretName: n8n-tls-cert
----
-apiVersion: traefik.containo.us/v1alpha1
-kind: Middleware
-metadata:
-  name: redirect-to-https
-  namespace: n8n
-spec:
-  redirectScheme:
-    scheme: https
-    permanent: true
