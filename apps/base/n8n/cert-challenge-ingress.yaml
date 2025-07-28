@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n-cert-challenge
+  namespace: n8n
+  annotations:
+    # This ingress is only for cert-manager challenges
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: n8n.landryzetam.net
+    http:
+      paths:
+      # Only allow the ACME challenge path
+      - path: /.well-known/acme-challenge/
+        pathType: Prefix
+        backend:
+          service:
+            name: cm-acme-http-solver-vz9mw
+            port:
+              number: 8089
