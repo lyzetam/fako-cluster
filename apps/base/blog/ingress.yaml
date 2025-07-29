@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hugo-blog
+  namespace: blog
+  labels:
+    app.kubernetes.io/name: hugo-blog
+    app.kubernetes.io/component: blog
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - blog.fako-cluster.local
+    secretName: hugo-blog-tls
+  rules:
+  - host: blog.fako-cluster.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hugo-blog
+            port:
+              number: 80

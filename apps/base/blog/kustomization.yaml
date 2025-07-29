@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: blog
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - docs-content-configmap.yaml
+  - storage.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - sync-docs-cronjob.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: hugo-blog
+      app.kubernetes.io/instance: production
+      app.kubernetes.io/component: documentation
+      app.kubernetes.io/part-of: blog
