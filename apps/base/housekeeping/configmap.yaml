@@ -25,6 +25,9 @@ data:
     # Function to cleanup pods in a namespace
     cleanup_namespace() {
         local namespace=$1
+        local deleted=0
+        local found=0
+        
         echo -e "\n${YELLOW}Processing namespace: ${namespace}${NC}"
         
         # Find completed pods
@@ -33,15 +36,29 @@ data:
         # Find failed pods
         failed_pods=$(kubectl get pods -n "$namespace" -o json | jq -r '.items[] | select(.status.phase == "Failed") | .metadata.name' || true)
         
-        # Combine and count
-        all_pods=$(echo -e "$completed_pods\n$failed_pods" | grep -v '^$' | sort -u || true)
-        pod_count=$(echo "$all_pods" | grep -v '^$' | wc -l || echo "0")
+        # Combine all pods
+        all_pods=""
+        if [ -n "$completed_pods" ]; then
+            all_pods="$completed_pods"
+        fi
+        if [ -n "$failed_pods" ]; then
+            if [ -n "$all_pods" ]; then
+                all_pods="$all_pods"$'\n'"$failed_pods"
+            else
+                all_pods="$failed_pods"
+            fi
+        fi
         
-        if [ "$pod_count" -gt 0 ]; then
+        # Count pods
+        if [ -n "$all_pods" ]; then
+            pod_count=$(echo "$all_pods" | wc -l | tr -d ' ')
+            found=$pod_count
             echo "Found $pod_count completed/failed pods:"
-            echo "$all_pods" | while read -r pod; do
-                if [ ! -z "$pod" ]; then
-                    # Get pod age
+            
+            # Process each pod
+            while IFS= read -r pod; do
+                if [ -n "$pod" ]; then
+                    # Get pod details
                     age=$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{.status.startTime}' 2>/dev/null || echo "unknown")
                     phase=$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{.status.phase}' 2>/dev/null || echo "unknown")
                     
@@ -50,16 +67,18 @@ data:
                     # Delete the pod
                     if kubectl delete pod "$pod" -n "$namespace" --grace-period=0 --force 2>/dev/null; then
                         echo -e "    ${GREEN}✓ Deleted${NC}"
-                        ((TOTAL_DELETED++))
+                        ((deleted++))
                     else
                         echo -e "    ${RED}✗ Failed to delete${NC}"
                     fi
                 fi
-            done
-            ((TOTAL_FOUND+=pod_count))
+            done <<< "$all_pods"
         else
             echo "No completed/failed pods found"
         fi
+        
+        # Return counts
+        echo "$deleted $found"
     }
     
     # Get all namespaces
@@ -67,7 +86,12 @@ data:
     
     # Process each namespace
     for ns in $namespaces; do
-        cleanup_namespace "$ns"
+        result=$(cleanup_namespace "$ns")
+        counts=($result)
+        if [ ${#counts[@]} -eq 2 ]; then
+            ((TOTAL_DELETED+=${counts[0]}))
+            ((TOTAL_FOUND+=${counts[1]}))
+        fi
     done
     
     # Summary
