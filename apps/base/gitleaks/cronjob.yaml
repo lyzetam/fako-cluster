@@ -14,7 +14,7 @@ spec:
           initContainers:
           # Install dependencies
           - name: setup
-            image: alpine:3.20
+            image: alpine:3.22
             command:
             - /bin/sh
             - -c
