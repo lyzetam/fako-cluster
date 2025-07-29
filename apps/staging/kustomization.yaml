@@ -21,6 +21,9 @@ resources:
   - kube-bench
   - kubescape-operator  # Changed from kubescape to use the operator
   
+  # Cluster Maintenance
+  - housekeeping  # Cleanup completed/failed pods periodically
+  
   # Dashboard
   - headlamp  # Kubernetes dashboard with Kubescape plugin
   

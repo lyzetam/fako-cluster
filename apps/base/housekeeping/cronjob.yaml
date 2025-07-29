@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: housekeeping
+  namespace: housekeeping
+spec:
+  schedule: "0 * * * *"  # Run every hour
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600  # Clean up job pods after 1 hour
+      template:
+        metadata:
+          labels:
+            app: housekeeping
+        spec:
+          serviceAccountName: housekeeping
+          restartPolicy: OnFailure
+          containers:
+          - name: housekeeping
+            image: bitnami/kubectl:1.28
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Install jq if not available
+              if ! command -v jq &> /dev/null; then
+                apt-get update && apt-get install -y jq
+              fi
+              
+              # Run the cleanup script
+              bash /scripts/cleanup.sh
+            volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+          volumes:
+          - name: scripts
+            configMap:
+              name: housekeeping-script
+              defaultMode: 0755
