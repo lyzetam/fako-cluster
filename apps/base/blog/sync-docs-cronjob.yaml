@@ -1,0 +1,144 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sync-docs
+  namespace: blog
+spec:
+  schedule: "0 */6 * * *"  # Run every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: sync-docs
+            image: alpine/git:2.40.1
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              
+              # Install necessary tools
+              apk add --no-cache bash findutils
+              
+              # Clone the repository (shallow clone for efficiency)
+              echo "Cloning repository..."
+              git clone --depth 1 https://github.com/lyzetam/fako-cluster.git /tmp/repo
+              
+              # Create target directories
+              mkdir -p /content/content/docs/services/mcp-servers
+              mkdir -p /content/content/docs/services/kubescape
+              mkdir -p /content/content/docs/services/kagent
+              mkdir -p /content/content/docs/services/headlamp
+              mkdir -p /content/content/docs/services/housekeeping
+              mkdir -p /content/content/docs/services/kube-bench
+              mkdir -p /content/content/docs/services/gpustack-proxy
+              mkdir -p /content/content/docs/services/oura
+              mkdir -p /content/content/docs/architecture
+              mkdir -p /content/content/docs/guides
+              mkdir -p /content/content/docs/operations
+              
+              # Copy documentation files
+              echo "Copying documentation files..."
+              
+              # MCP Server docs
+              if [ -d "/tmp/repo/apps/base/mcp-servers/docs" ]; then
+                cp -r /tmp/repo/apps/base/mcp-servers/docs/*.md /content/content/docs/services/mcp-servers/ 2>/dev/null || true
+              fi
+              
+              # Kubescape docs
+              if [ -d "/tmp/repo/apps/base/kubescape-operator" ]; then
+                cp /tmp/repo/apps/base/kubescape-operator/*.md /content/content/docs/services/kubescape/ 2>/dev/null || true
+              fi
+              
+              # Kagent docs
+              if [ -d "/tmp/repo/apps/base/kagent/docs" ]; then
+                cp /tmp/repo/apps/base/kagent/docs/*.md /content/content/docs/services/kagent/ 2>/dev/null || true
+              fi
+              
+              # Headlamp docs
+              if [ -d "/tmp/repo/apps/base/headlamp" ]; then
+                cp /tmp/repo/apps/base/headlamp/*.md /content/content/docs/services/headlamp/ 2>/dev/null || true
+              fi
+              
+              # Other service docs
+              [ -f "/tmp/repo/apps/base/housekeeping/README.md" ] && cp "/tmp/repo/apps/base/housekeeping/README.md" "/content/content/docs/services/housekeeping/index.md"
+              [ -f "/tmp/repo/apps/base/kube-bench/README.md" ] && cp "/tmp/repo/apps/base/kube-bench/README.md" "/content/content/docs/services/kube-bench/index.md"
+              [ -f "/tmp/repo/apps/base/gpustack-proxy/README.md" ] && cp "/tmp/repo/apps/base/gpustack-proxy/README.md" "/content/content/docs/services/gpustack-proxy/index.md"
+              [ -f "/tmp/repo/apps/base/oura-collector/README.md" ] && cp "/tmp/repo/apps/base/oura-collector/README.md" "/content/content/docs/services/oura/index.md"
+              
+              # Architecture and guide docs
+              [ -f "/tmp/repo/notes/gpu-cpu-architecture.md" ] && cp "/tmp/repo/notes/gpu-cpu-architecture.md" "/content/content/docs/architecture/"
+              [ -f "/tmp/repo/notes/image-version-recommendations.md" ] && cp "/tmp/repo/notes/image-version-recommendations.md" "/content/content/docs/guides/"
+              
+              # Root docs
+              [ -f "/tmp/repo/README.md" ] && {
+                # Create a proper index file for the main README
+                cat > "/content/content/docs/guides/project-overview.md" <<EOF
+              ---
+              title: "Project Overview"
+              weight: 1
+              ---
+              
+              EOF
+                cat "/tmp/repo/README.md" >> "/content/content/docs/guides/project-overview.md"
+              }
+              [ -f "/tmp/repo/manifest-validation-report.md" ] && cp "/tmp/repo/manifest-validation-report.md" "/content/content/docs/operations/"
+              
+              # Process all markdown files to add Hugo front matter
+              echo "Processing markdown files for Hugo..."
+              find /content/content/docs -name "*.md" -type f | while read -r file; do
+                # Check if file already has front matter
+                if ! head -n 1 "$file" | grep -q "^---"; then
+                  # Get the title from the first # heading
+                  title=$(grep "^# " "$file" | head -n 1 | sed 's/^# //')
+                  if [ -z "$title" ]; then
+                    # Generate title from filename
+                    title=$(basename "$file" .md | sed 's/-/ /g' | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g')
+                  fi
+                  
+                  # Create temporary file with front matter
+                  {
+                    echo "---"
+                    echo "title: \"$title\""
+                    echo "date: $(date -Iseconds)"
+                    echo "draft: false"
+                    echo "---"
+                    echo ""
+                    cat "$file"
+                  } > "${file}.tmp"
+                  
+                  mv "${file}.tmp" "$file"
+                fi
+              done
+              
+              echo "Documentation sync complete!"
+              
+              # Cleanup
+              rm -rf /tmp/repo
+            volumeMounts:
+            - name: content
+              mountPath: /content
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              runAsGroup: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop:
+                - ALL
+          restartPolicy: OnFailure
+          volumes:
+          - name: content
+            persistentVolumeClaim:
+              claimName: blog-content
+          securityContext:
+            fsGroup: 1000
