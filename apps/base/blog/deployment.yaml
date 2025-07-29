@@ -1,0 +1,238 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hugo-blog
+  namespace: blog
+  labels:
+    app.kubernetes.io/name: hugo-blog
+    app.kubernetes.io/component: blog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hugo-blog
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hugo-blog
+    spec:
+      initContainers:
+      - name: setup-hugo-site
+        image: klakegg/hugo:0.111.3-alpine
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Create Hugo site structure
+          hugo new site /site
+          cd /site
+          
+          # Install hugo-book theme
+          git clone https://github.com/alex-shpak/hugo-book themes/hugo-book
+          
+          # Copy config
+          cp /config/config.toml /site/config.toml
+          
+          # Create content directories
+          mkdir -p /site/content/docs/services
+          mkdir -p /site/content/docs/guides
+          mkdir -p /site/content/docs/architecture
+          mkdir -p /site/content/docs/security
+          mkdir -p /site/content/docs/operations
+          
+          # Create homepage
+          cat > /site/content/_index.md <<EOF
+          ---
+          title: "Fako Cluster Documentation"
+          ---
+
+          # Welcome to Fako Cluster Documentation
+
+          This documentation site contains all the technical documentation for the Fako Cluster Kubernetes deployment.
+
+          ## Quick Links
+
+          - [Services Documentation](/docs/services) - Documentation for all deployed services
+          - [Guides](/docs/guides) - How-to guides and tutorials
+          - [Architecture](/docs/architecture) - System design and technical architecture
+          - [Security](/docs/security) - Security configurations and best practices
+          - [Operations](/docs/operations) - Operational procedures and runbooks
+
+          ## Getting Started
+
+          Browse the documentation using the navigation menu on the left, or use the search feature to find specific topics.
+          EOF
+          
+          # Create section index files
+          cat > /site/content/docs/_index.md <<EOF
+          ---
+          title: "Documentation"
+          weight: 1
+          bookFlatSection: true
+          ---
+
+          # Documentation
+
+          Browse all documentation by category.
+          EOF
+          
+          cat > /site/content/docs/services/_index.md <<EOF
+          ---
+          title: "Services"
+          weight: 1
+          ---
+
+          # Services Documentation
+
+          Documentation for all services deployed in the cluster.
+          EOF
+          
+          cat > /site/content/docs/guides/_index.md <<EOF
+          ---
+          title: "Guides"
+          weight: 2
+          ---
+
+          # Guides and Tutorials
+
+          Step-by-step guides for common tasks.
+          EOF
+          
+          cat > /site/content/docs/architecture/_index.md <<EOF
+          ---
+          title: "Architecture"
+          weight: 3
+          ---
+
+          # Architecture Documentation
+
+          System design and technical architecture documentation.
+          EOF
+          
+          cat > /site/content/docs/security/_index.md <<EOF
+          ---
+          title: "Security"
+          weight: 4
+          ---
+
+          # Security Documentation
+
+          Security configurations and best practices.
+          EOF
+          
+          cat > /site/content/docs/operations/_index.md <<EOF
+          ---
+          title: "Operations"
+          weight: 5
+          ---
+
+          # Operations Documentation
+
+          Operational procedures and runbooks.
+          EOF
+          
+          # Copy entire site to persistent volume
+          cp -r /site/* /content/
+          
+          echo "Hugo site setup complete"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: content
+          mountPath: /content
+      
+      - name: gather-docs
+        image: alpine/git:2.40.1
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          
+          # Install necessary tools
+          apk add --no-cache bash findutils
+          
+          # Clone the repository (shallow clone for efficiency)
+          echo "Cloning repository..."
+          git clone --depth 1 https://github.com/lyzetam/fako-cluster.git /tmp/repo
+          
+          # Execute the documentation copying script
+          cp /scripts/copy-docs.sh /tmp/copy-docs.sh
+          chmod +x /tmp/copy-docs.sh
+          
+          # Set up doc paths
+          export DOCS_ROOT="/tmp/repo"
+          
+          # Run with adjusted paths
+          sed -i 's|/docs/|/tmp/repo/apps/base/|g' /tmp/copy-docs.sh
+          sed -i 's|/docs/notes/|/tmp/repo/notes/|g' /tmp/copy-docs.sh
+          sed -i 's|/docs/README.md|/tmp/repo/README.md|g' /tmp/copy-docs.sh
+          sed -i 's|/docs/manifest-validation-report.md|/tmp/repo/manifest-validation-report.md|g' /tmp/copy-docs.sh
+          
+          /tmp/copy-docs.sh
+          
+          # Cleanup
+          rm -rf /tmp/repo
+        volumeMounts:
+        - name: content
+          mountPath: /content
+        - name: docs-scripts
+          mountPath: /scripts
+          
+      containers:
+      - name: hugo
+        image: klakegg/hugo:0.111.3-alpine
+        command:
+        - hugo
+        - server
+        - --bind=0.0.0.0
+        - --baseURL=https://blog.fako-cluster.local
+        - --appendPort=false
+        - --disableFastRender
+        workingDir: /site
+        ports:
+        - containerPort: 1313
+          name: http
+        volumeMounts:
+        - name: content
+          mountPath: /site
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: hugo-config
+      - name: docs-scripts
+        configMap:
+          name: docs-content
+      - name: content
+        persistentVolumeClaim:
+          claimName: blog-content
+      securityContext:
+        fsGroup: 1000

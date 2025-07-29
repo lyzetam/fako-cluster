@@ -47,3 +47,6 @@ resources:
   
   # Workflow Automation
   - n8n             # Workflow automation platform
+  
+  # Documentation
+  - blog            # Hugo-based documentation site
