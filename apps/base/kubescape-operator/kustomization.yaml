@@ -7,6 +7,12 @@ resources:
   - repository.yaml
   - release.yaml
 
+patches:
+  - path: kubevuln-patch.yaml
+    target:
+      kind: Deployment
+      name: kubevuln
+
 labels:
 - pairs:
     app.kubernetes.io/name: kubescape-operator

@@ -1,0 +1,21 @@
+spec:
+  template:
+    spec:
+      containers:
+      - name: kubevuln
+        readinessProbe:
+          httpGet:
+            path: /v1/readiness
+            port: 8080
+          initialDelaySeconds: 60
+          timeoutSeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /v1/liveness
+            port: 8080
+          initialDelaySeconds: 90
+          timeoutSeconds: 10
+          periodSeconds: 30
+          failureThreshold: 3
