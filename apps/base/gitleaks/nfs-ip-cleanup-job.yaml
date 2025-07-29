@@ -9,7 +9,7 @@ spec:
       serviceAccountName: gitleaks
       containers:
       - name: ip-cleanup
-        image: alpine:3.20
+        image: alpine:3.22
         env:
         - name: GITHUB_TOKEN
           valueFrom:
