@@ -13,6 +13,34 @@ spec:
         kind: HelmRepository
         name: kubescape
         namespace: kubescape
+  # Use postRenderers to patch the kubevuln deployment
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: kubevuln
+            patch: |
+              - op: replace
+                path: /spec/template/spec/containers/0/readinessProbe
+                value:
+                  httpGet:
+                    path: /v1/readiness
+                    port: 8080
+                  initialDelaySeconds: 60
+                  timeoutSeconds: 10
+                  periodSeconds: 10
+                  failureThreshold: 3
+              - op: replace
+                path: /spec/template/spec/containers/0/livenessProbe
+                value:
+                  httpGet:
+                    path: /v1/liveness
+                    port: 8080
+                  initialDelaySeconds: 90
+                  timeoutSeconds: 10
+                  periodSeconds: 30
+                  failureThreshold: 3
   values:
     # Enable continuous scanning for real-time monitoring
     capabilities:
