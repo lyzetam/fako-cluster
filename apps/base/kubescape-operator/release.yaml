@@ -13,34 +13,6 @@ spec:
         kind: HelmRepository
         name: kubescape
         namespace: kubescape
-  # Use postRenderers to patch the kubevuln deployment
-  postRenderers:
-    - kustomize:
-        patches:
-          - target:
-              kind: Deployment
-              name: kubevuln
-            patch: |
-              - op: replace
-                path: /spec/template/spec/containers/0/readinessProbe
-                value:
-                  httpGet:
-                    path: /v1/readiness
-                    port: 8080
-                  initialDelaySeconds: 60
-                  timeoutSeconds: 10
-                  periodSeconds: 10
-                  failureThreshold: 3
-              - op: replace
-                path: /spec/template/spec/containers/0/livenessProbe
-                value:
-                  httpGet:
-                    path: /v1/liveness
-                    port: 8080
-                  initialDelaySeconds: 90
-                  timeoutSeconds: 10
-                  periodSeconds: 30
-                  failureThreshold: 3
   values:
     # Enable continuous scanning for real-time monitoring
     capabilities:
@@ -102,24 +74,6 @@ spec:
           memory: "1Gi"
           cpu: "500m"
           ephemeral-storage: "15Gi"  # Significantly increased to prevent eviction
-      # Configure readiness probe with longer timeout
-      readinessProbe:
-        httpGet:
-          path: /v1/readiness
-          port: 8080
-        initialDelaySeconds: 60    # Give time for grype DB update
-        timeoutSeconds: 10         # Increase from default 1s to 10s
-        periodSeconds: 10
-        failureThreshold: 3
-      # Configure liveness probe similarly
-      livenessProbe:
-        httpGet:
-          path: /v1/liveness
-          port: 8080
-        initialDelaySeconds: 90    # Start after readiness probe
-        timeoutSeconds: 10
-        periodSeconds: 30
-        failureThreshold: 3
           
     gateway:
       resources:
