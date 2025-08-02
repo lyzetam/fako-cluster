@@ -96,7 +96,7 @@ spec:
           echo ""
           echo "=== HOME ASSISTANT SPECIALIZED MODELS ==="
           # ollama pull granite3-moe:1b || echo "Failed granite3-moe:1b"
-          # ollama pull qwen3:8b || echo "Failed qwen3:8b"
+          ollama pull qwen3:8b || echo "Failed qwen3:8b"
 
           # PRIORITY 2: Latest Gemma models
           echo ""
