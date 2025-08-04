@@ -6,9 +6,9 @@ metadata:
   namespace: whisper
 data:
   # Model configuration
-  MODEL: "base-int8"
+  MODEL: "base"
   LANGUAGE: "en"
-  COMPUTE_TYPE: "int8"
+  COMPUTE_TYPE: "float16"
   BEAM_SIZE: "5"
   
   # GPU Configuration
