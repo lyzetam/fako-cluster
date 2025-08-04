@@ -17,3 +17,7 @@ data:
   
   # Wyoming protocol settings
   WYOMING_URI: "tcp://0.0.0.0:10300"
+  
+  # Cache directory for models
+  HF_HOME: "/data/.cache"
+  TRANSFORMERS_CACHE: "/data/.cache"
