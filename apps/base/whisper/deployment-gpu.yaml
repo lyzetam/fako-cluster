@@ -32,7 +32,7 @@ spec:
       
       containers:
       - name: whisper
-        image: ghcr.io/slackr31337/wyoming-whisper-gpu:latest
+        image: ghcr.io/slackr31337/wyoming-whisper-gpu:v2025.01.4
         ports:
         - containerPort: 10300
           protocol: TCP
