@@ -6,12 +6,10 @@ metadata:
   namespace: whisper
 data:
   # Model configuration
-  MODEL: "tiny"
-  MODEL_SIZE: "medium"  # Options: tiny, base, small, medium, large
+  MODEL: "base-int8"
   LANGUAGE: "en"
-  COMPUTE_TYPE: "float16"  # FP16 for GPU optimization
-  BEAM_SIZE: "1"
-  DEVICE: "cuda"
+  COMPUTE_TYPE: "int8"
+  BEAM_SIZE: "5"
   
   # GPU Configuration
   NVIDIA_VISIBLE_DEVICES: "all"
