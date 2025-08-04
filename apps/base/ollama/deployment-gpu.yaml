@@ -8,7 +8,6 @@ spec:
   replicas: 1
   strategy:
     type: Recreate
-    rollingUpdate: null  # Explicitly prevent rollingUpdate configuration
   selector:
     matchLabels:
       app: ollama-gpu
