@@ -18,13 +18,13 @@ spec:
     spec:
       initContainers:
       - name: setup-hugo-site
-        image: klakegg/hugo:0.111.3-alpine
+        image: alpine:3.18
         command:
         - /bin/sh
         - -c
         - |
-          # Install git first
-          apk add --no-cache git
+          # Install Hugo and git
+          apk add --no-cache hugo git
           
           # Create Hugo site structure
           hugo new site /site
@@ -206,14 +206,15 @@ spec:
           
       containers:
       - name: hugo
-        image: klakegg/hugo:0.111.3-alpine
+        image: alpine:3.18
         command:
-        - hugo
-        - server
-        - --bind=0.0.0.0
-        - --baseURL=https://blog.fako-cluster.local
-        - --appendPort=false
-        - --disableFastRender
+        - /bin/sh
+        - -c
+        - |
+          # Install Hugo
+          apk add --no-cache hugo
+          # Run Hugo server
+          hugo server --bind=0.0.0.0 --baseURL=https://blog.fako-cluster.local --appendPort=false --disableFastRender
         workingDir: /site
         ports:
         - containerPort: 1313
