@@ -16,177 +16,6 @@ spec:
       labels:
         app.kubernetes.io/name: hugo-blog
     spec:
-      initContainers:
-      - name: setup-hugo-site
-        image: busybox:1.36
-        command:
-        - /bin/sh
-        - -c
-        - |
-          # Just create the basic structure - we'll do Hugo setup in the main container
-          mkdir -p /content/content/docs/services
-          mkdir -p /content/content/docs/guides
-          mkdir -p /content/content/docs/architecture
-          mkdir -p /content/content/docs/security
-          mkdir -p /content/content/docs/operations
-          
-          # Create homepage
-          cat > /content/content/_index.md <<EOF
-          ---
-          title: "Fako Cluster Documentation"
-          ---
-
-          # Welcome to Fako Cluster Documentation
-
-          This documentation site contains all the technical documentation for the Fako Cluster Kubernetes deployment.
-
-          ## Quick Links
-
-          - [Services Documentation](/docs/services) - Documentation for all deployed services
-          - [Guides](/docs/guides) - How-to guides and tutorials
-          - [Architecture](/docs/architecture) - System design and technical architecture
-          - [Security](/docs/security) - Security configurations and best practices
-          - [Operations](/docs/operations) - Operational procedures and runbooks
-
-          ## Getting Started
-
-          Browse the documentation using the navigation menu on the left, or use the search feature to find specific topics.
-          EOF
-          
-          # Create section index files
-          cat > /content/content/docs/_index.md <<EOF
-          ---
-          title: "Documentation"
-          weight: 1
-          bookFlatSection: true
-          ---
-
-          # Documentation
-
-          Browse all documentation by category.
-          EOF
-          
-          cat > /content/content/docs/services/_index.md <<EOF
-          ---
-          title: "Services"
-          weight: 1
-          ---
-
-          # Services Documentation
-
-          Documentation for all services deployed in the cluster.
-          EOF
-          
-          cat > /content/content/docs/guides/_index.md <<EOF
-          ---
-          title: "Guides"
-          weight: 2
-          ---
-
-          # Guides and Tutorials
-
-          Step-by-step guides for common tasks.
-          EOF
-          
-          cat > /content/content/docs/architecture/_index.md <<EOF
-          ---
-          title: "Architecture"
-          weight: 3
-          ---
-
-          # Architecture Documentation
-
-          System design and technical architecture documentation.
-          EOF
-          
-          cat > /content/content/docs/security/_index.md <<EOF
-          ---
-          title: "Security"
-          weight: 4
-          ---
-
-          # Security Documentation
-
-          Security configurations and best practices.
-          EOF
-          
-          cat > /content/content/docs/operations/_index.md <<EOF
-          ---
-          title: "Operations"
-          weight: 5
-          ---
-
-          # Operations Documentation
-
-          Operational procedures and runbooks.
-          EOF
-          
-          echo "Basic site structure created"
-        volumeMounts:
-        - name: config
-          mountPath: /config
-        - name: content
-          mountPath: /content
-      
-      - name: gather-docs
-        image: busybox:1.36
-        command:
-        - /bin/sh
-        - -c
-        - |
-          # Don't exit on errors - allow the container to complete even if some docs are missing
-          set +e
-          
-          # Tools are pre-installed in chainguard git image
-          
-          # Skip repository cloning and documentation gathering for now
-          echo "Skipping documentation gathering - no docs available yet"
-          echo "Creating placeholder structure..."
-          
-          # Create placeholder files so the container succeeds
-          mkdir -p /content/content/docs/services
-          mkdir -p /content/content/docs/guides
-          mkdir -p /content/content/docs/architecture
-          mkdir -p /content/content/docs/security
-          mkdir -p /content/content/docs/operations
-          
-          # Create a placeholder file
-          cat > /content/content/docs/services/_index.md <<EOF
-          ---
-          title: "Services Documentation"
-          ---
-          
-          # Services Documentation
-          
-          Documentation for services will be added here as it becomes available.
-          EOF
-          
-          echo "Placeholder documentation structure created"
-          exit 0
-          
-          # Execute the documentation copying script
-          cp /scripts/copy-docs.sh /tmp/copy-docs.sh
-          chmod +x /tmp/copy-docs.sh
-          
-          # Set up doc paths
-          export DOCS_ROOT="/tmp/repo"
-          
-          # Run with adjusted paths
-          sed -i 's|/docs/|/tmp/repo/apps/base/|g' /tmp/copy-docs.sh
-          sed -i 's|/docs/notes/|/tmp/repo/notes/|g' /tmp/copy-docs.sh
-          sed -i 's|/docs/README.md|/tmp/repo/README.md|g' /tmp/copy-docs.sh
-          sed -i 's|/docs/manifest-validation-report.md|/tmp/repo/manifest-validation-report.md|g' /tmp/copy-docs.sh
-          
-          /tmp/copy-docs.sh
-          
-          # Cleanup
-          rm -rf /tmp/repo
-        volumeMounts:
-        - name: content
-          mountPath: /content
-        - name: docs-scripts
-          mountPath: /scripts
-          
       containers:
       - name: hugo
         image: floryn90/hugo:0.134.0-ext-alpine
@@ -194,35 +23,95 @@ spec:
         - /bin/sh
         - -c
         - |
-          # Check if site exists, if not create it
-          if [ ! -f "/site/config.toml" ] && [ ! -f "/site/hugo.toml" ]; then
-            cd /tmp
-            hugo new site tempsite
-            cp -r tempsite/* /site/
-            rm -rf tempsite
-            
-            # Copy config if it exists
-            if [ -f "/config/config.toml" ]; then
-              cp /config/config.toml /site/config.toml
-            fi
-            
-            # Copy content if it exists
-            if [ -d "/site/content" ]; then
-              cp -r /site/content/* /site/content/ 2>/dev/null || true
-            fi
-          fi
+          # Create a fresh Hugo site
+          cd /tmp
+          hugo new site mysite
+          cd mysite
+          
+          # Create basic config
+          cat > hugo.toml <<'EOF'
+          baseURL = 'https://blog.fako-cluster.local/'
+          languageCode = 'en-us'
+          title = 'Fako Cluster Documentation'
+          EOF
+          
+          # Create minimal theme structure
+          mkdir -p layouts/_default
+          
+          # Create base layout
+          cat > layouts/_default/baseof.html <<'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="utf-8">
+              <title>{{ .Title }} - {{ .Site.Title }}</title>
+          </head>
+          <body>
+              <h1>{{ .Site.Title }}</h1>
+              <main>
+              {{ block "main" . }}{{ end }}
+              </main>
+          </body>
+          </html>
+          EOF
+          
+          # Create list layout
+          cat > layouts/_default/list.html <<'EOF'
+          {{ define "main" }}
+          <h2>{{ .Title }}</h2>
+          {{ .Content }}
+          <ul>
+          {{ range .Pages }}
+              <li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>
+          {{ end }}
+          </ul>
+          {{ end }}
+          EOF
+          
+          # Create single layout
+          cat > layouts/_default/single.html <<'EOF'
+          {{ define "main" }}
+          <article>
+              <h2>{{ .Title }}</h2>
+              {{ .Content }}
+          </article>
+          {{ end }}
+          EOF
+          
+          # Create homepage layout
+          cat > layouts/index.html <<'EOF'
+          {{ define "main" }}
+          <h2>Welcome to Fako Cluster Documentation</h2>
+          <p>This is a simple documentation site for the Fako Cluster.</p>
+          <ul>
+              <li><a href="/docs/">Documentation</a></li>
+          </ul>
+          {{ end }}
+          EOF
+          
+          # Create content
+          mkdir -p content/docs
+          
+          cat > content/_index.md <<'EOF'
+          ---
+          title: "Home"
+          ---
+          Welcome to the documentation site.
+          EOF
+          
+          cat > content/docs/_index.md <<'EOF'
+          ---
+          title: "Documentation"
+          ---
+          Browse all documentation here.
+          EOF
           
           # Start Hugo server
-          cd /site
-          hugo server --bind=0.0.0.0 --baseURL=https://blog.fako-cluster.local --appendPort=false --disableFastRender
+          echo "Starting Hugo server..."
+          exec hugo server --bind=0.0.0.0 --port=1313 --baseURL=https://blog.fako-cluster.local --appendPort=false
         ports:
         - containerPort: 1313
           name: http
-        volumeMounts:
-        - name: content
-          mountPath: /site
-        - name: config
-          mountPath: /config
         resources:
           requests:
             memory: "128Mi"
@@ -234,32 +123,15 @@ spec:
           httpGet:
             path: /
             port: http
-          initialDelaySeconds: 10
-          periodSeconds: 30
+          initialDelaySeconds: 30
+          periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /
             port: http
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 1000
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
-          capabilities:
-            drop:
-            - ALL
-      volumes:
-      - name: config
-        configMap:
-          name: hugo-config
-      - name: docs-scripts
-        configMap:
-          name: docs-content
-      - name: content
-        persistentVolumeClaim:
-          claimName: blog-content
+          initialDelaySeconds: 20
+          periodSeconds: 5
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
         fsGroup: 1000
