@@ -18,29 +18,20 @@ spec:
     spec:
       initContainers:
       - name: setup-hugo-site
-        image: cgr.dev/chainguard/hugo:latest
+        image: busybox:1.36
         command:
         - /bin/sh
         - -c
         - |
-          # Create Hugo site structure
-          hugo new site /site
-          cd /site
-          
-          # Skip theme installation for now - we'll use a basic site
-          
-          # Copy config if it exists
-          cp /config/config.toml /site/config.toml || echo "No config found, using defaults"
-          
-          # Create content directories
-          mkdir -p /site/content/docs/services
-          mkdir -p /site/content/docs/guides
-          mkdir -p /site/content/docs/architecture
-          mkdir -p /site/content/docs/security
-          mkdir -p /site/content/docs/operations
+          # Just create the basic structure - we'll do Hugo setup in the main container
+          mkdir -p /content/content/docs/services
+          mkdir -p /content/content/docs/guides
+          mkdir -p /content/content/docs/architecture
+          mkdir -p /content/content/docs/security
+          mkdir -p /content/content/docs/operations
           
           # Create homepage
-          cat > /site/content/_index.md <<EOF
+          cat > /content/content/_index.md <<EOF
           ---
           title: "Fako Cluster Documentation"
           ---
@@ -63,7 +54,7 @@ spec:
           EOF
           
           # Create section index files
-          cat > /site/content/docs/_index.md <<EOF
+          cat > /content/content/docs/_index.md <<EOF
           ---
           title: "Documentation"
           weight: 1
@@ -75,7 +66,7 @@ spec:
           Browse all documentation by category.
           EOF
           
-          cat > /site/content/docs/services/_index.md <<EOF
+          cat > /content/content/docs/services/_index.md <<EOF
           ---
           title: "Services"
           weight: 1
@@ -86,7 +77,7 @@ spec:
           Documentation for all services deployed in the cluster.
           EOF
           
-          cat > /site/content/docs/guides/_index.md <<EOF
+          cat > /content/content/docs/guides/_index.md <<EOF
           ---
           title: "Guides"
           weight: 2
@@ -97,7 +88,7 @@ spec:
           Step-by-step guides for common tasks.
           EOF
           
-          cat > /site/content/docs/architecture/_index.md <<EOF
+          cat > /content/content/docs/architecture/_index.md <<EOF
           ---
           title: "Architecture"
           weight: 3
@@ -108,7 +99,7 @@ spec:
           System design and technical architecture documentation.
           EOF
           
-          cat > /site/content/docs/security/_index.md <<EOF
+          cat > /content/content/docs/security/_index.md <<EOF
           ---
           title: "Security"
           weight: 4
@@ -119,7 +110,7 @@ spec:
           Security configurations and best practices.
           EOF
           
-          cat > /site/content/docs/operations/_index.md <<EOF
+          cat > /content/content/docs/operations/_index.md <<EOF
           ---
           title: "Operations"
           weight: 5
@@ -130,10 +121,7 @@ spec:
           Operational procedures and runbooks.
           EOF
           
-          # Copy entire site to persistent volume
-          cp -r /site/* /content/
-          
-          echo "Hugo site setup complete"
+          echo "Basic site structure created"
         volumeMounts:
         - name: config
           mountPath: /config
@@ -141,7 +129,7 @@ spec:
           mountPath: /content
       
       - name: gather-docs
-        image: cgr.dev/chainguard/git:latest
+        image: busybox:1.36
         command:
         - /bin/sh
         - -c
@@ -201,21 +189,40 @@ spec:
           
       containers:
       - name: hugo
-        image: cgr.dev/chainguard/hugo:latest
+        image: floryn90/hugo:0.134.0-ext-alpine
         command:
-        - hugo
-        - server
-        - --bind=0.0.0.0
-        - --baseURL=https://blog.fako-cluster.local
-        - --appendPort=false
-        - --disableFastRender
-        workingDir: /site
+        - /bin/sh
+        - -c
+        - |
+          # Check if site exists, if not create it
+          if [ ! -f "/site/config.toml" ] && [ ! -f "/site/hugo.toml" ]; then
+            cd /tmp
+            hugo new site tempsite
+            cp -r tempsite/* /site/
+            rm -rf tempsite
+            
+            # Copy config if it exists
+            if [ -f "/config/config.toml" ]; then
+              cp /config/config.toml /site/config.toml
+            fi
+            
+            # Copy content if it exists
+            if [ -d "/site/content" ]; then
+              cp -r /site/content/* /site/content/ 2>/dev/null || true
+            fi
+          fi
+          
+          # Start Hugo server
+          cd /site
+          hugo server --bind=0.0.0.0 --baseURL=https://blog.fako-cluster.local --appendPort=false --disableFastRender
         ports:
         - containerPort: 1313
           name: http
         volumeMounts:
         - name: content
           mountPath: /site
+        - name: config
+          mountPath: /config
         resources:
           requests:
             memory: "128Mi"
