@@ -18,23 +18,19 @@ spec:
     spec:
       initContainers:
       - name: setup-hugo-site
-        image: alpine:3.18
+        image: cgr.dev/chainguard/hugo:latest
         command:
         - /bin/sh
         - -c
         - |
-          # Install Hugo and git
-          apk add --no-cache hugo git
-          
           # Create Hugo site structure
           hugo new site /site
           cd /site
           
-          # Install hugo-book theme
-          git clone https://github.com/alex-shpak/hugo-book themes/hugo-book
+          # Skip theme installation for now - we'll use a basic site
           
-          # Copy config
-          cp /config/config.toml /site/config.toml
+          # Copy config if it exists
+          cp /config/config.toml /site/config.toml || echo "No config found, using defaults"
           
           # Create content directories
           mkdir -p /site/content/docs/services
@@ -145,7 +141,7 @@ spec:
           mountPath: /content
       
       - name: gather-docs
-        image: alpine/git:2.40.1
+        image: cgr.dev/chainguard/git:latest
         command:
         - /bin/sh
         - -c
@@ -153,8 +149,7 @@ spec:
           # Don't exit on errors - allow the container to complete even if some docs are missing
           set +e
           
-          # Install necessary tools
-          apk add --no-cache bash findutils
+          # Tools are pre-installed in chainguard git image
           
           # Skip repository cloning and documentation gathering for now
           echo "Skipping documentation gathering - no docs available yet"
@@ -206,15 +201,14 @@ spec:
           
       containers:
       - name: hugo
-        image: alpine:3.18
+        image: cgr.dev/chainguard/hugo:latest
         command:
-        - /bin/sh
-        - -c
-        - |
-          # Install Hugo
-          apk add --no-cache hugo
-          # Run Hugo server
-          hugo server --bind=0.0.0.0 --baseURL=https://blog.fako-cluster.local --appendPort=false --disableFastRender
+        - hugo
+        - server
+        - --bind=0.0.0.0
+        - --baseURL=https://blog.fako-cluster.local
+        - --appendPort=false
+        - --disableFastRender
         workingDir: /site
         ports:
         - containerPort: 1313
