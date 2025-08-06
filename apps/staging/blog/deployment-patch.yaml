@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
       - name: hugo
-        image: floryn90/hugo:0.139.4-ext-alpine  # Latest available floryn90 image
+        image: hugomods/hugo:exts-0.148.2  # Latest Hugo 0.148.2 with extended features
         command:
         - /bin/sh
         - -c
@@ -20,14 +20,14 @@ spec:
           mkdir -p /site/layouts
           mkdir -p /site/archetypes
           
-          # Download and extract Hugo Book theme (older compatible version)
-          echo "Downloading Hugo Book theme (v3.0.0 - compatible with Hugo 0.136)..."
+          # Download and extract Hugo Book theme (latest version)
+          echo "Downloading Hugo Book theme (latest version for Hugo 0.148.2)..."
           cd /site/themes
           if [ ! -d "hugo-book" ]; then
-            wget -q https://github.com/alex-shpak/hugo-book/archive/refs/tags/v3.0.0.tar.gz
-            tar -xzf v3.0.0.tar.gz
-            mv hugo-book-3.0.0 hugo-book
-            rm v3.0.0.tar.gz
+            wget -q https://github.com/alex-shpak/hugo-book/archive/master.tar.gz
+            tar -xzf master.tar.gz
+            mv hugo-book-master hugo-book
+            rm master.tar.gz
           fi
           
           # Create/update Hugo configuration
