@@ -38,6 +38,11 @@ spec:
         ports:
         - containerPort: 10300
           protocol: TCP
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: OMP_NUM_THREADS
+          value: "1"  # Prevent threading issues
         envFrom:
         - configMapRef:
             name: whisper-gpu-configmap
@@ -48,12 +53,12 @@ spec:
         
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "1000m"
-            nvidia.com/gpu: 1
-          limits:
             memory: "2Gi"
             cpu: "2000m"
+            nvidia.com/gpu: 1
+          limits:
+            memory: "4Gi"
+            cpu: "4000m"
             nvidia.com/gpu: 1
         
         livenessProbe:

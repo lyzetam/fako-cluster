@@ -21,3 +21,9 @@ data:
   # Cache directory for models
   HF_HOME: "/data/.cache"
   TRANSFORMERS_CACHE: "/data/.cache"
+  
+  # Additional stability settings
+  VAD_THRESHOLD: "0.5"
+  MIN_SPEECH_DURATION_MS: "250"
+  MAX_SPEECH_DURATION_S: "30"
+  SPEECH_PAD_MS: "400"
