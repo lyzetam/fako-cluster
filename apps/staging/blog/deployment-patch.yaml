@@ -19,12 +19,11 @@ spec:
             mkdir -p /site/layouts/_default
             mkdir -p /site/static
             
-            # Create basic config
-            cat > /site/hugo.toml <<'EOF'
+            # Create basic config (ensure no theme is set)
+            cat > /site/config.toml <<'EOF'
           baseURL = 'https://blog.landryzetam.net/'
           languageCode = 'en-us'
           title = 'Fako Cluster Documentation'
-          theme = []
           
           [params]
             description = "Documentation for the Fako Cluster"
@@ -39,6 +38,9 @@ spec:
             url = "/docs/"
             weight = 2
           EOF
+          
+            # Remove any existing theme configuration
+            rm -f /site/hugo.toml /site/hugo.yaml /site/config.yaml
           
             # Create minimal theme layouts
             cat > /site/layouts/_default/baseof.html <<'EOF'
@@ -162,10 +164,60 @@ spec:
           EOF
           fi
           
+          # Clean up any existing theme references
+          if [ -f "/site/config.toml" ]; then
+            sed -i '/^theme/d' /site/config.toml 2>/dev/null || true
+          fi
+          
+          # Ensure layouts directory exists with our custom layouts
+          if [ ! -f "/site/layouts/_default/baseof.html" ]; then
+            echo "Creating missing layouts..."
+            mkdir -p /site/layouts/_default
+            
+            # Re-create the layouts to ensure they exist
+            cat > /site/layouts/_default/baseof.html <<'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>{{ .Title }} - {{ .Site.Title }}</title>
+              <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 20px; }
+                nav { background: #f4f4f4; padding: 10px; margin-bottom: 20px; }
+                nav ul { list-style: none; padding: 0; margin: 0; }
+                nav li { display: inline; margin-right: 20px; }
+                nav a { text-decoration: none; color: #333; font-weight: bold; }
+                article { margin-bottom: 40px; }
+                h1, h2, h3 { color: #333; }
+                pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+                code { background: #f4f4f4; padding: 2px 5px; }
+                a { color: #0066cc; }
+                .toc { background: #f9f9f9; padding: 20px; margin-bottom: 20px; }
+                .toc ul { list-style: none; padding-left: 20px; }
+              </style>
+          </head>
+          <body>
+              <nav>
+                  <ul>
+                  {{ range .Site.Menus.main }}
+                      <li><a href="{{ .URL }}">{{ .Name }}</a></li>
+                  {{ end }}
+                  </ul>
+              </nav>
+              <h1>{{ .Site.Title }}</h1>
+              <main>
+              {{ block "main" . }}{{ end }}
+              </main>
+          </body>
+          </html>
+          EOF
+          fi
+          
           # Start Hugo server from the persistent volume
           cd /site
           echo "Starting Hugo server with content from persistent volume..."
-          exec hugo server --bind=0.0.0.0 --port=1313 --baseURL=https://blog.landryzetam.net --appendPort=false --disableFastRender --verbose
+          exec hugo server --bind=0.0.0.0 --port=1313 --baseURL=https://blog.landryzetam.net --appendPort=false --disableFastRender
         volumeMounts:
         - name: content
           mountPath: /site
