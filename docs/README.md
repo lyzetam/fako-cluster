@@ -14,6 +14,13 @@ Detailed documentation for each service deployed in the cluster:
 - **Database**: PostgreSQL cluster, pgAdmin
 - **Health & Fitness**: Wger, Oura collector/dashboard
 
+### 🚀 [Active Use Cases](./use-cases/)
+Real-world implementations and practical applications:
+- **AI/ML Use Cases**: Personal assistant, voice automation, document analysis
+- **Development & Automation**: GitOps workflows, security scanning, CI/CD
+- **Personal Productivity**: Health analytics, knowledge management, media server
+- **Infrastructure Management**: GPU scheduling, secure access, backup strategies
+
 ### 🏗️ [Infrastructure](./infrastructure/)
 Core infrastructure components and configurations:
 - Kubernetes cluster setup
