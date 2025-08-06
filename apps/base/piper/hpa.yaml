@@ -10,14 +10,20 @@ spec:
     kind: Deployment
     name: piper
   minReplicas: 1
-  maxReplicas: 2  # Scale up to 2 replicas
+  maxReplicas: 6  # Scale up to 6 replicas for better load distribution
   metrics:
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 70
+        averageUtilization: 60  # Lower threshold for faster scaling response
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 65  # Memory-based scaling for TTS workloads
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 300

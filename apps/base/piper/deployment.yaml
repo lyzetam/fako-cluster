@@ -36,18 +36,18 @@ spec:
             - "--download-dir"
             - "/data"
             - "--max-piper-procs"
-            - "2"
+            - "8"
             - "--debug"
           volumeMounts:
             - mountPath: /data
               name: piper-data
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "1000m"
-            limits:
               memory: "4Gi"
               cpu: "2000m"
+            limits:
+              memory: "8Gi"
+              cpu: "4000m"
           livenessProbe:
             tcpSocket:
               port: 10200
