@@ -7,3 +7,6 @@ resources:
   - ../../base/blog
   - cloudflare.yaml
   - cloudflare-secret.yaml
+
+patchesStrategicMerge:
+  - deployment-patch.yaml
