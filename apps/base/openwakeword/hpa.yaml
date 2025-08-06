@@ -1,0 +1,31 @@
+# apps/base/openwakeword/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: openwakeword-hpa
+  namespace: openwakeword
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: openwakeword
+  minReplicas: 1
+  maxReplicas: 3  # Scale up to 3 replicas for 4+ concurrent audio streams
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50  # Aggressive scaling for real-time audio processing
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 60  # Memory-based scaling for audio buffering
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 minutes before scaling down
+    scaleUp:
+      stabilizationWindowSeconds: 15   # Fast scale-up for low latency requirements

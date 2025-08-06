@@ -5,9 +5,9 @@ metadata:
   namespace: openwakeword
 data:
   # Default wake word models to load
-  WAKE_WORDS: "alexa,hey_mycroft,hey_jarvis"
-  # Audio settings
-  CHUNK_SIZE: "1280"
+  WAKE_WORDS: "hey_jarvis"
+  # Audio settings - optimized for low latency
+  CHUNK_SIZE: "640"
   SAMPLE_RATE: "16000"
   # Wyoming protocol settings
   WYOMING_URI: "tcp://0.0.0.0:10400"
