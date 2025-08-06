@@ -1,0 +1,175 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hugo-blog
+  namespace: blog
+spec:
+  template:
+    spec:
+      containers:
+      - name: hugo
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Check if content exists, if not create basic structure
+          if [ ! -d "/site/content" ]; then
+            echo "No content found, creating basic structure..."
+            mkdir -p /site/content
+            mkdir -p /site/layouts/_default
+            mkdir -p /site/static
+            
+            # Create basic config
+            cat > /site/hugo.toml <<'EOF'
+          baseURL = 'https://blog.landryzetam.net/'
+          languageCode = 'en-us'
+          title = 'Fako Cluster Documentation'
+          theme = []
+          
+          [params]
+            description = "Documentation for the Fako Cluster"
+          
+          [menu]
+          [[menu.main]]
+            name = "Home"
+            url = "/"
+            weight = 1
+          [[menu.main]]
+            name = "Documentation"
+            url = "/docs/"
+            weight = 2
+          EOF
+          
+            # Create minimal theme layouts
+            cat > /site/layouts/_default/baseof.html <<'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>{{ .Title }} - {{ .Site.Title }}</title>
+              <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 20px; }
+                nav { background: #f4f4f4; padding: 10px; margin-bottom: 20px; }
+                nav ul { list-style: none; padding: 0; margin: 0; }
+                nav li { display: inline; margin-right: 20px; }
+                nav a { text-decoration: none; color: #333; font-weight: bold; }
+                article { margin-bottom: 40px; }
+                h1, h2, h3 { color: #333; }
+                pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+                code { background: #f4f4f4; padding: 2px 5px; }
+                a { color: #0066cc; }
+                .toc { background: #f9f9f9; padding: 20px; margin-bottom: 20px; }
+                .toc ul { list-style: none; padding-left: 20px; }
+              </style>
+          </head>
+          <body>
+              <nav>
+                  <ul>
+                  {{ range .Site.Menus.main }}
+                      <li><a href="{{ .URL }}">{{ .Name }}</a></li>
+                  {{ end }}
+                  </ul>
+              </nav>
+              <h1>{{ .Site.Title }}</h1>
+              <main>
+              {{ block "main" . }}{{ end }}
+              </main>
+          </body>
+          </html>
+          EOF
+          
+            # Create list layout
+            cat > /site/layouts/_default/list.html <<'EOF'
+          {{ define "main" }}
+          <h2>{{ .Title }}</h2>
+          {{ .Content }}
+          
+          {{ if .Sections }}
+          <h3>Sections</h3>
+          <ul>
+          {{ range .Sections }}
+              <li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>
+          {{ end }}
+          </ul>
+          {{ end }}
+          
+          {{ if .RegularPages }}
+          <h3>Pages</h3>
+          <ul>
+          {{ range .RegularPages }}
+              <li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>
+          {{ end }}
+          </ul>
+          {{ end }}
+          {{ end }}
+          EOF
+          
+            # Create single layout
+            cat > /site/layouts/_default/single.html <<'EOF'
+          {{ define "main" }}
+          <article>
+              <h2>{{ .Title }}</h2>
+              {{ if .TableOfContents }}
+              <div class="toc">
+                  <h3>Table of Contents</h3>
+                  {{ .TableOfContents }}
+              </div>
+              {{ end }}
+              {{ .Content }}
+          </article>
+          {{ end }}
+          EOF
+          
+            # Create homepage layout
+            cat > /site/layouts/index.html <<'EOF'
+          {{ define "main" }}
+          <h2>Welcome to Fako Cluster Documentation</h2>
+          <p>This documentation covers all services, infrastructure components, and operational procedures for the Fako Cluster.</p>
+          
+          <h3>Quick Links</h3>
+          <ul>
+              <li><a href="/docs/">📚 All Documentation</a></li>
+              <li><a href="/docs/services/">📦 Services</a></li>
+              <li><a href="/docs/use-cases/">🚀 Use Cases</a></li>
+              <li><a href="/docs/architecture/">🎯 Architecture</a></li>
+              <li><a href="/docs/guides/">📖 Guides</a></li>
+          </ul>
+          
+          <p>Run the sync job to populate content: <code>kubectl create job --from=cronjob/sync-docs -n blog sync-docs-manual</code></p>
+          {{ end }}
+          EOF
+          
+            # Create a placeholder page
+            mkdir -p /site/content/docs
+            cat > /site/content/_index.md <<'EOF'
+          ---
+          title: "Home"
+          ---
+          Welcome to the Fako Cluster documentation site.
+          EOF
+          
+            cat > /site/content/docs/_index.md <<'EOF'
+          ---
+          title: "Documentation"
+          ---
+          Browse all documentation here. 
+          
+          **Note**: Documentation is synchronized from the GitHub repository every 6 hours. To manually sync, run:
+          ```bash
+          kubectl create job --from=cronjob/sync-docs -n blog sync-docs-manual
+          ```
+          EOF
+          fi
+          
+          # Start Hugo server from the persistent volume
+          cd /site
+          echo "Starting Hugo server with content from persistent volume..."
+          exec hugo server --bind=0.0.0.0 --port=1313 --baseURL=https://blog.landryzetam.net --appendPort=false --disableFastRender --verbose
+        volumeMounts:
+        - name: content
+          mountPath: /site
+      volumes:
+      - name: content
+        persistentVolumeClaim:
+          claimName: blog-content
