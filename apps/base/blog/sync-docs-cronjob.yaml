@@ -25,7 +25,20 @@ spec:
               echo "Cloning repository..."
               git clone --depth 1 https://github.com/lyzetam/fako-cluster.git /tmp/repo
               
-              # Create target directories
+              # Create target directories from central docs structure
+              echo "Creating content directory structure..."
+              mkdir -p /content/content/docs
+              
+              # Copy entire docs directory structure if it exists
+              if [ -d "/tmp/repo/docs" ]; then
+                echo "Copying documentation from central docs directory..."
+                cp -r /tmp/repo/docs/* /content/content/docs/ 2>/dev/null || true
+              fi
+              
+              # Also copy legacy documentation from various locations
+              # This ensures backward compatibility while transitioning to central docs
+              
+              # Create legacy directories
               mkdir -p /content/content/docs/services/mcp-servers
               mkdir -p /content/content/docs/services/kubescape
               mkdir -p /content/content/docs/services/kagent
@@ -34,46 +47,27 @@ spec:
               mkdir -p /content/content/docs/services/kube-bench
               mkdir -p /content/content/docs/services/gpustack-proxy
               mkdir -p /content/content/docs/services/oura
-              mkdir -p /content/content/docs/architecture
-              mkdir -p /content/content/docs/guides
-              mkdir -p /content/content/docs/operations
               
-              # Copy documentation files
-              echo "Copying documentation files..."
+              # Copy legacy documentation files (if not already present from central docs)
+              echo "Checking for legacy documentation files..."
               
               # MCP Server docs
               if [ -d "/tmp/repo/apps/base/mcp-servers/docs" ]; then
-                cp -r /tmp/repo/apps/base/mcp-servers/docs/*.md /content/content/docs/services/mcp-servers/ 2>/dev/null || true
+                for doc in /tmp/repo/apps/base/mcp-servers/docs/*.md; do
+                  if [ -f "$doc" ]; then
+                    filename=$(basename "$doc")
+                    [ ! -f "/content/content/docs/services/mcp-servers/$filename" ] && cp "$doc" "/content/content/docs/services/mcp-servers/"
+                  fi
+                done
               fi
               
-              # Kubescape docs
-              if [ -d "/tmp/repo/apps/base/kubescape-operator" ]; then
-                cp /tmp/repo/apps/base/kubescape-operator/*.md /content/content/docs/services/kubescape/ 2>/dev/null || true
-              fi
+              # Other legacy service docs (only copy if not present)
+              [ -f "/tmp/repo/apps/base/housekeeping/README.md" ] && [ ! -f "/content/content/docs/services/housekeeping/README.md" ] && cp "/tmp/repo/apps/base/housekeeping/README.md" "/content/content/docs/services/housekeeping/"
+              [ -f "/tmp/repo/apps/base/kube-bench/README.md" ] && [ ! -f "/content/content/docs/services/kube-bench/README.md" ] && cp "/tmp/repo/apps/base/kube-bench/README.md" "/content/content/docs/services/kube-bench/"
               
-              # Kagent docs
-              if [ -d "/tmp/repo/apps/base/kagent/docs" ]; then
-                cp /tmp/repo/apps/base/kagent/docs/*.md /content/content/docs/services/kagent/ 2>/dev/null || true
-              fi
-              
-              # Headlamp docs
-              if [ -d "/tmp/repo/apps/base/headlamp" ]; then
-                cp /tmp/repo/apps/base/headlamp/*.md /content/content/docs/services/headlamp/ 2>/dev/null || true
-              fi
-              
-              # Other service docs
-              [ -f "/tmp/repo/apps/base/housekeeping/README.md" ] && cp "/tmp/repo/apps/base/housekeeping/README.md" "/content/content/docs/services/housekeeping/index.md"
-              [ -f "/tmp/repo/apps/base/kube-bench/README.md" ] && cp "/tmp/repo/apps/base/kube-bench/README.md" "/content/content/docs/services/kube-bench/index.md"
-              [ -f "/tmp/repo/apps/base/gpustack-proxy/README.md" ] && cp "/tmp/repo/apps/base/gpustack-proxy/README.md" "/content/content/docs/services/gpustack-proxy/index.md"
-              [ -f "/tmp/repo/apps/base/oura-collector/README.md" ] && cp "/tmp/repo/apps/base/oura-collector/README.md" "/content/content/docs/services/oura/index.md"
-              
-              # Architecture and guide docs
-              [ -f "/tmp/repo/notes/gpu-cpu-architecture.md" ] && cp "/tmp/repo/notes/gpu-cpu-architecture.md" "/content/content/docs/architecture/"
-              [ -f "/tmp/repo/notes/image-version-recommendations.md" ] && cp "/tmp/repo/notes/image-version-recommendations.md" "/content/content/docs/guides/"
-              
-              # Root docs
-              [ -f "/tmp/repo/README.md" ] && {
-                # Create a proper index file for the main README
+              # Copy root README if not already in guides
+              [ -f "/tmp/repo/README.md" ] && [ ! -f "/content/content/docs/guides/project-overview.md" ] && {
+                mkdir -p /content/content/docs/guides
                 cat > "/content/content/docs/guides/project-overview.md" <<EOF
               ---
               title: "Project Overview"
@@ -83,7 +77,12 @@ spec:
               EOF
                 cat "/tmp/repo/README.md" >> "/content/content/docs/guides/project-overview.md"
               }
-              [ -f "/tmp/repo/manifest-validation-report.md" ] && cp "/tmp/repo/manifest-validation-report.md" "/content/content/docs/operations/"
+              
+              # Copy manifest validation report if not already present
+              [ -f "/tmp/repo/manifest-validation-report.md" ] && [ ! -f "/content/content/docs/operations/manifest-validation-report.md" ] && {
+                mkdir -p /content/content/docs/operations
+                cp "/tmp/repo/manifest-validation-report.md" "/content/content/docs/operations/"
+              }
               
               # Process all markdown files to add Hugo front matter
               echo "Processing markdown files for Hugo..."
