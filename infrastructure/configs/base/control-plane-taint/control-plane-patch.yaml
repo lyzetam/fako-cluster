@@ -1,0 +1,59 @@
+# Note: Node taints are typically applied during cluster provisioning.
+# This Job ensures the control plane node is tainted to prevent workload scheduling.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: apply-control-plane-taint
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      serviceAccountName: control-plane-taint-sa
+      restartPolicy: OnFailure
+      containers:
+      - name: kubectl
+        image: bitnami/kubectl:1.28
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Applying taint to control plane nodes..."
+          # Find and taint all control plane nodes
+          kubectl get nodes -l node-role.kubernetes.io/control-plane -o name | while read node; do
+            kubectl taint nodes ${node#node/} node-role.kubernetes.io/control-plane=:NoSchedule --overwrite
+            echo "Tainted ${node#node/}"
+          done
+          # Also taint specific node if it exists
+          if kubectl get node zz-macbookpro >/dev/null 2>&1; then
+            kubectl taint nodes zz-macbookpro node-role.kubernetes.io/control-plane=:NoSchedule --overwrite
+            echo "Tainted zz-macbookpro"
+          fi
+---
+# ServiceAccount with permissions to taint nodes
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: control-plane-taint-sa
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: control-plane-taint-role
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: control-plane-taint-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: control-plane-taint-role
+subjects:
+- kind: ServiceAccount
+  name: control-plane-taint-sa
+  namespace: kube-system
