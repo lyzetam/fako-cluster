@@ -29,24 +29,10 @@ spec:
             - "tcp://0.0.0.0:10400"
             - "--preload-model"
             - "hey_jarvis"
-            - "--chunk-size"
-            - "$(CHUNK_SIZE)"
-            - "--sample-rate"
-            - "$(SAMPLE_RATE)"
             - "--debug"
           env:
             - name: WYOMING_OPENWAKEWORD_URI
               value: "tcp://0.0.0.0:10400"
-            - name: CHUNK_SIZE
-              valueFrom:
-                configMapKeyRef:
-                  name: openwakeword-configmap
-                  key: CHUNK_SIZE
-            - name: SAMPLE_RATE
-              valueFrom:
-                configMapKeyRef:
-                  name: openwakeword-configmap
-                  key: SAMPLE_RATE
           volumeMounts:
             - mountPath: /data
               name: openwakeword-models
