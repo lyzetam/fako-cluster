@@ -12,7 +12,6 @@ resources:
   - service.yaml
   - ingress.yaml
   - secret-store.yaml
-  - external-secret-aws.yaml
   - external-secret-github.yaml
   - sync-docs-cronjob.yaml
 

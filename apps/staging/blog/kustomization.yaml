@@ -7,3 +7,4 @@ resources:
   - ../../base/blog
   - cloudflare.yaml
   - cloudflare-secret.yaml
+  - aws-credentials-secret.yaml
