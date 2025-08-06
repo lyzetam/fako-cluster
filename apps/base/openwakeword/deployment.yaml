@@ -13,6 +13,17 @@ spec:
       labels:
         app: openwakeword
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                - "zz-macbookpro"
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
