@@ -12,212 +12,278 @@ spec:
         - /bin/sh
         - -c
         - |
-          # Check if content exists, if not create basic structure
-          if [ ! -d "/site/content" ]; then
-            echo "No content found, creating basic structure..."
-            mkdir -p /site/content
-            mkdir -p /site/layouts/_default
-            mkdir -p /site/static
-            
-            # Create basic config (ensure no theme is set)
-            cat > /site/config.toml <<'EOF'
+          # Create site directory structure
+          mkdir -p /site/themes
+          mkdir -p /site/content
+          mkdir -p /site/static
+          mkdir -p /site/layouts
+          mkdir -p /site/archetypes
+          
+          # Download and extract Hugo Book theme
+          echo "Downloading Hugo Book theme..."
+          cd /site/themes
+          if [ ! -d "hugo-book" ]; then
+            wget -q https://github.com/alex-shpak/hugo-book/archive/master.tar.gz
+            tar -xzf master.tar.gz
+            mv hugo-book-master hugo-book
+            rm master.tar.gz
+          fi
+          
+          # Create/update Hugo configuration
+          cat > /site/config.toml <<'EOF'
           baseURL = 'https://blog.landryzetam.net/'
-          languageCode = 'en-us'
           title = 'Fako Cluster Documentation'
+          theme = 'hugo-book'
           
+          # Book configuration
+          disablePathToLower = true
+          enableGitInfo = false  # Disable git info to avoid errors
+          
+          # Needed for proper theme rendering
           [params]
-            description = "Documentation for the Fako Cluster"
+            # (Optional, default light) Sets color theme: light, dark or auto.
+            # Theme 'auto' switches between dark and light modes based on browser/os preferences
+            BookTheme = 'auto'
+            
+            # Enable search
+            BookSearch = true
+            
+            # Show/hide table of contents
+            BookToC = true
+            
+            # Set source repository location for edit links
+            BookRepo = 'https://github.com/lyzetam/fako-cluster'
+            
+            # Configure edit link
+            BookEditPath = 'edit/main'
+            
+            # Logo for the book
+            BookLogo = ''
+            
+            # Enable "Copy to clipboard" buttons for code blocks
+            BookComments = false
+            
+            # Custom site description
+            BookDescription = 'Complete documentation for the Fako Cluster - Services, Architecture, and Operations'
+            
+            # Hide next/prev page navigation
+            BookShowPrevNext = true
+            
+            # Enable breadcrumb navigation
+            BookBreadcrumb = true
+            
+            # Collapse menu by default
+            BookMenuCollapseDefault = false
+            
+            # Auto-collapse menu for mobile
+            BookMobileCollapse = true
+            
+            # Custom CSS
+            customCSS = []
+            
+          # Multi-level menu configuration
+          [[menu.before]]
+            name = "GitHub"
+            url = "https://github.com/lyzetam/fako-cluster"
+            weight = 10
+            
+          [[menu.after]]
+            name = "⬅ Back to Cluster"
+            url = "https://headlamp.landryzetam.net"
+            weight = 20
+            
+          # Configure sections to appear in menu
+          [params.bookSection]
+            # Show sections in menu even if they have no content
+            showInMenu = true
           
-          [menu]
-          [[menu.main]]
-            name = "Home"
-            url = "/"
-            weight = 1
-          [[menu.main]]
-            name = "Documentation"
-            url = "/docs/"
-            weight = 2
+          # Markup configuration for better rendering
+          [markup]
+            [markup.goldmark]
+              [markup.goldmark.renderer]
+                unsafe = true
+            [markup.tableOfContents]
+              startLevel = 1
+              endLevel = 4
+            [markup.highlight]
+              anchorLineNos = false
+              codeFences = true
+              guessSyntax = true
+              hl_Lines = ''
+              hl_inline = false
+              lineAnchors = ''
+              lineNoStart = 1
+              lineNos = false
+              lineNumbersInTable = true
+              noClasses = false
+              noHl = false
+              style = 'monokai'
+              tabWidth = 4
+          
+          # Output configuration
+          [outputs]
+            home = ['HTML', 'RSS', 'JSON']
+          
+          # Configure search
+          [outputFormats.SearchIndex]
+            mediaType = "application/json"
+            baseName = "search"
           EOF
           
-            # Remove any existing theme configuration
-            rm -f /site/hugo.toml /site/hugo.yaml /site/config.yaml
+          # Create custom CSS for additional styling
+          mkdir -p /site/assets
+          cat > /site/assets/_custom.scss <<'EOF'
+          /* Custom styles for Fako documentation */
+          .book-brand {
+            font-weight: 600;
+          }
           
-            # Create minimal theme layouts
-            cat > /site/layouts/_default/baseof.html <<'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>{{ .Title }} - {{ .Site.Title }}</title>
-              <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 20px; }
-                nav { background: #f4f4f4; padding: 10px; margin-bottom: 20px; }
-                nav ul { list-style: none; padding: 0; margin: 0; }
-                nav li { display: inline; margin-right: 20px; }
-                nav a { text-decoration: none; color: #333; font-weight: bold; }
-                article { margin-bottom: 40px; }
-                h1, h2, h3 { color: #333; }
-                pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
-                code { background: #f4f4f4; padding: 2px 5px; }
-                a { color: #0066cc; }
-                .toc { background: #f9f9f9; padding: 20px; margin-bottom: 20px; }
-                .toc ul { list-style: none; padding-left: 20px; }
-              </style>
-          </head>
-          <body>
-              <nav>
-                  <ul>
-                  {{ range .Site.Menus.main }}
-                      <li><a href="{{ .URL }}">{{ .Name }}</a></li>
-                  {{ end }}
-                  </ul>
-              </nav>
-              <h1>{{ .Site.Title }}</h1>
-              <main>
-              {{ block "main" . }}{{ end }}
-              </main>
-          </body>
-          </html>
+          /* Add some custom colors */
+          :root {
+            --body-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          }
+          
+          /* Dark mode enhancements */
+          @media (prefers-color-scheme: dark) {
+            :root {
+              --gray-100: #1a1a1a;
+            }
+          }
+          
+          /* Code block improvements */
+          .highlight pre {
+            padding: 1rem;
+            border-radius: 4px;
+          }
           EOF
           
-            # Create list layout
-            cat > /site/layouts/_default/list.html <<'EOF'
-          {{ define "main" }}
-          <h2>{{ .Title }}</h2>
-          {{ .Content }}
+          # Create an archetype for documentation pages
+          cat > /site/archetypes/docs.md <<'EOF'
+          ---
+          title: "{{ replace .Name "-" " " | title }}"
+          weight: 1
+          # bookFlatSection: false
+          # bookToc: true
+          # bookHidden: false
+          # bookCollapseSection: false
+          # bookComments: false
+          # bookSearchExclude: false
+          ---
           
-          {{ if .Sections }}
-          <h3>Sections</h3>
-          <ul>
-          {{ range .Sections }}
-              <li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>
-          {{ end }}
-          </ul>
-          {{ end }}
+          # {{ replace .Name "-" " " | title }}
           
-          {{ if .RegularPages }}
-          <h3>Pages</h3>
-          <ul>
-          {{ range .RegularPages }}
-              <li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>
-          {{ end }}
-          </ul>
-          {{ end }}
-          {{ end }}
+          ## Overview
+          
+          ## Configuration
+          
+          ## Usage
+          
+          ## Troubleshooting
           EOF
           
-            # Create single layout
-            cat > /site/layouts/_default/single.html <<'EOF'
-          {{ define "main" }}
-          <article>
-              <h2>{{ .Title }}</h2>
-              {{ if .TableOfContents }}
-              <div class="toc">
-                  <h3>Table of Contents</h3>
-                  {{ .TableOfContents }}
-              </div>
-              {{ end }}
-              {{ .Content }}
-          </article>
-          {{ end }}
-          EOF
-          
-            # Create homepage layout
-            cat > /site/layouts/index.html <<'EOF'
-          {{ define "main" }}
-          <h2>Welcome to Fako Cluster Documentation</h2>
-          <p>This documentation covers all services, infrastructure components, and operational procedures for the Fako Cluster.</p>
-          
-          <h3>Quick Links</h3>
-          <ul>
-              <li><a href="/docs/">📚 All Documentation</a></li>
-              <li><a href="/docs/services/">📦 Services</a></li>
-              <li><a href="/docs/use-cases/">🚀 Use Cases</a></li>
-              <li><a href="/docs/architecture/">🎯 Architecture</a></li>
-              <li><a href="/docs/guides/">📖 Guides</a></li>
-          </ul>
-          
-          <p>Run the sync job to populate content: <code>kubectl create job --from=cronjob/sync-docs -n blog sync-docs-manual</code></p>
-          {{ end }}
-          EOF
-          
-            # Create a placeholder page
-            mkdir -p /site/content/docs
+          # Create a proper content structure if it doesn't exist
+          if [ ! -f "/site/content/_index.md" ]; then
             cat > /site/content/_index.md <<'EOF'
           ---
-          title: "Home"
+          title: Introduction
+          type: docs
           ---
-          Welcome to the Fako Cluster documentation site.
-          EOF
           
-            cat > /site/content/docs/_index.md <<'EOF'
-          ---
-          title: "Documentation"
-          ---
-          Browse all documentation here. 
+          # Fako Cluster Documentation
           
-          **Note**: Documentation is synchronized from the GitHub repository every 6 hours. To manually sync, run:
+          Welcome to the comprehensive documentation for the **Fako Cluster**. This documentation covers all services, infrastructure components, and operational procedures.
+          
+          ## Quick Start
+          
+          {{< columns >}}
+          ### Services
+          
+          Explore the [Services Documentation]({{< relref "/docs/services" >}}) to learn about each component in the cluster.
+          
+          <--->
+          
+          ### Use Cases
+          
+          Check out [Active Use Cases]({{< relref "/docs/use-cases" >}}) to see real-world implementations.
+          
+          {{< /columns >}}
+          
+          ## Documentation Structure
+          
+          {{< hint info >}}
+          **Note:** Documentation is automatically synchronized from the GitHub repository every 6 hours.
+          {{< /hint >}}
+          
+          - **[Services]({{< relref "/docs/services" >}})** - Detailed documentation for each service
+          - **[Use Cases]({{< relref "/docs/use-cases" >}})** - Real-world implementations and examples  
+          - **[Architecture]({{< relref "/docs/architecture" >}})** - System design and architecture
+          - **[Guides]({{< relref "/docs/guides" >}})** - Step-by-step tutorials
+          - **[Operations]({{< relref "/docs/operations" >}})** - Operational procedures
+          
+          ## Features
+          
+          - 🌙 **Dark Mode** - Toggle between light and dark themes
+          - 🔍 **Search** - Full-text search across all documentation
+          - 📱 **Mobile Friendly** - Responsive design for all devices
+          - 📑 **Table of Contents** - Auto-generated for easy navigation
+          
+          ## Manual Documentation Sync
+          
+          To manually trigger a documentation sync from GitHub:
+          
           ```bash
-          kubectl create job --from=cronjob/sync-docs -n blog sync-docs-manual
+          kubectl create job --from=cronjob/sync-docs -n blog sync-docs-manual-$(date +%s)
           ```
           EOF
           fi
           
-          # Clean up any existing theme references
-          if [ -f "/site/config.toml" ]; then
-            sed -i '/^theme/d' /site/config.toml 2>/dev/null || true
-          fi
+          # Ensure docs directory exists
+          mkdir -p /site/content/docs
           
-          # Ensure layouts directory exists with our custom layouts
-          if [ ! -f "/site/layouts/_default/baseof.html" ]; then
-            echo "Creating missing layouts..."
-            mkdir -p /site/layouts/_default
-            
-            # Re-create the layouts to ensure they exist
-            cat > /site/layouts/_default/baseof.html <<'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>{{ .Title }} - {{ .Site.Title }}</title>
-              <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 20px; }
-                nav { background: #f4f4f4; padding: 10px; margin-bottom: 20px; }
-                nav ul { list-style: none; padding: 0; margin: 0; }
-                nav li { display: inline; margin-right: 20px; }
-                nav a { text-decoration: none; color: #333; font-weight: bold; }
-                article { margin-bottom: 40px; }
-                h1, h2, h3 { color: #333; }
-                pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
-                code { background: #f4f4f4; padding: 2px 5px; }
-                a { color: #0066cc; }
-                .toc { background: #f9f9f9; padding: 20px; margin-bottom: 20px; }
-                .toc ul { list-style: none; padding-left: 20px; }
-              </style>
-          </head>
-          <body>
-              <nav>
-                  <ul>
-                  {{ range .Site.Menus.main }}
-                      <li><a href="{{ .URL }}">{{ .Name }}</a></li>
-                  {{ end }}
-                  </ul>
-              </nav>
-              <h1>{{ .Site.Title }}</h1>
-              <main>
-              {{ block "main" . }}{{ end }}
-              </main>
-          </body>
-          </html>
+          if [ ! -f "/site/content/docs/_index.md" ]; then
+            cat > /site/content/docs/_index.md <<'EOF'
+          ---
+          title: "Documentation"
+          bookFlatSection: true
+          weight: 1
+          ---
+          
+          # Documentation
+          
+          Browse all documentation for the Fako Cluster.
           EOF
           fi
           
-          # Start Hugo server from the persistent volume
+          # Create placeholder sections if they don't exist
+          for section in services use-cases architecture guides operations; do
+            mkdir -p "/site/content/docs/$section"
+            if [ ! -f "/site/content/docs/$section/_index.md" ]; then
+              title=$(echo "$section" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+              cat > "/site/content/docs/$section/_index.md" <<EOF
+          ---
+          title: "$title"
+          weight: 10
+          bookCollapseSection: true
+          ---
+          
+          # $title
+          
+          This section contains documentation about $section.
+          EOF
+            fi
+          done
+          
+          # Start Hugo server
           cd /site
-          echo "Starting Hugo server with content from persistent volume..."
-          exec hugo server --bind=0.0.0.0 --port=1313 --baseURL=https://blog.landryzetam.net --appendPort=false --disableFastRender
+          echo "Starting Hugo server with Book theme..."
+          exec hugo server \
+            --bind=0.0.0.0 \
+            --port=1313 \
+            --baseURL=https://blog.landryzetam.net \
+            --appendPort=false \
+            --disableFastRender \
+            --theme=hugo-book \
+            --themesDir=/site/themes
         volumeMounts:
         - name: content
           mountPath: /site
