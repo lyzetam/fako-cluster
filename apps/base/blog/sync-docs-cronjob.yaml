@@ -126,14 +126,18 @@ spec:
                 memory: "256Mi"
                 cpu: "200m"
             securityContext:
-              runAsNonRoot: true
-              runAsUser: 1000
-              runAsGroup: 1000
-              allowPrivilegeEscalation: false
+              runAsNonRoot: false
+              runAsUser: 0
+              runAsGroup: 0
+              allowPrivilegeEscalation: true
               readOnlyRootFilesystem: false
               capabilities:
                 drop:
                 - ALL
+                add:
+                - CHOWN
+                - DAC_OVERRIDE
+                - FOWNER
           restartPolicy: OnFailure
           volumes:
           - name: content
