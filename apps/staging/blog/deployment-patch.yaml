@@ -8,6 +8,7 @@ spec:
     spec:
       containers:
       - name: hugo
+        image: klakegg/hugo:0.136.5-ext-alpine  # Using klakegg/hugo for better compatibility
         command:
         - /bin/sh
         - -c
@@ -19,14 +20,14 @@ spec:
           mkdir -p /site/layouts
           mkdir -p /site/archetypes
           
-          # Download and extract Hugo Book theme
-          echo "Downloading Hugo Book theme..."
+          # Download and extract Hugo Book theme (older compatible version)
+          echo "Downloading Hugo Book theme (v3.0.0 - compatible with Hugo 0.136)..."
           cd /site/themes
           if [ ! -d "hugo-book" ]; then
-            wget -q https://github.com/alex-shpak/hugo-book/archive/master.tar.gz
-            tar -xzf master.tar.gz
-            mv hugo-book-master hugo-book
-            rm master.tar.gz
+            wget -q https://github.com/alex-shpak/hugo-book/archive/refs/tags/v3.0.0.tar.gz
+            tar -xzf v3.0.0.tar.gz
+            mv hugo-book-3.0.0 hugo-book
+            rm v3.0.0.tar.gz
           fi
           
           # Create/update Hugo configuration
