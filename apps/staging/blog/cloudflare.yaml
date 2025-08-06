@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: blog
+spec:
+  selector:
+    matchLabels:
+      app: cloudflared
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:2025.7.0
+        args:
+        - tunnel
+        - --config
+        - /etc/cloudflared/config/config.yaml
+        - run
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: 2000
+          failureThreshold: 1
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        volumeMounts:
+        - name: config
+          mountPath: /etc/cloudflared/config
+          readOnly: true
+        - name: creds
+          mountPath: /etc/cloudflared/creds
+          readOnly: true
+      volumes:
+      - name: creds
+        secret:
+          secretName: tunnel-credentials
+      - name: config
+        configMap:
+          name: cloudflared
+          items:
+          - key: config.yaml
+            path: config.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared
+  namespace: blog
+data:
+  config.yaml: |
+    # Name of the tunnel you want to run
+    tunnel: blog-tunnel
+
+    credentials-file: /etc/cloudflared/creds/credentials.json
+
+    # Serves the metrics server under /metrics and the readiness server under /ready
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+
+    ingress:
+    # Main blog hostname
+    - hostname: blog.landryzetam.net
+      service: http://hugo-blog:80
+    
+    # This rule matches any traffic which didn't match a previous rule, and responds with HTTP 404.
+    - service: http_status:404
