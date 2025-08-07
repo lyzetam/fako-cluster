@@ -21,6 +21,7 @@ spec:
       containers:
       - name: hugo
         image: lzetam/hugo:latest
+        imagePullPolicy: Always
         # Remove command override to let the image run its default nginx entrypoint
         ports:
         - containerPort: 80
