@@ -24,147 +24,436 @@ spec:
         - -c
         - |
           # Create site directory structure
-          mkdir -p /site/themes
           mkdir -p /site/content
-          mkdir -p /site/static
-          mkdir -p /site/layouts
+          mkdir -p /site/static/css
+          mkdir -p /site/static/js
+          mkdir -p /site/layouts/_default
+          mkdir -p /site/layouts/partials
+          mkdir -p /site/layouts/docs
           mkdir -p /site/archetypes
-          
-          # Download and extract Hugo Book theme
-          echo "Downloading Hugo Book theme..."
-          cd /site/themes
-          if [ ! -d "hugo-book" ]; then
-            wget -q https://github.com/alex-shpak/hugo-book/archive/master.tar.gz
-            tar -xzf master.tar.gz
-            mv hugo-book-master hugo-book
-            rm master.tar.gz
-          fi
           
           # Create/update Hugo configuration
           cat > /site/config.toml <<'EOF'
           baseURL = 'https://blog.landryzetam.net/'
           title = 'Fako Cluster Documentation'
-          theme = 'hugo-book'
           
-          # Book configuration
+          # Basic configuration
           disablePathToLower = true
-          enableGitInfo = false  # Disable git info to avoid errors
+          enableGitInfo = false
           
-          # Needed for proper theme rendering
+          # Site parameters
           [params]
-            # (Optional, default light) Sets color theme: light, dark or auto.
-            # Theme 'auto' switches between dark and light modes based on browser/os preferences
-            BookTheme = 'auto'
+            description = 'Complete documentation for the Fako Cluster - Services, Architecture, and Operations'
+            github = 'https://github.com/lyzetam/fako-cluster'
             
-            # Enable search
-            BookSearch = true
+          # Menu configuration
+          [[menu.main]]
+            name = "Home"
+            url = "/"
+            weight = 1
             
-            # Show/hide table of contents
-            BookToC = true
+          [[menu.main]]
+            name = "Services"
+            url = "/docs/services/"
+            weight = 2
             
-            # Set source repository location for edit links
-            BookRepo = 'https://github.com/lyzetam/fako-cluster'
+          [[menu.main]]
+            name = "Use Cases"
+            url = "/docs/use-cases/"
+            weight = 3
             
-            # Configure edit link
-            BookEditPath = 'edit/main'
+          [[menu.main]]
+            name = "Architecture"
+            url = "/docs/architecture/"
+            weight = 4
             
-            # Logo for the book
-            BookLogo = ''
+          [[menu.main]]
+            name = "Guides"
+            url = "/docs/guides/"
+            weight = 5
             
-            # Enable "Copy to clipboard" buttons for code blocks
-            BookComments = false
+          [[menu.main]]
+            name = "Operations"
+            url = "/docs/operations/"
+            weight = 6
             
-            # Custom site description
-            BookDescription = 'Complete documentation for the Fako Cluster - Services, Architecture, and Operations'
-            
-            # Hide next/prev page navigation
-            BookShowPrevNext = true
-            
-            # Enable breadcrumb navigation
-            BookBreadcrumb = true
-            
-            # Collapse menu by default
-            BookMenuCollapseDefault = false
-            
-            # Auto-collapse menu for mobile
-            BookMobileCollapse = true
-            
-            # Custom CSS
-            customCSS = []
-            
-          # Multi-level menu configuration
-          [[menu.before]]
+          [[menu.main]]
             name = "GitHub"
             url = "https://github.com/lyzetam/fako-cluster"
-            weight = 10
-            
-          [[menu.after]]
-            name = "⬅ Back to Cluster"
-            url = "https://headlamp.landryzetam.net"
-            weight = 20
-            
-          # Configure sections to appear in menu
-          [params.bookSection]
-            # Show sections in menu even if they have no content
-            showInMenu = true
+            weight = 100
           
-          # Markup configuration for better rendering
+          # Markup configuration
           [markup]
             [markup.goldmark]
               [markup.goldmark.renderer]
                 unsafe = true
             [markup.tableOfContents]
-              startLevel = 1
+              startLevel = 2
               endLevel = 4
             [markup.highlight]
-              anchorLineNos = false
               codeFences = true
               guessSyntax = true
-              hl_Lines = ''
-              hl_inline = false
-              lineAnchors = ''
-              lineNoStart = 1
               lineNos = false
               lineNumbersInTable = true
               noClasses = false
-              noHl = false
               style = 'monokai'
               tabWidth = 4
-          
-          # Output configuration
-          [outputs]
-            home = ['HTML', 'RSS', 'JSON']
-          
-          # Configure search
-          [outputFormats.SearchIndex]
-            mediaType = "application/json"
-            baseName = "search"
           EOF
           
-          # Create custom CSS for additional styling
-          mkdir -p /site/assets
-          cat > /site/assets/_custom.scss <<'EOF'
-          /* Custom styles for Fako documentation */
-          .book-brand {
-            font-weight: 600;
-          }
+          # Create base layout
+          cat > /site/layouts/_default/baseof.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} - {{ .Site.Title }}{{ end }}</title>
+              <meta name="description" content="{{ .Site.Params.description }}">
+              <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
+          </head>
+          <body>
+              <nav class="navbar">
+                  <div class="container">
+                      <a href="{{ "/" | relURL }}" class="brand">{{ .Site.Title }}</a>
+                      <div class="nav-menu">
+                          {{ range .Site.Menus.main }}
+                          <a href="{{ .URL }}" class="nav-link">{{ .Name }}</a>
+                          {{ end }}
+                      </div>
+                  </div>
+              </nav>
+              
+              <main class="main">
+                  <div class="container">
+                      {{ block "main" . }}{{ end }}
+                  </div>
+              </main>
+              
+              <footer class="footer">
+                  <div class="container">
+                      <p>&copy; {{ now.Year }} {{ .Site.Title }} | 
+                      <a href="{{ .Site.Params.github }}">GitHub</a></p>
+                  </div>
+              </footer>
+          </body>
+          </html>
+          EOF
           
-          /* Add some custom colors */
+          # Create single page layout
+          cat > /site/layouts/_default/single.html <<'EOF'
+          {{ define "main" }}
+          <article class="content">
+              <h1>{{ .Title }}</h1>
+              {{ if .Date }}
+              <time>{{ .Date.Format "January 2, 2006" }}</time>
+              {{ end }}
+              
+              {{ .Content }}
+              
+              {{ if .Site.Params.github }}
+              <div class="edit-link">
+                  <a href="{{ .Site.Params.github }}/edit/main/content/{{ .File.Path }}">Edit on GitHub</a>
+              </div>
+              {{ end }}
+          </article>
+          {{ end }}
+          EOF
+          
+          # Create list page layout
+          cat > /site/layouts/_default/list.html <<'EOF'
+          {{ define "main" }}
+          <div class="content">
+              <h1>{{ .Title }}</h1>
+              {{ .Content }}
+              
+              <div class="page-list">
+                  {{ $pages := where .RegularPages "Title" "ne" "Service Template" }}
+                  {{ range $pages }}
+                  <article class="list-item">
+                      <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+                      {{ if .Summary }}
+                      <p>{{ .Summary }}</p>
+                      {{ end }}
+                  </article>
+                  {{ end }}
+                  
+                  {{ range .Sections }}
+                  <article class="list-item">
+                      <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+                      <p>{{ len .RegularPages }} pages</p>
+                  </article>
+                  {{ end }}
+              </div>
+          </div>
+          {{ end }}
+          EOF
+          
+          # Create services list layout
+          cat > /site/layouts/docs/services.html <<'EOF'
+          {{ define "main" }}
+          <div class="content">
+              <h1>{{ .Title }}</h1>
+              {{ .Content }}
+              
+              <div class="page-list">
+                  {{ $services := where .RegularPages "File.BaseFileName" "ne" "SERVICE_TEMPLATE" }}
+                  {{ range $services.ByTitle }}
+                  <article class="list-item">
+                      <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+                      {{ if .Params.description }}
+                      <p>{{ .Params.description }}</p>
+                      {{ else if .Summary }}
+                      <p>{{ .Summary }}</p>
+                      {{ end }}
+                  </article>
+                  {{ end }}
+              </div>
+          </div>
+          {{ end }}
+          EOF
+          
+          # Create index layout
+          cat > /site/layouts/index.html <<'EOF'
+          {{ define "main" }}
+          <div class="hero">
+              <h1>{{ .Site.Title }}</h1>
+              <p class="lead">{{ .Site.Params.description }}</p>
+          </div>
+          
+          <div class="content">
+              {{ .Content }}
+          </div>
+          {{ end }}
+          EOF
+          
+          # Create CSS with dark mode support
+          cat > /site/static/css/style.css <<'EOF'
+          /* CSS Variables for theming */
           :root {
-            --body-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              --bg-color: #ffffff;
+              --text-color: #333333;
+              --link-color: #0066cc;
+              --border-color: #e0e0e0;
+              --code-bg: #f5f5f5;
+              --navbar-bg: #f8f9fa;
           }
           
-          /* Dark mode enhancements */
           @media (prefers-color-scheme: dark) {
-            :root {
-              --gray-100: #1a1a1a;
-            }
+              :root {
+                  --bg-color: #1a1a1a;
+                  --text-color: #e0e0e0;
+                  --link-color: #66b3ff;
+                  --border-color: #333333;
+                  --code-bg: #2d2d2d;
+                  --navbar-bg: #242424;
+              }
           }
           
-          /* Code block improvements */
-          .highlight pre {
-            padding: 1rem;
-            border-radius: 4px;
+          /* Base styles */
+          * {
+              box-sizing: border-box;
+          }
+          
+          body {
+              margin: 0;
+              padding: 0;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              line-height: 1.6;
+              color: var(--text-color);
+              background-color: var(--bg-color);
+          }
+          
+          .container {
+              max-width: 1200px;
+              margin: 0 auto;
+              padding: 0 20px;
+          }
+          
+          /* Navigation */
+          .navbar {
+              background-color: var(--navbar-bg);
+              border-bottom: 1px solid var(--border-color);
+              padding: 1rem 0;
+              position: sticky;
+              top: 0;
+              z-index: 100;
+          }
+          
+          .navbar .container {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+          }
+          
+          .brand {
+              font-size: 1.25rem;
+              font-weight: 600;
+              color: var(--text-color);
+              text-decoration: none;
+          }
+          
+          .nav-menu {
+              display: flex;
+              gap: 1.5rem;
+          }
+          
+          .nav-link {
+              color: var(--text-color);
+              text-decoration: none;
+          }
+          
+          .nav-link:hover {
+              color: var(--link-color);
+          }
+          
+          /* Main content */
+          .main {
+              min-height: calc(100vh - 200px);
+              padding: 2rem 0;
+          }
+          
+          .hero {
+              text-align: center;
+              padding: 3rem 0;
+          }
+          
+          .hero h1 {
+              font-size: 3rem;
+              margin-bottom: 1rem;
+          }
+          
+          .lead {
+              font-size: 1.25rem;
+              opacity: 0.8;
+          }
+          
+          /* Content */
+          .content {
+              max-width: 800px;
+              margin: 0 auto;
+          }
+          
+          .content h1 {
+              margin-bottom: 0.5rem;
+          }
+          
+          .content h2 {
+              margin-top: 2rem;
+          }
+          
+          .content a {
+              color: var(--link-color);
+          }
+          
+          .content code {
+              background-color: var(--code-bg);
+              padding: 0.2rem 0.4rem;
+              border-radius: 3px;
+              font-size: 0.9em;
+          }
+          
+          .content pre {
+              background-color: var(--code-bg);
+              padding: 1rem;
+              border-radius: 4px;
+              overflow-x: auto;
+          }
+          
+          .content pre code {
+              background: none;
+              padding: 0;
+          }
+          
+          /* Quick links grid */
+          .quick-links {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+              gap: 1.5rem;
+              margin: 2rem 0;
+          }
+          
+          .quick-links a {
+              display: block;
+              padding: 1.5rem;
+              border: 1px solid var(--border-color);
+              border-radius: 8px;
+              text-decoration: none;
+              color: var(--text-color);
+              transition: all 0.3s;
+          }
+          
+          .quick-links a:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          }
+          
+          .quick-links h3 {
+              margin-top: 0;
+              color: var(--text-color);
+          }
+          
+          .quick-links p {
+              margin: 0;
+              opacity: 0.8;
+          }
+          
+          /* List pages */
+          .list-item {
+              padding: 1.5rem 0;
+              border-bottom: 1px solid var(--border-color);
+          }
+          
+          .list-item:last-child {
+              border-bottom: none;
+          }
+          
+          .list-item h2 {
+              margin: 0 0 0.5rem 0;
+          }
+          
+          .list-item a {
+              color: var(--text-color);
+              text-decoration: none;
+          }
+          
+          .list-item a:hover {
+              color: var(--link-color);
+          }
+          
+          /* Footer */
+          .footer {
+              background-color: var(--navbar-bg);
+              border-top: 1px solid var(--border-color);
+              padding: 2rem 0;
+              text-align: center;
+          }
+          
+          .footer a {
+              color: var(--link-color);
+          }
+          
+          /* Edit link */
+          .edit-link {
+              margin-top: 3rem;
+              padding-top: 2rem;
+              border-top: 1px solid var(--border-color);
+              text-align: right;
+          }
+          
+          /* Mobile responsive */
+          @media (max-width: 768px) {
+              .hero h1 {
+                  font-size: 2rem;
+              }
+              
+              .nav-menu {
+                  flex-wrap: wrap;
+                  gap: 1rem;
+              }
+              
+              .quick-links {
+                  grid-template-columns: 1fr;
+              }
           }
           EOF
           
@@ -172,13 +461,9 @@ spec:
           cat > /site/archetypes/docs.md <<'EOF'
           ---
           title: "{{ replace .Name "-" " " | title }}"
+          date: {{ .Date }}
+          draft: false
           weight: 1
-          # bookFlatSection: false
-          # bookToc: true
-          # bookHidden: false
-          # bookCollapseSection: false
-          # bookComments: false
-          # bookSearchExclude: false
           ---
           
           # {{ replace .Name "-" " " | title }}
@@ -196,47 +481,44 @@ spec:
           if [ ! -f "/site/content/_index.md" ]; then
             cat > /site/content/_index.md <<'EOF'
           ---
-          title: Introduction
-          type: docs
+          title: "Fako Cluster Documentation"
+          description: "Complete documentation for the Fako Cluster - Services, Architecture, and Operations"
           ---
-          
-          # Fako Cluster Documentation
           
           Welcome to the comprehensive documentation for the **Fako Cluster**. This documentation covers all services, infrastructure components, and operational procedures.
           
-          ## Quick Start
+          <div class="quick-links">
+          <a href="/docs/services/">
+          <h3>📦 Services</h3>
+          <p>Explore all services running in the cluster</p>
+          </a>
           
-          {{< columns >}}
-          ### Services
+          <a href="/docs/use-cases/">
+          <h3>💡 Use Cases</h3>
+          <p>Real-world implementations and examples</p>
+          </a>
           
-          Explore the [Services Documentation]({{< relref "/docs/services" >}}) to learn about each component in the cluster.
+          <a href="/docs/architecture/">
+          <h3>🏗️ Architecture</h3>
+          <p>System design and architecture documentation</p>
+          </a>
           
-          <--->
-          
-          ### Use Cases
-          
-          Check out [Active Use Cases]({{< relref "/docs/use-cases" >}}) to see real-world implementations.
-          
-          {{< /columns >}}
+          <a href="/docs/guides/">
+          <h3>📚 Guides</h3>
+          <p>Step-by-step tutorials and how-tos</p>
+          </a>
+          </div>
           
           ## Documentation Structure
           
-          {{< hint info >}}
-          **Note:** Documentation is automatically synchronized from the GitHub repository every 6 hours.
-          {{< /hint >}}
-          
-          - **[Services]({{< relref "/docs/services" >}})** - Detailed documentation for each service
-          - **[Use Cases]({{< relref "/docs/use-cases" >}})** - Real-world implementations and examples  
-          - **[Architecture]({{< relref "/docs/architecture" >}})** - System design and architecture
-          - **[Guides]({{< relref "/docs/guides" >}})** - Step-by-step tutorials
-          - **[Operations]({{< relref "/docs/operations" >}})** - Operational procedures
+          📌 **Note:** Documentation is automatically synchronized from the GitHub repository every 6 hours.
           
           ## Features
           
-          - 🌙 **Dark Mode** - Toggle between light and dark themes
-          - 🔍 **Search** - Full-text search across all documentation
+          - 🌙 **Dark Mode** - Automatic based on system preference
           - 📱 **Mobile Friendly** - Responsive design for all devices
           - 📑 **Table of Contents** - Auto-generated for easy navigation
+          - ✏️ **Edit on GitHub** - Direct links to edit pages
           
           ## Manual Documentation Sync
           
@@ -255,13 +537,10 @@ spec:
             cat > /site/content/docs/_index.md <<'EOF'
           ---
           title: "Documentation"
-          bookFlatSection: true
           weight: 1
           ---
           
-          # Documentation
-          
-          Browse all documentation for the Fako Cluster.
+          Browse all documentation for the Fako Cluster. Choose a category below to get started.
           EOF
           fi
           
@@ -270,31 +549,79 @@ spec:
             mkdir -p "/site/content/docs/$section"
             if [ ! -f "/site/content/docs/$section/_index.md" ]; then
               title=$(echo "$section" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
-              cat > "/site/content/docs/$section/_index.md" <<EOF
+              
+              # Create section-specific content
+              case "$section" in
+                "services")
+                  cat > "/site/content/docs/$section/_index.md" <<EOF
           ---
           title: "$title"
           weight: 10
-          bookCollapseSection: true
+          layout: services
           ---
           
-          # $title
+          Below is a list of all services deployed in the Fako Cluster. Click on any service to view its detailed documentation.
+          EOF
+                  ;;
+                "architecture")
+                  cat > "/site/content/docs/$section/_index.md" <<EOF
+          ---
+          title: "$title"
+          weight: 30
+          ---
+          
+          ## System Architecture
+          
+          The Fako Cluster is built on Kubernetes with a GitOps approach using FluxCD. Documentation for the architecture is being developed.
+          
+          ### Key Components
+          - **Kubernetes**: Container orchestration platform
+          - **FluxCD**: GitOps continuous delivery
+          - **External Secrets Operator**: Secure secrets management
+          - **NGINX Ingress**: Traffic routing
+          - **Cert-Manager**: TLS certificate management
+          EOF
+                  ;;
+                "operations")
+                  cat > "/site/content/docs/$section/_index.md" <<EOF
+          ---
+          title: "$title"
+          weight: 50
+          ---
+          
+          ## Operational Procedures
+          
+          This section contains operational procedures and runbooks for managing the Fako Cluster.
+          
+          ### Available Documentation
+          - Manifest validation reports
+          - Deployment procedures
+          - Troubleshooting guides
+          EOF
+                  ;;
+                *)
+                  cat > "/site/content/docs/$section/_index.md" <<EOF
+          ---
+          title: "$title"
+          weight: 10
+          ---
           
           This section contains documentation about $section.
           EOF
+                  ;;
+              esac
             fi
           done
           
           # Start Hugo server from the persistent volume
           cd /site
-          echo "Starting Hugo server with Book theme..."
+          echo "Starting Hugo server..."
           exec hugo server \
             --bind=0.0.0.0 \
             --port=1313 \
             --baseURL=https://blog.landryzetam.net \
             --appendPort=false \
-            --disableFastRender \
-            --theme=hugo-book \
-            --themesDir=/site/themes
+            --disableFastRender
         volumeMounts:
         - name: content
           mountPath: /site
