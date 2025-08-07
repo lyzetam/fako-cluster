@@ -16,9 +16,11 @@ spec:
       labels:
         app.kubernetes.io/name: hugo-blog
     spec:
+      imagePullSecrets:
+      - name: dockerhub-credentials
       containers:
       - name: hugo
-        image: klakegg/hugo:0.131.0-ext-alpine
+        image: lzetam/hugo:latest
         command:
         - /bin/sh
         - -c
