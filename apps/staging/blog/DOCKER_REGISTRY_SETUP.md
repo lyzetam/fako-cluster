@@ -7,16 +7,14 @@ This directory contains the necessary files to configure Docker Hub credentials 
 1. **Generate the base64 encoded auth string:**
    ```bash
    chmod +x generate-docker-auth.sh
-   ./generate-docker-auth.sh YOUR_DOCKERHUB_USERNAME YOUR_DOCKERHUB_PASSWORD_OR_TOKEN
+   ./generate-docker-auth.sh lzetam YOUR_DOCKERHUB_PERSONAL_ACCESS_TOKEN
    ```
 
 2. **Edit the unencrypted secret file:**
    - Open `docker-registry-secret-unencrypted.yaml`
    - Replace the placeholders:
-     - `YOUR_DOCKERHUB_USERNAME`: Your Docker Hub username
-     - `YOUR_DOCKERHUB_PASSWORD_OR_TOKEN`: Your Docker Hub password or access token
-     - `YOUR_EMAIL`: Your email address
-     - `BASE64_ENCODED_USERNAME:PASSWORD`: The output from step 1
+     - `YOUR_DOCKERHUB_PERSONAL_ACCESS_TOKEN`: Your Docker Hub personal access token
+     - `BASE64_ENCODED_lzetam:TOKEN`: The output from step 1
 
 3. **Encrypt the secret with SOPS:**
    ```bash
@@ -30,8 +28,8 @@ This directory contains the necessary files to configure Docker Hub credentials 
 
 5. **Commit and push the changes:**
    ```bash
-   git add .
-   git commit -m "Add Docker Hub credentials for blog namespace"
+   git add docker-registry-secret.yaml
+   git commit -m "Update Docker Hub credentials for blog namespace"
    git push
    ```
 
@@ -45,7 +43,7 @@ This directory contains the necessary files to configure Docker Hub credentials 
 ## Security Notes
 
 - Never commit the unencrypted secret file
-- Use a Docker Hub access token instead of your password for better security
+- Always use a Docker Hub personal access token, not your password
 - The `.gitignore` file has been updated to exclude `*-unencrypted.yaml` files
 
 ## Verification
@@ -58,3 +56,13 @@ kubectl get pods -n blog -w
 ```
 
 The pod should successfully pull the image and start running.
+
+## Docker Hub Personal Access Token
+
+To create a personal access token:
+1. Log in to Docker Hub
+2. Go to Account Settings → Security
+3. Click "New Access Token"
+4. Give it a descriptive name (e.g., "fako-cluster-blog")
+5. Select "Read" permissions (for pulling images)
+6. Copy the token and use it in the secret configuration
