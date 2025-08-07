@@ -11,7 +11,7 @@ spec:
         spec:
           containers:
           - name: sync-docs
-            image: alpine/git:2.40.1
+            image: alpine/git:v2.49.1
             env:
             - name: GITHUB_TOKEN
               valueFrom:
