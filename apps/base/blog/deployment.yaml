@@ -21,37 +21,11 @@ spec:
       containers:
       - name: hugo
         image: lzetam/hugo:latest
-        command:
-        - /bin/sh
-        - -c
-        - |
-          # Debug: Check what's in the image
-          echo "Checking for hugo binary..."
-          which hugo || echo "hugo not in PATH"
-          find / -name hugo -type f 2>/dev/null || echo "hugo binary not found"
-          
-          # Check what's in the root directory
-          echo "Contents of root directory:"
-          ls -la /
-          
-          # Check if this is a pre-built static site
-          if [ -d /usr/share/nginx/html ]; then
-            echo "Found nginx html directory"
-            ls -la /usr/share/nginx/html/
-          fi
-          
-          # Keep container running for debugging
-          echo "Keeping container alive for debugging..."
-          sleep 3600
+        # Remove command override to let the image run its default nginx entrypoint
         ports:
         - containerPort: 80
           name: http
-        volumeMounts:
-        - name: content
-          mountPath: /site
-        - name: hugo-config
-          mountPath: /config
-          readOnly: true
+        # Volume mounts removed - the image contains a pre-built static site
         resources:
           requests:
             memory: "128Mi"
@@ -71,14 +45,4 @@ spec:
             port: http
           initialDelaySeconds: 20
           periodSeconds: 5
-      volumes:
-      - name: content
-        persistentVolumeClaim:
-          claimName: blog-content
-      - name: hugo-config
-        configMap:
-          name: hugo-config
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
+      # Volumes and security context removed - nginx image runs with its own user
