@@ -43,7 +43,15 @@ spec:
               # Copy entire docs directory structure if it exists
               if [ -d "/tmp/repo/docs" ]; then
                 echo "Copying documentation from central docs directory..."
+                # Preserve the main _index.md file if it exists
+                if [ -f "/content/content/_index.md" ]; then
+                  cp /content/content/_index.md /tmp/_index.md.backup
+                fi
                 cp -r /tmp/repo/docs/* /content/content/docs/ 2>/dev/null || true
+                # Restore the main _index.md file
+                if [ -f "/tmp/_index.md.backup" ]; then
+                  mv /tmp/_index.md.backup /content/content/_index.md
+                fi
               fi
               
               # Also copy legacy documentation from various locations
