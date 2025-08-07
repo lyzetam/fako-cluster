@@ -10,3 +10,5 @@ externalconnections/
 .continue/
 .vscode/
 scripts/
+*-unencrypted.yaml
+*-unencrypted.yml
