@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: hugo
-        image: lzetam/hugo:latest
+        image: klakegg/hugo:0.131.0-ext-alpine
         command:
         - /bin/sh
         - -c
