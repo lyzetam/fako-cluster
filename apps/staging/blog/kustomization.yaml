@@ -8,4 +8,5 @@ resources:
   - cloudflare.yaml
   - cloudflare-secret.yaml
   - aws-credentials-secret.yaml
-  - docker-registry-secret.yaml
+  - dockerhub-secret.yaml
+  - create-docker-registry-secret-job.yaml

@@ -17,7 +17,7 @@ spec:
         app.kubernetes.io/name: hugo-blog
     spec:
       imagePullSecrets:
-      - name: dockerhub-credentials
+      - name: dockerhub-registry
       containers:
       - name: hugo
         image: lzetam/hugo:latest
