@@ -7,6 +7,5 @@ resources:
   - ../../base/blog
   - cloudflare.yaml
   - cloudflare-secret.yaml
-  - aws-credentials-secret.yaml
   - dockerhub-secret.yaml
   - create-docker-registry-secret-job.yaml

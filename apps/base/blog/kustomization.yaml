@@ -5,15 +5,9 @@ namespace: blog
 
 resources:
   - namespace.yaml
-  - configmap.yaml
-  - docs-content-configmap.yaml
-  - storage.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
-  - secret-store.yaml
-  - external-secret-github.yaml
-  - sync-docs-cronjob.yaml
 
 labels:
   - pairs:
