@@ -25,19 +25,24 @@ spec:
         - /bin/sh
         - -c
         - |
-          # Copy Hugo config from ConfigMap if it exists
-          if [ -f /config/config.toml ]; then
-            cp /config/config.toml /site/config.toml
+          # Debug: Check what's in the image
+          echo "Checking for hugo binary..."
+          which hugo || echo "hugo not in PATH"
+          find / -name hugo -type f 2>/dev/null || echo "hugo binary not found"
+          
+          # Check what's in the root directory
+          echo "Contents of root directory:"
+          ls -la /
+          
+          # Check if this is a pre-built static site
+          if [ -d /usr/share/nginx/html ]; then
+            echo "Found nginx html directory"
+            ls -la /usr/share/nginx/html/
           fi
           
-          # Start Hugo server
-          cd /site
-          hugo server \
-            --bind=0.0.0.0 \
-            --port=80 \
-            --baseURL=https://blog.landryzetam.net \
-            --appendPort=false \
-            --disableFastRender
+          # Keep container running for debugging
+          echo "Keeping container alive for debugging..."
+          sleep 3600
         ports:
         - containerPort: 80
           name: http
