@@ -299,7 +299,6 @@ Can I diagnose and fix issues at 3 AM when I'm half asleep? The monitoring stack
 ```bash
 # Fork this repo and the apps repo
 git clone https://github.com/yourusername/fako-cluster
-git clone https://github.com/yourusername/fakocluster-apps
 
 # Set up age encryption for secrets
 age-keygen -o age.agekey
@@ -390,17 +389,11 @@ This project thrives on collaboration. Whether you're fixing a typo or proposing
 - **Applications**: [github.com/lyzetam/fakocluster-apps](https://github.com/lyzetam/fakocluster-apps)
 - **MLX Distributed**: [github.com/lyzetam/mlx-distributed-inference](https://github.com/lyzetam/mlx-distributed-inference)
 
-### Let's Talk Shop
-
-I love discussing infrastructure, sharing war stories, and learning from others' experiences. If you're building something similar or have questions about any component, reach out!
-
 ---
 
 ## Final Thoughts
 
 Building this cluster taught me more about modern infrastructure than any course or certification could. It forced me to understand not just the "how" but the "why" behind every architectural decision.
-
-To future employers: This is how I approach systems engineering. I don't just deploy applications – I build platforms. I don't just solve today's problems – I architect for tomorrow's challenges. And I document everything because the best code is the code that others can understand and improve.
 
 To fellow engineers: Your homelab doesn't have to be perfect. Start small, fail fast, and iterate. The journey is more valuable than the destination.
 
