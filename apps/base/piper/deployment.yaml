@@ -21,6 +21,37 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+      initContainers:
+        # Deterministically download ryan voice before main container starts
+        - name: voice-init
+          image: busybox:1.37.0
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              BASE_URL="https://github.com/rhasspy/piper/releases/download/2023.11.14-2"
+              VOICE="en_US-ryan-high"
+              for f in "${VOICE}.onnx" "${VOICE}.onnx.json"; do
+                if [ ! -f "/data/${f}" ]; then
+                  echo "Downloading ${f}..."
+                  for i in 1 2 3; do
+                    wget -q -O "/data/${f}.tmp" "${BASE_URL}/${f}" && mv "/data/${f}.tmp" "/data/${f}" && break || sleep $((i*5))
+                  done
+                  [ -f "/data/${f}" ] || { echo "Failed to fetch ${f}"; exit 1; }
+                else
+                  echo "Already present: ${f}"
+                fi
+              done
+          volumeMounts:
+            - mountPath: /data
+              name: piper-data
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
       containers:
         # Main Piper container
         - name: piper
@@ -30,7 +61,7 @@ spec:
               protocol: TCP
           args:
             - "--voice"
-            - "en_US-amy-low"
+            - "en_US-ryan-high"
             - "--uri"
             - "tcp://0.0.0.0:10200"
             - "--data-dir"
@@ -38,8 +69,12 @@ spec:
             - "--download-dir"
             - "/data"
             - "--max-piper-procs"
-            - "16"
+            - "6"
+            - "--update-voices"
             - "--debug"
+          env:
+            - name: OMP_NUM_THREADS
+              value: "1"
           volumeMounts:
             - mountPath: /data
               name: piper-data
@@ -60,6 +95,12 @@ spec:
               port: 10200
             initialDelaySeconds: 10
             periodSeconds: 10
+          startupProbe:
+            tcpSocket:
+              port: 10200
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            failureThreshold: 30
         
         # Lightweight voice manager (only downloads what's missing)
         - name: voice-manager
@@ -75,10 +116,10 @@ spec:
                 echo "Voice manager check at $(date)"
                 
                 # Check if essential voice still exists
-                if [ -f /data/en_US-amy-low.onnx ]; then
-                  echo "✓ Essential voice present"
+                if [ -f /data/en_US-ryan-high.onnx ]; then
+                  echo "✓ Essential voice present (ryan-high)"
                 else
-                  echo "⚠ Essential voice missing!"
+                  echo "⚠ Essential voice missing (ryan-high)!"
                 fi
                 
                 # List available voices
