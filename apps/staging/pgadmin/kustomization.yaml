@@ -2,6 +2,3 @@ kind: Kustomization
 namespace: pgadmin
 resources:
   - ../../base/pgadmin/
-  - secret.yaml  
-
-  
