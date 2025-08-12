@@ -6,13 +6,13 @@ metadata:
   namespace: whisper
 data:
   # Model configuration
-  MODEL: "base"
+  MODEL: "large-v2"
   LANGUAGE: "en"
   COMPUTE_TYPE: "float16"
-  BEAM_SIZE: "5"
+  BEAM_SIZE: "1"
   
   # GPU Configuration
-  NVIDIA_VISIBLE_DEVICES: "all"
+  NVIDIA_VISIBLE_DEVICES: "1"  # Use GPU 1 (RTX 3050) instead of GPU 0 which is used by Ollama
   NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
   
   # Wyoming protocol settings
