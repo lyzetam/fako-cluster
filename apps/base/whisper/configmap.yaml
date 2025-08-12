@@ -12,8 +12,9 @@ data:
   BEAM_SIZE: "1"
   
   # GPU Configuration
-  NVIDIA_VISIBLE_DEVICES: "all"
+  NVIDIA_VISIBLE_DEVICES: "1"  # Use GPU 1 (RTX 3050) instead of GPU 0
   NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+  CUDA_VISIBLE_DEVICES: "1"  # Ensure CUDA also uses GPU 1
   
   # Wyoming protocol settings
   WYOMING_URI: "tcp://0.0.0.0:10300"
