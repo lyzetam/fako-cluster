@@ -44,9 +44,11 @@ spec:
         - name: OMP_NUM_THREADS
           value: "1"  # Prevent threading issues
         - name: PYTORCH_CUDA_ALLOC_CONF
-          value: "max_split_size_mb:128,garbage_collection_threshold:0.6,expandable_segments:False"
+          value: "max_split_size_mb:64,garbage_collection_threshold:0.8,expandable_segments:False"
         - name: CUDA_LAUNCH_BLOCKING
           value: "1"  # Forces synchronous CUDA operations for better memory management
+        - name: TORCH_CUDA_EMPTY_CACHE_INTERVAL
+          value: "1"  # Clear CUDA cache after every batch
         - name: TORCH_CUDA_ARCH_LIST
           value: "7.5;8.0;8.6"  # Optimize for common GPU architectures
         - name: NVIDIA_VISIBLE_DEVICES
