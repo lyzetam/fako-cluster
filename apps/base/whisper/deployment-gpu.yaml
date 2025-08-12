@@ -43,8 +43,8 @@ spec:
           value: "1"
         - name: OMP_NUM_THREADS
           value: "1"  # Prevent threading issues
-        # - name: PYTORCH_CUDA_ALLOC_CONF
-        #   value: "max_split_size_mb:256,garbage_collection_threshold:0.5,expandable_segments:False"
+        - name: PYTORCH_CUDA_ALLOC_CONF
+          value: "max_split_size_mb:256,garbage_collection_threshold:0.5,expandable_segments:False"
         envFrom:
         - configMapRef:
             name: whisper-gpu-configmap
