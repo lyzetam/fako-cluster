@@ -8,7 +8,7 @@ data:
   # Model configuration
   MODEL: "tiny"  # Changed from base to tiny to reduce memory usage
   LANGUAGE: "en"
-  COMPUTE_TYPE: "int8"  # Changed from float16 to int8 for lower memory usage
+  COMPUTE_TYPE: "float16"  # Using float16 for GPU compatibility
   BEAM_SIZE: "1"
   
   # GPU Configuration
