@@ -5,4 +5,4 @@ metadata:
   namespace: piper
 data:
   # Default voice model
-  DEFAULT_VOICE: "en_US-amy-medium"
+  DEFAULT_VOICE: "en_US-ryan-high"
