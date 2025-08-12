@@ -14,17 +14,8 @@ spec:
       labels:
         app: piper
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: NotIn
-                values:
-                - "zz-macbookpro"
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
+      nodeSelector:
+        kubernetes.io/hostname: yeezyai
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -47,18 +38,18 @@ spec:
             - "--download-dir"
             - "/data"
             - "--max-piper-procs"
-            - "8"
+            - "16"
             - "--debug"
           volumeMounts:
             - mountPath: /data
               name: piper-data
           resources:
             requests:
-              memory: "4Gi"
-              cpu: "2000m"
-            limits:
-              memory: "8Gi"
+              memory: "6Gi"
               cpu: "4000m"
+            limits:
+              memory: "12Gi"
+              cpu: "8000m"
           livenessProbe:
             tcpSocket:
               port: 10200
