@@ -6,9 +6,9 @@ metadata:
   namespace: whisper
 data:
   # Model configuration
-  MODEL: "base"
+  MODEL: "tiny"  # Changed from base to tiny to reduce memory usage
   LANGUAGE: "en"
-  COMPUTE_TYPE: "float16"
+  COMPUTE_TYPE: "int8"  # Changed from float16 to int8 for lower memory usage
   BEAM_SIZE: "1"
   
   # GPU Configuration
