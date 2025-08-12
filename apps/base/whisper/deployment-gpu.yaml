@@ -49,6 +49,10 @@ spec:
           value: "1"  # Forces synchronous CUDA operations for better memory management
         - name: TORCH_CUDA_ARCH_LIST
           value: "7.5;8.0;8.6"  # Optimize for common GPU architectures
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "1"  # Force use of GPU 1 (RTX 3050)
+        - name: CUDA_VISIBLE_DEVICES
+          value: "1"  # Force use of GPU 1 (RTX 3050)
         envFrom:
         - configMapRef:
             name: whisper-gpu-configmap
