@@ -6,7 +6,7 @@ metadata:
   namespace: whisper
 data:
   # Model configuration
-  MODEL: "base"  # Increased from tiny to base since memory optimization is working well
+  MODEL: "medium"  # Increased from base to medium for even better accuracy
   LANGUAGE: "en"
   COMPUTE_TYPE: "float16"  # Using float16 for GPU compatibility
   BEAM_SIZE: "1"
