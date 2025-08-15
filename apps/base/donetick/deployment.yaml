@@ -16,7 +16,7 @@ spec:
         - name: dockerhub-registry
       containers:
         - name: donetick
-          image: donetick/donetick:v0.1.53
+          image: donetick/donetick:latest
           ports:
             - containerPort: 2021
           resources:
