@@ -24,6 +24,10 @@ data:
       # Session timeout in hours
       session_timeout: 24
     
+    # JWT configuration
+    jwt:
+      secret: "REDACTED_JWT_SECRET"
+    
     # Feature flags
     features:
       realtime_sync: true
