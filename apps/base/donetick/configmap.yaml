@@ -37,6 +37,12 @@ data:
       api_enabled: true
       eapi_enabled: true
     
+    # Real-time configuration
+    realtime:
+      enabled: true
+      maxConnections: 100
+      connectionTimeout: 30
+    
     # Notification settings
     notifications:
       enabled: true
