@@ -31,8 +31,14 @@ spec:
               value: "selfhosted"
             - name: DT_SQLITE_PATH
               value: "/donetick-data/donetick.db"
+            - name: DT_FEATURES_REALTIME_SYNC
+              value: "false"
             - name: DT_REALTIME_ENABLED
               value: "false"
+            - name: DT_REALTIME_MAXCONNECTIONS
+              value: "100"
+            - name: DT_REALTIME_CONNECTIONTIMEOUT
+              value: "30"
           securityContext:
             allowPrivilegeEscalation: false
           volumeMounts:
