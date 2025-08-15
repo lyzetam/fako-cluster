@@ -30,7 +30,7 @@ data:
     
     # Feature flags
     features:
-      realtime_sync: true
+      realtime_sync: false
       offline_support: true
       multi_factor_auth: true
       webhooks: true
@@ -39,7 +39,7 @@ data:
     
     # Real-time configuration
     realtime:
-      enabled: true
+      enabled: false
       maxConnections: 100
       connectionTimeout: 30
     
