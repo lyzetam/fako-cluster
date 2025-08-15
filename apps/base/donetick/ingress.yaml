@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: donetick
+  namespace: donetick
+  labels:
+    app.kubernetes.io/name: donetick
+    app.kubernetes.io/component: task-management
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - donetick.fako-cluster.local
+    secretName: donetick-tls
+  rules:
+  - host: donetick.fako-cluster.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: donetick
+            port:
+              number: 2021
