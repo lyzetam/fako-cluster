@@ -12,6 +12,8 @@ spec:
       labels:
         app: donetick
     spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
       containers:
         - name: donetick
           image: donetick/donetick:v0.1.53
