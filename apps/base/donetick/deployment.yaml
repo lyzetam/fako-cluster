@@ -32,11 +32,7 @@ spec:
             - name: DT_SQLITE_PATH
               value: "/donetick-data/donetick.db"
             - name: DT_REALTIME_ENABLED
-              value: "true"
-            - name: DT_REALTIME_MAX_CONNECTIONS
-              value: "100"
-            - name: DT_REALTIME_CONNECTION_TIMEOUT
-              value: "30"
+              value: "false"
           securityContext:
             allowPrivilegeEscalation: false
           volumeMounts:
