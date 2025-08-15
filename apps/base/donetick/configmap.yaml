@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: donetick-config
+data:
+  selfhosted.yaml: |
+    # Donetick selfhosted configuration
+    # This is a basic configuration for self-hosted Donetick deployment
+    
+    # Server configuration
+    server:
+      port: 2021
+      host: "0.0.0.0"
+    
+    # Database configuration
+    database:
+      type: sqlite
+      path: /donetick-data/donetick.db
+    
+    # Authentication settings
+    auth:
+      # Local authentication enabled by default
+      local_auth_enabled: true
+      # Session timeout in hours
+      session_timeout: 24
+    
+    # Feature flags
+    features:
+      realtime_sync: true
+      offline_support: true
+      multi_factor_auth: true
+      webhooks: true
+      api_enabled: true
+      eapi_enabled: true
+    
+    # Notification settings
+    notifications:
+      enabled: true
+      # Notification providers can be configured here
+      # providers:
+      #   telegram:
+      #     enabled: false
+      #   discord:
+      #     enabled: false
+      #   pushover:
+      #     enabled: false
+    
+    # Storage configuration for photos
+    storage:
+      type: local
+      local:
+        path: /donetick-data/uploads
+      # For S3-compatible storage:
+      # type: s3
+      # s3:
+      #   bucket: your-bucket-name
+      #   region: us-east-1
+      #   endpoint: https://s3.amazonaws.com
+    
+    # Security settings
+    security:
+      # Rate limiting
+      rate_limit:
+        enabled: true
+        requests_per_minute: 60
+      # CORS settings
+      cors:
+        enabled: true
+        allowed_origins:
+          - "*"
+    
+    # Logging
+    logging:
+      level: info
+      format: json

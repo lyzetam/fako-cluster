@@ -8,6 +8,7 @@ resources:
   - oura-collector
   - oura-dashboard
   # - wger
+  - donetick         # Task & chore management
 
   # Database Management
   - postgres-cluster
