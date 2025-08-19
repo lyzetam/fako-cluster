@@ -93,13 +93,13 @@ spec:
           
           export OLLAMA_HOST=http://localhost:11434
           
-          # Ensure qwen3:4b is downloaded
-          echo "Pulling qwen3:4b model..."
-          ollama pull qwen3:4b || echo "Failed to pull qwen3:4b"
+          # Ensure deepseek-r1:7b is downloaded
+          echo "Pulling deepseek-r1:7b model..."
+          ollama pull deepseek-r1:7b || echo "Failed to pull deepseek-r1:7b"
           
           # Pre-load the model (will use environment variable settings automatically)
-          echo "Pre-loading qwen3:4b model..."
-          ollama run qwen3:4b "Initialize" || echo "Failed to pre-load model"
+          echo "Pre-loading deepseek-r1:7b model..."
+          ollama run deepseek-r1:7b "Initialize" || echo "Failed to pre-load model"
           
           echo "Model setup complete. Model is loaded with environment configurations:"
           echo "- Context: 8192 (from OLLAMA_CONTEXT_LENGTH)"
@@ -114,9 +114,9 @@ spec:
             sleep 300  # 5 minutes
             echo "Model manager heartbeat - model should remain loaded via OLLAMA_KEEP_ALIVE=24h"
             # Check if model is still loaded
-            ollama list | grep -q "qwen3:4b" || {
+            ollama list | grep -q "deepseek-r1:7b" || {
               echo "Model not found in list, attempting to reload..."
-              ollama run qwen3:4b "Initialize" > /dev/null 2>&1
+              ollama run deepseek-r1:7b "Initialize" > /dev/null 2>&1
             }
           done
         
