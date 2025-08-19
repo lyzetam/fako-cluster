@@ -5,8 +5,10 @@ namespace: whisper
 resources:
   - namespace.yaml
   - configmap.yaml
+  - configmap-jetson.yaml  # Jetson-specific config
   - health-check-configmap.yaml
   - storage.yaml
-  - deployment-gpu.yaml
+  # - deployment-gpu.yaml  # Commented out - replaced by Jetson deployment
+  - deployment-jetson.yaml  # Using Jetson deployment for jetson02
   - service-gpu.yaml
   - nodeport-service.yaml
