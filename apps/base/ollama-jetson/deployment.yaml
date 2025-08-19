@@ -49,12 +49,12 @@ spec:
         
         resources:
           requests:
-            memory: "2Gi"     # Conservative start
-            cpu: "2000m"      # 2 cores
+            memory: "3Gi"     # Ensure enough for model
+            cpu: "2500m"      # 2.5 cores
           limits:
             nvidia.com/gpu: 1 # Request 1 GPU
-            memory: "7Gi"     # Use more memory since dedicated
-            cpu: "6000m"      # Use all 6 cores
+            memory: "6.5Gi"   # Reserve 1Gi for system (7.6GB total - 1GB = 6.6GB)
+            cpu: "5000m"      # Use 5 cores, reserve 1 for system
         
         # Add startup probe for model loading
         startupProbe:
@@ -93,22 +93,25 @@ spec:
           
           export OLLAMA_HOST=http://localhost:11434
           
-          # Download granite3.3:2b model (primary model)
+          # Download granite3.3:2b model (primary model - works well with voice pipelines)
           echo "Pulling granite3.3:2b model..."
           ollama pull granite3.3:2b || echo "Failed to pull granite3.3:2b"
           
           # Download cogito:3b model (secondary model)
+          # NOTE: cogito:3b may expose function/tool calling in responses which can interfere
+          # with voice assistant pipelines. Use granite3.3:2b for voice-based interactions.
           echo "Pulling cogito:3b model..."
           ollama pull cogito:3b || echo "Failed to pull cogito:3b"
           
-          # Pre-load granite3.3:2b model as primary (will use environment variable settings automatically)
+          # Pre-load granite3.3:2b model as primary (preferred for voice pipelines)
+          # This model provides clean responses without exposing internal tools/functions
           echo "Pre-loading granite3.3:2b model to memory..."
           ollama run granite3.3:2b "Initialize" || echo "Failed to pre-load granite3.3:2b"
           
-          echo "Model setup complete. Primary model granite3.3:2b is loaded with environment configurations:"
+          echo "Model setup complete. Primary model granite3.3:2b (voice-optimized) is loaded with environment configurations:"
           echo "- Context: 8192 (from OLLAMA_CONTEXT_LENGTH)"
-          echo "- Batch: 128 (from OLLAMA_BATCH_SIZE)"
-          echo "- GPU Layers: 26 (from OLLAMA_GPU_LAYERS)"
+          echo "- Batch: 256 (from OLLAMA_BATCH_SIZE)"
+          echo "- GPU Layers: 999 (from OLLAMA_GPU_LAYERS)"
           echo "- Keep Alive: 24h (from OLLAMA_KEEP_ALIVE)"
           echo ""
           echo "Available models:"
