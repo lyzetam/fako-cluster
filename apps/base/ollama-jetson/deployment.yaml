@@ -78,8 +78,8 @@ spec:
           
           export OLLAMA_HOST=http://localhost:11434
           
-          echo "Loading llama3.1:8b into memory..."
-          ollama run llama3.1:8b "test" || echo "Failed to load llama3.1:8b"
+          echo "Loading qwen2.5:7b into memory..."
+          ollama run qwen2.5:7b "test" || echo "Failed to load qwen2.5:7b"
           
           echo "Downloading additional models (not loading into memory)..."
           
@@ -90,6 +90,8 @@ spec:
           
           # Medium models - good for Jetson
           echo "=== MEDIUM MODELS ==="
+          ollama pull qwen2.5:7b || echo "Failed qwen2.5:7b"
+          ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
           ollama pull deepseek-coder:6.7b-instruct || echo "Failed deepseek-coder:6.7b-instruct"
           ollama pull qwen3:8b || echo "Failed qwen3:8b"
           
@@ -101,12 +103,12 @@ spec:
           echo "Model setup complete."
           ollama list
           
-          # Keep llama3.1:8b loaded in memory
+          # Keep qwen2.5:7b loaded in memory
           while true; do
             sleep 600
             echo "Model manager heartbeat..."
-            # Periodically ensure llama3.1:8b stays loaded
-            ollama run llama3.1:8b "ping" > /dev/null 2>&1 || echo "Re-loading llama3.1:8b"
+            # Periodically ensure qwen2.5:7b stays loaded
+            ollama run qwen2.5:7b "ping" > /dev/null 2>&1 || echo "Re-loading qwen2.5:7b"
           done
         
         volumeMounts:
