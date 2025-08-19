@@ -103,7 +103,7 @@ spec:
           FROM qwen2.5:7b
           
           # Model parameters optimized for voice pipeline
-          PARAMETER num_ctx 4096
+          PARAMETER num_ctx 20000
           PARAMETER num_batch 128
           PARAMETER num_gpu 26
           PARAMETER temperature 0.3
