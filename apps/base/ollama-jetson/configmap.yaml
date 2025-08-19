@@ -49,7 +49,8 @@ data:
   
   # Context and batch settings - optimized for 8GB Orin
   # OLLAMA_CONTEXT_LENGTH: "8192"  # Original: Large context
-  OLLAMA_CONTEXT_LENGTH: "20000"  # Increased context for longer conversations
+  OLLAMA_CONTEXT_LENGTH: "12000"  # Increased context for longer conversations
+  # OLLAMA_CONTEXT_LENGTH: "20000"  # Increased context for longer conversations
   
   # Additional settings for voice pipeline optimization
   OLLAMA_BATCH_SIZE: "128"  # Reduced from default 512 for lower latency
