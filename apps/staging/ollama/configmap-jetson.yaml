@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-configmap
+  namespace: ollama-jetson
+data:
+  OLLAMA_HOST: "0.0.0.0"
+  OLLAMA_ORIGINS: "*"
+  OLLAMA_MODELS: "/root/.ollama/models"
+  OLLAMA_DEBUG: "false"
+  OLLAMA_NOHISTORY: "false"  # Keep conversation history
+  
+  # ARM-specific optimizations for Jetson
+  GOARCH: "arm64"
+  GOOS: "linux"
+---
+# Separate ConfigMap for GPU-specific settings (Jetson Orin Nano)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ollama-gpu-configmap
+  namespace: ollama-jetson
+data:
+  # GPU Configuration for Jetson
+  CUDA_VISIBLE_DEVICES: "0"
+  NVIDIA_VISIBLE_DEVICES: "0"
+  NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+  
+  # Ollama GPU Settings - optimized for Jetson Orin Nano
+  OLLAMA_GPU_LAYERS: "999"  # Force all layers to GPU
+  OLLAMA_CUDA_FORCE_MMQ: "1"
+  OLLAMA_FLASH_ATTENTION: "0"  # Disabled - not supported
+  OLLAMA_GPU_MEMORY: "6G"  # Conservative for 8GB system
+  
+  # Performance Settings - adjusted for ARM Cortex-A78AE
+  OLLAMA_NUM_PARALLEL: "1"  # Conservative for Jetson
+  OLLAMA_NUM_THREAD: "6"    # 6-core CPU
+  OLLAMA_MAX_LOADED_MODELS: "1"  # Keep one model loaded
+  GOMAXPROCS: "6"
+  
+  # Memory Management - more aggressive unloading for limited RAM
+  OLLAMA_KEEP_ALIVE: "3m"
+  OLLAMA_MODELS_UNLOAD_AFTER_IDLE: "180"  # 3 minutes in seconds

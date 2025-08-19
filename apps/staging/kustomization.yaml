@@ -30,6 +30,7 @@ resources:
   
   # AI/ML stack with GPU support
   - ollama         
+  - ollama-jetson   # Separate deployment for Jetson Orin Nano
   - ollama-webui    # Keep original running
   - open-webui      # Test new namespace with shared storage
   - whisper         
