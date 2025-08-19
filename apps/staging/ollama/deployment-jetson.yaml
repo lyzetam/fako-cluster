@@ -21,14 +21,8 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: jetson01
       
-      # Add GPU tolerations
-      tolerations:
-      - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
-      
-      # Use nvidia RuntimeClass
-      runtimeClassName: nvidia
+      # No special tolerations needed for Jetson
+      tolerations: []
 
       # Enable host memory access for large models
       hostIPC: true
@@ -53,11 +47,9 @@ spec:
           requests:
             memory: "2Gi"     # Conservative start
             cpu: "2000m"      # 2 cores
-            nvidia.com/gpu: 1
           limits:
             memory: "6Gi"     # Leave 2GB for system
-            cpu: "5000m"      # 5 of 6 cores  
-            nvidia.com/gpu: 1
+            cpu: "5000m"      # 5 of 6 cores
         
         livenessProbe:
           httpGet:
