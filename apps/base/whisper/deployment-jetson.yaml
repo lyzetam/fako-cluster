@@ -1,0 +1,100 @@
+# apps/base/whisper/deployment-jetson.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisper-jetson
+  namespace: whisper
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: whisper-jetson
+  template:
+    metadata:
+      labels:
+        app: whisper-jetson
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      
+      # Target the jetson01 node
+      nodeSelector:
+        kubernetes.io/hostname: jetson01
+      
+      # Use NVIDIA runtime for GPU support
+      runtimeClassName: nvidia
+      
+      # No special tolerations needed for Jetson
+      tolerations: []
+      
+      # Enable host memory access for large models
+      hostIPC: true
+      
+      containers:
+      - name: whisper
+        image: ghcr.io/slackr31337/wyoming-whisper-gpu:v2025.01.4
+        ports:
+        - containerPort: 10300
+          protocol: TCP
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: OMP_NUM_THREADS
+          value: "1"  # Prevent threading issues
+        - name: PYTORCH_CUDA_ALLOC_CONF
+          value: "max_split_size_mb:32,garbage_collection_threshold:0.9,expandable_segments:False"
+        - name: CUDA_LAUNCH_BLOCKING
+          value: "1"  # Forces synchronous CUDA operations for better memory management
+        - name: TORCH_CUDA_EMPTY_CACHE_INTERVAL
+          value: "1"  # Clear CUDA cache after every batch
+        - name: TORCH_CUDA_ARCH_LIST
+          value: "8.7"  # Jetson Orin Nano compute capability
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "0"  # Jetson only has GPU 0
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"  # Jetson only has GPU 0
+        # ARM-specific optimizations
+        - name: GOARCH
+          value: "arm64"
+        - name: GOOS
+          value: "linux"
+        envFrom:
+        - configMapRef:
+            name: whisper-jetson-configmap
+        
+        volumeMounts:
+        - mountPath: /data
+          name: whisper-models
+        
+        resources:
+          requests:
+            memory: "2Gi"     # Conservative start for 8GB system
+            cpu: "2000m"      # 2 cores
+            nvidia.com/gpu: 1 # Request GPU
+          limits:
+            memory: "4Gi"     # Half of available memory
+            cpu: "4000m"      # 4 of 6 cores
+            nvidia.com/gpu: 1 # Use GPU
+        
+        livenessProbe:
+          tcpSocket:
+            port: 10300
+          initialDelaySeconds: 120  # Give more time for model loading on ARM
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 10300
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+      
+      volumes:
+      - name: whisper-models
+        persistentVolumeClaim:
+          claimName: whisper-models
