@@ -92,10 +92,11 @@ spec:
       
     # Node agent configuration
     nodeAgent:
-      # Only deploy on Linux nodes (BTF support required)
+      # Only deploy on x86_64 nodes (BTF support required, not available on ARM/Jetson)
       nodeSelector:
         kubernetes.io/os: linux
-      # Skip nodes without proper kernel support
+        kubernetes.io/arch: amd64  # Only run on x86_64 nodes, exclude ARM64/Jetson
+      # Additional node affinity rules
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -105,6 +106,10 @@ spec:
                 operator: In
                 values:
                 - linux
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64  # Ensure only x86_64 architecture
               - key: kubernetes.io/hostname
                 operator: NotIn
                 values:
