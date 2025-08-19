@@ -26,13 +26,11 @@ data:
   NVIDIA_VISIBLE_DEVICES: "0"
   NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
   
-  # Ollama GPU Settings - optimized for Jetson Orin Nano
-  # OLLAMA_GPU_LAYERS: "999"  # Original: Force all layers to GPU
-  OLLAMA_GPU_LAYERS: "26"  # Optimized: Fixed at 26 layers for stable performance
+  # Ollama GPU Settings - optimized for Jetson Orin Nano with 2-3B models
+  OLLAMA_GPU_LAYERS: "999"  # For 2-3B models, can fit all layers in GPU
   OLLAMA_CUDA_FORCE_MMQ: "1"
   OLLAMA_FLASH_ATTENTION: "0"  # Disabled - not supported
-  # OLLAMA_GPU_MEMORY: "6G"  # Original: Conservative for 8GB system
-  OLLAMA_GPU_MEMORY: "5G"  # Optimized: More conservative to prevent OOM
+  OLLAMA_GPU_MEMORY: "4G"  # Reduced for smaller 2-3B models
   
   # Performance Settings - adjusted for ARM Cortex-A78AE
   OLLAMA_NUM_PARALLEL: "1"  # Conservative for Jetson
@@ -47,13 +45,11 @@ data:
   # Force CUDA path
   OLLAMA_LLM_LIBRARY: "cublas"
   
-  # Context and batch settings - optimized for 8GB Orin
-  # OLLAMA_CONTEXT_LENGTH: "8192"  # Original: Large context
-  OLLAMA_CONTEXT_LENGTH: "8192"  # Optimized for 14b model on 8GB system
-  # OLLAMA_CONTEXT_LENGTH: "20000"  # Increased context for longer conversations
+  # Context and batch settings - optimized for 2-3B models on 8GB Orin
+  OLLAMA_CONTEXT_LENGTH: "4096"  # Reduced for better performance with smaller models
   
-  # Additional settings for voice pipeline optimization
-  OLLAMA_BATCH_SIZE: "128"  # Reduced from default 512 for lower latency
+  # Additional settings for voice pipeline optimization with smaller models
+  OLLAMA_BATCH_SIZE: "256"  # Increased slightly as smaller models can handle more
   OLLAMA_MAX_QUEUE: "1"     # Prevent request queuing
   
   # GPU overhead - use all available VRAM since dedicated device
