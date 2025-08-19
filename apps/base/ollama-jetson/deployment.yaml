@@ -56,6 +56,16 @@ spec:
             memory: "7Gi"     # Use more memory since dedicated
             cpu: "6000m"      # Use all 6 cores
         
+        # Add startup probe for model loading
+        startupProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30  # Allow up to 5 minutes for initial model load
+        
         livenessProbe:
           httpGet:
             path: /api/tags
@@ -71,14 +81,14 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
       
-      # Model manager sidecar - optimized for Jetson
+      # Model manager sidecar - optimized for voice pipeline
       - name: model-manager
         image: ollama/ollama:latest
         command: ["/bin/sh"]
         args:
         - -c
         - |
-          echo "Model manager starting for dedicated Jetson Orin Nano..."
+          echo "Voice-optimized model manager starting..."
           sleep 60
           
           export OLLAMA_HOST=http://localhost:11434
@@ -87,19 +97,41 @@ spec:
           echo "Pulling qwen2.5:7b model..."
           ollama pull qwen2.5:7b || echo "Failed to pull qwen2.5:7b"
           
-          # Load qwen2.5:7b into memory
-          echo "Loading qwen2.5:7b into memory..."
-          ollama run qwen2.5:7b "Initialize model" || echo "Failed to load qwen2.5:7b"
+          # Create voice-optimized variant with proper settings
+          echo "Creating voice-optimized model variant..."
+          cat > /tmp/qwen-voice.modelfile <<EOF
+          FROM qwen2.5:7b
           
-          echo "Model setup complete. Only qwen2.5:7b is loaded."
+          # Model parameters optimized for voice pipeline
+          PARAMETER num_ctx 4096
+          PARAMETER num_batch 128
+          PARAMETER num_gpu 26
+          PARAMETER temperature 0.3
+          PARAMETER top_p 0.9
+          PARAMETER repeat_penalty 1.1
+          
+          # System prompt for voice assistant
+          SYSTEM You are a helpful voice assistant. Keep responses concise and clear.
+          EOF
+          
+          ollama create qwen2.5-voice -f /tmp/qwen-voice.modelfile
+          
+          # Pre-load the model with optimized settings
+          echo "Pre-loading voice model..."
+          ollama run qwen2.5-voice "Initialize voice assistant" --verbose
+          
+          echo "Model setup complete. Voice-optimized model is loaded."
           ollama list
           
-          # Keep qwen2.5:7b loaded in memory permanently
+          # Keep model warm with more frequent pings (5 minutes)
           while true; do
-            sleep 600
-            echo "Model manager heartbeat - keeping qwen2.5:7b loaded..."
-            # Ensure qwen2.5:7b stays loaded
-            ollama run qwen2.5:7b "keepalive" > /dev/null 2>&1 || echo "Re-loading qwen2.5:7b"
+            sleep 300  # 5 minutes instead of 10
+            echo "Keeping voice model warm..."
+            # Use minimal prompt to keep model loaded
+            ollama run qwen2.5-voice "ping" > /dev/null 2>&1 || {
+              echo "Model needs reloading..."
+              ollama run qwen2.5-voice "Initialize" > /dev/null 2>&1
+            }
           done
         
         volumeMounts:
