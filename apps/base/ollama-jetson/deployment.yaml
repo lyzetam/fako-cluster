@@ -93,30 +93,35 @@ spec:
           
           export OLLAMA_HOST=http://localhost:11434
           
-          # Ensure llama3.2:3b is downloaded
-          echo "Pulling llama3.2:3b model..."
-          ollama pull llama3.2:3b || echo "Failed to pull llama3.2:3b"
+          # Download granite3.3:2b model (primary model)
+          echo "Pulling granite3.3:2b model..."
+          ollama pull granite3.3:2b || echo "Failed to pull granite3.3:2b"
           
-          # Pre-load the model (will use environment variable settings automatically)
-          echo "Pre-loading llama3.2:3b model..."
-          ollama run llama3.2:3b "Initialize" || echo "Failed to pre-load model"
+          # Download cogito:3b model (secondary model)
+          echo "Pulling cogito:3b model..."
+          ollama pull cogito:3b || echo "Failed to pull cogito:3b"
           
-          echo "Model setup complete. Model is loaded with environment configurations:"
+          # Pre-load granite3.3:2b model as primary (will use environment variable settings automatically)
+          echo "Pre-loading granite3.3:2b model to memory..."
+          ollama run granite3.3:2b "Initialize" || echo "Failed to pre-load granite3.3:2b"
+          
+          echo "Model setup complete. Primary model granite3.3:2b is loaded with environment configurations:"
           echo "- Context: 8192 (from OLLAMA_CONTEXT_LENGTH)"
           echo "- Batch: 128 (from OLLAMA_BATCH_SIZE)"
           echo "- GPU Layers: 26 (from OLLAMA_GPU_LAYERS)"
           echo "- Keep Alive: 24h (from OLLAMA_KEEP_ALIVE)"
-          
+          echo ""
+          echo "Available models:"
           ollama list
           
           # Simple heartbeat loop (optional since OLLAMA_KEEP_ALIVE=24h handles this)
           while true; do
             sleep 300  # 5 minutes
-            echo "Model manager heartbeat - model should remain loaded via OLLAMA_KEEP_ALIVE=24h"
-            # Check if model is still loaded
-            ollama list | grep -q "llama3.2:3b" || {
-              echo "Model not found in list, attempting to reload..."
-              ollama run llama3.2:3b "Initialize" > /dev/null 2>&1
+            echo "Model manager heartbeat - granite3.3:2b should remain loaded via OLLAMA_KEEP_ALIVE=24h"
+            # Check if primary model is still loaded
+            ollama list | grep -q "granite3.3:2b" || {
+              echo "Primary model granite3.3:2b not found in list, attempting to reload..."
+              ollama run granite3.3:2b "Initialize" > /dev/null 2>&1
             }
           done
         
