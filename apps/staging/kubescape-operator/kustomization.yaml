@@ -4,3 +4,6 @@ namespace: kubescape
 
 resources:
   - ../../base/kubescape-operator
+
+patchesStrategicMerge:
+  - patch-nodeagent-exclusion.yaml

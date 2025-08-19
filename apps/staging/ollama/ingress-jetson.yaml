@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ollama-jetson
+  namespace: ollama
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: ollama-jetson.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ollama-jetson
+            port:
+              number: 11434
+  tls:
+  - hosts:
+    - ollama-jetson.landryzetam.net
+    secretName: ollama-jetson-tls-cert
