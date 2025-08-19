@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-jetson
+  namespace: ollama
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ollama-jetson
+  template:
+    metadata:
+      labels:
+        app: ollama-jetson
+    spec:
+      securityContext:
+        fsGroup: 1000
+      # Target the jetson01 node
+      nodeSelector:
+        kubernetes.io/hostname: jetson01
+      
+      # Add GPU tolerations
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      
+      # Use nvidia RuntimeClass
+      runtimeClassName: nvidia
+
+      # Enable host memory access for large models
+      hostIPC: true
+      
+      containers:
+      - name: ollama
+        image: ollama/ollama:0.4.66
+        ports:
+        - containerPort: 11434
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: ollama-configmap
+        - configMapRef:
+            name: ollama-gpu-configmap
+        
+        volumeMounts:
+        - mountPath: /root/.ollama
+          name: ollama-jetson-models
+        
+        resources:
+          requests:
+            memory: "2Gi"     # Conservative start
+            cpu: "2000m"      # 2 cores
+            nvidia.com/gpu: 1
+          limits:
+            memory: "6Gi"     # Leave 2GB for system
+            cpu: "5000m"      # 5 of 6 cores  
+            nvidia.com/gpu: 1
+        
+        livenessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      
+      # Model manager sidecar - optimized for Jetson
+      - name: model-manager
+        image: ollama/ollama:0.4.66
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          echo "Model manager starting for Jetson Orin Nano..."
+          sleep 60
+          
+          export OLLAMA_HOST=http://localhost:11434
+          
+          echo "Loading llama3.1:8b into memory..."
+          ollama run llama3.1:8b "test" || echo "Failed to load llama3.1:8b"
+          
+          echo "Downloading additional models (not loading into memory)..."
+          
+          # Small efficient models
+          echo "=== SMALL EFFICIENT MODELS ==="
+          ollama pull qwen2.5:0.5b || echo "Failed qwen2.5:0.5b"
+          ollama pull llama3.2:3b || echo "Failed llama3.2:3b"
+          
+          # Medium models - good for Jetson
+          echo "=== MEDIUM MODELS ==="
+          ollama pull deepseek-coder:6.7b-instruct || echo "Failed deepseek-coder:6.7b-instruct"
+          ollama pull qwen3:8b || echo "Failed qwen3:8b"
+          
+          # Larger models that can fit with quantization
+          echo "=== LARGER MODELS ==="
+          ollama pull deepseek-r1:14b || echo "Failed deepseek-r1:14b"
+          ollama pull ishumilin/deepseek-r1-coder-tools:14b || echo "Failed deepseek-r1-coder-tools:14b"
+          
+          echo "Model setup complete."
+          ollama list
+          
+          # Keep llama3.1:8b loaded in memory
+          while true; do
+            sleep 600
+            echo "Model manager heartbeat..."
+            # Periodically ensure llama3.1:8b stays loaded
+            ollama run llama3.1:8b "ping" > /dev/null 2>&1 || echo "Re-loading llama3.1:8b"
+          done
+        
+        volumeMounts:
+        - mountPath: /root/.ollama
+          name: ollama-jetson-models
+        resources:
+          requests:
+            memory: "500Mi"  
+            cpu: "250m"     
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      
+      volumes:
+      - name: ollama-jetson-models
+        persistentVolumeClaim:
+          claimName: ollama-jetson-models

@@ -1,0 +1,23 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kubescape-operator
+  namespace: kubescape
+spec:
+  values:
+    # Node agent configuration - exclude jetson01
+    nodeAgent:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                - zz-macbookpro  # Exclude macOS node
+                - jetson01       # Exclude Jetson Orin Nano

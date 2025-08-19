@@ -3,3 +3,8 @@ kind: Kustomization
 namespace: ollama
 resources:
   - ../../base/ollama/
+  # Additional resources for Jetson Orin Nano deployment
+  - deployment-jetson.yaml
+  - service-jetson.yaml
+  - storage-jetson.yaml
+  - ingress-jetson.yaml
