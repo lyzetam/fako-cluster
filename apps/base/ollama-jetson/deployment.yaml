@@ -81,14 +81,14 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
       
-      # Model manager sidecar - optimized for voice pipeline
+      # Model manager sidecar - simplified to use environment configurations
       - name: model-manager
         image: ollama/ollama:latest
         command: ["/bin/sh"]
         args:
         - -c
         - |
-          echo "Voice-optimized model manager starting..."
+          echo "Model manager starting..."
           sleep 60
           
           export OLLAMA_HOST=http://localhost:11434
@@ -97,40 +97,26 @@ spec:
           echo "Pulling qwen2.5:7b model..."
           ollama pull qwen2.5:7b || echo "Failed to pull qwen2.5:7b"
           
-          # Create voice-optimized variant with proper settings
-          echo "Creating voice-optimized model variant..."
-          cat > /tmp/qwen-voice.modelfile <<EOF
-          FROM qwen2.5:7b
+          # Pre-load the model (will use environment variable settings automatically)
+          echo "Pre-loading qwen2.5:7b model..."
+          ollama run qwen2.5:7b "Initialize" || echo "Failed to pre-load model"
           
-          # Model parameters optimized for voice pipeline
-          PARAMETER num_ctx 20000
-          PARAMETER num_batch 128
-          PARAMETER num_gpu 26
-          PARAMETER temperature 0.3
-          PARAMETER top_p 0.9
-          PARAMETER repeat_penalty 1.1
+          echo "Model setup complete. Model is loaded with environment configurations:"
+          echo "- Context: 20000 (from OLLAMA_CONTEXT_LENGTH)"
+          echo "- Batch: 128 (from OLLAMA_BATCH_SIZE)"
+          echo "- GPU Layers: 26 (from OLLAMA_GPU_LAYERS)"
+          echo "- Keep Alive: 24h (from OLLAMA_KEEP_ALIVE)"
           
-          # System prompt for voice assistant
-          SYSTEM You are a helpful voice assistant. Keep responses concise and clear.
-          EOF
-          
-          ollama create qwen2.5-voice -f /tmp/qwen-voice.modelfile
-          
-          # Pre-load the model with optimized settings
-          echo "Pre-loading voice model..."
-          ollama run qwen2.5-voice "Initialize voice assistant" --verbose
-          
-          echo "Model setup complete. Voice-optimized model is loaded."
           ollama list
           
-          # Keep model warm with more frequent pings (5 minutes)
+          # Simple heartbeat loop (optional since OLLAMA_KEEP_ALIVE=24h handles this)
           while true; do
-            sleep 300  # 5 minutes instead of 10
-            echo "Keeping voice model warm..."
-            # Use minimal prompt to keep model loaded
-            ollama run qwen2.5-voice "ping" > /dev/null 2>&1 || {
-              echo "Model needs reloading..."
-              ollama run qwen2.5-voice "Initialize" > /dev/null 2>&1
+            sleep 300  # 5 minutes
+            echo "Model manager heartbeat - model should remain loaded via OLLAMA_KEEP_ALIVE=24h"
+            # Check if model is still loaded
+            ollama list | grep -q "qwen2.5:7b" || {
+              echo "Model not found in list, attempting to reload..."
+              ollama run qwen2.5:7b "Initialize" > /dev/null 2>&1
             }
           done
         
