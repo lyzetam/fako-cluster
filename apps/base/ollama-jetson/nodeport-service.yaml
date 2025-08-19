@@ -1,0 +1,14 @@
+# apps/base/ollama-jetson/nodeport-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-jetson-nodeport
+  namespace: ollama-jetson
+spec:
+  type: NodePort
+  ports:
+    - port: 11434
+      targetPort: 11434
+      nodePort: 31435  # Different port to avoid conflict with ollama nodeport
+  selector:
+    app: ollama-jetson
