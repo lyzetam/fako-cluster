@@ -22,15 +22,33 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
       
-      # Target the jetson02 node
+      # Strictly enforce running only on jetson02 node
       nodeSelector:
         kubernetes.io/hostname: jetson02
+      
+      # Node affinity to enforce placement only on jetson02
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - jetson02
       
       # Use NVIDIA runtime for GPU support
       runtimeClassName: nvidia
       
-      # No special tolerations needed for Jetson
-      tolerations: []
+      # Tolerations for node-specific taints if any
+      tolerations:
+      - key: "jetson"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
       
       # Enable host memory access for large models
       hostIPC: true
