@@ -34,7 +34,6 @@ spec:
       - name: ollama
         # Use latest ollama image which has better Jetson support
         image: ollama/ollama:latest
-        args: ["serve", "--batch-size", "256"]
         ports:
         - containerPort: 11434
           protocol: TCP
