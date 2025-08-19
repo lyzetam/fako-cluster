@@ -93,16 +93,16 @@ spec:
           
           export OLLAMA_HOST=http://localhost:11434
           
-          # Ensure qwen2.5:7b is downloaded
-          echo "Pulling qwen2.5:7b model..."
-          ollama pull qwen2.5:7b || echo "Failed to pull qwen2.5:7b"
+          # Ensure qwen2.5:3b is downloaded
+          echo "Pulling qwen2.5:3b model..."
+          ollama pull qwen2.5:3b || echo "Failed to pull qwen2.5:3b"
           
           # Pre-load the model (will use environment variable settings automatically)
-          echo "Pre-loading qwen2.5:7b model..."
-          ollama run qwen2.5:7b "Initialize" || echo "Failed to pre-load model"
+          echo "Pre-loading qwen2.5:3b model..."
+          ollama run qwen2.5:3b "Initialize" || echo "Failed to pre-load model"
           
           echo "Model setup complete. Model is loaded with environment configurations:"
-          echo "- Context: 20000 (from OLLAMA_CONTEXT_LENGTH)"
+          echo "- Context: 12000 (from OLLAMA_CONTEXT_LENGTH)"
           echo "- Batch: 128 (from OLLAMA_BATCH_SIZE)"
           echo "- GPU Layers: 26 (from OLLAMA_GPU_LAYERS)"
           echo "- Keep Alive: 24h (from OLLAMA_KEEP_ALIVE)"
@@ -114,9 +114,9 @@ spec:
             sleep 300  # 5 minutes
             echo "Model manager heartbeat - model should remain loaded via OLLAMA_KEEP_ALIVE=24h"
             # Check if model is still loaded
-            ollama list | grep -q "qwen2.5:7b" || {
+            ollama list | grep -q "qwen2.5:3b" || {
               echo "Model not found in list, attempting to reload..."
-              ollama run qwen2.5:7b "Initialize" > /dev/null 2>&1
+              ollama run qwen2.5:3b "Initialize" > /dev/null 2>&1
             }
           done
         
