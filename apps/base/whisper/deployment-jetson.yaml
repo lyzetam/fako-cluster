@@ -22,9 +22,9 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
       
-      # Target the jetson01 node
+      # Target the jetson02 node
       nodeSelector:
-        kubernetes.io/hostname: jetson01
+        kubernetes.io/hostname: jetson02
       
       # Use NVIDIA runtime for GPU support
       runtimeClassName: nvidia
