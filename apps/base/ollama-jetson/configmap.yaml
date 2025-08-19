@@ -38,6 +38,15 @@ data:
   OLLAMA_MAX_LOADED_MODELS: "1"  # Keep one model loaded
   GOMAXPROCS: "6"
   
-  # Memory Management - more aggressive unloading for limited RAM
-  OLLAMA_KEEP_ALIVE: "3m"
-  OLLAMA_MODELS_UNLOAD_AFTER_IDLE: "180"  # 3 minutes in seconds
+  # Memory Management - optimized for dedicated device
+  OLLAMA_KEEP_ALIVE: "24h"  # Keep model loaded for 24 hours (essentially permanent)
+  OLLAMA_NO_MMAP: "false"   # Keep memory mapping for efficiency
+  
+  # Force CUDA path
+  OLLAMA_LLM_LIBRARY: "cublas"
+  
+  # Context and batch settings
+  OLLAMA_CONTEXT_LENGTH: "4096"
+  
+  # GPU overhead - use all available VRAM since dedicated device
+  OLLAMA_GPU_OVERHEAD: "0"

@@ -34,6 +34,7 @@ spec:
       - name: ollama
         # Use latest ollama image which has better Jetson support
         image: ollama/ollama:latest
+        args: ["serve", "--batch-size", "256"]
         ports:
         - containerPort: 11434
           protocol: TCP
@@ -53,8 +54,8 @@ spec:
             cpu: "2000m"      # 2 cores
           limits:
             nvidia.com/gpu: 1 # Request 1 GPU
-            memory: "6Gi"     # Leave 2GB for system
-            cpu: "5000m"      # 5 of 6 cores
+            memory: "7Gi"     # Use more memory since dedicated
+            cpu: "6000m"      # Use all 6 cores
         
         livenessProbe:
           httpGet:
@@ -78,42 +79,28 @@ spec:
         args:
         - -c
         - |
-          echo "Model manager starting for Jetson Orin Nano..."
+          echo "Model manager starting for dedicated Jetson Orin Nano..."
           sleep 60
           
           export OLLAMA_HOST=http://localhost:11434
           
+          # Ensure qwen2.5:7b is downloaded
+          echo "Pulling qwen2.5:7b model..."
+          ollama pull qwen2.5:7b || echo "Failed to pull qwen2.5:7b"
+          
+          # Load qwen2.5:7b into memory
           echo "Loading qwen2.5:7b into memory..."
-          ollama run qwen2.5:7b "test" || echo "Failed to load qwen2.5:7b"
+          ollama run qwen2.5:7b "Initialize model" || echo "Failed to load qwen2.5:7b"
           
-          echo "Downloading additional models (not loading into memory)..."
-          
-          # Small efficient models
-          echo "=== SMALL EFFICIENT MODELS ==="
-          ollama pull qwen2.5:0.5b || echo "Failed qwen2.5:0.5b"
-          ollama pull llama3.2:3b || echo "Failed llama3.2:3b"
-          
-          # Medium models - good for Jetson
-          echo "=== MEDIUM MODELS ==="
-          ollama pull qwen2.5:7b || echo "Failed qwen2.5:7b"
-          ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
-          ollama pull deepseek-coder:6.7b-instruct || echo "Failed deepseek-coder:6.7b-instruct"
-          ollama pull qwen3:8b || echo "Failed qwen3:8b"
-          
-          # Larger models that can fit with quantization
-          echo "=== LARGER MODELS ==="
-          ollama pull deepseek-r1:14b || echo "Failed deepseek-r1:14b"
-          ollama pull ishumilin/deepseek-r1-coder-tools:14b || echo "Failed deepseek-r1-coder-tools:14b"
-          
-          echo "Model setup complete."
+          echo "Model setup complete. Only qwen2.5:7b is loaded."
           ollama list
           
-          # Keep qwen2.5:7b loaded in memory
+          # Keep qwen2.5:7b loaded in memory permanently
           while true; do
             sleep 600
-            echo "Model manager heartbeat..."
-            # Periodically ensure qwen2.5:7b stays loaded
-            ollama run qwen2.5:7b "ping" > /dev/null 2>&1 || echo "Re-loading qwen2.5:7b"
+            echo "Model manager heartbeat - keeping qwen2.5:7b loaded..."
+            # Ensure qwen2.5:7b stays loaded
+            ollama run qwen2.5:7b "keepalive" > /dev/null 2>&1 || echo "Re-loading qwen2.5:7b"
           done
         
         volumeMounts:
