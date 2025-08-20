@@ -14,8 +14,6 @@ spec:
       labels:
         app: piper
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: lenovo
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
