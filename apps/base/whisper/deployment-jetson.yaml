@@ -59,6 +59,26 @@ spec:
         # Also using docker.io explicitly to potentially use mirrors
         image: docker.io/rhasspy/wyoming-whisper:2.5.0
         imagePullPolicy: IfNotPresent
+        command:
+        - python3
+        - -m
+        - wyoming_faster_whisper
+        - "--model"
+        - "small"  # Using small model for Jetson's memory constraints
+        - "--uri"
+        - "tcp://0.0.0.0:10300"
+        - "--data-dir"
+        - "/data"
+        - "--download-dir"
+        - "/data/.cache"
+        - "--device"
+        - "cuda"
+        - "--language"
+        - "en"
+        - "--compute-type"
+        - "float16"
+        - "--beam-size"
+        - "1"
         ports:
         - containerPort: 10300
           protocol: TCP
