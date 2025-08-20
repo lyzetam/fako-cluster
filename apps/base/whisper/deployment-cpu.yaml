@@ -1,0 +1,94 @@
+# apps/base/whisper/deployment-cpu.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisper-cpu
+  namespace: whisper
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: whisper-cpu
+  template:
+    metadata:
+      labels:
+        app: whisper-cpu
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      
+      # Node selector for CPU-only nodes with sufficient resources
+      nodeSelector:
+        # Select nodes without GPU
+        gpu-node: "false"
+      
+      # Affinity rules to prefer nodes with more CPU and memory
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node.kubernetes.io/instance-type
+                operator: In
+                values:
+                - large
+                - xlarge
+          - weight: 50
+            preference:
+              matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+      
+      containers:
+      - name: whisper
+        # Using the standard wyoming-whisper image (not GPU-specific)
+        image: rhasspy/wyoming-whisper:latest
+        ports:
+        - containerPort: 10300
+          protocol: TCP
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: OMP_NUM_THREADS
+          value: "8"  # Optimize for CPU threading
+        envFrom:
+        - configMapRef:
+            name: whisper-cpu-configmap
+        
+        volumeMounts:
+        - mountPath: /data
+          name: whisper-models
+        
+        resources:
+          requests:
+            memory: "4Gi"  # Increased memory for CPU processing
+            cpu: "4000m"   # 4 CPU cores
+          limits:
+            memory: "8Gi"  # Higher limit for peak usage
+            cpu: "8000m"   # 8 CPU cores max
+        
+        livenessProbe:
+          tcpSocket:
+            port: 10300
+          initialDelaySeconds: 120  # More time for CPU model loading
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 10300
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+      
+      volumes:
+      - name: whisper-models
+        persistentVolumeClaim:
+          claimName: whisper-models
