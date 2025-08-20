@@ -78,11 +78,11 @@ spec:
               name: piper-data
           resources:
             requests:
-              memory: "3Gi"      # More memory on pglenovo01
-              cpu: "3000m"       # 3 cores
+              memory: "1Gi"
+              cpu: "500m"
             limits:
-              memory: "6Gi"      # Higher limit on better node
-              cpu: "4000m"       # 4 cores available
+              memory: "2Gi"
+              cpu: "1000m"
           livenessProbe:
             tcpSocket:
               port: 10200
