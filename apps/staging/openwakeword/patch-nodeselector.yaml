@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openwakeword
+  namespace: openwakeword
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: pglenovo02
