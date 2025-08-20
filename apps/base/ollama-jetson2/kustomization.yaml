@@ -6,7 +6,6 @@ resources:
   - namespace.yaml
   - storage.yaml
   - configmap.yaml
-  - configmap-optimized.yaml
   - deployment.yaml
   - service.yaml
 
