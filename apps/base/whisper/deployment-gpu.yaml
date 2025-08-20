@@ -22,7 +22,7 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
       nodeSelector:
-        kubernetes.io/hostname: yeezyai
+        kubernetes.io/hostname: lenovo
         nvidia.com/gpu: "true"
       
       tolerations:
@@ -52,9 +52,9 @@ spec:
         - name: TORCH_CUDA_ARCH_LIST
           value: "7.5;8.0;8.6"  # Optimize for common GPU architectures
         - name: NVIDIA_VISIBLE_DEVICES
-          value: "1"  # Force use of GPU 1 (RTX 3050)
+          value: "0"  # Use GPU 0 on lenovo node
         - name: CUDA_VISIBLE_DEVICES
-          value: "1"  # Force use of GPU 1 (RTX 3050)
+          value: "0"  # Use GPU 0 on lenovo node
         envFrom:
         - configMapRef:
             name: whisper-gpu-configmap

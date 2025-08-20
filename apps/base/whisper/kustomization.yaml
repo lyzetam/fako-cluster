@@ -8,7 +8,7 @@ resources:
   - configmap-jetson.yaml  # Jetson-specific config
   - health-check-configmap.yaml
   - storage.yaml
-  # - deployment-gpu.yaml  # Commented out - replaced by Jetson deployment
-  - deployment-jetson.yaml  # Using Jetson deployment for jetson02
+  - deployment-gpu.yaml  # Using GPU deployment on lenovo node
+  # - deployment-jetson.yaml  # Disabled - using GPU deployment instead
   - service-gpu.yaml
   - nodeport-service.yaml
