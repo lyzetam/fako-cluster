@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ollama-jetson2
+
+resources:
+  - namespace.yaml
+  - storage.yaml
+  - configmap.yaml
+  - configmap-optimized.yaml
+  - deployment.yaml
+  - service.yaml
+
+configMapGenerator:
+  - name: ollama-gpu-configmap
+    files:
+      - gpu-config=configmap-optimized.yaml

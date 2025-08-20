@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-jetson2
+  namespace: ollama-jetson2
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ollama-jetson2
+  template:
+    metadata:
+      labels:
+        app: ollama-jetson2
+    spec:
+      securityContext:
+        fsGroup: 1000
+      # Target the jetson02 node
+      nodeSelector:
+        kubernetes.io/hostname: jetson02
+      
+      # Use NVIDIA runtime for GPU support
+      runtimeClassName: nvidia
+      
+      # No special tolerations needed for Jetson
+      tolerations: []
+
+      # Enable host memory access for large models
+      hostIPC: true
+      
+      containers:
+      - name: ollama
+        # Use latest ollama image which has better Jetson support
+        image: ollama/ollama:latest
+        ports:
+        - containerPort: 11434
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: ollama-configmap
+        - configMapRef:
+            name: ollama-gpu-configmap
+        
+        volumeMounts:
+        - mountPath: /root/.ollama
+          name: ollama-jetson2-models
+        
+        resources:
+          requests:
+            memory: "3Gi"     # Ensure enough for model
+            cpu: "2500m"      # 2.5 cores
+          limits:
+            nvidia.com/gpu: 1 # Request 1 GPU
+            memory: "6.5Gi"   # Reserve 1Gi for system (7.6GB total - 1GB = 6.6GB)
+            cpu: "5000m"      # Use 5 cores, reserve 1 for system
+        
+        # Add startup probe for model loading
+        startupProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30  # Allow up to 5 minutes for initial model load
+        
+        livenessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      
+      # Model manager sidecar - downloads qwen3:4b model
+      - name: model-manager
+        image: ollama/ollama:latest
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          echo "Model manager starting..."
+          sleep 60
+          
+          export OLLAMA_HOST=http://localhost:11434
+          
+          # Download qwen3:4b model
+          echo "Pulling qwen3:4b model..."
+          ollama pull qwen3:4b || echo "Failed to pull qwen3:4b"
+          
+          # Pre-load qwen3:4b model
+          echo "Pre-loading qwen3:4b model to memory..."
+          ollama run qwen3:4b "Initialize" || echo "Failed to pre-load qwen3:4b"
+          
+          echo "Model setup complete. qwen3:4b model is loaded with environment configurations:"
+          echo "- Context: 8192 (from OLLAMA_CONTEXT_LENGTH)"
+          echo "- Batch: 256 (from OLLAMA_BATCH_SIZE)"
+          echo "- GPU Layers: 999 (from OLLAMA_GPU_LAYERS)"
+          echo "- Keep Alive: 24h (from OLLAMA_KEEP_ALIVE)"
+          echo ""
+          echo "Available models:"
+          ollama list
+          
+          # Simple heartbeat loop
+          while true; do
+            sleep 300  # 5 minutes
+            echo "Model manager heartbeat - qwen3:4b should remain loaded via OLLAMA_KEEP_ALIVE=24h"
+            # Check if model is still loaded
+            ollama list | grep -q "qwen3:4b" || {
+              echo "Model qwen3:4b not found in list, attempting to reload..."
+              ollama run qwen3:4b "Initialize" > /dev/null 2>&1
+            }
+          done
+        
+        volumeMounts:
+        - mountPath: /root/.ollama
+          name: ollama-jetson2-models
+        resources:
+          requests:
+            memory: "500Mi"  
+            cpu: "250m"     
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      
+      volumes:
+      - name: ollama-jetson2-models
+        persistentVolumeClaim:
+          claimName: ollama-jetson2-models
