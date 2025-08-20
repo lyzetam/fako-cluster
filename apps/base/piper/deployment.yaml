@@ -15,7 +15,7 @@ spec:
         app: piper
     spec:
       nodeSelector:
-        kubernetes.io/hostname: jetson02
+        kubernetes.io/hostname: pglenovo01
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -80,11 +80,11 @@ spec:
               name: piper-data
           resources:
             requests:
-              memory: "2Gi"      # Reduced to fit on jetson02
-              cpu: "2000m"       # 2 cores
+              memory: "3Gi"      # More memory on pglenovo01
+              cpu: "3000m"       # 3 cores
             limits:
-              memory: "3Gi"      # Reduced from 8Gi
-              cpu: "2000m"       # 2 cores to share with other services
+              memory: "6Gi"      # Higher limit on better node
+              cpu: "4000m"       # 4 cores available
           livenessProbe:
             tcpSocket:
               port: 10200

@@ -14,7 +14,7 @@ spec:
         app: openwakeword
     spec:
       nodeSelector:
-        kubernetes.io/hostname: jetson02
+        kubernetes.io/hostname: pglenovo02
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -40,11 +40,11 @@ spec:
               name: openwakeword-models
           resources:
             requests:
-              memory: "1Gi"      # Reduced to fit with other services
-              cpu: "1000m"       # 1 core
+              memory: "2Gi"      # More memory on pglenovo02
+              cpu: "2000m"       # 2 cores
             limits:
-              memory: "2Gi"      # Reduced from 3Gi
-              cpu: "1500m"       # 1.5 cores
+              memory: "3Gi"      # Original limit restored
+              cpu: "3000m"       # 3 cores available
           # Health checks
           livenessProbe:
             tcpSocket:
