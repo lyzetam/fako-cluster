@@ -55,9 +55,8 @@ spec:
       
       containers:
       - name: whisper
-        # Use specific version to avoid pulling latest and hitting rate limits
-        # Also using docker.io explicitly to potentially use mirrors
-        image: docker.io/rhasspy/wyoming-whisper:2.5.0
+        # Use CUDA-enabled whisper image for Jetson
+        image: abtools/wyoming-whisper-cuda:latest
         imagePullPolicy: IfNotPresent
         command:
         - python3
@@ -72,11 +71,11 @@ spec:
         - "--download-dir"
         - "/data/.cache"
         - "--device"
-        - "cpu"  # Official image doesn't have CUDA support on ARM64
+        - "cuda"  # Now we can use CUDA with this image
         - "--language"
         - "en"
         - "--compute-type"
-        - "int8"  # Using int8 for CPU mode on ARM64
+        - "float16"  # Back to float16 for GPU mode
         - "--beam-size"
         - "1"
         ports:
@@ -116,11 +115,11 @@ spec:
           requests:
             memory: "2Gi"     # Conservative start for 8GB system
             cpu: "2000m"      # 2 cores
-            # nvidia.com/gpu: 1 # Removed - using CPU mode
+            nvidia.com/gpu: 1 # Request GPU
           limits:
-            memory: "4Gi"     # Half of available memory
-            cpu: "4000m"      # 4 of 6 cores
-            # nvidia.com/gpu: 1 # Removed - using CPU mode
+            memory: "3Gi"     # Reduced to fit with other services
+            cpu: "2000m"      # 2 cores to share with other services
+            nvidia.com/gpu: 1 # Use GPU
         
         livenessProbe:
           tcpSocket:

@@ -13,17 +13,8 @@ spec:
       labels:
         app: openwakeword
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: NotIn
-                values:
-                - "zz-macbookpro"
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
+      nodeSelector:
+        kubernetes.io/hostname: jetson02
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -49,11 +40,11 @@ spec:
               name: openwakeword-models
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "2000m"
+              memory: "1Gi"      # Reduced to fit with other services
+              cpu: "1000m"       # 1 core
             limits:
-              memory: "3Gi"
-              cpu: "3000m"
+              memory: "2Gi"      # Reduced from 3Gi
+              cpu: "1500m"       # 1.5 cores
           # Health checks
           livenessProbe:
             tcpSocket:
