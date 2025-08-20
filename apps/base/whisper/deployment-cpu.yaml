@@ -29,6 +29,21 @@ spec:
         ports:
         - containerPort: 10300
           protocol: TCP
+        args:
+        - "--model"
+        - "$(MODEL)"
+        - "--uri"
+        - "$(WYOMING_URI)"
+        - "--data-dir"
+        - "/data"
+        - "--device"
+        - "$(DEVICE)"
+        - "--language"
+        - "$(LANGUAGE)"
+        - "--compute-type"
+        - "$(COMPUTE_TYPE)"
+        - "--beam-size"
+        - "$(BEAM_SIZE)"
         env:
         - name: PYTHONUNBUFFERED
           value: "1"
