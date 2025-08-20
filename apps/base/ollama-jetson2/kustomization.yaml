@@ -8,8 +8,3 @@ resources:
   - configmap.yaml
   - deployment.yaml
   - service.yaml
-
-configMapGenerator:
-  - name: ollama-gpu-configmap
-    files:
-      - gpu-config=configmap-optimized.yaml
