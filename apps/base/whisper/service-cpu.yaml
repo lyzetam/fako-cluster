@@ -1,0 +1,15 @@
+# apps/base/whisper/service-cpu.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: whisper-cpu
+  namespace: whisper
+spec:
+  selector:
+    app: whisper-cpu
+  ports:
+  - name: wyoming
+    protocol: TCP
+    port: 10300
+    targetPort: 10300
+  type: ClusterIP

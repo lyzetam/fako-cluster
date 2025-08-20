@@ -4,11 +4,21 @@ kind: Kustomization
 namespace: whisper
 resources:
   - namespace.yaml
-  - configmap.yaml
-  - configmap-jetson.yaml  # Jetson-specific config
+  # GPU configuration (disabled until GPU node is available)
+  # - configmap.yaml
+  # - deployment-gpu.yaml
+  # - service-gpu.yaml
+  
+  # CPU configuration (enabled)
+  - configmap-cpu.yaml
+  - deployment-cpu.yaml
+  - service-cpu.yaml
+  
+  # Jetson configuration (disabled)
+  # - configmap-jetson.yaml
+  # - deployment-jetson.yaml
+  
+  # Common resources
   - health-check-configmap.yaml
   - storage.yaml
-  - deployment-gpu.yaml  # Using GPU deployment on lenovo node
-  # - deployment-jetson.yaml  # Disabled - using GPU deployment instead
-  - service-gpu.yaml
   - nodeport-service.yaml
