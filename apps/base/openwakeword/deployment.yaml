@@ -38,11 +38,11 @@ spec:
               name: openwakeword-models
           resources:
             requests:
-              memory: "2Gi"      # More memory on pglenovo02
-              cpu: "2000m"       # 2 cores
+              memory: "512Mi"
+              cpu: "250m"
             limits:
-              memory: "3Gi"      # Original limit restored
-              cpu: "3000m"       # 3 cores available
+              memory: "1Gi"
+              cpu: "500m"
           # Health checks
           livenessProbe:
             tcpSocket:
