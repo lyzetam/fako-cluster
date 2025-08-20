@@ -22,31 +22,6 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
       
-      # Node selector for CPU-only nodes with sufficient resources
-      nodeSelector:
-        # Select nodes without GPU
-        gpu-node: "false"
-      
-      # Affinity rules to prefer nodes with more CPU and memory
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            preference:
-              matchExpressions:
-              - key: node.kubernetes.io/instance-type
-                operator: In
-                values:
-                - large
-                - xlarge
-          - weight: 50
-            preference:
-              matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-      
       containers:
       - name: whisper
         # Using the standard wyoming-whisper image (not GPU-specific)
@@ -58,7 +33,7 @@ spec:
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: OMP_NUM_THREADS
-          value: "8"  # Optimize for CPU threading
+          value: "2"  # Match the CPU limit
         envFrom:
         - configMapRef:
             name: whisper-cpu-configmap
@@ -69,11 +44,11 @@ spec:
         
         resources:
           requests:
-            memory: "4Gi"  # Increased memory for CPU processing
-            cpu: "4000m"   # 4 CPU cores
+            memory: "2Gi"
+            cpu: "1000m"   # 1 CPU core
           limits:
-            memory: "8Gi"  # Higher limit for peak usage
-            cpu: "8000m"   # 8 CPU cores max
+            memory: "4Gi"
+            cpu: "2000m"   # 2 CPU cores max
         
         livenessProbe:
           tcpSocket:
