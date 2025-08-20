@@ -72,11 +72,11 @@ spec:
         - "--download-dir"
         - "/data/.cache"
         - "--device"
-        - "cuda"
+        - "cpu"  # Official image doesn't have CUDA support on ARM64
         - "--language"
         - "en"
         - "--compute-type"
-        - "float16"
+        - "int8"  # Using int8 for CPU mode on ARM64
         - "--beam-size"
         - "1"
         ports:
@@ -116,11 +116,11 @@ spec:
           requests:
             memory: "2Gi"     # Conservative start for 8GB system
             cpu: "2000m"      # 2 cores
-            nvidia.com/gpu: 1 # Request GPU
+            # nvidia.com/gpu: 1 # Removed - using CPU mode
           limits:
             memory: "4Gi"     # Half of available memory
             cpu: "4000m"      # 4 of 6 cores
-            nvidia.com/gpu: 1 # Use GPU
+            # nvidia.com/gpu: 1 # Removed - using CPU mode
         
         livenessProbe:
           tcpSocket:
