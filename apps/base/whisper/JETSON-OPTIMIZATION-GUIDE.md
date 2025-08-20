@@ -11,6 +11,9 @@ This guide documents the optimizations and configurations for running Whisper on
 
 ## Current Configuration
 
+### Container Image
+Using the official `rhasspy/wyoming-whisper:latest` image which supports both x86_64 and ARM64 architectures. This eliminates the need for custom ARM64 image builds.
+
 ### Node Selection
 The deployment is configured to run specifically on `jetson02`:
 ```yaml

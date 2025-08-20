@@ -55,7 +55,9 @@ spec:
       
       containers:
       - name: whisper
-        image: ghcr.io/slackr31337/wyoming-whisper-gpu:v2025.01.4
+        # Use official multi-arch image that supports both x86_64 and ARM64
+        image: rhasspy/wyoming-whisper:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 10300
           protocol: TCP
