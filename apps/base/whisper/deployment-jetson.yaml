@@ -55,9 +55,10 @@ spec:
       
       containers:
       - name: whisper
-        # Use official multi-arch image that supports both x86_64 and ARM64
-        image: rhasspy/wyoming-whisper:latest
-        imagePullPolicy: Always
+        # Use specific version to avoid pulling latest and hitting rate limits
+        # Also using docker.io explicitly to potentially use mirrors
+        image: docker.io/rhasspy/wyoming-whisper:2.5.0
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 10300
           protocol: TCP
