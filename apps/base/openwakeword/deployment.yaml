@@ -14,7 +14,7 @@ spec:
         app: openwakeword
     spec:
       nodeSelector:
-        kubernetes.io/hostname: pglenovo02
+        kubernetes.io/hostname: lenovo
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
