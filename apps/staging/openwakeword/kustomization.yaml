@@ -3,13 +3,3 @@ kind: Kustomization
 namespace: openwakeword
 resources:
   - ../../base/openwakeword/
-
-patches:
-  - path: patch-nodeselector.yaml
-    target:
-      kind: Deployment
-      name: openwakeword
-  - path: patch-resources.yaml
-    target:
-      kind: Deployment
-      name: openwakeword
