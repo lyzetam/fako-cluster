@@ -3,3 +3,9 @@ kind: Kustomization
 namespace: piper
 resources:
   - ../../base/piper/
+
+patches:
+  - path: patch-nodeselector.yaml
+    target:
+      kind: Deployment
+      name: piper
