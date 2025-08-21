@@ -4,15 +4,15 @@ kind: Kustomization
 namespace: whisper
 resources:
   - namespace.yaml
-  # GPU configuration (disabled until GPU node is available)
-  # - configmap.yaml
-  # - deployment-gpu.yaml
-  # - service-gpu.yaml
+  # GPU configuration (enabled on aitower node)
+  - configmap.yaml
+  - deployment-gpu.yaml
+  - service-gpu.yaml
   
-  # CPU configuration (enabled)
-  - configmap-cpu.yaml
-  - deployment-cpu.yaml
-  - service-cpu.yaml
+  # CPU configuration (disabled)
+  # - configmap-cpu.yaml
+  # - deployment-cpu.yaml
+  # - service-cpu.yaml
   
   # Jetson configuration (disabled)
   # - configmap-jetson.yaml
