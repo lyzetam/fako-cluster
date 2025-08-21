@@ -9,16 +9,7 @@ resources:
   - deployment-gpu.yaml
   - service-gpu.yaml
   
-  # CPU configuration (disabled)
-  # - configmap-cpu.yaml
-  # - deployment-cpu.yaml
-  # - service-cpu.yaml
-  
-  # Jetson configuration (disabled)
-  # - configmap-jetson.yaml
-  # - deployment-jetson.yaml
   
   # Common resources
-  - health-check-configmap.yaml
   - storage.yaml
   - nodeport-service.yaml
