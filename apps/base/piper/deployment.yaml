@@ -80,11 +80,11 @@ spec:
               name: piper-data
           resources:
             requests:
-              memory: "1Gi"
-              cpu: "500m"
+              memory: "3Gi"
+              cpu: "1500m"
             limits:
-              memory: "2Gi"
-              cpu: "1000m"
+              memory: "4Gi"
+              cpu: "2500m"
           livenessProbe:
             tcpSocket:
               port: 10200
