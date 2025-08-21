@@ -13,6 +13,8 @@ spec:
       labels:
         app: openwakeword
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: aitower
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
