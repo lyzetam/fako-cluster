@@ -29,7 +29,7 @@ spec:
       containers:
         # HTTP/WebSocket bridge to connect to filesystem MCP server
         - name: mcp-http-bridge
-          image: node:18-alpine
+          image: node:22-alpine
           command: ["/bin/sh", "-c"]
           args:
             - |
