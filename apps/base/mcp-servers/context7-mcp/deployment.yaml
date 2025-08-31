@@ -26,7 +26,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: context7-mcp-server
-          image: node:18-alpine
+          image: node:22-alpine
           workingDir: /home/node
           # Run the Context7 MCP server with HTTP transport
           command: ["/bin/sh"]
