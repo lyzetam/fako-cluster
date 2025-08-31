@@ -34,8 +34,8 @@ resources:
   - ollama-jetson2  # Separate deployment for jetson02 node with qwen3:4b
   - ollama-webui    # Keep original running
   - open-webui      # Test new namespace with shared storage
-  - whisper         
-  - piper           
+  # - whisper         
+  # - piper           
   - openwakeword    
   - node-labeling
   
