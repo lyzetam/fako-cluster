@@ -102,6 +102,7 @@ spec:
           echo "=== HOME ASSISTANT SPECIALIZED MODELS ==="
           # ollama pull granite3-moe:1b || echo "Failed granite3-moe:1b"
           ollama pull qwen3:8b || echo "Failed qwen3:8b"
+          ollama pull granite3.3:8b || echo "Failed granite3.3:8b"
 
           # PRIORITY 2: Latest Gemma models
           echo ""
@@ -150,9 +151,23 @@ spec:
           echo "Model download complete."
           ollama list
           
+          # Pre-load granite3.3:8b model into GPU memory and keep for 24h
+          echo ""
+          echo "=== PRE-LOADING PRIMARY MODEL ==="
+          echo "Pre-loading granite3.3:8b model into GPU memory..."
+          ollama run granite3.3:8b "Initialize model in GPU memory" || echo "Failed to pre-load granite3.3:8b"
+          
+          echo "granite3.3:8b model loaded with 24h keep-alive (OLLAMA_KEEP_ALIVE=24h from config)"
+          echo "Model will remain in GPU memory for 24 hours"
+          
           while true; do
             sleep 600
             echo "Model manager heartbeat..."
+            # Verify granite3.3:8b is still loaded
+            ollama list | grep -q "granite3.3:8b" || {
+              echo "Primary model granite3.3:8b not found, reloading..."
+              ollama run granite3.3:8b "Reload into GPU memory" > /dev/null 2>&1
+            }
           done
         
         volumeMounts:
