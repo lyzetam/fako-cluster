@@ -1,4 +1,4 @@
-# apps/base/piper-v13/deployment.yaml
+# apps/base/piper-v13/deployment.yaml - LinuxServer Piper (latest stable)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,179 +21,61 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-      initContainers:
-        # Download voices using new Piper v1.3.0 utility
-        - name: voice-init
-          image: ghcr.io/ohf-voice/piper1-gpl:latest
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              set -e
-              echo "Downloading voice models using built-in utility..."
-              cd /data
-              piper-download-voices --voice en_US-ryan-high
-              
-              echo "Voice download complete."
-              ls -la /data/
-          volumeMounts:
-            - mountPath: /data
-              name: piper-v13-data
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "256Mi"
-              cpu: "200m"
       containers:
-        # Modern Piper v1.3.0 container with HTTP API
         - name: piper
-          image: ghcr.io/ohf-voice/piper1-gpl:latest
+          image: lscr.io/linuxserver/piper:latest
           ports:
-            - containerPort: 10201
+            - containerPort: 10200
               protocol: TCP
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              set -e
-              echo "Starting Piper v1.3.0 HTTP server..."
-              cd /data
-              
-              cat > /tmp/server.py << 'EOF'
-              from flask import Flask, request, Response
-              import piper
-              import io
-              import wave
-              import json
-              import os
-              
-              app = Flask(__name__)
-              
-              # Initialize Piper voice
-              voice_path = "/data/en_US-ryan-high.onnx"
-              if os.path.exists(voice_path):
-                  voice = piper.PiperVoice.load(voice_path)
-              else:
-                  voice = None
-              
-              @app.route('/api/tts', methods=['POST'])
-              def synthesize():
-                  if not voice:
-                      return {'error': 'Voice not loaded'}, 500
-                  
-                  try:
-                      data = request.get_json()
-                      text = data.get('text', '')
-                      
-                      if not text:
-                          return {'error': 'No text provided'}, 400
-                      
-                      # Synthesize audio
-                      audio_chunks = []
-                      synthesis_config = piper.SynthesisConfig()
-                      
-                      for chunk in voice.synthesize(text, synthesis_config):
-                          audio_chunks.append(chunk.audio)
-                      
-                      # Combine chunks
-                      audio_data = b''.join(audio_chunks)
-                      
-                      # Create WAV response
-                      wav_buffer = io.BytesIO()
-                      with wave.open(wav_buffer, 'wb') as wav_file:
-                          wav_file.setnchannels(1)  # Mono
-                          wav_file.setsampwidth(2)  # 16-bit
-                          wav_file.setframerate(voice.config.sample_rate)
-                          wav_file.writeframes(audio_data)
-                      
-                      wav_buffer.seek(0)
-                      return Response(
-                          wav_buffer.getvalue(),
-                          mimetype='audio/wav',
-                          headers={'Content-Disposition': 'attachment; filename=speech.wav'}
-                      )
-                  
-                  except Exception as e:
-                      return {'error': str(e)}, 500
-              
-              @app.route('/api/health', methods=['GET'])
-              def health():
-                  return {'status': 'healthy', 'version': '1.3.0', 'voice': 'en_US-ryan-high'}
-              
-              if __name__ == '__main__':
-                  app.run(host='0.0.0.0', port=10201, debug=True)
-              EOF
-              
-              python /tmp/server.py
           env:
-            - name: OMP_NUM_THREADS
-              value: "1"
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000" 
+            - name: TZ
+              value: "America/New_York"
+            - name: PIPER_VOICE
+              value: "en_US-ryan-high"
+            - name: PIPER_LENGTH
+              value: "1.0"
+            - name: PIPER_NOISE
+              value: "0.667"
+            - name: PIPER_NOISEW
+              value: "0.333"
+            - name: PIPER_SPEAKER
+              value: "0"
+            - name: PIPER_PROCS
+              value: "4"
+            - name: STREAMING
+              value: "true"
           volumeMounts:
-            - mountPath: /data
+            - mountPath: /config
               name: piper-v13-data
           resources:
             requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
               memory: "2Gi"
               cpu: "1000m"
-            limits:
-              memory: "3Gi"
-              cpu: "1500m"
           livenessProbe:
-            httpGet:
-              path: /api/health
-              port: 10201
-            initialDelaySeconds: 30
+            tcpSocket:
+              port: 10200
+            initialDelaySeconds: 60
             periodSeconds: 30
+            timeoutSeconds: 10
           readinessProbe:
-            httpGet:
-              path: /api/health
-              port: 10201
-            initialDelaySeconds: 10
+            tcpSocket:
+              port: 10200
+            initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
           startupProbe:
-            httpGet:
-              path: /api/health
-              port: 10201
+            tcpSocket:
+              port: 10200
             initialDelaySeconds: 120
             periodSeconds: 10
             failureThreshold: 30
-        
-        # Voice manager for v1.3.0
-        - name: voice-manager
-          image: busybox:1.37.0
-          command: ["/bin/sh"]
-          args:
-            - -c
-            - |
-              echo "Voice Manager v1.3.0 Starting..."
-              
-              while true; do
-                echo "Voice manager check at $(date)"
-                
-                # Check if essential voice still exists
-                if [ -f /data/en_US-ryan-high.onnx ]; then
-                  echo "✓ Essential voice present (ryan-high)"
-                else
-                  echo "⚠ Essential voice missing (ryan-high)!"
-                fi
-                
-                # List available voices
-                echo "Available voices:"
-                ls -la /data/*.onnx 2>/dev/null || echo "No voices found"
-                
-                # Sleep for 1 hour
-                sleep 3600
-              done
-          volumeMounts:
-            - mountPath: /data
-              name: piper-v13-data
-          resources:
-            requests:
-              memory: "32Mi"
-              cpu: "10m"
-            limits:
-              memory: "64Mi"
-              cpu: "50m"
       
       volumes:
         - name: piper-v13-data

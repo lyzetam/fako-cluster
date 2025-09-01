@@ -36,7 +36,7 @@ resources:
   - open-webui      # Test new namespace with shared storage
   - whisper         
   - piper           
-  - piper-v13       # Piper v1.3.0 in separate namespace
+  - piper-v13       # Piper (LinuxServer image) in separate namespace
   - openwakeword    
   - node-labeling
   
