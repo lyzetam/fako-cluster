@@ -7,8 +7,8 @@ spec:
   selector:
     app: piper-v13
   ports:
-    - name: http
+    - name: wyoming
       port: 10201
-      targetPort: 10201
+      targetPort: 10200
       protocol: TCP
   type: ClusterIP
