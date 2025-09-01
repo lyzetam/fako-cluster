@@ -1,9 +1,9 @@
-# apps/base/piper/deployment-v13.yaml
+# apps/base/piper-v13/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: piper-v13
-  namespace: piper
+  namespace: piper-v13
 spec:
   replicas: 1
   selector:

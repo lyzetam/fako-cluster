@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: piper-v13
+  namespace: piper-v13
+spec:
+  selector:
+    app: piper-v13
+  ports:
+    - name: http
+      port: 10201
+      targetPort: 10201
+      protocol: TCP
+  type: ClusterIP
