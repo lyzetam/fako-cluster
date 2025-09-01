@@ -29,7 +29,7 @@ spec:
           args:
             - |
               set -e
-              BASE_URL="https://github.com/rhasspy/piper/releases/download/2023.11.14-2"
+              BASE_URL="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high"
               VOICE="en_US-ryan-high"
               for f in "${VOICE}.onnx" "${VOICE}.onnx.json"; do
                 if [ ! -f "/data/${f}" ]; then
