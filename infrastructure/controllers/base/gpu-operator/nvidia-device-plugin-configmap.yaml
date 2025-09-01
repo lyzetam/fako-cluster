@@ -5,7 +5,7 @@ metadata:
   name: default-config
   namespace: gpu-operator
 data:
-  # Multi-GPU configuration with individual GPU resources
+  # Default NVIDIA device plugin configuration
   config.yaml: |
     version: v1
     flags:
@@ -19,7 +19,3 @@ data:
       gpus:
       - pattern: "*"
         name: nvidia.com/gpu
-      - pattern: "GPU-da81442d-aa44-f32e-877c-57e59ed0bb8b"
-        name: nvidia.com/rtx-5060
-      - pattern: "GPU-a1dbfc0b-1ddd-5fad-3bd8-37dc291c9f63"
-        name: nvidia.com/rtx-3050

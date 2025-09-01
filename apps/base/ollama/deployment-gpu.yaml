@@ -41,6 +41,9 @@ spec:
         ports:
         - containerPort: 11434
           protocol: TCP
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "GPU-da81442d-aa44-f32e-877c-57e59ed0bb8b"  # RTX 5060
         envFrom:
         - configMapRef:
             name: ollama-configmap
@@ -59,11 +62,11 @@ spec:
           requests:
             memory: "12Gi"
             cpu: "4000m"
-            nvidia.com/rtx-5060: 1  # Request RTX 5060 specifically
+            nvidia.com/gpu: 1  # Request 1 GPU (RTX 5060 via NVIDIA_VISIBLE_DEVICES)
           limits:
             memory: "36Gi"
             cpu: "8000m"
-            nvidia.com/rtx-5060: 1  # Limit to RTX 5060
+            nvidia.com/gpu: 1  # Limit to 1 GPU
         
         livenessProbe:
           httpGet:
