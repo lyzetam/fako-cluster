@@ -18,10 +18,10 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-      # Target the new yeezyai node with dual GPUs
+      # Target the aitower node with dual GPUs
       nodeSelector:
-        kubernetes.io/hostname: yeezyai
-        nvidia.com/gpu: "true"
+        kubernetes.io/hostname: aitower
+        nvidia.com/gpu.present: "true"
       
       # Add GPU tolerations
       tolerations:
@@ -59,11 +59,11 @@ spec:
           requests:
             memory: "12Gi"
             cpu: "4000m"
-            nvidia.com/gpu: 1  # Request 1 GPU (RTX 5070)
+            nvidia.com/rtx-5060: 1  # Request RTX 5060 specifically
           limits:
             memory: "36Gi"
             cpu: "8000m"
-            nvidia.com/gpu: 1  # Limit to 1 GPU
+            nvidia.com/rtx-5060: 1  # Limit to RTX 5060
         
         livenessProbe:
           httpGet:
@@ -92,7 +92,7 @@ spec:
           
           export OLLAMA_HOST=http://localhost:11434
           
-          echo "Downloading models for RTX 5070..."
+          echo "Downloading models for RTX 5060..."
           
           # PRIORITY 1: Home Assistant specialized models
           echo ""
@@ -113,7 +113,7 @@ spec:
           # ollama pull llama3.2:3b || echo "Failed llama3.2:3b"
           # ollama pull phi3:mini || echo "Failed phi3:mini"
           
-          # PRIORITY 4: Medium models - RTX 5070 can handle these well
+          # PRIORITY 4: Medium models - RTX 5060 can handle these well
           echo ""
           echo "=== MEDIUM MODELS (7-8B) ==="
           ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
@@ -128,7 +128,7 @@ spec:
           # ollama pull qwen2.5:7b-instruct-q5_K_M || echo "Failed qwen2.5:7b"
           # ollama pull orieg/gemma3-tools:4b || echo "Failed gemma3-tools:4b"
 
-          # PRIORITY 5: Larger models - RTX 5070 has the memory
+          # PRIORITY 5: Larger models - RTX 5060 has the memory
           echo ""
           echo "=== LARGER MODELS (13B+) ==="
           ollama pull qwen:32b || echo "Failed qwen:32b"
@@ -138,7 +138,7 @@ spec:
           # ollama pull orieg/gemma3-tools:27b || echo "Failed gemma3-tools:27b"
           # ollama pull orieg/gemma3-tools:12b || echo "Failed gemma3-tools:12b"
 
-          # PRIORITY 6: Even larger models for RTX 5070
+          # PRIORITY 6: Even larger models for RTX 5060
           echo ""
           echo "=== HIGH-END MODELS ==="
           # ollama pull mixtral:8x7b-instruct-v0.1-q3_K_M || echo "Failed mixtral"

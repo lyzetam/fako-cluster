@@ -51,10 +51,6 @@ spec:
           value: "1"  # Clear CUDA cache after every batch
         - name: TORCH_CUDA_ARCH_LIST
           value: "7.5;8.0;8.6"  # Optimize for common GPU architectures
-        - name: NVIDIA_VISIBLE_DEVICES
-          value: "0"  # Use GPU 0 on aitower node
-        - name: CUDA_VISIBLE_DEVICES
-          value: "0"  # Use GPU 0 on aitower node
         envFrom:
         - configMapRef:
             name: whisper-gpu-configmap
@@ -67,11 +63,11 @@ spec:
           requests:
             memory: "7Gi"
             cpu: "3000m"
-            nvidia.com/gpu: 1
+            nvidia.com/rtx-3050: 1
           limits:
             memory: "9Gi"
             cpu: "4000m"
-            nvidia.com/gpu: 1
+            nvidia.com/rtx-3050: 1
         
         livenessProbe:
           tcpSocket:
