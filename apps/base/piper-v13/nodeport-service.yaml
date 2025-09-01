@@ -1,0 +1,14 @@
+# apps/base/piper-v13/nodeport-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: piper-v13-nodeport
+  namespace: piper-v13
+spec:
+  type: NodePort
+  ports:
+    - port: 10200
+      targetPort: 10200
+      nodePort: 30201  # External port (different from piper's 30200)
+  selector:
+    app: piper-v13
