@@ -39,6 +39,8 @@ spec:
         - containerPort: 10300
           protocol: TCP
         env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "GPU-a1dbfc0b-1ddd-5fad-3bd8-37dc291c9f63"  # RTX 3050
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: OMP_NUM_THREADS
@@ -63,11 +65,11 @@ spec:
           requests:
             memory: "7Gi"
             cpu: "3000m"
-            nvidia.com/rtx-3050: 1
+            nvidia.com/gpu: 1  # Request 1 GPU (RTX 3050 via NVIDIA_VISIBLE_DEVICES)
           limits:
             memory: "9Gi"
             cpu: "4000m"
-            nvidia.com/rtx-3050: 1
+            nvidia.com/gpu: 1  # Limit to 1 GPU
         
         livenessProbe:
           tcpSocket:
