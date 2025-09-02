@@ -41,10 +41,10 @@ resources:
   - node-labeling
   
   # AI Agent
-  - kagent         # Kubernetes AI assistant
+  # - kagent         # Kubernetes AI assistant
   
   # MCP Servers for Kagent
-  - mcp-servers    # Model Context Protocol servers
+  # - mcp-servers    # Model Context Protocol servers
   
   # GPUStack Proxy
   - gpustack-proxy  # Proxy to GPUStack endpoint
