@@ -104,7 +104,7 @@ spec:
               # Label ARM nodes (including Mac and Jetson) - NO TAINTS for Jetson
               echo -e "\nLabeling ARM nodes..."
               
-              # Mac ARM nodes - keep isolated
+              # Mac ARM nodes - keep isolated (but allow svclb on control plane)
               for node in zz-macbookpro pgmac01 pgmac02; do
                 if kubectl get node $node > /dev/null 2>&1; then
                   echo "Labeling $node as ARM Mac..."
@@ -113,8 +113,13 @@ spec:
                   apply_label $node "hardware.tier=arm-mac"
                   apply_label $node "node-type=arm"
                   
-                  # Keep Mac nodes tainted
-                  kubectl taint nodes $node node-type=arm-mac:NoSchedule --overwrite 2>&1
+                  # Check if this is a control plane node
+                  if kubectl get node $node -o jsonpath='{.metadata.labels.node-role\.kubernetes\.io/control-plane}' | grep -q .; then
+                    echo "  $node is control plane - skipping isolation taints to allow svclb pods"
+                  else
+                    # Keep non-control-plane Mac nodes tainted
+                    kubectl taint nodes $node node-type=arm-mac:NoSchedule --overwrite 2>&1
+                  fi
                 fi
               done
               
