@@ -37,7 +37,7 @@ spec:
       
       containers:
       - name: ollama
-        image: ollama/ollama:0.11.2
+        image: ollama/ollama:0.11.9
         ports:
         - containerPort: 11434
           protocol: TCP
@@ -85,7 +85,7 @@ spec:
       
       # Model manager sidecar
       - name: model-manager
-        image: ollama/ollama:0.11.2
+        image: ollama/ollama:0.11.9
         command: ["/bin/sh"]
         args:
         - -c
