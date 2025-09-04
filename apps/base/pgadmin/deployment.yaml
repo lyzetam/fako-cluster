@@ -38,6 +38,10 @@ spec:
           mountPath: /pgadmin4/servers.json
           subPath: servers.json
           readOnly: true
+        - name: pgpass-config
+          mountPath: /var/lib/pgadmin/.pgpass
+          subPath: .pgpass
+          readOnly: true
         resources:
           requests:
             memory: "256Mi"
@@ -55,6 +59,12 @@ spec:
           items:
           - key: servers.json
             path: servers.json
+      - name: pgpass-config
+        secret:
+          secretName: pgadmin-pgpass
+          items:
+          - key: .pgpass
+            path: .pgpass
 
 # ---
 # # apps/base/pgadmin/deployment.yaml
