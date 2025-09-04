@@ -65,6 +65,7 @@ spec:
           items:
           - key: .pgpass
             path: .pgpass
+          defaultMode: 0600
 
 # ---
 # # apps/base/pgadmin/deployment.yaml

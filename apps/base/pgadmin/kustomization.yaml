@@ -8,7 +8,7 @@ resources:
   - storage.yaml
   - aws-credentials-secret.yaml    # AWS credentials for External Secrets
   - secret-store.yaml              # SecretStore for AWS Secrets Manager
-  - external-secret-pgadmin.yaml   # External Secret for pgadmin credentials
+  - external-secret-pgadmin.yaml   # External Secret for pgAdmin credentials
   - external-secret-pgpass.yaml    # External Secret for .pgpass
   - deployment.yaml
   - service.yaml
