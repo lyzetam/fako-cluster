@@ -6,3 +6,4 @@ resources:
   - loki-stack
   - alloy
   - gpu-monitoring
+  - metrics-server

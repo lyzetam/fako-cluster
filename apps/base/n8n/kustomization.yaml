@@ -10,5 +10,7 @@ resources:
   - aws-credentials-secret.yaml
   - secret-store.yaml
   - external-secret-postgres.yaml
+  - dockerhub-secret.yaml
+  - create-docker-registry-secret-job.yaml
   - cloudflare.yaml
   - cloudflare-secret.yaml
