@@ -8,7 +8,7 @@ spec:
   chart:
     spec:
       chart: kubescape-operator
-      version: "1.x"
+      version: "1.29.5"  # Pin to working version
       sourceRef:
         kind: HelmRepository
         name: kubescape
