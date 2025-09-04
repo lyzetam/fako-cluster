@@ -97,7 +97,7 @@ spec:
       additionalLabels:
         prometheus: kube-prometheus
         
-    # Config for receiving traces
+    # Override the entire config to avoid working_directory issues
     config: |
       server:
         http_listen_port: 3100
