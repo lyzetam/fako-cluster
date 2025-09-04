@@ -140,4 +140,4 @@ spec:
           
       querier:
         frontend_worker:
-          frontend_address: tempo-query-frontend:9095
+          frontend_address: localhost:9095
