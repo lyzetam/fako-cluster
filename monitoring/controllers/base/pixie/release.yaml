@@ -119,11 +119,10 @@ spec:
       dataAccess: "Full"
       
       # Self-hosted Pixie configuration
-      # deployKey not needed for self-hosted mode
       clusterName: "fako-cluster"
       
-      # Point to self-hosted Pixie Cloud instead of withpixie.ai
-      cloudAddr: "dev.withpixie.dev:443"  # Replace with your Pixie Cloud address
+      # Point to self-hosted Pixie Cloud (deploy cloud first!)
+      cloudAddr: "dev.withpixie.dev:443"
       disableAutoUpdate: true
       useEtcdOperator: false
       

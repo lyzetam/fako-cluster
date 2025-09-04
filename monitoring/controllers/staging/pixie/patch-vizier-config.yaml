@@ -8,9 +8,8 @@ spec:
   values:
     # Self-hosted Pixie vizier configuration
     vizier:
-      # Disable cloud connector until Pixie Cloud is deployed
-      cloudConnector:
-        enabled: false
+      # Enhanced configuration for self-hosted Pixie Cloud connection
+      cloudAddr: "dev.withpixie.dev:443"
       
       # Increase resource requests to ensure proper scheduling
       kelvin:
