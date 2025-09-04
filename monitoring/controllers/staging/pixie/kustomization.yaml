@@ -5,3 +5,4 @@ resources:
 
 patchesStrategicMerge:
   - patch-vizier-config.yaml
+  - patch-node-affinity.yaml

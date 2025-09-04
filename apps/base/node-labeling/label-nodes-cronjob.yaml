@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: label-nodes-for-voice-pipeline
+  name: label-nodes-for-architecture
   namespace: node-labeling
 spec:
   # Run every 15 minutes to ensure nodes stay properly labeled
@@ -23,7 +23,7 @@ spec:
             - /bin/bash
             - -c
             - |
-              echo "=== Node Labeling for Voice Pipeline ($(date)) ==="
+              echo "=== Node Architecture Labeling ($(date)) ==="
               
               # Function to safely apply label
               apply_label() {
@@ -37,15 +37,17 @@ spec:
                 fi
               }
               
-              # Remove labels from old playground node if it exists
-              echo "Removing labels from old playground node (if exists)..."
-              if kubectl get node playground > /dev/null 2>&1; then
-                kubectl label nodes playground nvidia.com/gpu- --overwrite 2>/dev/null || true
-                kubectl label nodes playground hardware.tier- --overwrite 2>/dev/null || true
-                kubectl label nodes playground node-type- --overwrite 2>/dev/null || true
-                kubectl label nodes playground voice-pipeline- --overwrite 2>/dev/null || true
-                echo "✓ Cleaned up playground node"
-              fi
+              # Function to remove taint
+              remove_taint() {
+                local node=$1
+                local taint=$2
+                echo -n "  Removing taint $taint from $node: "
+                if kubectl taint nodes "$node" "$taint"- 2>&1; then
+                  echo "✓"
+                else
+                  echo "✗ (may not exist)"
+                fi
+              }
               
               # Label yeezyai as dual-GPU node with ALL required labels
               echo "Labeling yeezyai node with complete GPU labels..."
@@ -54,9 +56,11 @@ spec:
                 apply_label yeezyai "nvidia.com/gpu=true"
                 apply_label yeezyai "node-role.kubernetes.io/gpu-worker=true"
                 
-                # Hardware tier and type
+                # Hardware tier and architecture
                 apply_label yeezyai "hardware.tier=dual-gpu"
                 apply_label yeezyai "node-type=gpu-compute"
+                apply_label yeezyai "kubernetes.io/arch=amd64"
+                apply_label yeezyai "node.kubernetes.io/architecture=x86_64"
                 
                 # GPU-specific labels
                 apply_label yeezyai "gpu.nvidia.present=true"
@@ -68,19 +72,21 @@ spec:
                 apply_label yeezyai "gpu.rtx5070=true"
                 apply_label yeezyai "gpu.rtx3050=true"
                 
-                # Optional: Voice pipeline
-                # apply_label yeezyai "voice-pipeline=enabled"
+                # Voice pipeline
+                apply_label yeezyai "voice-pipeline=enabled"
               else
-                echo "ERROR: yeezyai node not found!"
+                echo "WARNING: yeezyai node not found!"
               fi
               
-              # Label high-performance nodes (x86-only)
+              # Label high-performance x86 nodes
               echo -e "\nLabeling high-performance x86 nodes..."
               for node in pgbee aitower; do
                 if kubectl get node $node > /dev/null 2>&1; then
-                  echo "Labeling $node as high-performance..."
+                  echo "Labeling $node as high-performance x86..."
                   apply_label $node "hardware.tier=high-performance"
                   apply_label $node "voice-pipeline=enabled"
+                  apply_label $node "kubernetes.io/arch=amd64"
+                  apply_label $node "node.kubernetes.io/architecture=x86_64"
                 fi
               done
               
@@ -90,57 +96,67 @@ spec:
                 if kubectl get node $node > /dev/null 2>&1; then
                   echo "Labeling $node as standard x86..."
                   apply_label $node "hardware.tier=standard"
-                  apply_label $node "node-architecture=x86"
+                  apply_label $node "kubernetes.io/arch=amd64"
+                  apply_label $node "node.kubernetes.io/architecture=x86_64"
                 fi
               done
               
-              # Completely isolate ARM nodes - prevent ALL pod scheduling on ARM-based nodes
-              echo -e "\nCompletely isolating ARM nodes - preventing ALL pod scheduling..."
-              for node in zz-macbookpro jetson01 jetson02 pgmac01 pgmac02; do
+              # Label ARM nodes (including Mac and Jetson) - NO TAINTS for Jetson
+              echo -e "\nLabeling ARM nodes..."
+              
+              # Mac ARM nodes - keep isolated
+              for node in zz-macbookpro pgmac01 pgmac02; do
                 if kubectl get node $node > /dev/null 2>&1; then
-                  echo -n "  Tainting $node with NoSchedule: "
-                  if kubectl taint nodes $node node-type=arm:NoSchedule --overwrite 2>&1; then
-                    echo "✓"
-                  else
-                    echo "✗ (may already exist)"
-                  fi
+                  echo "Labeling $node as ARM Mac..."
+                  apply_label $node "kubernetes.io/arch=arm64"
+                  apply_label $node "node.kubernetes.io/architecture=arm64"
+                  apply_label $node "hardware.tier=arm-mac"
+                  apply_label $node "node-type=arm"
                   
-                  echo -n "  Tainting $node with NoExecute: "
-                  if kubectl taint nodes $node node-isolation=complete:NoExecute --overwrite 2>&1; then
-                    echo "✓"
-                  else
-                    echo "✗ (may already exist)"
-                  fi
+                  # Keep Mac nodes tainted
+                  kubectl taint nodes $node node-type=arm-mac:NoSchedule --overwrite 2>&1
+                fi
+              done
+              
+              # Jetson ARM nodes - UNCORDON (remove taints)
+              echo -e "\nUncordoning Jetson nodes..."
+              for node in jetson01 jetson02; do
+                if kubectl get node $node > /dev/null 2>&1; then
+                  echo "Processing Jetson node $node..."
                   
-                  echo -n "  Labeling $node as isolated: "
-                  apply_label $node "node-isolation=complete"
+                  # Remove ALL taints from Jetson nodes
+                  remove_taint $node "node-type=arm:NoSchedule"
+                  remove_taint $node "node-isolation=complete:NoExecute"
                   
-                  echo -n "  Labeling $node as ARM-based: "
-                  apply_label $node "node-architecture=arm"
+                  # Apply architecture labels
+                  apply_label $node "kubernetes.io/arch=arm64"
+                  apply_label $node "node.kubernetes.io/architecture=arm64"
+                  apply_label $node "hardware.tier=jetson"
+                  apply_label $node "node-type=arm"
+                  apply_label $node "nvidia.com/gpu=true"
+                  apply_label $node "gpu.nvidia.jetson=true"
+                  
+                  # Remove isolation label
+                  kubectl label nodes $node node-isolation- 2>/dev/null || true
                 fi
               done
               
               # Show results
               echo ""
-              echo "=== Final Node Labels Summary ==="
+              echo "=== Node Architecture Summary ==="
               echo ""
-              echo "Dual-GPU Node (yeezyai):"
-              kubectl get node yeezyai --show-labels | grep -E "(nvidia|gpu|voice)" || echo "yeezyai node not found"
+              echo "x86_64 Nodes:"
+              kubectl get nodes -l 'node.kubernetes.io/architecture=x86_64' -o custom-columns=NAME:.metadata.name,TIER:.metadata.labels.hardware\\.tier,GPU:.metadata.labels.nvidia\\.com/gpu
               echo ""
-              echo "High-Performance Nodes:"
-              kubectl get nodes -l hardware.tier=high-performance --show-labels | grep voice-pipeline || echo "No high-performance nodes labeled"
+              echo "ARM64 Nodes:"
+              kubectl get nodes -l 'node.kubernetes.io/architecture=arm64' -o custom-columns=NAME:.metadata.name,TIER:.metadata.labels.hardware\\.tier,TYPE:.metadata.labels.node-type
               echo ""
-              echo "All Nodes:"
-              kubectl get nodes -L hardware.tier,voice-pipeline,nvidia.com/gpu,gpu.count
+              echo "All Nodes with Architecture:"
+              kubectl get nodes -L kubernetes.io/arch,node.kubernetes.io/architecture,hardware.tier
               
               echo ""
-              echo "ARM Node Isolation Status:"
-              for node in zz-macbookpro jetson01 jetson02 pgmac01 pgmac02; do
-                if kubectl get node $node > /dev/null 2>&1; then
-                  echo "--- $node ---"
-                  kubectl get pods --all-namespaces -o wide --field-selector spec.nodeName=$node | wc -l | xargs -I {} echo "  Pods on node: {} (should be 0)"
-                fi
-              done
+              echo "Taint Status:"
+              kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
               
               echo ""
               echo "=== Node labeling completed at $(date) ==="
