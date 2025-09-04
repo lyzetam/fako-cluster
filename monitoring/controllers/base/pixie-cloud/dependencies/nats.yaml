@@ -1,0 +1,151 @@
+# NATS messaging system for Pixie Cloud
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-config
+  namespace: plc
+data:
+  nats.conf: |
+    pid_file: "/var/run/nats/nats.pid"
+    http: 8222
+    
+    # Client connections
+    port: 4222
+    
+    # Cluster configuration
+    cluster {
+      name: pixie-nats
+      port: 6222
+      
+      routes = [
+        nats-route://nats-0.nats.plc.svc.cluster.local:6222
+      ]
+      
+      cluster_advertise: $CLUSTER_ADVERTISE
+      connect_retries: 30
+    }
+    
+    # Logging
+    debug: false
+    trace: false
+    logtime: true
+    
+    # Limits
+    max_connections: 1000
+    max_payload: 8MB
+    max_pending: 256MB
+    
+    # Write timeouts
+    write_deadline: "10s"
+    
+    # JetStream configuration
+    jetstream {
+      store_dir: "/data/jetstream"
+      max_memory_store: 1GB
+      max_file_store: 10GB
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: plc
+  labels:
+    app: nats
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: client
+    port: 4222
+    targetPort: 4222
+  - name: cluster
+    port: 6222
+    targetPort: 6222
+  - name: monitor
+    port: 8222
+    targetPort: 8222
+  selector:
+    app: nats
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nats
+  namespace: plc
+  labels:
+    app: nats
+spec:
+  serviceName: nats
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats
+  template:
+    metadata:
+      labels:
+        app: nats
+    spec:
+      containers:
+      - name: nats
+        image: nats:2.10-alpine
+        ports:
+        - containerPort: 4222
+          name: client
+        - containerPort: 6222
+          name: cluster
+        - containerPort: 8222
+          name: monitor
+        command:
+        - nats-server
+        - --config
+        - /etc/nats-config/nats.conf
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CLUSTER_ADVERTISE
+          value: $(POD_NAME).nats.$(POD_NAMESPACE).svc
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nats-config
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8222
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8222
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: config-volume
+        configMap:
+          name: nats-config
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+      storageClassName: local-path

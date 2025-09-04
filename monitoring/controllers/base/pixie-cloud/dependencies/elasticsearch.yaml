@@ -1,0 +1,74 @@
+# Elasticsearch cluster for Pixie Cloud
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: pixie-es
+  namespace: plc
+spec:
+  version: 8.11.0
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+  nodeSets:
+  - name: default
+    count: 1
+    config:
+      node.store.allow_mmap: false
+      node.roles: ["master", "data", "ingest", "ml", "transform"]
+    podTemplate:
+      spec:
+        containers:
+        - name: elasticsearch
+          resources:
+            requests:
+              memory: 2Gi
+              cpu: 500m
+            limits:
+              memory: 4Gi
+              cpu: 2
+          env:
+          - name: ES_JAVA_OPTS
+            value: "-Xms1g -Xmx1g"
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: local-path
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-master
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    common.k8s.elastic.co/type: elasticsearch
+    elasticsearch.k8s.elastic.co/cluster-name: pixie-es
+  ports:
+  - name: http
+    port: 9200
+    targetPort: 9200
+    protocol: TCP
+  - name: transport
+    port: 9300
+    targetPort: 9300
+    protocol: TCP
+---
+# Create ES user credentials secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pl-elastic-es-certs
+  namespace: plc
+type: Opaque
+data:
+  # Default credentials - change in production
+  username: ZWxhc3RpYw==  # elastic
+  password: cGl4aWUxMjM=  # pixie123

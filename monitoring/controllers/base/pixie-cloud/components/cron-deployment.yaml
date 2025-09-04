@@ -1,0 +1,94 @@
+# Cron Service - Manages scheduled tasks and scripts
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cron-script-server
+  namespace: plc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cron-script-server
+  template:
+    metadata:
+      labels:
+        app: cron-script-server
+        name: cron-script-server
+    spec:
+      containers:
+      - name: cron-script-server
+        image: gcr.io/pixie-oss/pixie-dev-public/cloud/cron_script_server_image:0.1.7
+        ports:
+        - containerPort: 50350
+          name: grpc
+        - containerPort: 50351
+          name: metrics
+        env:
+        - name: PL_JWT_SIGNING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pl-deploy-secrets
+              key: jwt-signing-key
+        - name: PL_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_USERNAME
+        - name: PL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_PASSWORD
+        - name: PL_POSTGRES_HOSTNAME
+          value: "postgres.plc.svc.cluster.local"
+        - name: PL_POSTGRES_PORT
+          value: "5432"
+        - name: PL_POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_DB
+        - name: PL_VZCONN_SERVICE
+          value: "vzconn-service-internal.plc.svc.cluster.local:50800"
+        - name: PL_SERVER_TLS_CERT
+          value: "/certs/tls.crt"
+        - name: PL_SERVER_TLS_KEY
+          value: "/certs/tls.key"
+        - name: PL_TLS_CA_CERT
+          value: "/certs/ca.crt"
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+        readinessProbe:
+          tcpSocket:
+            port: 50350
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: certs
+        secret:
+          secretName: cloud-proxy-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cron-script-service
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    app: cron-script-server
+  ports:
+  - name: grpc
+    port: 50350
+    targetPort: 50350
+  - name: metrics
+    port: 50351
+    targetPort: 50351

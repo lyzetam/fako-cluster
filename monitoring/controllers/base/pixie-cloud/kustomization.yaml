@@ -6,6 +6,19 @@ metadata:
 
 resources:
   - namespace.yaml
+  - dependencies
+  - secrets
+  - components
+  - setup/init-secrets-job.yaml
+  - setup/create-admin-job.yaml
 
-# Note: Pixie Cloud components need to be deployed manually first
-# See setup instructions in ../../../notes/docs/pixie-self-hosted-setup.md
+# Deploy order is important:
+# 1. Dependencies (Elastic operator, databases)
+# 2. Secrets
+# 3. Core components
+# 4. Setup jobs
+
+commonLabels:
+  app.kubernetes.io/name: pixie-cloud
+  app.kubernetes.io/part-of: pixie
+  app.kubernetes.io/component: cloud

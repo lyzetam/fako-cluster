@@ -1,0 +1,99 @@
+# Profile Service - Manages user profiles and organizations
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: profile-server
+  namespace: plc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: profile-server
+  template:
+    metadata:
+      labels:
+        app: profile-server
+        name: profile-server
+    spec:
+      containers:
+      - name: profile-server
+        image: gcr.io/pixie-oss/pixie-dev-public/cloud/profile_server_image:0.1.7
+        ports:
+        - containerPort: 50150
+          name: grpc
+        - containerPort: 50151
+          name: metrics
+        env:
+        - name: PL_JWT_SIGNING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pl-deploy-secrets
+              key: jwt-signing-key
+        - name: PL_DATABASE_KEY
+          value: "CHANGE-THIS-DATABASE-KEY"
+        - name: PL_DOMAIN_NAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-domain-config
+              key: PL_DOMAIN_NAME
+        - name: PL_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_USERNAME
+        - name: PL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_PASSWORD
+        - name: PL_POSTGRES_HOSTNAME
+          value: "postgres.plc.svc.cluster.local"
+        - name: PL_POSTGRES_PORT
+          value: "5432"
+        - name: PL_POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_DB
+        - name: PL_SERVER_TLS_CERT
+          value: "/certs/tls.crt"
+        - name: PL_SERVER_TLS_KEY
+          value: "/certs/tls.key"
+        - name: PL_TLS_CA_CERT
+          value: "/certs/ca.crt"
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+        readinessProbe:
+          tcpSocket:
+            port: 50150
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: certs
+        secret:
+          secretName: cloud-proxy-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: profile-service
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    app: profile-server
+  ports:
+  - name: grpc
+    port: 50150
+    targetPort: 50150
+  - name: metrics
+    port: 50151
+    targetPort: 50151

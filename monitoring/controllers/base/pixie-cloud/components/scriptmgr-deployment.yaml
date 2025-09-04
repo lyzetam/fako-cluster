@@ -1,0 +1,92 @@
+# Script Manager Service - Manages PxL scripts and metadata
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scriptmgr-server
+  namespace: plc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scriptmgr-server
+  template:
+    metadata:
+      labels:
+        app: scriptmgr-server
+        name: scriptmgr-server
+    spec:
+      containers:
+      - name: scriptmgr-server
+        image: gcr.io/pixie-oss/pixie-dev-public/cloud/scriptmgr_server_image:0.1.7
+        ports:
+        - containerPort: 50300
+          name: grpc
+        - containerPort: 50301
+          name: metrics
+        env:
+        - name: PL_JWT_SIGNING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pl-deploy-secrets
+              key: jwt-signing-key
+        - name: PL_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_USERNAME
+        - name: PL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_PASSWORD
+        - name: PL_POSTGRES_HOSTNAME
+          value: "postgres.plc.svc.cluster.local"
+        - name: PL_POSTGRES_PORT
+          value: "5432"
+        - name: PL_POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_DB
+        - name: PL_SERVER_TLS_CERT
+          value: "/certs/tls.crt"
+        - name: PL_SERVER_TLS_KEY
+          value: "/certs/tls.key"
+        - name: PL_TLS_CA_CERT
+          value: "/certs/ca.crt"
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+        readinessProbe:
+          tcpSocket:
+            port: 50300
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: certs
+        secret:
+          secretName: cloud-proxy-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scriptmgr-service
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    app: scriptmgr-server
+  ports:
+  - name: grpc
+    port: 50300
+    targetPort: 50300
+  - name: metrics
+    port: 50301
+    targetPort: 50301

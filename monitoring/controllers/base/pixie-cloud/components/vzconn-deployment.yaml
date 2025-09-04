@@ -1,0 +1,133 @@
+# Vizier Connection Service - Handles vizier data plane connections
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vzconn-server
+  namespace: plc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vzconn-server
+  template:
+    metadata:
+      labels:
+        app: vzconn-server
+        name: vzconn-server
+    spec:
+      containers:
+      - name: vzconn-server
+        image: gcr.io/pixie-oss/pixie-dev-public/cloud/vzconn_server_image:0.1.7
+        ports:
+        - containerPort: 50800
+          name: grpc
+        - containerPort: 50801
+          name: metrics
+        env:
+        - name: PL_JWT_SIGNING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pl-deploy-secrets
+              key: jwt-signing-key
+        - name: PL_DEPLOY_KEY
+          value: "SELF-HOSTED"
+        - name: PL_DOMAIN_NAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-domain-config
+              key: PL_DOMAIN_NAME
+        - name: PL_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_USERNAME
+        - name: PL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_PASSWORD
+        - name: PL_POSTGRES_HOSTNAME
+          value: "postgres.plc.svc.cluster.local"
+        - name: PL_POSTGRES_PORT
+          value: "5432"
+        - name: PL_POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_DB
+        - name: PL_NATS_URL
+          value: "nats://nats.plc.svc.cluster.local:4222"
+        - name: PL_JETSTREAM_CLUSTER
+          value: "pixie-jetstream"
+        - name: PL_MAX_EXPECTED_CLOCK_SKEW
+          value: "2000"
+        - name: PL_RENEW_PERIOD
+          value: "7500"
+        - name: PL_SERVER_TLS_CERT
+          value: "/certs/tls.crt"
+        - name: PL_SERVER_TLS_KEY
+          value: "/certs/tls.key"
+        - name: PL_CLIENT_TLS_CERT
+          value: "/certs/tls.crt"
+        - name: PL_CLIENT_TLS_KEY
+          value: "/certs/tls.key"
+        - name: PL_TLS_CA_CERT
+          value: "/certs/ca.crt"
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+          limits:
+            memory: 1Gi
+            cpu: 1
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+        livenessProbe:
+          tcpSocket:
+            port: 50800
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 50800
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: certs
+        secret:
+          secretName: vzconn-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vzconn-service
+  namespace: plc
+spec:
+  type: LoadBalancer
+  selector:
+    app: vzconn-server
+  ports:
+  - name: grpc
+    port: 51800
+    targetPort: 50800
+    protocol: TCP
+  - name: metrics
+    port: 50801
+    targetPort: 50801
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vzconn-service-internal
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    app: vzconn-server
+  ports:
+  - name: grpc
+    port: 50800
+    targetPort: 50800
+    protocol: TCP

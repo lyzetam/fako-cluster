@@ -1,0 +1,130 @@
+# Pixie Cloud API Server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server
+  namespace: plc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-server
+  template:
+    metadata:
+      labels:
+        app: api-server
+        name: api-server
+    spec:
+      containers:
+      - name: api-server
+        image: gcr.io/pixie-oss/pixie-dev-public/cloud/api_server_image:0.1.7
+        ports:
+        - containerPort: 50200
+          name: http
+        - containerPort: 50201
+          name: metrics
+        env:
+        - name: PL_JWT_SIGNING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pl-deploy-secrets
+              key: jwt-signing-key
+        - name: PL_DATABASE_KEY
+          value: "CHANGE-THIS-DATABASE-KEY"
+        - name: PL_DOMAIN_NAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-domain-config
+              key: PL_DOMAIN_NAME
+        - name: PL_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_USERNAME
+        - name: PL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_PASSWORD
+        - name: PL_POSTGRES_HOSTNAME
+          value: "postgres.plc.svc.cluster.local"
+        - name: PL_POSTGRES_PORT
+          value: "5432"
+        - name: PL_POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_DB
+        - name: PL_REDIS_HOSTNAME
+          value: "redis.plc.svc.cluster.local"
+        - name: PL_REDIS_PORT
+          value: "6379"
+        - name: PL_ELASTIC_SERVICE
+          value: "http://pixie-es-http.plc.svc.cluster.local:9200"
+        - name: PL_ELASTIC_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-elastic-es-certs
+              key: username
+        - name: PL_ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-elastic-es-certs
+              key: password
+        - name: PL_AUTH_SERVICE
+          value: "auth-service.plc.svc.cluster.local:50100"
+        - name: PL_PROFILE_SERVICE
+          value: "profile-service.plc.svc.cluster.local:50150"
+        - name: PL_MD_SERVICE
+          value: "scriptmgr-service.plc.svc.cluster.local:50300"
+        - name: PL_CRON_SCRIPT_SERVICE
+          value: "cron-script-service.plc.svc.cluster.local:50350"
+        - name: PL_SERVER_TLS_CERT
+          value: "/certs/tls.crt"
+        - name: PL_SERVER_TLS_KEY
+          value: "/certs/tls.key"
+        - name: PL_TLS_CA_CERT
+          value: "/certs/ca.crt"
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+          limits:
+            memory: 1Gi
+            cpu: 1
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 50200
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 50200
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: certs
+        secret:
+          secretName: cloud-proxy-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    app: api-server
+  ports:
+  - name: http
+    port: 50200
+    targetPort: 50200
+  - name: metrics
+    port: 50201
+    targetPort: 50201

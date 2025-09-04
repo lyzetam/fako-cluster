@@ -1,0 +1,183 @@
+# Elastic Cloud on Kubernetes (ECK) Operator
+# Required for managing Elasticsearch clusters
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: elastic-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: elastic-operator
+rules:
+- apiGroups: [""]
+  resources:
+  - pods
+  - services
+  - endpoints
+  - events
+  - configmaps
+  - secrets
+  - persistentvolumeclaims
+  verbs: ["*"]
+- apiGroups: ["apps"]
+  resources:
+  - deployments
+  - statefulsets
+  - replicasets
+  verbs: ["*"]
+- apiGroups: ["batch"]
+  resources:
+  - jobs
+  verbs: ["*"]
+- apiGroups: ["policy"]
+  resources:
+  - poddisruptionbudgets
+  verbs: ["*"]
+- apiGroups: ["elasticsearch.k8s.elastic.co"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["kibana.k8s.elastic.co"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["apm.k8s.elastic.co"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["enterprisesearch.k8s.elastic.co"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["beat.k8s.elastic.co"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["agent.k8s.elastic.co"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["maps.k8s.elastic.co"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["storage.k8s.io"]
+  resources:
+  - storageclasses
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources:
+  - validatingwebhookconfigurations
+  - mutatingwebhookconfigurations
+  verbs: ["*"]
+- apiGroups: ["coordination.k8s.io"]
+  resources:
+  - leases
+  verbs: ["create", "get", "list", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: elastic-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: elastic-operator
+subjects:
+- kind: ServiceAccount
+  name: elastic-operator
+  namespace: elastic-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: elastic-operator
+  namespace: elastic-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elastic-operator
+  namespace: elastic-system
+  labels:
+    control-plane: elastic-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: elastic-operator
+  template:
+    metadata:
+      labels:
+        control-plane: elastic-operator
+    spec:
+      serviceAccountName: elastic-operator
+      containers:
+      - name: manager
+        image: docker.elastic.co/eck/eck-operator:2.10.0
+        args:
+        - manager
+        - --config=/conf/eck.yaml
+        env:
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: WEBHOOK_SECRET
+          value: elastic-webhook-server-cert
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 150Mi
+        ports:
+        - containerPort: 9443
+          name: https-webhook
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /conf
+          name: conf
+          readOnly: true
+      volumes:
+      - name: conf
+        configMap:
+          name: elastic-operator
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elastic-operator
+  namespace: elastic-system
+data:
+  eck.yaml: |
+    log-verbosity: 0
+    metrics-port: 0
+    container-registry: docker.elastic.co
+    max-concurrent-reconciles: 3
+    ca-cert-validity: 8760h
+    ca-cert-rotate-before: 24h
+    cert-validity: 8760h
+    cert-rotate-before: 24h
+    disable-telemetry: true
+    validate-storage-class: true
+    enable-webhook: true
+    webhook-port: 9443
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elastic-webhook-server
+  namespace: elastic-system
+spec:
+  selector:
+    control-plane: elastic-operator
+  ports:
+  - name: https
+    port: 443
+    targetPort: 9443
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: elastic-webhook-server-cert
+  namespace: elastic-system

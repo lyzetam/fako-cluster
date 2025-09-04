@@ -121,8 +121,10 @@ spec:
       # Self-hosted Pixie configuration
       clusterName: "fako-cluster"
       
-      # Point to self-hosted Pixie Cloud (deploy cloud first!)
+      # Point to self-hosted Pixie Cloud
+      # This will be the LoadBalancer IP/DNS of cloud-proxy-service
       cloudAddr: "dev.withpixie.dev:443"
+      deployKey: ""  # Not needed for self-hosted
       disableAutoUpdate: true
       useEtcdOperator: false
       

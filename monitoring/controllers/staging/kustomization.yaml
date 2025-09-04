@@ -8,3 +8,4 @@ resources:
   - alloy
   - metrics-server
   - pixie
+  - pixie-cloud

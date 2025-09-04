@@ -1,0 +1,74 @@
+# Job to create initial admin user in Kratos
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: create-admin-script
+  namespace: plc
+data:
+  create-admin.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Creating initial admin user..."
+    
+    # Wait for Kratos to be ready
+    echo "Waiting for Kratos to be ready..."
+    until curl -s http://kratos-admin.plc.svc.cluster.local:4434/health/ready; do
+      echo "Waiting for Kratos..."
+      sleep 5
+    done
+    
+    # Check if admin already exists
+    ADMIN_EXISTS=$(curl -s "http://kratos-admin.plc.svc.cluster.local:4434/admin/identities?page_size=100" | grep -c "admin@default.com" || true)
+    
+    if [ "$ADMIN_EXISTS" -gt "0" ]; then
+      echo "Admin user already exists. Skipping creation."
+      exit 0
+    fi
+    
+    # Create admin identity
+    echo "Creating admin identity..."
+    curl -X POST http://kratos-admin.plc.svc.cluster.local:4434/admin/identities \
+      -H 'Content-Type: application/json' \
+      -d '{
+        "schema_id": "default",
+        "traits": {
+          "email": "admin@default.com"
+        },
+        "credentials": {
+          "password": {
+            "config": {
+              "password": "admin"
+            }
+          }
+        }
+      }'
+    
+    echo "Admin user created successfully!"
+    echo "Email: admin@default.com"
+    echo "Password: admin"
+    echo "IMPORTANT: Change this password after first login!"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-admin
+  namespace: plc
+spec:
+  template:
+    metadata:
+      name: create-admin
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: create-admin
+        image: curlimages/curl:latest
+        command: ["/bin/sh", "/scripts/create-admin.sh"]
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: create-admin-script
+          defaultMode: 0755

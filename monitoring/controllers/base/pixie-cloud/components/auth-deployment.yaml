@@ -1,0 +1,474 @@
+# Pixie Cloud Auth Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: plc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        name: auth-service
+    spec:
+      containers:
+      - name: auth-service
+        image: gcr.io/pixie-oss/pixie-dev-public/cloud/auth_server_image:0.1.7
+        ports:
+        - containerPort: 50100
+          name: grpc
+        - containerPort: 50101
+          name: metrics
+        env:
+        - name: PL_JWT_SIGNING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pl-deploy-secrets
+              key: jwt-signing-key
+        - name: PL_DATABASE_KEY
+          value: "CHANGE-THIS-DATABASE-KEY"
+        - name: PL_DOMAIN_NAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-domain-config
+              key: PL_DOMAIN_NAME
+        - name: PL_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_USERNAME
+        - name: PL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_PASSWORD
+        - name: PL_POSTGRES_HOSTNAME
+          value: "postgres.plc.svc.cluster.local"
+        - name: PL_POSTGRES_PORT
+          value: "5432"
+        - name: PL_POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_DB
+        - name: PL_PROFILE_SERVICE
+          value: "profile-service.plc.svc.cluster.local:50150"
+        - name: PL_SERVER_TLS_CERT
+          value: "/certs/tls.crt"
+        - name: PL_SERVER_TLS_KEY
+          value: "/certs/tls.key"
+        - name: PL_TLS_CA_CERT
+          value: "/certs/ca.crt"
+        - name: PL_AUTH_MODE
+          value: "kratos_hydra"
+        - name: PL_KRATOS_ADMIN_URL
+          value: "http://kratos-admin.plc.svc.cluster.local:4434"
+        - name: PL_HYDRA_ADMIN_URL
+          value: "http://hydra-admin.plc.svc.cluster.local:4445"
+        - name: PL_HYDRA_PUBLIC_URL
+          value: "http://hydra-public.plc.svc.cluster.local:4444"
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+        readinessProbe:
+          tcpSocket:
+            port: 50100
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: certs
+        secret:
+          secretName: cloud-proxy-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    app: auth-service
+  ports:
+  - name: grpc
+    port: 50100
+    targetPort: 50100
+  - name: metrics
+    port: 50101
+    targetPort: 50101
+---
+# Kratos Identity Provider
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kratos
+  namespace: plc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kratos
+  template:
+    metadata:
+      labels:
+        app: kratos
+    spec:
+      initContainers:
+      - name: kratos-migrate
+        image: oryd/kratos:v1.0.0
+        args: ["migrate", "sql", "-e", "--yes"]
+        env:
+        - name: DSN
+          value: "postgres://$(PL_POSTGRES_USERNAME):$(PL_POSTGRES_PASSWORD)@postgres.plc.svc.cluster.local:5432/$(PL_POSTGRES_DB)?sslmode=disable"
+        - name: PL_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_USERNAME
+        - name: PL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_PASSWORD
+        - name: PL_POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_DB
+      containers:
+      - name: kratos
+        image: oryd/kratos:v1.0.0
+        args: ["serve", "all", "--config", "/etc/kratos/kratos.yml"]
+        ports:
+        - containerPort: 4433
+          name: public
+        - containerPort: 4434
+          name: admin
+        env:
+        - name: DSN
+          value: "postgres://$(PL_POSTGRES_USERNAME):$(PL_POSTGRES_PASSWORD)@postgres.plc.svc.cluster.local:5432/$(PL_POSTGRES_DB)?sslmode=disable"
+        - name: PL_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_USERNAME
+        - name: PL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_PASSWORD
+        - name: PL_POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_DB
+        - name: SECRETS_DEFAULT
+          valueFrom:
+            secretKeyRef:
+              name: pl-kratos-secrets
+              key: KRATOS_SECRETS_DEFAULT
+        - name: SECRETS_COOKIE
+          valueFrom:
+            secretKeyRef:
+              name: pl-kratos-secrets
+              key: KRATOS_SECRETS_COOKIE
+        - name: SECRETS_CIPHER
+          valueFrom:
+            secretKeyRef:
+              name: pl-kratos-secrets
+              key: KRATOS_SECRETS_CIPHER
+        volumeMounts:
+        - name: kratos-config
+          mountPath: /etc/kratos
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+      volumes:
+      - name: kratos-config
+        configMap:
+          name: kratos-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kratos-public
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    app: kratos
+  ports:
+  - name: public
+    port: 4433
+    targetPort: 4433
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kratos-admin
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    app: kratos
+  ports:
+  - name: admin
+    port: 4434
+    targetPort: 4434
+---
+# Hydra OAuth2 Provider
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hydra
+  namespace: plc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hydra
+  template:
+    metadata:
+      labels:
+        app: hydra
+    spec:
+      initContainers:
+      - name: hydra-migrate
+        image: oryd/hydra:v2.2.0
+        args: ["migrate", "sql", "-e", "--yes"]
+        env:
+        - name: DSN
+          value: "postgres://$(PL_POSTGRES_USERNAME):$(PL_POSTGRES_PASSWORD)@postgres.plc.svc.cluster.local:5432/$(PL_POSTGRES_DB)?sslmode=disable"
+        - name: PL_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_USERNAME
+        - name: PL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_PASSWORD
+        - name: PL_POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_DB
+      containers:
+      - name: hydra
+        image: oryd/hydra:v2.2.0
+        args: ["serve", "all", "--config", "/etc/hydra/hydra.yml"]
+        ports:
+        - containerPort: 4444
+          name: public
+        - containerPort: 4445
+          name: admin
+        env:
+        - name: DSN
+          value: "postgres://$(PL_POSTGRES_USERNAME):$(PL_POSTGRES_PASSWORD)@postgres.plc.svc.cluster.local:5432/$(PL_POSTGRES_DB)?sslmode=disable"
+        - name: PL_POSTGRES_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_USERNAME
+        - name: PL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_PASSWORD
+        - name: PL_POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: pl-db-secrets
+              key: PL_POSTGRES_DB
+        - name: SECRETS_SYSTEM
+          valueFrom:
+            secretKeyRef:
+              name: pl-hydra-secrets
+              key: SECRETS_SYSTEM
+        - name: OIDC_SUBJECT_IDENTIFIERS_SALT
+          valueFrom:
+            secretKeyRef:
+              name: pl-hydra-secrets
+              key: OIDC_SUBJECT_IDENTIFIERS_SALT
+        - name: OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT
+          valueFrom:
+            secretKeyRef:
+              name: pl-hydra-secrets
+              key: OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT
+        volumeMounts:
+        - name: hydra-config
+          mountPath: /etc/hydra
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+      volumes:
+      - name: hydra-config
+        configMap:
+          name: hydra-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hydra-public
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    app: hydra
+  ports:
+  - name: public
+    port: 4444
+    targetPort: 4444
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hydra-admin
+  namespace: plc
+spec:
+  type: ClusterIP
+  selector:
+    app: hydra
+  ports:
+  - name: admin
+    port: 4445
+    targetPort: 4445
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kratos-config
+  namespace: plc
+data:
+  kratos.yml: |
+    version: v0.13.0
+    dsn: memory
+    serve:
+      public:
+        base_url: https://dev.withpixie.dev/kratos/
+        cors:
+          enabled: true
+      admin:
+        base_url: http://kratos-admin.plc.svc.cluster.local:4434/
+    selfservice:
+      default_browser_return_url: https://dev.withpixie.dev/
+      allowed_return_urls:
+      - https://dev.withpixie.dev
+      methods:
+        password:
+          enabled: true
+      flows:
+        error:
+          ui_url: https://dev.withpixie.dev/error
+        settings:
+          ui_url: https://dev.withpixie.dev/settings
+          privileged_session_max_age: 15m
+        recovery:
+          enabled: true
+          ui_url: https://dev.withpixie.dev/recovery
+        verification:
+          enabled: true
+          ui_url: https://dev.withpixie.dev/verification
+          after:
+            default_browser_return_url: https://dev.withpixie.dev/
+        logout:
+          after:
+            default_browser_return_url: https://dev.withpixie.dev/login
+        login:
+          ui_url: https://dev.withpixie.dev/login
+          lifespan: 10m
+        registration:
+          lifespan: 10m
+          ui_url: https://dev.withpixie.dev/registration
+          after:
+            password:
+              hooks:
+              - hook: session
+    identity:
+      default_schema_id: default
+      schemas:
+      - id: default
+        url: file:///etc/kratos/identity.schema.json
+  identity.schema.json: |
+    {
+      "$id": "https://schemas.ory.sh/presets/kratos/quickstart/email-password/identity.schema.json",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Person",
+      "type": "object",
+      "properties": {
+        "traits": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "E-Mail",
+              "minLength": 3,
+              "ory.sh/kratos": {
+                "credentials": {
+                  "password": {
+                    "identifier": true
+                  }
+                },
+                "verification": {
+                  "via": "email"
+                },
+                "recovery": {
+                  "via": "email"
+                }
+              }
+            }
+          },
+          "required": ["email"],
+          "additionalProperties": false
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hydra-config
+  namespace: plc
+data:
+  hydra.yml: |
+    serve:
+      public:
+        cors:
+          enabled: true
+          allowed_origins:
+          - https://dev.withpixie.dev
+      cookies:
+        same_site_mode: Lax
+    urls:
+      self:
+        issuer: https://dev.withpixie.dev
+      consent: https://dev.withpixie.dev/api/auth/oauth/consent
+      login: https://dev.withpixie.dev/api/auth/oauth/login
+      logout: https://dev.withpixie.dev/api/auth/oauth/logout
+    ttl:
+      access_token: 1h
+      refresh_token: 720h
+      id_token: 1h
+      auth_code: 10m
+      consent_request_remember: 720h
