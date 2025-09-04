@@ -24,8 +24,12 @@ spec:
       # Use NVIDIA runtime for GPU support
       runtimeClassName: nvidia
       
-      # No special tolerations needed for Jetson
-      tolerations: []
+      # Tolerate the jetson taint to allow scheduling on Jetson nodes
+      tolerations:
+      - key: "node-type"
+        operator: "Equal"
+        value: "jetson"
+        effect: "NoSchedule"
 
       # Enable host memory access for large models
       hostIPC: true

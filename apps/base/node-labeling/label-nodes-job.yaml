@@ -87,6 +87,29 @@ spec:
             fi
           done
           
+          # Completely isolate Jetson nodes - prevent ALL pod scheduling
+          echo -e "\nCompletely isolating Jetson nodes - preventing ALL pod scheduling..."
+          for node in jetson01 jetson02; do
+            if kubectl get node $node > /dev/null 2>&1; then
+              echo -n "  Tainting $node with NoSchedule: "
+              if kubectl taint nodes $node node-type=jetson:NoSchedule --overwrite 2>&1; then
+                echo "✓"
+              else
+                echo "✗ (may already exist)"
+              fi
+              
+              echo -n "  Tainting $node with NoExecute: "
+              if kubectl taint nodes $node node-isolation=complete:NoExecute --overwrite 2>&1; then
+                echo "✓"
+              else
+                echo "✗ (may already exist)"
+              fi
+              
+              echo -n "  Labeling $node as isolated: "
+              apply_label $node "node-isolation=complete"
+            fi
+          done
+          
           # Show results
           echo ""
           echo "=== Final Node Labels Summary ==="

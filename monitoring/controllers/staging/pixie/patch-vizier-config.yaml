@@ -1,0 +1,95 @@
+# Staging-specific patch for Pixie/Vizier to resolve health check issues
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: pixie-operator
+  namespace: pixie-system
+spec:
+  values:
+    # Additional vizier configuration to resolve health check issues
+    vizier:
+      # Increase resource requests to ensure proper scheduling
+      kelvin:
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+      
+      # Enhanced PEM configuration for better stability
+      pem:
+        resources:
+          requests:
+            memory: "3Gi"
+            cpu: "1500m" 
+          limits:
+            memory: "6Gi"
+            cpu: "3000m"
+        
+        # Add health check configuration
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 50300
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /healthz  
+            port: 50300
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      
+      # Enhanced NATS configuration
+      nats:
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      
+      # Service configuration to ensure proper networking
+      service:
+        type: ClusterIP
+        annotations:
+          service.kubernetes.io/topology-aware-hints: "auto"
+      
+      # Add pod disruption budget for stability
+      podDisruptionBudget:
+        enabled: true
+        minAvailable: 1
+        
+      # Enhanced startup configuration
+      startupProbe:
+        httpGet:
+          path: /healthz
+          port: 50300
+        initialDelaySeconds: 90
+        periodSeconds: 10
+        timeoutSeconds: 10
+        failureThreshold: 30  # Allow up to 5 minutes for startup
+        
+      # Network policy for proper communication
+      networkPolicy:
+        enabled: true
+        ingress:
+          - from:
+            - namespaceSelector:
+                matchLabels:
+                  name: pixie-system
+            ports:
+            - protocol: TCP
+              port: 50300
+            - protocol: TCP  
+              port: 50400
+            - protocol: TCP
+              port: 50401
