@@ -35,7 +35,7 @@ spec:
           - matchExpressions:
             - key: kubernetes.io/hostname
               operator: In
-              values: ["aitower", "pglenovo01", "pglenovo02", "thinkpad01", "zz-macbookpro"]
+              values: ["aitower", "pglenovo01", "pglenovo02", "thinkpad01"]
             - key: kubernetes.io/arch
               operator: In
               values: ["amd64"]
@@ -77,7 +77,7 @@ spec:
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: ["aitower", "pglenovo01", "pglenovo02", "thinkpad01", "zz-macbookpro"]
+                values: ["aitower", "pglenovo01", "pglenovo02", "thinkpad01"]
               - key: kubernetes.io/arch
                 operator: In
                 values: ["amd64"]

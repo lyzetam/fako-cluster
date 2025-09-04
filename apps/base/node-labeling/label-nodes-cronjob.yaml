@@ -1,0 +1,146 @@
+# apps/base/node-labeling/label-nodes-cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: label-nodes-for-voice-pipeline
+  namespace: node-labeling
+spec:
+  # Run every 15 minutes to ensure nodes stay properly labeled
+  schedule: "*/15 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 300
+      template:
+        spec:
+          serviceAccountName: node-labeler
+          restartPolicy: Never
+          containers:
+          - name: labeler
+            image: bitnami/kubectl:1.33
+            command:
+            - /bin/bash
+            - -c
+            - |
+              echo "=== Node Labeling for Voice Pipeline ($(date)) ==="
+              
+              # Function to safely apply label
+              apply_label() {
+                local node=$1
+                local label=$2
+                echo -n "  Applying $label to $node: "
+                if kubectl label nodes "$node" "$label" --overwrite 2>&1; then
+                  echo "✓"
+                else
+                  echo "✗ (may already exist)"
+                fi
+              }
+              
+              # Remove labels from old playground node if it exists
+              echo "Removing labels from old playground node (if exists)..."
+              if kubectl get node playground > /dev/null 2>&1; then
+                kubectl label nodes playground nvidia.com/gpu- --overwrite 2>/dev/null || true
+                kubectl label nodes playground hardware.tier- --overwrite 2>/dev/null || true
+                kubectl label nodes playground node-type- --overwrite 2>/dev/null || true
+                kubectl label nodes playground voice-pipeline- --overwrite 2>/dev/null || true
+                echo "✓ Cleaned up playground node"
+              fi
+              
+              # Label yeezyai as dual-GPU node with ALL required labels
+              echo "Labeling yeezyai node with complete GPU labels..."
+              if kubectl get node yeezyai > /dev/null 2>&1; then
+                # Essential GPU labels
+                apply_label yeezyai "nvidia.com/gpu=true"
+                apply_label yeezyai "node-role.kubernetes.io/gpu-worker=true"
+                
+                # Hardware tier and type
+                apply_label yeezyai "hardware.tier=dual-gpu"
+                apply_label yeezyai "node-type=gpu-compute"
+                
+                # GPU-specific labels
+                apply_label yeezyai "gpu.nvidia.present=true"
+                apply_label yeezyai "accelerator=nvidia-gpu"
+                apply_label yeezyai "feature.node.kubernetes.io/pci-10de.present=true"
+                
+                # Dual GPU specific labels
+                apply_label yeezyai "gpu.count=2"
+                apply_label yeezyai "gpu.rtx5070=true"
+                apply_label yeezyai "gpu.rtx3050=true"
+                
+                # Optional: Voice pipeline
+                # apply_label yeezyai "voice-pipeline=enabled"
+              else
+                echo "ERROR: yeezyai node not found!"
+              fi
+              
+              # Label high-performance nodes (x86-only)
+              echo -e "\nLabeling high-performance x86 nodes..."
+              for node in pgbee aitower; do
+                if kubectl get node $node > /dev/null 2>&1; then
+                  echo "Labeling $node as high-performance..."
+                  apply_label $node "hardware.tier=high-performance"
+                  apply_label $node "voice-pipeline=enabled"
+                fi
+              done
+              
+              # Label standard x86 nodes
+              echo -e "\nLabeling standard x86 nodes..."
+              for node in pglenovo01 pglenovo02 thinkpad01; do
+                if kubectl get node $node > /dev/null 2>&1; then
+                  echo "Labeling $node as standard x86..."
+                  apply_label $node "hardware.tier=standard"
+                  apply_label $node "node-architecture=x86"
+                fi
+              done
+              
+              # Completely isolate ARM nodes - prevent ALL pod scheduling on ARM-based nodes
+              echo -e "\nCompletely isolating ARM nodes - preventing ALL pod scheduling..."
+              for node in zz-macbookpro jetson01 jetson02 pgmac01 pgmac02; do
+                if kubectl get node $node > /dev/null 2>&1; then
+                  echo -n "  Tainting $node with NoSchedule: "
+                  if kubectl taint nodes $node node-type=arm:NoSchedule --overwrite 2>&1; then
+                    echo "✓"
+                  else
+                    echo "✗ (may already exist)"
+                  fi
+                  
+                  echo -n "  Tainting $node with NoExecute: "
+                  if kubectl taint nodes $node node-isolation=complete:NoExecute --overwrite 2>&1; then
+                    echo "✓"
+                  else
+                    echo "✗ (may already exist)"
+                  fi
+                  
+                  echo -n "  Labeling $node as isolated: "
+                  apply_label $node "node-isolation=complete"
+                  
+                  echo -n "  Labeling $node as ARM-based: "
+                  apply_label $node "node-architecture=arm"
+                fi
+              done
+              
+              # Show results
+              echo ""
+              echo "=== Final Node Labels Summary ==="
+              echo ""
+              echo "Dual-GPU Node (yeezyai):"
+              kubectl get node yeezyai --show-labels | grep -E "(nvidia|gpu|voice)" || echo "yeezyai node not found"
+              echo ""
+              echo "High-Performance Nodes:"
+              kubectl get nodes -l hardware.tier=high-performance --show-labels | grep voice-pipeline || echo "No high-performance nodes labeled"
+              echo ""
+              echo "All Nodes:"
+              kubectl get nodes -L hardware.tier,voice-pipeline,nvidia.com/gpu,gpu.count
+              
+              echo ""
+              echo "ARM Node Isolation Status:"
+              for node in zz-macbookpro jetson01 jetson02 pgmac01 pgmac02; do
+                if kubectl get node $node > /dev/null 2>&1; then
+                  echo "--- $node ---"
+                  kubectl get pods --all-namespaces -o wide --field-selector spec.nodeName=$node | wc -l | xargs -I {} echo "  Pods on node: {} (should be 0)"
+                fi
+              done
+              
+              echo ""
+              echo "=== Node labeling completed at $(date) ==="
