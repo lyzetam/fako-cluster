@@ -7,3 +7,5 @@ resources:
   - alloy
   - gpu-monitoring
   - metrics-server
+  - pixie
+  - tempo

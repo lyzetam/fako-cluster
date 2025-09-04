@@ -112,6 +112,20 @@ spec:
           jsonData:
             maxLines: 1000
             timeout: 60
+        - name: Tempo
+          type: tempo
+          access: proxy
+          url: http://tempo.tempo.svc.cluster.local:3100
+          jsonData:
+            httpMethod: GET
+            serviceMap:
+              datasourceUid: 'prometheus'
+        - name: Pixie
+          type: pixie-datasource
+          access: proxy
+          url: http://pixie-proxy.pixie-system.svc.cluster.local
+          jsonData:
+            clusterName: fako-cluster
         
       # Sidecar configuration
       sidecar:
@@ -206,4 +220,3 @@ spec:
 #             # The secret must be created manually in the namespace.
 #             # This is a common practice to ensure secure communication with Grafana.
 #             # Customize the secret name based on your naming conventions or requirements.
-

@@ -37,6 +37,17 @@ spec:
       clustering:
         enabled: true
       
+      # Enable OTLP ports for traces
+      extraPorts:
+        - name: otlp-grpc
+          port: 4317
+          targetPort: 4317
+          protocol: TCP
+        - name: otlp-http
+          port: 4318
+          targetPort: 4318
+          protocol: TCP
+      
       # Mount configuration - use the correct format
       mounts:
         # Host filesystem mounts

@@ -82,12 +82,58 @@ data:
     }
     
     // ============================================
-    // Metrics Collection - Disabled
+    // OpenTelemetry Traces Pipeline  
     // ============================================
-    // Prometheus is already scraping metrics via ServiceMonitors
-    // so we don't need Alloy to remote write metrics
     
-    // Self monitoring only
+    // OTLP Receiver - accepts traces from applications
+    otelcol.receiver.otlp "traces" {
+      grpc {
+        endpoint = "0.0.0.0:4317"
+      }
+      
+      http {
+        endpoint = "0.0.0.0:4318"
+      }
+      
+      output {
+        traces = [otelcol.processor.batch.traces.input]
+      }
+    }
+    
+    // Batch processor - improves performance by batching traces
+    otelcol.processor.batch "traces" {
+      output {
+        traces = [otelcol.processor.resource.traces.input]
+      }
+    }
+    
+    // Resource processor - add cluster and service metadata
+    otelcol.processor.resource "traces" {
+      attributes {
+        action = "upsert"
+        key = "cluster"
+        value = "fako-cluster"
+      }
+      
+      output {
+        traces = [otelcol.exporter.otlp.tempo.input]
+      }
+    }
+    
+    // OTLP Exporter - sends traces to Tempo
+    otelcol.exporter.otlp "tempo" {
+      client {
+        endpoint = "http://tempo.tempo.svc.cluster.local:4317"
+        tls {
+          insecure = true
+        }
+      }
+    }
+    
+    // ============================================
+    // Metrics Collection - Self monitoring only
+    // ============================================
+    
     prometheus.exporter.self "alloy" {}
     
     discovery.relabel "alloy_self" {

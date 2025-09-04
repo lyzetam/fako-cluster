@@ -1,0 +1,144 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tempo
+  namespace: tempo
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: tempo
+      version: "^1.10.0"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: tempo
+      interval: 12h
+  install:
+    crds: Create
+  upgrade:
+    crds: CreateReplace
+  values:
+    # Single binary deployment mode for simplicity
+    tempo:
+      searchEnabled: true
+      
+      # Server configuration
+      server:
+        http_listen_port: 3100
+        grpc_listen_port: 9095
+        
+      # Distributor configuration (receives traces)
+      distributor:
+        receivers:
+          otlp:
+            protocols:
+              grpc:
+                endpoint: 0.0.0.0:4317
+              http:
+                endpoint: 0.0.0.0:4318
+      
+      # Storage configuration
+      storage:
+        trace:
+          backend: local
+          local:
+            path: /var/tempo/traces
+          pool:
+            max_workers: 100
+            queue_depth: 10000
+      
+      # Retention policy
+      compactor:
+        compaction:
+          compaction_window: 1h
+          max_compaction_objects: 1000000
+          block_retention: 168h  # 7 days
+          compacted_block_retention: 24h
+      
+      # Query frontend
+      query_frontend:
+        search:
+          duration_slo: 5s
+          throughput_bytes_slo: 1.073741824e+09  # 1GB
+        trace_by_id:
+          duration_slo: 5s
+    
+    # Deployment configuration
+    serviceAccount:
+      create: true
+      name: tempo
+    
+    # Resources for single binary
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+    
+    # Persistence for traces
+    persistence:
+      enabled: true
+      storageClassName: "nfs-csi-v2"
+      size: 50Gi
+      accessModes:
+        - ReadWriteOnce
+    
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 3100
+      
+    # Additional services for OTLP
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        prometheus: kube-prometheus
+        
+    # Config for receiving traces
+    config: |
+      server:
+        http_listen_port: 3100
+        grpc_listen_port: 9095
+        
+      distributor:
+        receivers:
+          otlp:
+            protocols:
+              grpc:
+                endpoint: 0.0.0.0:4317
+              http:
+                endpoint: 0.0.0.0:4318
+                        
+      ingester:
+        max_block_duration: 5m
+        
+      compactor:
+        working_directory: /var/tempo/compactor
+        compaction:
+          compaction_window: 1h
+          max_compaction_objects: 1000000
+          block_retention: 168h
+          compacted_block_retention: 24h
+          
+      storage:
+        trace:
+          backend: local
+          local:
+            path: /var/tempo/traces
+          pool:
+            max_workers: 100
+            queue_depth: 10000
+            
+      query_frontend:
+        search:
+          duration_slo: 5s
+          throughput_bytes_slo: 1.073741824e+09
+        trace_by_id:
+          duration_slo: 5s
+          
+      querier:
+        frontend_worker:
+          frontend_address: tempo-query-frontend:9095

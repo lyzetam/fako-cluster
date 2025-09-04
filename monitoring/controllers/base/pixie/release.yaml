@@ -1,0 +1,116 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: pixie-operator
+  namespace: pixie-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: pixie-operator-chart
+      version: "^0.1.0"
+      sourceRef:
+        kind: HelmRepository
+        name: pixie
+        namespace: pixie-system
+      interval: 12h
+  install:
+    crds: Create
+  upgrade:
+    crds: CreateReplace
+  values:
+    # Deploy pixie only on x86_64 Linux nodes (exclude Jetson ARM64 and Mac)
+    nodeSelector:
+      kubernetes.io/arch: amd64
+      kubernetes.io/os: linux
+    
+    # Pixie operator configuration
+    operator:
+      image:
+        registry: gcr.io/pixie-oss/pixie-dev
+        repository: operator
+        tag: latest
+      
+      # Resource limits for the operator
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "100m"
+        limits:
+          memory: "1Gi"
+          cpu: "1000m"
+    
+    # Vizier (data plane) configuration
+    vizier:
+      # Deploy vizier agents only on selected nodes
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      
+      # Exclude nodes with these taints/labels
+      tolerations: []
+      
+      # Resource configuration for PEMs (Pixie Edge Modules)
+      pem:
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+      
+      # Kelvin (query broker) resources
+      kelvin:
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      
+      # Nats (message queue) resources  
+      nats:
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      
+      # Data access settings
+      dataAccess: "Full"
+      
+      # Deploy in Community Cloud mode (can be changed to self-hosted)
+      deployKey: ""  # Empty means community cloud
+      clusterName: "fako-cluster"
+      
+      # Disable data collection on sensitive namespaces
+      excludeNamespaces:
+        - "kube-system"
+        - "pixie-system" 
+        - "flux-system"
+        - "keycloak"
+        
+      # Enable automatic data retention (7 days default)
+      dataRetention: "7d"
+      
+    # Security settings
+    securityContext:
+      runAsNonRoot: false  # Pixie requires privileged access for eBPF
+      allowPrivilegeEscalation: true
+      
+    # Service account with cluster admin for eBPF operations
+    serviceAccount:
+      create: true
+      name: pixie-operator
+      
+    # RBAC for cluster-wide access
+    rbac:
+      create: true
+      
+    # Network policies (optional)
+    networkPolicy:
+      enabled: false
