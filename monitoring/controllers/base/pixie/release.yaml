@@ -118,9 +118,14 @@ spec:
       # Data access settings
       dataAccess: "Full"
       
-      # Deploy in Community Cloud mode (can be changed to self-hosted)
-      deployKey: ""  # Empty means community cloud
+      # Self-hosted Pixie configuration
+      # deployKey not needed for self-hosted mode
       clusterName: "fako-cluster"
+      
+      # Point to self-hosted Pixie Cloud instead of withpixie.ai
+      cloudAddr: "dev.withpixie.dev:443"  # Replace with your Pixie Cloud address
+      disableAutoUpdate: true
+      useEtcdOperator: false
       
       # Disable data collection on sensitive namespaces
       excludeNamespaces:

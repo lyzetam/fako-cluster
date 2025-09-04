@@ -1,4 +1,4 @@
-# Staging-specific patch for Pixie/Vizier to resolve health check issues
+# Staging-specific patch for self-hosted Pixie/Vizier
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -6,8 +6,12 @@ metadata:
   namespace: pixie-system
 spec:
   values:
-    # Additional vizier configuration to resolve health check issues
+    # Self-hosted Pixie vizier configuration
     vizier:
+      # Disable cloud connector until Pixie Cloud is deployed
+      cloudConnector:
+        enabled: false
+      
       # Increase resource requests to ensure proper scheduling
       kelvin:
         resources:

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: plc
+  labels:
+    name: plc
+    app.kubernetes.io/name: pixie-cloud
+    app.kubernetes.io/component: cloud-infrastructure
