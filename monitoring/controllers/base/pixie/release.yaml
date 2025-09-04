@@ -27,31 +27,21 @@ spec:
     # Ensure pixie doesn't get scheduled on tainted Jetson nodes
     tolerations: []
     
-    # Node affinity to prefer high-performance nodes
+    # Node affinity to run ONLY on specific non-ARM nodes
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
           - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: ["aitower", "pglenovo01", "pglenovo02", "thinkpad01", "zz-macbookpro"]
             - key: kubernetes.io/arch
               operator: In
               values: ["amd64"]
             - key: kubernetes.io/os
               operator: In
               values: ["linux"]
-            - key: node-type
-              operator: NotIn
-              values: ["jetson"]
-            - key: node-isolation
-              operator: NotIn
-              values: ["complete"]
-        preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          preference:
-            matchExpressions:
-            - key: hardware.tier
-              operator: In
-              values: ["high-performance", "dual-gpu"]
     
     # Pixie operator configuration
     operator:
@@ -79,31 +69,21 @@ spec:
       # Exclude nodes with these taints/labels
       tolerations: []
       
-      # Node affinity to avoid Jetson nodes and prefer high-performance nodes
+      # Node affinity to run ONLY on specific non-ARM nodes
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: ["aitower", "pglenovo01", "pglenovo02", "thinkpad01", "zz-macbookpro"]
               - key: kubernetes.io/arch
                 operator: In
                 values: ["amd64"]
               - key: kubernetes.io/os
                 operator: In
                 values: ["linux"]
-              - key: node-type
-                operator: NotIn
-                values: ["jetson"]
-              - key: node-isolation
-                operator: NotIn
-                values: ["complete"]
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            preference:
-              matchExpressions:
-              - key: hardware.tier
-                operator: In
-                values: ["high-performance", "dual-gpu"]
       
       # Resource configuration for PEMs (Pixie Edge Modules)
       pem:
