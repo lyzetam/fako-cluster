@@ -10,7 +10,6 @@ spec:
   
   # Resource configurations
   pemMemoryLimit: "1Gi"  # Minimum recommended
-  pemMemoryRequest: "512Mi"
   
   # Optional: Set specific resource limits for other components
   # You can uncomment and adjust these as needed:
