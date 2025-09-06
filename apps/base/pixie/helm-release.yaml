@@ -15,7 +15,7 @@ spec:
         namespace: flux-system
       interval: 1m
   values:
-    cloudAddr: getcosmic.ai
+    cloudAddr: getcosmic.ai:443
     # deployKey will be provided via ExternalSecret
     deployKey: ""  # This will be overridden by valuesFrom below
     clusterName: "staging-cluster"  # Change this to your cluster name
