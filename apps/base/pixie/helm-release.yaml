@@ -22,34 +22,14 @@ spec:
     deployOLM: false  # OLM is already installed
     pemMemoryLimit: "1Gi"
     
-    # Additional configurations
-    dataAccess:
-      resources:
-        limits:
-          memory: "512Mi"
-        requests:
-          memory: "256Mi"
+    # Data access mode
+    dataAccess: "Full"  # Options: "Full" or "Restricted"
     
-    kelvin:
-      resources:
-        limits:
-          memory: "512Mi"
-        requests:
-          memory: "256Mi"
-    
-    queryBroker:
-      resources:
-        limits:
-          memory: "512Mi"
-        requests:
-          memory: "256Mi"
-    
-    cloudConnector:
-      resources:
-        limits:
-          memory: "512Mi"
-        requests:
-          memory: "256Mi"
+    # Resource configurations for components
+    dataAccessMemoryLimit: "512Mi"
+    kelvinMemoryLimit: "512Mi"
+    queryBrokerMemoryLimit: "512Mi"
+    cloudConnectorMemoryLimit: "512Mi"
   
   valuesFrom:
   - kind: Secret
