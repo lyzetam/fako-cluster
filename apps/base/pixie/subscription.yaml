@@ -5,7 +5,7 @@ metadata:
   namespace: px-operator
 spec:
   channel: stable
-  name: pixie-operator-bundle
+  name: pixie-operator
   source: pixie-operator-catalog
   sourceNamespace: px-operator
   installPlanApproval: Automatic
