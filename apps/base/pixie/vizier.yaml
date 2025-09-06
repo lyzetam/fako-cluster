@@ -5,7 +5,6 @@ metadata:
   namespace: pl
 spec:
   version: latest
-  deployOLM: false  # We're managing OLM separately
   cloudAddr: getcosmic.ai
   disableAutoUpdate: false
   
