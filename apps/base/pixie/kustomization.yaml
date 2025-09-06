@@ -3,10 +3,10 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
+  - aws-secret-store.yaml
   - helm-repository.yaml
+  - external-secret-deploy-key.yaml
   - helm-release.yaml
-  # Uncomment when you have the deploy key in AWS Secrets Manager
-  # - external-secret-deploy-key.yaml
 
 labels:
 - pairs:

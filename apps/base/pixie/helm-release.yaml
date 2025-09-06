@@ -51,9 +51,8 @@ spec:
         requests:
           memory: "256Mi"
   
-  # Uncomment this section once you have the deploy key in AWS Secrets Manager
-  # valuesFrom:
-  # - kind: Secret
-  #   name: pixie-deploy-key
-  #   valuesKey: deploy-key
-  #   targetPath: deployKey
+  valuesFrom:
+  - kind: Secret
+    name: pixie-deploy-key
+    valuesKey: deploy-key
+    targetPath: deployKey
