@@ -5,8 +5,8 @@ metadata:
   namespace: px-operator
 spec:
   sourceType: grpc
-  # Pixie operator index image for OLM
-  image: gcr.io/pixie-oss/pixie-prod/operator/catalog_prod:1.0.29
+  # Using the community operators catalog which includes Pixie
+  image: quay.io/operatorhubio/catalog:latest
   displayName: Pixie Operator Catalog
   updateStrategy:
     registryPoll:
