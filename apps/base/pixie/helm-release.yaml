@@ -1,0 +1,59 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: pixie
+  namespace: pl
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: pixie-operator-chart
+      version: "*"  # You can pin to a specific version if needed
+      sourceRef:
+        kind: HelmRepository
+        name: pixie-operator
+        namespace: flux-system
+      interval: 1m
+  values:
+    cloudAddr: getcosmic.ai
+    # deployKey will be provided via ExternalSecret
+    deployKey: ""  # This will be overridden by valuesFrom below
+    clusterName: "staging-cluster"  # Change this to your cluster name
+    deployOLM: false  # OLM is already installed
+    pemMemoryLimit: "1Gi"
+    
+    # Additional configurations
+    dataAccess:
+      resources:
+        limits:
+          memory: "512Mi"
+        requests:
+          memory: "256Mi"
+    
+    kelvin:
+      resources:
+        limits:
+          memory: "512Mi"
+        requests:
+          memory: "256Mi"
+    
+    queryBroker:
+      resources:
+        limits:
+          memory: "512Mi"
+        requests:
+          memory: "256Mi"
+    
+    cloudConnector:
+      resources:
+        limits:
+          memory: "512Mi"
+        requests:
+          memory: "256Mi"
+  
+  # Uncomment this section once you have the deploy key in AWS Secrets Manager
+  # valuesFrom:
+  # - kind: Secret
+  #   name: pixie-deploy-key
+  #   valuesKey: deploy-key
+  #   targetPath: deployKey

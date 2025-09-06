@@ -2,13 +2,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - namespace-pl.yaml
-  - namespace-px-operator.yaml
-  - catalogsource.yaml
-  - operatorgroup.yaml
-  - subscription.yaml
-  - rbac.yaml
-  - vizier.yaml
+  - namespace.yaml
+  - helm-repository.yaml
+  - helm-release.yaml
+  # Uncomment when you have the deploy key in AWS Secrets Manager
+  # - external-secret-deploy-key.yaml
 
 labels:
 - pairs:
