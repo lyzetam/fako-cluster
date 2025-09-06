@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: px-operator
-  labels:
-    app.kubernetes.io/name: pixie-operator
-    app.kubernetes.io/part-of: observability
-    app.kubernetes.io/managed-by: kustomize

@@ -1,8 +1,0 @@
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: pixie-operator-group
-  namespace: px-operator
-spec:
-  targetNamespaces:
-  - pl
