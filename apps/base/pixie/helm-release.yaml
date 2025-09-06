@@ -18,7 +18,7 @@ spec:
     cloudAddr: getcosmic.ai:443
     # deployKey will be provided via ExternalSecret
     deployKey: ""  # This will be overridden by valuesFrom below
-    clusterName: "staging-cluster"  # Change this to your cluster name
+    clusterName: "Fako-cluster"  # Change this to your cluster name
     deployOLM: false  # OLM is already installed
     pemMemoryLimit: "1Gi"
     
