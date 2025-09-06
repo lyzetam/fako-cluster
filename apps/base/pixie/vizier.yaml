@@ -1,0 +1,48 @@
+apiVersion: px.dev/v1alpha1
+kind: Vizier
+metadata:
+  name: pixie
+  namespace: pl
+spec:
+  version: latest
+  deployOLM: false  # We're managing OLM separately
+  cloudAddr: getcosmic.ai
+  disableAutoUpdate: false
+  
+  # Resource configurations
+  pemMemoryLimit: "1Gi"  # Minimum recommended
+  pemMemoryRequest: "512Mi"
+  
+  # Pod configurations
+  podAnnotations:
+    cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+  
+  # Optional: Set specific resource limits for other components
+  # You can uncomment and adjust these as needed:
+  # dataAccess:
+  #   resources:
+  #     limits:
+  #       memory: "512Mi"
+  #     requests:
+  #       memory: "256Mi"
+  # 
+  # kelvin:
+  #   resources:
+  #     limits:
+  #       memory: "512Mi"
+  #     requests:
+  #       memory: "256Mi"
+  # 
+  # queryBroker:
+  #   resources:
+  #     limits:
+  #       memory: "512Mi"
+  #     requests:
+  #       memory: "256Mi"
+  # 
+  # cloudConnector:
+  #   resources:
+  #     limits:
+  #       memory: "512Mi"
+  #     requests:
+  #       memory: "256Mi"

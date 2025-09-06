@@ -28,6 +28,9 @@ resources:
   # Dashboard
   - headlamp  # Kubernetes dashboard with Kubescape plugin
   
+  # Observability
+  - pixie     # eBPF-based observability with Cosmic Cloud
+  
   # AI/ML stack with GPU support
   - ollama         
   # - ollama-jetson   # Separate deployment for Jetson Orin Nano
