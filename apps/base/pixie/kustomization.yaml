@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
+  - aws-credentials-secret.yaml
   - aws-secret-store.yaml
   - helm-repository.yaml
   - external-secret-deploy-key.yaml
