@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: piper-tcp-probe
+  namespace: monitoring
+spec:
+  module: tcp_wyoming
+  targets:
+    staticConfig:
+      static:
+      - piper.piper.svc.cluster.local:10200
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+  interval: 30s
+  scrapeTimeout: 10s

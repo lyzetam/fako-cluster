@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: ollama-http-probe
+  namespace: monitoring
+spec:
+  module: http_ollama
+  targets:
+    staticConfig:
+      static:
+      - http://ollama-gpu.ollama.svc.cluster.local:11434
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+  interval: 30s
+  scrapeTimeout: 30s

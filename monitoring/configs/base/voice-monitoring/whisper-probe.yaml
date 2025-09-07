@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: whisper-tcp-probe
+  namespace: monitoring
+spec:
+  module: tcp_wyoming
+  targets:
+    staticConfig:
+      static:
+      - whisper-gpu.whisper.svc.cluster.local:10300
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+  interval: 30s
+  scrapeTimeout: 10s
