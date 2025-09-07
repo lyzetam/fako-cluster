@@ -7,3 +7,4 @@ resources:
   - alloy
   - gpu-monitoring
   - metrics-server
+  - blackbox-exporter

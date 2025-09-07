@@ -82,102 +82,20 @@ data:
     }
     
     // ============================================
-    // Voice Pipeline Network Flow Monitoring
+    // Metrics Collection - Disabled
     // ============================================
+    // Prometheus is already scraping metrics via ServiceMonitors
+    // so we don't need Alloy to remote write metrics
     
-    // Discovery for voice services
-    discovery.kubernetes "voice_services" {
-      role = "pod"
-      namespaces {
-        names = ["whisper", "ollama", "piper", "openwakeword"]
-      }
-    }
-    
-    // Filter to only voice pipeline pods
-    discovery.relabel "voice_pods" {
-      targets = discovery.kubernetes.voice_services.targets
-      
-      rule {
-        source_labels = ["__meta_kubernetes_pod_phase"]
-        regex = "Running"
-        action = "keep"
-      }
-      
-      rule {
-        source_labels = ["__meta_kubernetes_namespace"]
-        action = "replace"
-        target_label = "namespace"
-      }
-      
-      rule {
-        source_labels = ["__meta_kubernetes_pod_name"]
-        action = "replace"
-        target_label = "pod"
-      }
-      
-      rule {
-        source_labels = ["__meta_kubernetes_pod_label_app"]
-        action = "replace"
-        target_label = "service"
-      }
-    }
-    
-    // Network connection tracking metrics
-    prometheus.exporter.blackbox "voice_pipeline_flow" {
-      config_file = "/etc/alloy/blackbox.yml"
-      target {
-        name = "whisper_to_ollama"
-        address = "ollama-gpu.ollama.svc.cluster.local:11434"
-        module = "tcp_connect"
-      }
-      target {
-        name = "ollama_to_piper"
-        address = "piper.piper.svc.cluster.local:10200"
-        module = "tcp_connect"
-      }
-    }
-    
-    // Custom metrics for voice pipeline latency
-    prometheus.scrape "voice_pipeline_metrics" {
-      targets = prometheus.exporter.blackbox.voice_pipeline_flow.targets
-      forward_to = [prometheus.remote_write.default.receiver]
-      scrape_interval = "15s"
-      metrics_path = "/metrics"
-      
-      // Add pipeline flow labels
-      metric_relabeling {
-        rule {
-          source_labels = ["__name__"]
-          regex = "probe_duration_seconds"
-          target_label = "pipeline_segment"
-          replacement = "${1}"
-        }
-      }
-    }
-    
-    // ============================================
-    // Metrics Remote Write
-    // ============================================
-    
-    prometheus.remote_write "default" {
-      endpoint {
-        url = "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
-      }
-      
-      external_labels = {
-        cluster = "production",
-        subsystem = "voice_pipeline",
-      }
-    }
-    
-    // Self monitoring
+    // Self monitoring only
     prometheus.exporter.self "alloy" {}
     
-    prometheus.scrape "alloy_self" {
+    discovery.relabel "alloy_self" {
       targets = prometheus.exporter.self.alloy.targets
-      forward_to = [prometheus.remote_write.default.receiver]
-      job_name = "alloy"
-      scrape_interval = "30s"
+      rule {
+        target_label = "job"
+        replacement = "alloy"
+      }
     }
 
 
