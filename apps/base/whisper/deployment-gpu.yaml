@@ -21,16 +21,6 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-      nodeSelector:
-        kubernetes.io/hostname: aitower
-        nvidia.com/gpu.present: "true"
-      
-      tolerations:
-      - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
-      
-      runtimeClassName: nvidia
       
       containers:
       - name: whisper
@@ -39,8 +29,6 @@ spec:
         - containerPort: 10300
           protocol: TCP
         env:
-        - name: NVIDIA_VISIBLE_DEVICES
-          value: "1"  # RTX 3050 (GPU index 1)
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: OMP_NUM_THREADS
