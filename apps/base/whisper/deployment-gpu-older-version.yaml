@@ -1,4 +1,5 @@
-# apps/base/whisper/deployment-gpu.yaml
+# apps/base/whisper/deployment-gpu-older-version.yaml
+# Alternative deployment using an older image version that may be compatible with older CUDA drivers
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,7 +25,8 @@ spec:
       
       containers:
       - name: whisper
-        image: ghcr.io/slackr31337/wyoming-whisper-gpu:v2025.01.4
+        # Using an older version that should be compatible with CUDA 11.x drivers
+        image: ghcr.io/slackr31337/wyoming-whisper-gpu:v2024.12.1
         ports:
         - containerPort: 10300
           protocol: TCP
@@ -41,10 +43,13 @@ spec:
           value: "1"  # Clear CUDA cache after every batch
         - name: TORCH_CUDA_ARCH_LIST
           value: "7.5;8.0;8.6"  # Optimize for common GPU architectures
+        # Additional environment variables for CUDA compatibility
         - name: CUDA_VISIBLE_DEVICES
-          value: "1"  # Use GPU 1 (RTX 3050)
+          value: "0"
         - name: NVIDIA_VISIBLE_DEVICES
-          value: "1"  # Ensure we use the RTX 3050
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
         envFrom:
         - configMapRef:
             name: whisper-gpu-configmap
