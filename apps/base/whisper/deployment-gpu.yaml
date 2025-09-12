@@ -16,6 +16,7 @@ spec:
       labels:
         app: whisper-gpu
     spec:
+      runtimeClassName: nvidia  # Required for GPU access with GPU operator
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
