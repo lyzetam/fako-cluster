@@ -39,6 +39,15 @@ spec:
         value: nvidia
       - name: CONTAINERD_SET_AS_DEFAULT
         value: "true"
+      # Fix for K3s containerd socket path
+      volumeMounts:
+      - name: containerd-socket
+        mountPath: /runtime/sock-dir
+      volumes:
+      - name: containerd-socket
+        hostPath:
+          path: /run/k3s/containerd
+          type: Directory
     
     # Device plugin configuration
     devicePlugin:

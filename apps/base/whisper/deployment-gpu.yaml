@@ -17,6 +17,14 @@ spec:
         app: whisper-gpu
     spec:
       runtimeClassName: nvidia  # Required for GPU access with GPU operator
+      hostIPC: true  # Required for GPU access
+      nodeSelector:
+        kubernetes.io/hostname: aitower
+        nvidia.com/gpu.present: "true"
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -42,10 +50,6 @@ spec:
           value: "1"  # Clear CUDA cache after every batch
         - name: TORCH_CUDA_ARCH_LIST
           value: "7.5;8.0;8.6"  # Optimize for common GPU architectures
-        - name: CUDA_VISIBLE_DEVICES
-          value: "1"  # Use GPU 1 (RTX 3050)
-        - name: NVIDIA_VISIBLE_DEVICES
-          value: "1"  # Ensure we use the RTX 3050
         envFrom:
         - configMapRef:
             name: whisper-gpu-configmap
