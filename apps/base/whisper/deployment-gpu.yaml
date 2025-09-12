@@ -40,7 +40,7 @@ spec:
           protocol: TCP
         env:
         - name: NVIDIA_VISIBLE_DEVICES
-          value: "GPU-a1dbfc0b-1ddd-5fad-3bd8-37dc291c9f63"  # RTX 3050
+          value: "1"  # RTX 3050 (GPU index 1)
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: OMP_NUM_THREADS
@@ -63,11 +63,11 @@ spec:
         
         resources:
           requests:
-            memory: "7Gi"
+            memory: "4Gi"
             cpu: "3000m"
             nvidia.com/gpu: 1  # Request 1 GPU (RTX 3050 via NVIDIA_VISIBLE_DEVICES)
           limits:
-            memory: "9Gi"
+            memory: "5Gi"
             cpu: "4000m"
             nvidia.com/gpu: 1  # Limit to 1 GPU
         
