@@ -9,21 +9,21 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: openwakeword
-  minReplicas: 1
-  maxReplicas: 3  # Scale up to 3 replicas for 4+ concurrent audio streams
+  minReplicas: 3  # Start with 3 replicas to handle 5+ concurrent streams
+  maxReplicas: 6  # Scale up to 6 replicas for peak concurrent audio streams
   metrics:
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 50  # Aggressive scaling for real-time audio processing
+        averageUtilization: 40  # More aggressive scaling for real-time audio processing
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 60  # Memory-based scaling for audio buffering
+        averageUtilization: 50  # More aggressive memory-based scaling for audio buffering
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 300  # 5 minutes before scaling down
