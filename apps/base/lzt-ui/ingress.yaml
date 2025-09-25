@@ -1,0 +1,48 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lztechnology-website
+  namespace: lztechnology
+  labels:
+    app: lztechnology-website
+  annotations:
+    # For k3s with Traefik
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/redirect-entry-point: https
+    traefik.ingress.kubernetes.io/redirect-permanent: "true"
+    # SSL/TLS configuration
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Security headers
+    traefik.ingress.kubernetes.io/custom-response-headers: |
+      X-Frame-Options: DENY
+      X-Content-Type-Options: nosniff
+      X-XSS-Protection: 1; mode=block
+      Strict-Transport-Security: max-age=31536000; includeSubDomains
+      Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com fonts.googleapis.com; font-src 'self' fonts.googleapis.com fonts.gstatic.com cdnjs.cloudflare.com; img-src 'self' data:; object-src 'none'; base-uri 'self';
+spec:
+  tls:
+  - hosts:
+    - lztechnology.io
+    - www.lztechnology.io
+    secretName: lztechnology-tls
+  rules:
+  - host: lztechnology.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: lztechnology-website
+            port:
+              number: 80
+  - host: www.lztechnology.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: lztechnology-website
+            port:
+              number: 80

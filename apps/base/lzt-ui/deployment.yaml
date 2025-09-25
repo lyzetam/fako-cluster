@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lztechnology-website
+  namespace: lztechnology
+  labels:
+    app: lztechnology-website
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: lztechnology-website
+  template:
+    metadata:
+      labels:
+        app: lztechnology-website
+    spec:
+      containers:
+      - name: website
+        image: lztechnology/website:IMAGE_TAG
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: APP_ENV
+          value: "production"
+        - name: APP_DEBUG
+          value: "false"
+        - name: MAIL_HOST
+          valueFrom:
+            secretKeyRef:
+              name: lztechnology-secrets
+              key: mail_host
+        - name: MAIL_PORT
+          valueFrom:
+            secretKeyRef:
+              name: lztechnology-secrets
+              key: mail_port
+        - name: MAIL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: lztechnology-secrets
+              key: mail_username
+        - name: MAIL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: lztechnology-secrets
+              key: mail_password
+        - name: MAIL_ENCRYPTION
+          valueFrom:
+            secretKeyRef:
+              name: lztechnology-secrets
+              key: mail_encryption
+        - name: MAIL_FROM_ADDRESS
+          valueFrom:
+            secretKeyRef:
+              name: lztechnology-secrets
+              key: mail_from_address
+        - name: MAIL_FROM_NAME
+          value: "LZ Technology LLC"
+        - name: MAIL_TO_ADDRESS
+          value: "info@lztechnology.io"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 33  # www-data user
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: cache-volume
+          mountPath: /var/www/html/cache
+        - name: logs-volume
+          mountPath: /var/www/html/logs
+      volumes:
+      - name: cache-volume
+        emptyDir: {}
+      - name: logs-volume
+        emptyDir: {}
+      securityContext:
+        fsGroup: 33  # www-data group
+      restartPolicy: Always
