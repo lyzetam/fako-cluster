@@ -57,3 +57,6 @@ resources:
   
   # Documentation
   - blog            # Hugo-based documentation site
+  
+  # Corporate Website
+  - lzt-ui          # LZ Technology corporate website

@@ -193,14 +193,6 @@ The distributed AI infrastructure serves my entire family with proper governance
 
 This demonstrates enterprise AI governance principles applied at home scale – proving that responsible AI doesn't require cloud providers.
 
-### 🏥 Health & Fitness: Data-Driven Wellness
-
-The Oura integration showcases full-stack development:
-- **Collector Service**: Smart backfill logic that only fetches new data
-- **PostgreSQL Storage**: Time-series optimized schema
-- **Streamlit Dashboard**: Real-time visualization of sleep, activity, and readiness
-
-[Check out the application code here →](https://github.com/lyzetam/fakocluster-apps)
 
 ### 🔐 Security: Enterprise Patterns at Home
 
@@ -272,7 +264,6 @@ Cloudflare provides secure external access without exposing my home IP:
 
 Most homelabs have Grafana. Mine has:
 
-- **Custom Dashboards**: GPU utilization, voice pipeline latency, backup status
 - **Distributed Tracing**: OpenTelemetry integration for request flow analysis
 - **Log Aggregation**: Every log searchable, correlated with metrics
 - **Proactive Alerts**: Know about issues before they impact services
@@ -379,14 +370,10 @@ This cluster is a living laboratory. It's where I test ideas before implementing
 
 ## Connect and Contribute
 
-### Found a Bug? Have an Idea?
 
-This project thrives on collaboration. Whether you're fixing a typo or proposing a new architecture pattern, contributions are welcome.
+### Other things
 
-### The Code Behind the Magic
 
-- **Infrastructure**: You're looking at it!
-- **Applications**: [github.com/lyzetam/fakocluster-apps](https://github.com/lyzetam/fakocluster-apps)
 - **MLX Distributed**: [github.com/lyzetam/mlx-distributed-inference](https://github.com/lyzetam/mlx-distributed-inference)
 
 ---

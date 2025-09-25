@@ -1,0 +1,11 @@
+# apps/base/lzt-ui/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: lztechnology
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - aws-secret-store.yaml
+  - external-secret-lzt.yaml
