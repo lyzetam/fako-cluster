@@ -9,3 +9,4 @@ resources:
   - ingress.yaml
   - aws-secret-store.yaml
   - external-secret-lzt.yaml
+  - create-docker-registry-secret-job.yaml

@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: website
-        image: lztechnology/website:IMAGE_TAG
+        image: lzetam/website:latest
         ports:
         - containerPort: 8080
           name: http
@@ -106,6 +106,8 @@ spec:
         emptyDir: {}
       - name: logs-volume
         emptyDir: {}
+      imagePullSecrets:
+      - name: dockerhub-registry
       securityContext:
         fsGroup: 33  # www-data group
       restartPolicy: Always
