@@ -31,36 +31,6 @@ spec:
           value: "production"
         - name: APP_DEBUG
           value: "false"
-        - name: MAIL_HOST
-          valueFrom:
-            secretKeyRef:
-              name: lztechnology-secrets
-              key: mail_host
-        - name: MAIL_PORT
-          valueFrom:
-            secretKeyRef:
-              name: lztechnology-secrets
-              key: mail_port
-        - name: MAIL_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: lztechnology-secrets
-              key: mail_username
-        - name: MAIL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: lztechnology-secrets
-              key: mail_password
-        - name: MAIL_ENCRYPTION
-          valueFrom:
-            secretKeyRef:
-              name: lztechnology-secrets
-              key: mail_encryption
-        - name: MAIL_FROM_ADDRESS
-          valueFrom:
-            secretKeyRef:
-              name: lztechnology-secrets
-              key: mail_from_address
         - name: MAIL_FROM_NAME
           value: "LZ Technology LLC"
         - name: MAIL_TO_ADDRESS
