@@ -85,11 +85,11 @@ data:
 
     ingress:
     - hostname: lztechnology.io
-      service: http://lztechnology-website:8080
+      service: http://lztechnology-website:80
     - hostname: www.lztechnology.io
-      service: http://lztechnology-website:8080
+      service: http://lztechnology-website:80
     - hostname: lzt-ui.lztechnology.io
-      service: http://lztechnology-website:8080
+      service: http://lztechnology-website:80
 
     # This rule sends traffic to the built-in hello-world HTTP server. This can help debug connectivity
     # issues. If hello.example.com resolves and tunnel.example.com does not, then the problem is
