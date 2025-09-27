@@ -97,10 +97,10 @@ spec:
           
           echo "Downloading models for RTX 5060..."
           
-          # PRIORITY 1: qwen3:8b - Primary Default Model
+          # PRIORITY 1: llama3.1:8b - Primary Default Model
           echo ""
           echo "=== PRIMARY DEFAULT MODEL ==="
-          ollama pull qwen3:8b || echo "Failed qwen3:8b"
+          ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
           
           # PRIORITY 2: Home Assistant specialized models
           echo ""
@@ -124,7 +124,7 @@ spec:
           # PRIORITY 4: Medium models - RTX 5060 can handle these well
           echo ""
           echo "=== MEDIUM MODELS (7-8B) ==="
-          ollama pull llama3.1:8b || echo "Failed llama3.1:8b"
+          ollama pull qwen3:8b || echo "Failed qwen3:8b"
           ollama pull deepseek-coder:6.7b-instruct || echo "Failed deepseek-coder:6.7b-instruct"
           
           # PRIORITY 4.5: Enhanced DeepSeek R1 Coder for autonomous agents
@@ -155,22 +155,22 @@ spec:
           echo "Model download complete."
           ollama list
           
-          # Pre-load qwen3:8b model into GPU memory and keep for 24h
+          # Pre-load llama3.1:8b model into GPU memory and keep for 24h
           echo ""
           echo "=== PRE-LOADING PRIMARY MODEL ==="
-          echo "Pre-loading qwen3:8b model into GPU memory..."
-          ollama run qwen3:8b "Initialize model in GPU memory" || echo "Failed to pre-load qwen3:8b"
+          echo "Pre-loading llama3.1:8b model into GPU memory..."
+          ollama run llama3.1:8b "Initialize model in GPU memory" || echo "Failed to pre-load llama3.1:8b"
           
-          echo "qwen3:8b model loaded with 24h keep-alive (OLLAMA_KEEP_ALIVE=24h from config)"
+          echo "llama3.1:8b model loaded with 24h keep-alive (OLLAMA_KEEP_ALIVE=24h from config)"
           echo "Model will remain in GPU memory for 24 hours"
           
           while true; do
             sleep 600
             echo "Model manager heartbeat..."
-            # Verify qwen3:8b is still loaded
-            ollama list | grep -q "qwen3:8b" || {
-              echo "Primary model qwen3:8b not found, reloading..."
-              ollama run qwen3:8b "Reload into GPU memory" > /dev/null 2>&1
+            # Verify llama3.1:8b is still loaded
+            ollama list | grep -q "llama3.1:8b" || {
+              echo "Primary model llama3.1:8b not found, reloading..."
+              ollama run llama3.1:8b "Reload into GPU memory" > /dev/null 2>&1
             }
           done
         
