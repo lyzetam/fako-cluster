@@ -39,6 +39,6 @@ data:
   OLLAMA_MAX_LOADED_MODELS: "1"  # Can keep more models in GPU memory with RTX 5070
   GOMAXPROCS: "8"
   
-  # Memory Management - Extended for qwen3:4b default model
+  # Memory Management - Extended for qwen3:8b default model
   OLLAMA_KEEP_ALIVE: "24h"  # Keep models loaded for 24 hours
   OLLAMA_MODELS_UNLOAD_AFTER_IDLE: "86400"  # 24 hours in seconds
