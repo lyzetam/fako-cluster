@@ -46,9 +46,9 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: sync
-            image: bitnami/kubectl:latest
+            image: alpine/k8s:1.28.4
             command:
-            - /bin/bash
+            - /bin/sh
             - -c
             - |
               # Get the base URL from the secret
