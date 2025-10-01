@@ -9,3 +9,4 @@ resources:
   - metrics-server
   - blackbox-exporter
   - nrdot-collector
+  - newrelic-pixie

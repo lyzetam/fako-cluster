@@ -29,7 +29,7 @@ resources:
   - headlamp  # Kubernetes dashboard with Kubescape plugin
   
   # Observability
-  - pixie     # eBPF-based observability with Cosmic Cloud
+  # - pixie     # Now deployed via New Relic in monitoring/controllers
   
   # AI/ML stack with GPU support
   - ollama         

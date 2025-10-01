@@ -8,3 +8,4 @@ resources:
   - alloy
   - blackbox-exporter
   - nrdot-collector
+  - newrelic-pixie

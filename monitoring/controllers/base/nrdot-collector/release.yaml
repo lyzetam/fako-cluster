@@ -46,9 +46,9 @@ spec:
     nri-kube-events:
       enabled: true
     
-    # Logging
+    # Logging (disabled - using Loki instead for cost savings)
     newrelic-logging:
-      enabled: true
+      enabled: false
     
     # Pixie integration (disabled - using separate Pixie deployment)
     newrelic-pixie:

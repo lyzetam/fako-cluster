@@ -14,49 +14,36 @@ spec:
         kind: HelmRepository
         name: grafana
         namespace: loki-stack
+  install:
+    crds: Create
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
   values:
-    # Use Distributed mode instead of SingleBinary
-    deploymentMode: Distributed
+    # Use single binary deployment for simplicity
+    deploymentMode: SingleBinary
     
     loki:
+      # Disable auth
       auth_enabled: false
       
-      # Server configuration
-      server:
-        http_listen_port: 3100
-        grpc_listen_port: 9095
-        log_level: info
-      
-      # Common config for distributed mode
+      # Common config with replication_factor: 1 for single binary
       commonConfig:
-        replication_factor: 3  # Use 3 for better reliability
-        ring:
-          kvstore:
-            store: memberlist  # Use memberlist for distributed coordination
+        replication_factor: 1
       
-      # Memberlist configuration
-      memberlist:
-        join_members:
-          - loki-memberlist:7946  # This service will be created automatically
-        dead_node_reclaim_time: 30s
-        gossip_to_dead_nodes_time: 15s
-        left_ingesters_timeout: 30s
-        bind_addr: 
-          - "${POD_IP}"
-        bind_port: 7946
-      
-      # Storage configuration
+      # Configure storage - REQUIRED for filesystem
       storage:
         type: filesystem
         bucketNames:
           chunks: chunks
           ruler: ruler
           admin: admin
-        filesystem:
-          chunks_directory: /var/loki/chunks
-          rules_directory: /var/loki/rules
       
-      # Schema config
+      # Schema config  
       schemaConfig:
         configs:
           - from: "2024-01-01"
@@ -66,169 +53,35 @@ spec:
             index:
               prefix: loki_index_
               period: 24h
-      
-      # Limits configuration
-      limits_config:
-        enforce_metric_name: false
-        reject_old_samples: true
-        reject_old_samples_max_age: 168h
-        max_cache_freshness_per_query: 10m
-        retention_period: 744h  # 31 days
-        max_structured_metadata_size: 64KB
-        max_structured_metadata_entries_count: 128
-        ingestion_rate_mb: 10
-        ingestion_burst_size_mb: 20
-        max_query_parallelism: 32
-      
-      # Runtime config
-      runtime_config:
-        file: /etc/loki/runtime-config/runtime-config.yaml
     
-    # Backend component (compactor, querier, query-scheduler, distributor)
+    # Single Binary specific configuration
+    singleBinary:
+      replicas: 1
+      
+      # Persistence configuration
+      persistence:
+        enabled: true
+        storageClass: nfs-csi-v2
+        size: 100Gi
+      
+      # Resources
+      resources:
+        requests:
+          cpu: 500m
+          memory: 1Gi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+    
+    # Disable microservices mode components
     backend:
-      replicas: 2  # Run 2 replicas for HA
-      persistence:
-        enabled: true
-        storageClass: nfs-csi-v2
-        size: 20Gi
-      resources:
-        requests:
-          cpu: 500m
-          memory: 1Gi
-        limits:
-          cpu: 2
-          memory: 2Gi
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app.kubernetes.io/component: backend
-              topologyKey: kubernetes.io/hostname
+      replicas: 0
     
-    # Read path components
     read:
-      replicas: 2
-      persistence:
-        enabled: true
-        storageClass: nfs-csi-v2
-        size: 20Gi
-      resources:
-        requests:
-          cpu: 500m
-          memory: 1Gi
-        limits:
-          cpu: 2
-          memory: 2Gi
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                labelSelector:
-                  matchLabels:
-                    app.kubernetes.io/component: read
-                topologyKey: kubernetes.io/hostname
+      replicas: 0
     
-    # Write path components
     write:
-      replicas: 3  # 3 replicas to match replication_factor
-      persistence:
-        enabled: true
-        storageClass: nfs-csi-v2
-        size: 50Gi  # More storage for write path
-      resources:
-        requests:
-          cpu: 1
-          memory: 2Gi
-        limits:
-
-
-
-
-# apiVersion: helm.toolkit.fluxcd.io/v2
-# kind: HelmRelease
-# metadata:
-#   name: loki
-#   namespace: loki-stack
-# spec:
-#   interval: 30m
-#   chart:
-#     spec:
-#       chart: loki
-#       version: "6.30.1"
-#       sourceRef:
-#         kind: HelmRepository
-#         name: grafana
-#         namespace: loki-stack
-#   install:
-#     crds: Create
-#     createNamespace: true
-#     remediation:
-#       retries: 3
-#   upgrade:
-#     crds: CreateReplace
-#     remediation:
-#       retries: 3
-#   values:
-#     # Use single binary deployment for simplicity
-#     deploymentMode: SingleBinary
-    
-#     loki:
-#       # Disable auth
-#       auth_enabled: false
-      
-#       # Common config with replication_factor: 1 for single binary
-#       commonConfig:
-#         replication_factor: 1
-      
-#       # Configure storage - REQUIRED for filesystem
-#       storage:
-#         type: filesystem
-#         bucketNames:
-#           chunks: chunks
-#           ruler: ruler
-#           admin: admin
-      
-#       # Schema config  
-#       schemaConfig:
-#         configs:
-#           - from: "2024-01-01"
-#             store: tsdb
-#             object_store: filesystem
-#             schema: v13
-#             index:
-#               prefix: loki_index_
-#               period: 24h
-    
-#     # Single Binary specific configuration
-#     singleBinary:
-#       replicas: 1
-      
-#       # Persistence configuration
-#       persistence:
-#         enabled: true
-#         storageClass: nfs-csi-v2
-#         size: 100Gi
-      
-#       # Resources
-#       resources:
-#         requests:
-#           cpu: 500m
-#           memory: 1Gi
-#         limits:
-#           cpu: 1000m
-#           memory: 2Gi
-    
-#     # Disable microservices mode components
-#     backend:
-#       replicas: 0
-    
-#     read:
-#       replicas: 0
-    
-#     write:
-#       replicas: 0
+      replicas: 0
     
 #     # Gateway configuration
 #     gateway:
@@ -276,4 +129,3 @@ spec:
 #       create: true
 #       name: loki
 #       automountServiceAccountToken: true
-
