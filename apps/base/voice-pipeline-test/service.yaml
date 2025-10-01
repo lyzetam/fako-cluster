@@ -5,6 +5,12 @@ metadata:
   namespace: voice-pipeline-test
   labels:
     app: voice-pipeline-test
+  annotations:
+    # New Relic Prometheus scraping annotations
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+    newrelic.io/scrape: "true"
 spec:
   type: ClusterIP
   selector:
