@@ -8,7 +8,7 @@ spec:
   chart:
     spec:
       chart: nri-bundle
-      version: ">=5.0.0"
+      version: ">=5.0.96"
       sourceRef:
         kind: HelmRepository
         name: newrelic
