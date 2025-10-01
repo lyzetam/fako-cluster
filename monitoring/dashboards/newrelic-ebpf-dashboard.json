@@ -1,0 +1,677 @@
+{
+  "name": "eBPF Observability - Fako Cluster",
+  "description": "Comprehensive eBPF metrics dashboard powered by Pixie - Network performance, HTTP traffic, DNS queries, and service dependencies",
+  "permissions": "PUBLIC_READ_WRITE",
+  "pages": [
+    {
+      "name": "HTTP & API Performance",
+      "description": "HTTP request metrics captured via eBPF",
+      "widgets": [
+        {
+          "title": "HTTP Requests per Second",
+          "layout": {
+            "column": 1,
+            "row": 1,
+            "width": 4,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT rate(count(*), 1 second) AS 'Requests/sec' WHERE instrumentation.provider = 'pixie' AND span.kind = 'server' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "HTTP Request Rate by Service",
+          "layout": {
+            "column": 5,
+            "row": 1,
+            "width": 4,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT rate(count(*), 1 second) AS 'Requests/sec' WHERE instrumentation.provider = 'pixie' AND span.kind = 'server' FACET service.name TIMESERIES AUTO LIMIT 10"
+              }
+            ]
+          }
+        },
+        {
+          "title": "HTTP Response Latency (P95)",
+          "layout": {
+            "column": 9,
+            "row": 1,
+            "width": 4,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT percentile(duration.ms, 95) AS 'P95 Latency (ms)' WHERE instrumentation.provider = 'pixie' AND span.kind = 'server' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "HTTP Error Rate",
+          "layout": {
+            "column": 1,
+            "row": 4,
+            "width": 4,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT filter(count(*), WHERE http.statusCode >= 400) / count(*) * 100 AS 'Error %' WHERE instrumentation.provider = 'pixie' AND span.kind = 'server' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Top Slowest HTTP Endpoints",
+          "layout": {
+            "column": 5,
+            "row": 4,
+            "width": 4,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.table"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT average(duration.ms) AS 'Avg Latency (ms)', percentile(duration.ms, 95) AS 'P95 (ms)', count(*) AS 'Requests' WHERE instrumentation.provider = 'pixie' AND span.kind = 'server' FACET http.method, http.url LIMIT 20"
+              }
+            ]
+          }
+        },
+        {
+          "title": "HTTP Status Code Distribution",
+          "layout": {
+            "column": 9,
+            "row": 4,
+            "width": 4,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.pie"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT count(*) WHERE instrumentation.provider = 'pixie' AND span.kind = 'server' FACET http.statusCode"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Request Latency Distribution",
+          "layout": {
+            "column": 1,
+            "row": 7,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.histogram"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT histogram(duration.ms, width: 50, buckets: 20) WHERE instrumentation.provider = 'pixie' AND span.kind = 'server'"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Requests by HTTP Method",
+          "layout": {
+            "column": 7,
+            "row": 7,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.bar"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT count(*) WHERE instrumentation.provider = 'pixie' AND span.kind = 'server' FACET http.method"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Network Performance",
+      "description": "Network traffic and TCP connection metrics from eBPF",
+      "widgets": [
+        {
+          "title": "Network Throughput (Bytes/sec)",
+          "layout": {
+            "column": 1,
+            "row": 1,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Metric SELECT rate(sum(k8s.pod.network.rx_bytes), 1 second) AS 'Bytes Received/sec', rate(sum(k8s.pod.network.tx_bytes), 1 second) AS 'Bytes Sent/sec' WHERE instrumentation.provider = 'pixie' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Active TCP Connections",
+          "layout": {
+            "column": 7,
+            "row": 1,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Metric SELECT uniqueCount(connection.id) AS 'Active Connections' WHERE instrumentation.provider = 'pixie' AND protocol = 'tcp' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Network Traffic by Pod",
+          "layout": {
+            "column": 1,
+            "row": 4,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.table"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Metric SELECT sum(k8s.pod.network.rx_bytes)/1024/1024 AS 'MB Received', sum(k8s.pod.network.tx_bytes)/1024/1024 AS 'MB Sent' WHERE instrumentation.provider = 'pixie' FACET pod.name, namespace.name LIMIT 20"
+              }
+            ]
+          }
+        },
+        {
+          "title": "TCP Retransmissions",
+          "layout": {
+            "column": 7,
+            "row": 4,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Metric SELECT sum(tcp.retransmits) AS 'Retransmissions' WHERE instrumentation.provider = 'pixie' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Connection Errors",
+          "layout": {
+            "column": 1,
+            "row": 7,
+            "width": 4,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.billboard"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Metric SELECT sum(tcp.connection.failures) AS 'Failed Connections' WHERE instrumentation.provider = 'pixie'"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Network Packet Loss Rate",
+          "layout": {
+            "column": 5,
+            "row": 7,
+            "width": 4,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Metric SELECT sum(network.packets.dropped) / sum(network.packets.total) * 100 AS 'Packet Loss %' WHERE instrumentation.provider = 'pixie' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Top Bandwidth Consumers",
+          "layout": {
+            "column": 9,
+            "row": 7,
+            "width": 4,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.bar"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Metric SELECT (sum(k8s.pod.network.rx_bytes) + sum(k8s.pod.network.tx_bytes))/1024/1024 AS 'Total MB' WHERE instrumentation.provider = 'pixie' FACET pod.name LIMIT 10"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "DNS & Service Discovery",
+      "description": "DNS query metrics and service discovery insights",
+      "widgets": [
+        {
+          "title": "DNS Queries per Second",
+          "layout": {
+            "column": 1,
+            "row": 1,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT rate(count(*), 1 second) AS 'DNS Queries/sec' WHERE instrumentation.provider = 'pixie' AND name LIKE 'dns%' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "DNS Response Time (P95)",
+          "layout": {
+            "column": 7,
+            "row": 1,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT percentile(duration.ms, 95) AS 'P95 Latency (ms)' WHERE instrumentation.provider = 'pixie' AND name LIKE 'dns%' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Top Queried Domains",
+          "layout": {
+            "column": 1,
+            "row": 4,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.table"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT count(*) AS 'Query Count', average(duration.ms) AS 'Avg Latency (ms)' WHERE instrumentation.provider = 'pixie' AND name LIKE 'dns%' FACET dns.query LIMIT 20"
+              }
+            ]
+          }
+        },
+        {
+          "title": "DNS Query Failures",
+          "layout": {
+            "column": 7,
+            "row": 4,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT filter(count(*), WHERE error.message IS NOT NULL) AS 'Failed Queries' WHERE instrumentation.provider = 'pixie' AND name LIKE 'dns%' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "DNS Response Codes",
+          "layout": {
+            "column": 1,
+            "row": 7,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.pie"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT count(*) WHERE instrumentation.provider = 'pixie' AND name LIKE 'dns%' FACET dns.response.code"
+              }
+            ]
+          }
+        },
+        {
+          "title": "DNS Queries by Source Pod",
+          "layout": {
+            "column": 7,
+            "row": 7,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.bar"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT count(*) AS 'Queries' WHERE instrumentation.provider = 'pixie' AND name LIKE 'dns%' FACET pod.name LIMIT 15"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Service Dependencies",
+      "description": "Service-to-service communication and dependency mapping",
+      "widgets": [
+        {
+          "title": "Service Communication Map",
+          "layout": {
+            "column": 1,
+            "row": 1,
+            "width": 12,
+            "height": 4
+          },
+          "visualization": {
+            "id": "viz.service-map"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT count(*) WHERE instrumentation.provider = 'pixie'"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Top Service-to-Service Connections",
+          "layout": {
+            "column": 1,
+            "row": 5,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.table"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT count(*) AS 'Requests', average(duration.ms) AS 'Avg Latency (ms)' WHERE instrumentation.provider = 'pixie' AND span.kind = 'client' FACET service.name, peer.service LIMIT 20"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Inter-Service Error Rate",
+          "layout": {
+            "column": 7,
+            "row": 5,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT filter(count(*), WHERE error.message IS NOT NULL) / count(*) * 100 AS 'Error %' WHERE instrumentation.provider = 'pixie' AND span.kind = 'client' TIMESERIES AUTO"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Service Call Volume",
+          "layout": {
+            "column": 1,
+            "row": 8,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.bar"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT count(*) WHERE instrumentation.provider = 'pixie' FACET service.name LIMIT 15"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Database Connections by Service",
+          "layout": {
+            "column": 7,
+            "row": 8,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.table"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Span SELECT count(*) AS 'Queries', average(duration.ms) AS 'Avg Latency (ms)' WHERE instrumentation.provider = 'pixie' AND (db.system IS NOT NULL OR peer.service LIKE '%postgres%' OR peer.service LIKE '%mysql%' OR peer.service LIKE '%redis%') FACET service.name, db.system LIMIT 20"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pod & Container Metrics",
+      "description": "Pod-level performance and resource utilization",
+      "widgets": [
+        {
+          "title": "CPU Usage by Pod",
+          "layout": {
+            "column": 1,
+            "row": 1,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Metric SELECT average(k8s.pod.cpu.usage) WHERE instrumentation.provider = 'pixie' FACET pod.name TIMESERIES AUTO LIMIT 10"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Memory Usage by Pod",
+          "layout": {
+            "column": 7,
+            "row": 1,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM Metric SELECT average(k8s.pod.memory.usage)/1024/1024 AS 'Memory MB' WHERE instrumentation.provider = 'pixie' FACET pod.name TIMESERIES AUTO LIMIT 10"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Pod Restart Count",
+          "layout": {
+            "column": 1,
+            "row": 4,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.table"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM K8sPodSample SELECT latest(restartCount) AS 'Restarts' WHERE clusterName = 'Fako-cluster' FACET podName, namespaceName ORDER BY restartCount DESC LIMIT 20"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Pods by Phase",
+          "layout": {
+            "column": 7,
+            "row": 4,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.pie"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM K8sPodSample SELECT uniqueCount(podName) WHERE clusterName = 'Fako-cluster' FACET status"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Container CPU Throttling",
+          "layout": {
+            "column": 1,
+            "row": 7,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM K8sContainerSample SELECT average(cpuThrottledTimePercent) WHERE clusterName = 'Fako-cluster' FACET podName TIMESERIES AUTO LIMIT 10"
+              }
+            ]
+          }
+        },
+        {
+          "title": "Top CPU Consumers",
+          "layout": {
+            "column": 7,
+            "row": 7,
+            "width": 6,
+            "height": 3
+          },
+          "visualization": {
+            "id": "viz.bar"
+          },
+          "rawConfiguration": {
+            "nrqlQueries": [
+              {
+                "accountId": 0,
+                "query": "FROM K8sContainerSample SELECT average(cpuUsedCores) WHERE clusterName = 'Fako-cluster' FACET podName LIMIT 15"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -65,9 +65,13 @@ spec:
     newrelic-prometheus-agent:
       enabled: true
     
-    # eBPF agent (Beta)
+    # eBPF agent for APM auto-instrumentation (Beta)
     newrelic-eapm-agent:
-      enabled: false
+      enabled: true
+      config:
+        # Auto-instrument Java, Node.js, Python, Ruby, .NET apps
+        # Monitor all namespaces by default
+        enabledNamespaces: ["*"]
     
     # K8s agents operator for auto-instrumentation
     k8s-agents-operator:
