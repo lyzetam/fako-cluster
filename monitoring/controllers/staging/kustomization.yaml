@@ -7,3 +7,4 @@ resources:
   - gpu-monitoring
   - alloy
   - blackbox-exporter
+  - nrdot-collector
