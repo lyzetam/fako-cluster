@@ -6,5 +6,4 @@ resources:
   - aws-secret-store.yaml
   - external-secret-license.yaml
   - release.yaml
-  - instrumentation.yaml
-
+  # - instrumentation.yaml  # Temporarily disabled - CRD needs to be created first by k8s-agents-operator
