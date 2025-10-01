@@ -1,0 +1,23 @@
+apiVersion: newrelic.com/v1alpha2
+kind: Instrumentation
+metadata:
+  name: newrelic-instrumentation
+  namespace: nrdot-collector
+spec:
+  agent:
+    # Supported: dotnet, java, nodejs, python, ruby, php
+    language: java
+    image: newrelic/newrelic-java-init:latest
+    
+  # Select namespaces to instrument (example: default namespace)
+  namespaceLabelSelector:
+    matchExpressions:
+      - key: "kubernetes.io/metadata.name"
+        operator: "In"
+        values: ["default"]
+  
+  # Select pods with specific labels to instrument
+  podLabelSelector:
+    matchExpressions:
+      - key: "app.kubernetes.io/name"
+        operator: "Exists"
