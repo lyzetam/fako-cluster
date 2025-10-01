@@ -1,0 +1,171 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: voice-pipeline-test-script
+  namespace: voice-pipeline-test
+data:
+  pipeline-test.py: |
+    #!/usr/bin/env python3
+    """
+    Voice Pipeline End-to-End Test - Phase 1
+    Simple timing test without New Relic instrumentation
+    
+    Tests the flow: audio file → whisper → ollama → piper
+    Simulates Home Assistant Voice pipeline
+    """
+
+    import requests
+    import time
+    import sys
+    from datetime import datetime
+    import json
+
+    def run_pipeline_test():
+        """Test the voice pipeline and print timing results"""
+        
+        print(f"\n{'='*70}")
+        print(f"Voice Pipeline Test - {datetime.now()}")
+        print(f"{'='*70}\n")
+        
+        # Load audio file from PVC
+        audio_file_path = '/audio-data/test-audio.wav'
+        
+        try:
+            with open(audio_file_path, 'rb') as f:
+                audio_data = f.read()
+            print(f"✓ Loaded audio file: {len(audio_data)} bytes\n")
+        except Exception as e:
+            print(f"✗ Failed to load audio: {e}")
+            sys.exit(1)
+        
+        results = {}
+        pipeline_start = time.time()
+        
+        # Stage 1: Simulate openwakeword detection
+        print("[1/4] Simulating wake word detection...")
+        stage_start = time.time()
+        time.sleep(0.05)  # Simulate detection processing
+        results['openwakeword_ms'] = (time.time() - stage_start) * 1000
+        print(f"      Duration: {results['openwakeword_ms']:.2f}ms\n")
+        
+        # Stage 2: Whisper transcription
+        print("[2/4] Calling Whisper for transcription...")
+        stage_start = time.time()
+        try:
+            response = requests.post(
+                'http://whisper-gpu.whisper:10300/transcribe',
+                data=audio_data,
+                headers={'Content-Type': 'audio/wav'},
+                timeout=30
+            )
+            results['whisper_ms'] = (time.time() - stage_start) * 1000
+            results['whisper_status'] = response.status_code
+            
+            # Try to extract text from response
+            try:
+                results['transcribed_text'] = response.json().get('text', response.text)
+            except:
+                results['transcribed_text'] = response.text[:200]
+            
+            print(f"      Status: {response.status_code}")
+            print(f"      Duration: {results['whisper_ms']:.2f}ms")
+            print(f"      Text: {results['transcribed_text'][:100]}...\n")
+            
+        except Exception as e:
+            results['whisper_ms'] = (time.time() - stage_start) * 1000
+            results['whisper_error'] = str(e)
+            results['transcribed_text'] = "ERROR"
+            print(f"      ERROR: {e}\n")
+        
+        # Stage 3: Ollama inference
+        print("[3/4] Calling Ollama for LLM inference...")
+        stage_start = time.time()
+        try:
+            response = requests.post(
+                'http://ollama-gpu.ollama:11434/api/generate',
+                json={
+                    'model': 'llama2',
+                    'prompt': results.get('transcribed_text', 'test prompt'),
+                    'stream': False
+                },
+                timeout=60
+            )
+            results['ollama_ms'] = (time.time() - stage_start) * 1000
+            results['ollama_status'] = response.status_code
+            
+            try:
+                results['llm_response'] = response.json().get('response', response.text)
+            except:
+                results['llm_response'] = response.text[:200]
+            
+            print(f"      Status: {response.status_code}")
+            print(f"      Duration: {results['ollama_ms']:.2f}ms")
+            print(f"      Response: {results['llm_response'][:100]}...\n")
+            
+        except Exception as e:
+            results['ollama_ms'] = (time.time() - stage_start) * 1000
+            results['ollama_error'] = str(e)
+            results['llm_response'] = "ERROR"
+            print(f"      ERROR: {e}\n")
+        
+        # Stage 4: Piper TTS
+        print("[4/4] Calling Piper for text-to-speech...")
+        stage_start = time.time()
+        try:
+            response = requests.post(
+                'http://piper.piper:10200/synthesize',
+                json={'text': results.get('llm_response', 'test text')},
+                timeout=30
+            )
+            results['piper_ms'] = (time.time() - stage_start) * 1000
+            results['piper_status'] = response.status_code
+            results['audio_size'] = len(response.content)
+            
+            print(f"      Status: {response.status_code}")
+            print(f"      Duration: {results['piper_ms']:.2f}ms")
+            print(f"      Audio size: {results['audio_size']} bytes\n")
+            
+        except Exception as e:
+            results['piper_ms'] = (time.time() - stage_start) * 1000
+            results['piper_error'] = str(e)
+            print(f"      ERROR: {e}\n")
+        
+        # Calculate total
+        results['total_ms'] = (time.time() - pipeline_start) * 1000
+        
+        # Print summary
+        print(f"{'='*70}")
+        print("SUMMARY")
+        print(f"{'='*70}")
+        print(f"Openwakeword:  {results['openwakeword_ms']:8.2f}ms")
+        print(f"Whisper:       {results.get('whisper_ms', 0):8.2f}ms")
+        print(f"Ollama:        {results.get('ollama_ms', 0):8.2f}ms")
+        print(f"Piper:         {results.get('piper_ms', 0):8.2f}ms")
+        print(f"{'-'*70}")
+        print(f"TOTAL:         {results['total_ms']:8.2f}ms")
+        print(f"{'='*70}\n")
+        
+        # Save results as JSON for potential future analysis
+        results['timestamp'] = datetime.now().isoformat()
+        results_json = json.dumps(results, indent=2)
+        print("Results (JSON):")
+        print(results_json)
+        
+        # Determine success
+        has_errors = any(key.endswith('_error') for key in results.keys())
+        if has_errors:
+            print("\n⚠️  Test completed with errors")
+            return 1
+        else:
+            print("\n✓ Test completed successfully")
+            return 0
+
+    if __name__ == '__main__':
+        try:
+            exit_code = run_pipeline_test()
+            sys.exit(exit_code)
+        except Exception as e:
+            print(f"\n✗ FATAL ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)

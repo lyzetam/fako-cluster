@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: voice-pipeline-test
+  namespace: voice-pipeline-test
+spec:
+  # Run every night at 3am EST (7am UTC)
+  schedule: "0 7 * * *"
+  successfulJobsHistoryLimit: 7  # Keep last 7 successful runs
+  failedJobsHistoryLimit: 3      # Keep last 3 failed runs
+  concurrencyPolicy: Forbid      # Don't run concurrent tests
+  jobTemplate:
+    spec:
+      backoffLimit: 2  # Retry up to 2 times on failure
+      template:
+        metadata:
+          labels:
+            app: voice-pipeline-test
+        spec:
+          restartPolicy: Never
+          volumes:
+            - name: audio-data
+              persistentVolumeClaim:
+                claimName: voice-test-audio
+            - name: script
+              configMap:
+                name: voice-pipeline-test-script
+                defaultMode: 0755
+          containers:
+            - name: test-runner
+              image: python:3.11-slim
+              command: 
+                - /bin/sh
+                - -c
+                - |
+                  pip install --quiet requests
+                  python3 /scripts/pipeline-test.py
+              volumeMounts:
+                - name: audio-data
+                  mountPath: /audio-data
+                  readOnly: true
+                - name: script
+                  mountPath: /scripts
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "200m"
