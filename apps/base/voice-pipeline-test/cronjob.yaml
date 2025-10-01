@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: voice-pipeline-test
+  name: voice-pipeline-test-trigger
   namespace: voice-pipeline-test
 spec:
   # Run every night at 3am EST (7am UTC)
@@ -15,36 +15,30 @@ spec:
       template:
         metadata:
           labels:
-            app: voice-pipeline-test
+            app: voice-pipeline-test-trigger
         spec:
           restartPolicy: Never
-          volumes:
-            - name: audio-data
-              persistentVolumeClaim:
-                claimName: voice-test-audio
-            - name: script
-              configMap:
-                name: voice-pipeline-test-script
-                defaultMode: 0755
           containers:
-            - name: test-runner
-              image: public.ecr.aws/docker/library/python:3.11-slim
-              command: 
-                - /bin/sh
+            - name: trigger
+              image: curlimages/curl:latest
+              command:
+                - sh
                 - -c
                 - |
-                  pip install --quiet requests
-                  python3 /scripts/pipeline-test.py
-              volumeMounts:
-                - name: audio-data
-                  mountPath: /audio-data
-                  readOnly: true
-                - name: script
-                  mountPath: /scripts
+                  echo "Triggering voice pipeline test at $(date)"
+                  curl -X POST \
+                    -H "Content-Type: application/json" \
+                    -d '{"timeout": 120}' \
+                    http://voice-pipeline-test.voice-pipeline-test:8080/test \
+                    -w "\n\nHTTP Status: %{http_code}\n" \
+                    -o /dev/stdout
+                  exit_code=$?
+                  echo "Test trigger completed at $(date) with exit code: $exit_code"
+                  exit $exit_code
               resources:
                 requests:
-                  memory: "128Mi"
-                  cpu: "100m"
+                  memory: "32Mi"
+                  cpu: "10m"
                 limits:
-                  memory: "256Mi"
-                  cpu: "200m"
+                  memory: "64Mi"
+                  cpu: "50m"

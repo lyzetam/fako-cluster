@@ -1,0 +1,31 @@
+# Storage for voice-pipeline-test
+
+---
+# PVC for audio files (already exists as pvc.yaml, but renaming for consistency)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: voice-test-audio
+  namespace: voice-pipeline-test
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: nfs-csi-v2
+
+---
+# PVC for application code (built by init container)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: voice-test-app
+  namespace: voice-pipeline-test
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+  storageClassName: nfs-csi-v2

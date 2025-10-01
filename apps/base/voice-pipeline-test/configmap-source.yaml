@@ -1,0 +1,327 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: voice-pipeline-test-source
+  namespace: voice-pipeline-test
+data:
+  app.py: |
+    #!/usr/bin/env python3
+    """
+    Voice Pipeline Test Flask Application
+    Provides HTTP endpoints for testing voice pipeline components
+    """
+    
+    from flask import Flask, jsonify, request
+    import os
+    import time
+    import logging
+    from datetime import datetime
+    from test_runner import VoicePipelineTest
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+    
+    # Initialize Flask app
+    app = Flask(__name__)
+    
+    # Configuration from environment
+    CONFIG = {
+        'whisper_endpoint': os.getenv('WHISPER_ENDPOINT', 'http://whisper-nodeport.whisper:10300'),
+        'ollama_endpoint': os.getenv('OLLAMA_ENDPOINT', 'http://ollama-gpu.ollama:11434'),
+        'piper_endpoint': os.getenv('PIPER_ENDPOINT', 'http://piper-nodeport.piper:10200'),
+        'ollama_model': os.getenv('OLLAMA_MODEL', 'qwen3:8b'),
+        'audio_file_path': os.getenv('AUDIO_FILE_PATH', '/audio-data/test-audio.wav')
+    }
+    
+    # Initialize test runner
+    test_runner = VoicePipelineTest(CONFIG)
+    
+    @app.route('/health', methods=['GET'])
+    def health():
+        """Health check endpoint"""
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat()
+        }), 200
+    
+    @app.route('/ready', methods=['GET'])
+    def ready():
+        """Readiness check endpoint"""
+        # Check if audio file exists
+        if not os.path.exists(CONFIG['audio_file_path']):
+            return jsonify({
+                'status': 'not ready',
+                'reason': 'Audio file not found',
+                'timestamp': datetime.now().isoformat()
+            }), 503
+        
+        return jsonify({
+            'status': 'ready',
+            'timestamp': datetime.now().isoformat()
+        }), 200
+    
+    @app.route('/config', methods=['GET'])
+    def get_config():
+        """Return current configuration"""
+        return jsonify(CONFIG), 200
+    
+    @app.route('/test', methods=['POST'])
+    def run_test():
+        """Run the voice pipeline test"""
+        logger.info("Starting voice pipeline test")
+        
+        try:
+            # Get optional parameters from request
+            data = request.get_json() or {}
+            timeout = data.get('timeout', 60)
+            
+            # Run the test
+            results = test_runner.run_pipeline_test(timeout=timeout)
+            
+            logger.info(f"Test completed: {results.get('total_ms', 0):.2f}ms total")
+            
+            # Check for errors
+            has_errors = any(key.endswith('_error') for key in results.keys())
+            status_code = 200 if not has_errors else 207  # 207 = Multi-Status
+            
+            return jsonify({
+                'success': not has_errors,
+                'results': results,
+                'timestamp': datetime.now().isoformat()
+            }), status_code
+            
+        except Exception as e:
+            logger.error(f"Test failed: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }), 500
+    
+    @app.route('/test/summary', methods=['GET'])
+    def get_last_summary():
+        """Get summary of last test run"""
+        last_results = test_runner.get_last_results()
+        if last_results:
+            return jsonify(last_results), 200
+        return jsonify({'message': 'No test results available'}), 404
+    
+    @app.route('/metrics', methods=['GET'])
+    def metrics():
+        """Prometheus-compatible metrics endpoint"""
+        metrics_text = test_runner.get_prometheus_metrics()
+        return metrics_text, 200, {'Content-Type': 'text/plain'}
+    
+    if __name__ == '__main__':
+        port = int(os.getenv('PORT', 8080))
+        app.run(host='0.0.0.0', port=port)
+  
+  test_runner.py: |
+    #!/usr/bin/env python3
+    """
+    Voice Pipeline Test Runner
+    Handles the actual testing logic for voice pipeline components
+    """
+    
+    import requests
+    import time
+    import os
+    import json
+    import logging
+    from datetime import datetime
+    from typing import Dict, Any, Optional
+    
+    logger = logging.getLogger(__name__)
+    
+    class VoicePipelineTest:
+        def __init__(self, config: Dict[str, str]):
+            self.config = config
+            self.last_results = None
+            
+        def run_pipeline_test(self, timeout: int = 60) -> Dict[str, Any]:
+            """Run the complete voice pipeline test"""
+            
+            logger.info("="*70)
+            logger.info(f"Voice Pipeline Test - {datetime.now()}")
+            logger.info("="*70)
+            
+            results = {
+                'timestamp': datetime.now().isoformat(),
+                'config': self.config
+            }
+            pipeline_start = time.time()
+            
+            # Load audio file
+            try:
+                with open(self.config['audio_file_path'], 'rb') as f:
+                    audio_data = f.read()
+                logger.info(f"✓ Loaded audio file: {len(audio_data)} bytes")
+                results['audio_size'] = len(audio_data)
+            except Exception as e:
+                logger.error(f"✗ Failed to load audio: {e}")
+                results['audio_error'] = str(e)
+                return results
+            
+            # Stage 1: Simulate openwakeword detection
+            logger.info("[1/4] Simulating wake word detection...")
+            stage_start = time.time()
+            time.sleep(0.05)  # Simulate detection processing
+            results['openwakeword_ms'] = (time.time() - stage_start) * 1000
+            logger.info(f"      Duration: {results['openwakeword_ms']:.2f}ms")
+            
+            # Stage 2: Whisper transcription
+            logger.info("[2/4] Calling Whisper for transcription...")
+            stage_start = time.time()
+            try:
+                response = requests.post(
+                    f"{self.config['whisper_endpoint']}/transcribe",
+                    data=audio_data,
+                    headers={'Content-Type': 'audio/wav'},
+                    timeout=timeout
+                )
+                results['whisper_ms'] = (time.time() - stage_start) * 1000
+                results['whisper_status'] = response.status_code
+                
+                # Try to extract text from response
+                try:
+                    response_data = response.json()
+                    results['transcribed_text'] = response_data.get('text', response.text[:200])
+                except:
+                    results['transcribed_text'] = response.text[:200] if response.text else "No text"
+                
+                logger.info(f"      Status: {response.status_code}")
+                logger.info(f"      Duration: {results['whisper_ms']:.2f}ms")
+                logger.info(f"      Text: {results['transcribed_text'][:100]}...")
+                
+            except Exception as e:
+                results['whisper_ms'] = (time.time() - stage_start) * 1000
+                results['whisper_error'] = str(e)
+                results['transcribed_text'] = "ERROR"
+                logger.error(f"      ERROR: {e}")
+            
+            # Stage 3: Ollama inference
+            logger.info("[3/4] Calling Ollama for LLM inference...")
+            stage_start = time.time()
+            try:
+                # Use transcribed text or fallback
+                prompt = results.get('transcribed_text', 'What is the weather like today?')
+                if prompt == "ERROR" or not prompt:
+                    prompt = "Hello, how can I help you?"
+                
+                response = requests.post(
+                    f"{self.config['ollama_endpoint']}/api/generate",
+                    json={
+                        'model': self.config['ollama_model'],
+                        'prompt': prompt,
+                        'stream': False,
+                        'options': {
+                            'temperature': 0.7,
+                            'max_tokens': 100
+                        }
+                    },
+                    timeout=timeout
+                )
+                results['ollama_ms'] = (time.time() - stage_start) * 1000
+                results['ollama_status'] = response.status_code
+                
+                try:
+                    response_data = response.json()
+                    results['llm_response'] = response_data.get('response', response.text[:200])
+                except:
+                    results['llm_response'] = response.text[:200] if response.text else "No response"
+                
+                logger.info(f"      Status: {response.status_code}")
+                logger.info(f"      Duration: {results['ollama_ms']:.2f}ms")
+                logger.info(f"      Response: {results['llm_response'][:100]}...")
+                
+            except Exception as e:
+                results['ollama_ms'] = (time.time() - stage_start) * 1000
+                results['ollama_error'] = str(e)
+                results['llm_response'] = "ERROR"
+                logger.error(f"      ERROR: {e}")
+            
+            # Stage 4: Piper TTS
+            logger.info("[4/4] Calling Piper for text-to-speech...")
+            stage_start = time.time()
+            try:
+                # Use LLM response or fallback
+                text_to_speak = results.get('llm_response', 'Test text for speech synthesis')
+                if text_to_speak == "ERROR" or not text_to_speak:
+                    text_to_speak = "Hello from the voice pipeline test"
+                
+                response = requests.post(
+                    f"{self.config['piper_endpoint']}/synthesize",
+                    json={'text': text_to_speak[:200]},  # Limit text length
+                    timeout=timeout
+                )
+                results['piper_ms'] = (time.time() - stage_start) * 1000
+                results['piper_status'] = response.status_code
+                results['audio_response_size'] = len(response.content)
+                
+                logger.info(f"      Status: {response.status_code}")
+                logger.info(f"      Duration: {results['piper_ms']:.2f}ms")
+                logger.info(f"      Audio size: {results['audio_response_size']} bytes")
+                
+            except Exception as e:
+                results['piper_ms'] = (time.time() - stage_start) * 1000
+                results['piper_error'] = str(e)
+                logger.error(f"      ERROR: {e}")
+            
+            # Calculate total
+            results['total_ms'] = (time.time() - pipeline_start) * 1000
+            
+            # Print summary
+            logger.info("="*70)
+            logger.info("SUMMARY")
+            logger.info("="*70)
+            logger.info(f"Openwakeword:  {results.get('openwakeword_ms', 0):8.2f}ms")
+            logger.info(f"Whisper:       {results.get('whisper_ms', 0):8.2f}ms")
+            logger.info(f"Ollama:        {results.get('ollama_ms', 0):8.2f}ms")
+            logger.info(f"Piper:         {results.get('piper_ms', 0):8.2f}ms")
+            logger.info("-"*70)
+            logger.info(f"TOTAL:         {results['total_ms']:8.2f}ms")
+            logger.info("="*70)
+            
+            # Store results
+            self.last_results = results
+            
+            # Determine success
+            has_errors = any(key.endswith('_error') for key in results.keys())
+            if has_errors:
+                logger.warning("⚠️  Test completed with errors")
+            else:
+                logger.info("✓ Test completed successfully")
+            
+            return results
+        
+        def get_last_results(self) -> Optional[Dict[str, Any]]:
+            """Get the results from the last test run"""
+            return self.last_results
+        
+        def get_prometheus_metrics(self) -> str:
+            """Generate Prometheus-compatible metrics"""
+            if not self.last_results:
+                return "# No metrics available\n"
+            
+            metrics = []
+            metrics.append("# HELP voice_pipeline_latency_ms Latency in milliseconds for each pipeline stage")
+            metrics.append("# TYPE voice_pipeline_latency_ms gauge")
+            
+            for key, value in self.last_results.items():
+                if key.endswith('_ms'):
+                    stage = key.replace('_ms', '')
+                    metrics.append(f'voice_pipeline_latency_ms{{stage="{stage}"}} {value}')
+            
+            if 'audio_size' in self.last_results:
+                metrics.append("# HELP voice_pipeline_audio_size_bytes Size of audio files in bytes")
+                metrics.append("# TYPE voice_pipeline_audio_size_bytes gauge")
+                metrics.append(f'voice_pipeline_audio_size_bytes{{type="input"}} {self.last_results["audio_size"]}')
+            
+            if 'audio_response_size' in self.last_results:
+                metrics.append(f'voice_pipeline_audio_size_bytes{{type="output"}} {self.last_results["audio_response_size"]}')
+            
+            return "\n".join(metrics) + "\n"

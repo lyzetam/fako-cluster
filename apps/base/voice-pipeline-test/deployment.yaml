@@ -1,0 +1,202 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voice-pipeline-test
+  namespace: voice-pipeline-test
+  labels:
+    app: voice-pipeline-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voice-pipeline-test
+  template:
+    metadata:
+      labels:
+        app: voice-pipeline-test
+    spec:
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      
+      volumes:
+        # Audio data PVC
+        - name: audio-data
+          persistentVolumeClaim:
+            claimName: voice-test-audio
+        # Application code PVC
+        - name: app-data
+          persistentVolumeClaim:
+            claimName: voice-test-app
+        # ConfigMap with source code
+        - name: source-code
+          configMap:
+            name: voice-pipeline-test-source
+            defaultMode: 0755
+        # Temporary directory for runtime
+        - name: tmp
+          emptyDir: {}
+      
+      # Init container: Build and prepare application
+      initContainers:
+      - name: app-builder
+        image: python:3.11-slim
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop: ["ALL"]
+        
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "=== Building voice pipeline test application ==="
+          
+          # Clear previous build
+          rm -rf /app-data/*
+          
+          # Install dependencies to app-data PVC
+          echo "Installing dependencies..."
+          pip install --target=/app-data/lib --no-cache-dir \
+            flask \
+            requests \
+            gunicorn
+          
+          # Copy source code from ConfigMap to PVC
+          echo "Copying source code..."
+          cp /source/app.py /app-data/
+          cp /source/test_runner.py /app-data/
+          
+          # Create gunicorn config
+          cat > /app-data/gunicorn.conf.py <<EOF
+          bind = "0.0.0.0:8080"
+          workers = 1
+          threads = 2
+          worker_class = "sync"
+          worker_connections = 100
+          max_requests = 100
+          max_requests_jitter = 10
+          timeout = 120
+          keepalive = 5
+          preload_app = True
+          EOF
+          
+          # Set proper permissions
+          chmod -R 755 /app-data
+          chown -R 1000:1000 /app-data
+          
+          echo "=== Build complete ==="
+          echo "Contents of /app-data:"
+          ls -la /app-data/
+        
+        volumeMounts:
+        - name: app-data
+          mountPath: /app-data
+        - name: source-code
+          mountPath: /source
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      
+      # Main container: Run the application from PVC
+      containers:
+      - name: test-runner
+        image: python:3.11-slim
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+          runAsNonRoot: true
+          runAsUser: 1000
+        
+        # Run Flask app with gunicorn from PVC
+        command:
+        - /bin/sh
+        - -c
+        - |
+          export PYTHONPATH=/app-data/lib:$PYTHONPATH
+          export HOME=/tmp
+          cd /app-data
+          exec python -m gunicorn \
+            --config /app-data/gunicorn.conf.py \
+            app:app
+        
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: FLASK_APP
+          value: "app.py"
+        - name: WHISPER_ENDPOINT
+          value: "http://whisper-nodeport.whisper:10300"
+        - name: OLLAMA_ENDPOINT
+          value: "http://ollama-gpu.ollama:11434"
+        - name: PIPER_ENDPOINT
+          value: "http://piper-nodeport.piper:10200"
+        - name: OLLAMA_MODEL
+          value: "qwen3:8b"
+        - name: AUDIO_FILE_PATH
+          value: "/audio-data/test-audio.wav"
+        - name: PORT
+          value: "8080"
+        
+        volumeMounts:
+        - name: audio-data
+          mountPath: /audio-data
+          readOnly: true
+        - name: app-data
+          mountPath: /app-data
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
