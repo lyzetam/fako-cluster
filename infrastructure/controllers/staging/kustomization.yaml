@@ -9,3 +9,4 @@ resources:
   - k8s-backup
   - system-tuning
   - cloudnative-pg
+  - newrelic
