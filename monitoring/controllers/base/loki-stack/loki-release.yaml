@@ -24,6 +24,12 @@ spec:
     remediation:
       retries: 3
   values:
+    # Global configuration for image pull secrets
+    global:
+      image:
+        pullSecrets:
+          - dockerhub-registry
+    
     # Use single binary deployment for simplicity
     deploymentMode: SingleBinary
     
