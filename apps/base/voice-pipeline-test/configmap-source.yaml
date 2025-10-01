@@ -236,7 +236,12 @@ data:
                 
                 logger.info(f"      Status: {response.status_code}")
                 logger.info(f"      Duration: {results['ollama_ms']:.2f}ms")
-                logger.info(f"      Response: {results['llm_response'][:100]}...")
+                # Log full Ollama response for visibility
+                logger.info(f"      Response preview: {results['llm_response'][:200]}...")
+                logger.info("      Full Ollama Response:")
+                for line in results['llm_response'].split('\n'):
+                    if line.strip():
+                        logger.info(f"        {line}")
                 
             except Exception as e:
                 results['ollama_ms'] = (time.time() - stage_start) * 1000
@@ -270,7 +275,7 @@ data:
                 
                 logger.info(f"      Duration: {results['piper_ms']:.2f}ms")
                 logger.info(f"      Note: Piper uses Wyoming protocol, not HTTP")
-                logger.info(f"      TTS Text: {results['tts_text'][:100]}...")
+                logger.info(f"      TTS Text preview: {results['tts_text'][:200]}...")
                 
             except Exception as e:
                 results['piper_ms'] = (time.time() - stage_start) * 1000
