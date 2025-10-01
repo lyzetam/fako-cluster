@@ -58,8 +58,8 @@ spec:
           set -e
           echo "=== Building voice pipeline test application ==="
           
-          # Clear previous build
-          rm -rf /app-data/*
+          # Clear previous build (if any)
+          rm -rf /app-data/* || true
           
           # Install dependencies to app-data PVC
           echo "Installing dependencies..."
@@ -87,9 +87,8 @@ spec:
           preload_app = True
           EOF
           
-          # Set proper permissions
+          # Set proper permissions (without chown since we're running as non-root)
           chmod -R 755 /app-data
-          chown -R 1000:1000 /app-data
           
           echo "=== Build complete ==="
           echo "Contents of /app-data:"
