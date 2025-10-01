@@ -52,11 +52,12 @@ data:
         print("[2/4] Calling Whisper for transcription...")
         stage_start = time.time()
         try:
+            # Using NodePort service for better connectivity
             response = requests.post(
-                'http://whisper-gpu.whisper:10300/transcribe',
+                'http://whisper-nodeport.whisper:10300/transcribe',
                 data=audio_data,
                 headers={'Content-Type': 'audio/wav'},
-                timeout=30
+                timeout=60
             )
             results['whisper_ms'] = (time.time() - stage_start) * 1000
             results['whisper_status'] = response.status_code
@@ -112,10 +113,11 @@ data:
         print("[4/4] Calling Piper for text-to-speech...")
         stage_start = time.time()
         try:
+            # Using NodePort service for better connectivity
             response = requests.post(
-                'http://piper.piper:10200/synthesize',
+                'http://piper-nodeport.piper:10200/synthesize',
                 json={'text': results.get('llm_response', 'test text')},
-                timeout=30
+                timeout=60
             )
             results['piper_ms'] = (time.time() - stage_start) * 1000
             results['piper_status'] = response.status_code
