@@ -5,8 +5,8 @@ metadata:
   namespace: voice-pipeline-test
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 1Gi
-  storageClassName: nfs-client  # Adjust if you use a different storage class
+  storageClassName: local-path  # Using default storage class
