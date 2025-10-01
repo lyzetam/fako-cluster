@@ -1,0 +1,84 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: newrelic-pixie-bundle
+  namespace: newrelic-pixie
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: nri-bundle
+      version: ">=5.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: newrelic
+        namespace: flux-system
+      interval: 1m
+  valuesFrom:
+  - kind: Secret
+    name: newrelic-license-key
+    valuesKey: license-key
+    targetPath: global.licenseKey
+  - kind: Secret
+    name: pixie-keys
+    valuesKey: apiKey
+    targetPath: newrelic-pixie.apiKey
+  - kind: Secret
+    name: pixie-keys
+    valuesKey: deployKey
+    targetPath: pixie-chart.deployKey
+  values:
+    global:
+      cluster: "Fako-cluster"
+      lowDataMode: true
+      privileged: true
+      verboseLog: false
+    
+    # Infrastructure monitoring
+    newrelic-infrastructure:
+      privileged: true
+      enabled: true
+    
+    # KSM
+    kube-state-metrics:
+      enabled: true
+      image:
+        tag: "v2.10.0"
+    
+    # K8s Events
+    nri-kube-events:
+      enabled: true
+    
+    # Prometheus agent
+    newrelic-prometheus-agent:
+      enabled: true
+      lowDataMode: true
+      config:
+        kubernetes:
+          integrations_filter:
+            enabled: false
+    
+    # Pixie Integration - ENABLED
+    newrelic-pixie:
+      enabled: true
+    
+    # Pixie Chart - ENABLED
+    pixie-chart:
+      enabled: true
+      clusterName: "Fako-cluster"
+    
+    # Disable logging (using Loki instead)
+    newrelic-logging:
+      enabled: false
+    
+    # Metadata injection
+    nri-metadata-injection:
+      enabled: true
+    
+    # K8s agents operator (for auto-instrumentation)
+    k8s-agents-operator:
+      enabled: false  # Disable here since we have it in nrdot-collector
+    
+    # eBPF agent
+    newrelic-eapm-agent:
+      enabled: false
