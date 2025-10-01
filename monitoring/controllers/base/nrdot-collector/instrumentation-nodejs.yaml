@@ -1,0 +1,22 @@
+apiVersion: newrelic.com/v1alpha2
+kind: Instrumentation
+metadata:
+  name: newrelic-instrumentation-nodejs
+  namespace: nrdot-collector
+spec:
+  agent:
+    language: nodejs
+    image: newrelic/newrelic-node-init:latest
+  
+  # Target namespaces with Node.js applications
+  namespaceLabelSelector:
+    matchExpressions:
+      - key: "kubernetes.io/metadata.name"
+        operator: "In"
+        values: ["n8n", "mcp-servers"]
+  
+  # Target all pods with the standard k8s label
+  podLabelSelector:
+    matchExpressions:
+      - key: "app.kubernetes.io/name"
+        operator: "Exists"

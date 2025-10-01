@@ -6,4 +6,6 @@ resources:
   - aws-secret-store.yaml
   - external-secret-license.yaml
   - release.yaml
-  - instrumentation.yaml  # Re-enabled - CRD now exists
+  - instrumentation.yaml  # Java (existing)
+  - instrumentation-nodejs.yaml  # Node.js
+  - instrumentation-python.yaml  # Python
