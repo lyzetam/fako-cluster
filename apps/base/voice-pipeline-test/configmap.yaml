@@ -84,7 +84,7 @@ data:
             response = requests.post(
                 'http://ollama-gpu.ollama:11434/api/generate',
                 json={
-                    'model': 'llama2',
+                    'model': 'qwen3:8b',
                     'prompt': results.get('transcribed_text', 'test prompt'),
                     'stream': False
                 },
