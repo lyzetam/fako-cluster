@@ -8,4 +8,3 @@ resources:
   - release.yaml
   - instrumentation.yaml
 
-namespace: nrdot-collector
