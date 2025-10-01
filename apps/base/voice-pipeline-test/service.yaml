@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: voice-pipeline-test
+  namespace: voice-pipeline-test
+  labels:
+    app: voice-pipeline-test
+spec:
+  type: ClusterIP
+  selector:
+    app: voice-pipeline-test
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+  sessionAffinity: None
+
+---
+# NodePort service for external access (optional)
+apiVersion: v1
+kind: Service
+metadata:
+  name: voice-pipeline-test-nodeport
+  namespace: voice-pipeline-test
+  labels:
+    app: voice-pipeline-test
+spec:
+  type: NodePort
+  selector:
+    app: voice-pipeline-test
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+    nodePort: 30880
+  sessionAffinity: None
