@@ -38,6 +38,8 @@ spec:
     newrelic-infrastructure:
       privileged: true
       enabled: true
+      controlPlane:
+        enabled: false  # Disable to avoid port conflict with nrdot-collector
     
     # KSM
     kube-state-metrics:
