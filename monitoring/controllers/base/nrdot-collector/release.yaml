@@ -1,13 +1,13 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: nrdot-collector
+  name: newrelic-bundle
   namespace: nrdot-collector
 spec:
   interval: 5m
   chart:
     spec:
-      chart: nri-kubernetes
+      chart: nri-bundle
       version: ">=5.0.0"
       sourceRef:
         kind: HelmRepository
@@ -22,37 +22,57 @@ spec:
   values:
     global:
       cluster: "Fako-cluster"
-      lowDataMode: false
+      lowDataMode: true
+      privileged: true
+      verboseLog: false
     
-    # Enable Kubernetes metrics and events collection
-    ksm:
+    # Infrastructure agent
+    newrelic-infrastructure:
       enabled: true
     
-    kubeStateMetrics:
+    # Prometheus scraping (disabled - using prometheus-agent instead)
+    nri-prometheus:
+      enabled: false
+    
+    # Metadata injection for APM correlation
+    nri-metadata-injection:
       enabled: true
     
-    # Enable infrastructure monitoring
-    infrastructure:
+    # Kube-state-metrics
+    kube-state-metrics:
       enabled: true
     
-    # Enable Prometheus integration
-    prometheus:
+    # Kubernetes events
+    nri-kube-events:
       enabled: true
     
-    # Enable logging
-    logging:
+    # Logging
+    newrelic-logging:
       enabled: true
     
-    # Resource limits for the DaemonSet
-    common:
-      agentConfig:
-        resources:
-          limits:
-            memory: 1Gi
-            cpu: 500m
-          requests:
-            memory: 512Mi
-            cpu: 100m
+    # Pixie integration (disabled - using separate Pixie deployment)
+    newrelic-pixie:
+      enabled: false
     
-    # Enable verbose logging for troubleshooting (can be disabled later)
-    verboseLog: false
+    pixie-chart:
+      enabled: false
+    
+    # Infrastructure operator (Beta)
+    newrelic-infra-operator:
+      enabled: false
+    
+    # Prometheus agent for metric scraping
+    newrelic-prometheus-agent:
+      enabled: true
+    
+    # eBPF agent (Beta)
+    newrelic-eapm-agent:
+      enabled: false
+    
+    # K8s agents operator for auto-instrumentation
+    k8s-agents-operator:
+      enabled: true
+    
+    # Metrics adapter (Beta)
+    newrelic-k8s-metrics-adapter:
+      enabled: false

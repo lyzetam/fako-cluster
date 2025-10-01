@@ -7,6 +7,17 @@ resources:
   - external-secret-license.yaml
   - release.yaml
   - repository.yaml
+  - instrumentation.yaml
 
-# Set namespace for resources except HelmRepository
+# Set namespace for all resources except HelmRepository (overridden in patch)
 namespace: nrdot-collector
+
+# Patch HelmRepository to use flux-system namespace instead of nrdot-collector
+patches:
+  - patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: flux-system
+    target:
+      kind: HelmRepository
+      name: newrelic
