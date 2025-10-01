@@ -9,4 +9,4 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: local-path  # Using default storage class
+  storageClassName: nfs-csi-v2  # Using same storage as ollama-gpu
