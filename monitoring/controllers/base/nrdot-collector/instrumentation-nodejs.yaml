@@ -15,8 +15,8 @@ spec:
         operator: "In"
         values: ["n8n", "mcp-servers"]
   
-  # Target all pods with the standard k8s label
+  # Target all pods with the app label
   podLabelSelector:
     matchExpressions:
-      - key: "app.kubernetes.io/name"
+      - key: "app"
         operator: "Exists"

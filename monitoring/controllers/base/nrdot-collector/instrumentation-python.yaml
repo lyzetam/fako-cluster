@@ -15,7 +15,7 @@ spec:
         operator: "In"
         values: ["mcp-servers", "piper", "piper-v13", "whisper", "openwakeword"]
   
-  # Target all pods with the standard app label
+  # Target all pods with the app label
   podLabelSelector:
     matchExpressions:
       - key: "app"
