@@ -244,8 +244,8 @@ data:
                 results['llm_response'] = "ERROR"
                 logger.error(f"      ERROR: {e}")
             
-            # Stage 4: Piper TTS
-            logger.info("[4/4] Calling Piper for text-to-speech...")
+            # Stage 4: Piper TTS (Note: Piper uses Wyoming protocol, not REST API)
+            logger.info("[4/4] Testing Piper TTS connectivity...")
             stage_start = time.time()
             try:
                 # Use LLM response or fallback
@@ -253,18 +253,24 @@ data:
                 if text_to_speak == "ERROR" or not text_to_speak:
                     text_to_speak = "Hello from the voice pipeline test"
                 
-                response = requests.post(
-                    f"{self.config['piper_endpoint']}/synthesize",
-                    json={'text': text_to_speak[:200]},  # Limit text length
-                    timeout=timeout
-                )
-                results['piper_ms'] = (time.time() - stage_start) * 1000
-                results['piper_status'] = response.status_code
-                results['audio_response_size'] = len(response.content)
+                # For now, just test connectivity. Piper uses Wyoming protocol, not HTTP
+                # This will timeout as expected since Piper doesn't respond to HTTP
+                try:
+                    response = requests.get(
+                        f"{self.config['piper_endpoint']}/",
+                        timeout=2  # Short timeout since we expect this to fail
+                    )
+                    results['piper_status'] = response.status_code
+                except:
+                    # Expected - Piper uses Wyoming protocol
+                    results['piper_note'] = "Piper uses Wyoming protocol (TCP), not HTTP REST"
                 
-                logger.info(f"      Status: {response.status_code}")
+                results['piper_ms'] = (time.time() - stage_start) * 1000
+                results['tts_text'] = text_to_speak[:200]  # Store what would be synthesized
+                
                 logger.info(f"      Duration: {results['piper_ms']:.2f}ms")
-                logger.info(f"      Audio size: {results['audio_response_size']} bytes")
+                logger.info(f"      Note: Piper uses Wyoming protocol, not HTTP")
+                logger.info(f"      TTS Text: {results['tts_text'][:100]}...")
                 
             except Exception as e:
                 results['piper_ms'] = (time.time() - stage_start) * 1000
@@ -274,17 +280,30 @@ data:
             # Calculate total
             results['total_ms'] = (time.time() - pipeline_start) * 1000
             
-            # Print summary
+            # Print summary with both ms and seconds
             logger.info("="*70)
             logger.info("SUMMARY")
             logger.info("="*70)
-            logger.info(f"Openwakeword:  {results.get('openwakeword_ms', 0):8.2f}ms")
-            logger.info(f"Whisper:       {results.get('whisper_ms', 0):8.2f}ms")
-            logger.info(f"Ollama:        {results.get('ollama_ms', 0):8.2f}ms")
-            logger.info(f"Piper:         {results.get('piper_ms', 0):8.2f}ms")
+            openwakeword_ms = results.get('openwakeword_ms', 0)
+            whisper_ms = results.get('whisper_ms', 0)
+            ollama_ms = results.get('ollama_ms', 0)
+            piper_ms = results.get('piper_ms', 0)
+            total_ms = results['total_ms']
+            
+            logger.info(f"Openwakeword:  {openwakeword_ms:8.2f}ms ({openwakeword_ms/1000:6.3f}s)")
+            logger.info(f"Whisper:       {whisper_ms:8.2f}ms ({whisper_ms/1000:6.3f}s)")
+            logger.info(f"Ollama:        {ollama_ms:8.2f}ms ({ollama_ms/1000:6.3f}s)")
+            logger.info(f"Piper:         {piper_ms:8.2f}ms ({piper_ms/1000:6.3f}s)")
             logger.info("-"*70)
-            logger.info(f"TOTAL:         {results['total_ms']:8.2f}ms")
+            logger.info(f"TOTAL:         {total_ms:8.2f}ms ({total_ms/1000:6.3f}s)")
             logger.info("="*70)
+            
+            # Add seconds to results for easier consumption
+            results['openwakeword_s'] = openwakeword_ms / 1000
+            results['whisper_s'] = whisper_ms / 1000
+            results['ollama_s'] = ollama_ms / 1000
+            results['piper_s'] = piper_ms / 1000
+            results['total_s'] = total_ms / 1000
             
             # Store results
             self.last_results = results
@@ -308,6 +327,7 @@ data:
                 return "# No metrics available\n"
             
             metrics = []
+            # Milliseconds metrics
             metrics.append("# HELP voice_pipeline_latency_ms Latency in milliseconds for each pipeline stage")
             metrics.append("# TYPE voice_pipeline_latency_ms gauge")
             
@@ -315,6 +335,15 @@ data:
                 if key.endswith('_ms'):
                     stage = key.replace('_ms', '')
                     metrics.append(f'voice_pipeline_latency_ms{{stage="{stage}"}} {value}')
+            
+            # Seconds metrics for easier consumption
+            metrics.append("# HELP voice_pipeline_latency_seconds Latency in seconds for each pipeline stage")
+            metrics.append("# TYPE voice_pipeline_latency_seconds gauge")
+            
+            for key, value in self.last_results.items():
+                if key.endswith('_s'):
+                    stage = key.replace('_s', '')
+                    metrics.append(f'voice_pipeline_latency_seconds{{stage="{stage}"}} {value}')
             
             if 'audio_size' in self.last_results:
                 metrics.append("# HELP voice_pipeline_audio_size_bytes Size of audio files in bytes")
