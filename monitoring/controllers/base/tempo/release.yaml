@@ -44,9 +44,8 @@ spec:
             http:
               endpoint: "0.0.0.0:4318"
       
-      # Retention period
-      retention:
-        traces: 720h  # 30 days
+      # Retention configuration
+      retention: 720h  # 30 days
     
     # Server configuration
     server:
