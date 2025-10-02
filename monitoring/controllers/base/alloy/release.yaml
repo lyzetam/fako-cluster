@@ -6,9 +6,10 @@ metadata:
 spec:
   interval: 30m
   timeout: 10m
-  dependsOn:
-    - name: loki
-      namespace: loki-stack
+  # Temporarily disabled to allow Alloy to deploy while Loki HelmRelease is stalled
+  # dependsOn:
+  #   - name: loki
+  #     namespace: loki-stack
   chart:
     spec:
       chart: alloy
