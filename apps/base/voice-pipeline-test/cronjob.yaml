@@ -4,10 +4,10 @@ metadata:
   name: voice-pipeline-test-trigger
   namespace: voice-pipeline-test
 spec:
-  # Run every night at 3am EST (7am UTC)
-  schedule: "0 7 * * *"
-  successfulJobsHistoryLimit: 7  # Keep last 7 successful runs
-  failedJobsHistoryLimit: 3      # Keep last 3 failed runs
+  # Run every 15 minutes for continuous monitoring
+  schedule: "*/15 * * * *"
+  successfulJobsHistoryLimit: 10  # Keep last 10 successful runs
+  failedJobsHistoryLimit: 5       # Keep last 5 failed runs
   concurrencyPolicy: Forbid      # Don't run concurrent tests
   jobTemplate:
     spec:
