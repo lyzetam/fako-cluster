@@ -69,6 +69,7 @@ spec:
           # Install dependencies to app-data PVC
           echo "Installing dependencies..."
           pip install --target=/app-data/lib --no-cache-dir \
+            'markupsafe<3.0' \
             flask \
             requests \
             gunicorn \
