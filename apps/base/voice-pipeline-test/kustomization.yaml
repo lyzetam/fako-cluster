@@ -6,6 +6,9 @@ resources:
   - namespace.yaml
   - storage.yaml
   - configmap-source.yaml
+  - configmap-otel.yaml
+  - aws-credentials-secret.yaml
+  - external-secret-newrelic.yaml
   - deployment.yaml
   - service.yaml
   - cronjob.yaml
