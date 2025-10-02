@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: voice-pipeline-test-otel
+  namespace: voice-pipeline-test
+data:
+  otel_config.py: |
+    #!/usr/bin/env python3
+    """
+    OpenTelemetry configuration for voice pipeline test
+    """
+    import os
+    import logging
+    from opentelemetry import trace, metrics
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    from opentelemetry.sdk.metrics import MeterProvider
+    from opentelemetry.sdk.resources import Resource
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+    from opentelemetry.instrumentation.flask import FlaskInstrumentor
+    from opentelemetry.instrumentation.requests import RequestsInstrumentor
+    from opentelemetry.instrumentation.logging import LoggingInstrumentor
+    from opentelemetry.trace.status import Status, StatusCode
+    
+    logger = logging.getLogger(__name__)
+    
+    def configure_otel(app_name="voice-pipeline-test"):
+        """Configure OpenTelemetry with New Relic integration"""
+        
+        # Create resource attributes
+        resource = Resource.create({
+            "service.name": app_name,
+            "service.version": "1.0.0",
+            "deployment.environment": os.getenv("ENVIRONMENT", "staging"),
+            "service.namespace": "voice-pipeline-test",
+            "telemetry.sdk.language": "python",
+            "telemetry.sdk.name": "opentelemetry",
+        })
+        
+        # Configure trace provider
+        trace_provider = TracerProvider(resource=resource)
+        trace.set_tracer_provider(trace_provider)
+        
+        # Configure OTLP exporter for New Relic
+        otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "https://otlp.nr-data.net:4317")
+        otlp_headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")
+        
+        if otlp_headers:
+            headers = dict(h.split("=") for h in otlp_headers.split(","))
+        else:
+            # Fallback to New Relic license key
+            nr_license_key = os.getenv("NEW_RELIC_LICENSE_KEY", "")
+            if nr_license_key:
+                headers = {"api-key": nr_license_key}
+            else:
+                headers = {}
+                logger.warning("No New Relic license key found for OTLP export")
+        
+        # Create span exporter
+        span_exporter = OTLPSpanExporter(
+            endpoint=otlp_endpoint,
+            headers=headers,
+            insecure=False
+        )
+        
+        # Add span processor
+        span_processor = BatchSpanProcessor(span_exporter)
+        trace_provider.add_span_processor(span_processor)
+        
+        # Auto-instrument libraries
+        RequestsInstrumentor().instrument()
+        LoggingInstrumentor().instrument(set_logging_format=True)
+        
+        logger.info(f"OpenTelemetry configured for {app_name}")
+        return trace_provider
+    
+    def instrument_flask_app(app):
+        """Instrument Flask application"""
+        FlaskInstrumentor().instrument_app(app)
+        logger.info("Flask app instrumented with OpenTelemetry")
+        
+    class PipelineError:
+        """Structured error class with full context"""
+        def __init__(self, error_type, service, operation, exception, context=None):
+            import traceback
+            from datetime import datetime
+            
+            self.error_type = error_type
+            self.service = service
+            self.operation = operation
+            self.message = str(exception)
+            self.exception_type = type(exception).__name__
+            self.stack_trace = traceback.format_exc()
+            self.context = context or {}
+            self.timestamp = datetime.now().isoformat()
+            
+        def to_dict(self):
+            return {
+                'error_type': self.error_type,
+                'service': self.service,
+                'operation': self.operation,
+                'message': self.message,
+                'exception_type': self.exception_type,
+                'stack_trace': self.stack_trace,
+                'context': self.context,
+                'timestamp': self.timestamp
+            }
+        
+        def log_error(self, logger):
+            """Log the error with full context"""
+            logger.error(f"[{self.service}] {self.operation} failed", extra={
+                'error_type': self.error_type,
+                'exception_type': self.exception_type,
+                'service': self.service,
+                'operation': self.operation,
+                'context': self.context,
+                'stack_trace': self.stack_trace
+            })
+        
+        def record_to_span(self, span):
+            """Record error to OpenTelemetry span"""
+            span.set_attribute("error", True)
+            span.set_attribute("error.type", self.error_type)
+            span.set_attribute("error.service", self.service)
+            span.set_attribute("error.operation", self.operation)
+            span.set_attribute("error.exception_type", self.exception_type)
+            span.set_attribute("error.message", self.message)
+            span.set_status(Status(StatusCode.ERROR, self.message))
+            
+            # Add context as span attributes
+            for key, value in self.context.items():
+                if isinstance(value, (str, int, float, bool)):
+                    span.set_attribute(f"error.context.{key}", value)
