@@ -17,7 +17,7 @@ spec:
           - name: backup
             image: rancher/kubectl:v1.28.2
             command:
-            - /bin/bash
+            - /bin/sh
             - /scripts/backup.sh
             env:
             - name: NAMESPACES
