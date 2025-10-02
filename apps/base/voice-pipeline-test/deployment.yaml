@@ -37,6 +37,11 @@ spec:
           configMap:
             name: voice-pipeline-test-source
             defaultMode: 0755
+        # ConfigMap with OpenTelemetry config
+        - name: otel-config
+          configMap:
+            name: voice-pipeline-test-otel
+            defaultMode: 0755
         # Temporary directory for runtime
         - name: tmp
           emptyDir: {}
@@ -66,12 +71,20 @@ spec:
           pip install --target=/app-data/lib --no-cache-dir \
             flask \
             requests \
-            gunicorn
+            gunicorn \
+            opentelemetry-api \
+            opentelemetry-sdk \
+            opentelemetry-instrumentation-flask \
+            opentelemetry-instrumentation-requests \
+            opentelemetry-instrumentation-logging \
+            opentelemetry-exporter-otlp \
+            opentelemetry-exporter-otlp-proto-grpc
           
           # Copy source code from ConfigMap to PVC
           echo "Copying source code..."
           cp /source/app.py /app-data/
           cp /source/test_runner.py /app-data/
+          cp /otel/otel_config.py /app-data/
           
           # Create gunicorn config
           cat > /app-data/gunicorn.conf.py <<EOF
@@ -99,6 +112,8 @@ spec:
           mountPath: /app-data
         - name: source-code
           mountPath: /source
+        - name: otel-config
+          mountPath: /otel
         
         resources:
           requests:
@@ -154,6 +169,16 @@ spec:
           value: "/audio-data/test-audio.wav"
         - name: PORT
           value: "8080"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "https://otlp.nr-data.net:4317"
+        - name: OTEL_SERVICE_NAME
+          value: "voice-pipeline-test"
+        - name: NEW_RELIC_LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: newrelic-license
+              key: licenseKey
+              optional: true
         
         volumeMounts:
         - name: audio-data

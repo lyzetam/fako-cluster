@@ -7,7 +7,7 @@ data:
   app.py: |
     #!/usr/bin/env python3
     """
-    Voice Pipeline Test Flask Application
+    Voice Pipeline Test Flask Application with OpenTelemetry
     Provides HTTP endpoints for testing voice pipeline components
     """
     
@@ -16,6 +16,9 @@ data:
     import time
     import logging
     from datetime import datetime
+    
+    # Import OpenTelemetry configuration
+    from otel_config import configure_otel, instrument_flask_app
     from test_runner import VoicePipelineTest
     
     # Configure logging
@@ -25,8 +28,14 @@ data:
     )
     logger = logging.getLogger(__name__)
     
+    # Configure OpenTelemetry
+    configure_otel("voice-pipeline-test")
+    
     # Initialize Flask app
     app = Flask(__name__)
+    
+    # Instrument Flask app with OpenTelemetry
+    instrument_flask_app(app)
     
     # Configuration from environment
     CONFIG = {
@@ -85,7 +94,7 @@ data:
             logger.info(f"Test completed: {results.get('total_ms', 0):.2f}ms total")
             
             # Check for errors
-            has_errors = any(key.endswith('_error') for key in results.keys())
+            has_errors = len(results.get('errors', [])) > 0 or any(key.endswith('_error') for key in results.keys())
             status_code = 200 if not has_errors else 207  # 207 = Multi-Status
             
             return jsonify({
@@ -123,7 +132,7 @@ data:
   test_runner.py: |
     #!/usr/bin/env python3
     """
-    Voice Pipeline Test Runner
+    Voice Pipeline Test Runner with OpenTelemetry Tracing
     Handles the actual testing logic for voice pipeline components
     """
     
@@ -132,10 +141,17 @@ data:
     import os
     import json
     import logging
+    import traceback
+    import socket
     from datetime import datetime
     from typing import Dict, Any, Optional
     
+    from opentelemetry import trace
+    from opentelemetry.trace.status import Status, StatusCode
+    from otel_config import PipelineError
+    
     logger = logging.getLogger(__name__)
+    tracer = trace.get_tracer(__name__)
     
     class VoicePipelineTest:
         def __init__(self, config: Dict[str, str]):
@@ -143,245 +159,372 @@ data:
             self.last_results = None
             
         def run_pipeline_test(self, timeout: int = 60) -> Dict[str, Any]:
-            """Run the complete voice pipeline test"""
+            """Run the complete voice pipeline test with distributed tracing"""
             
-            logger.info("="*70)
-            logger.info(f"Voice Pipeline Test - {datetime.now()}")
-            logger.info("="*70)
+            with tracer.start_as_current_span("voice_pipeline_test") as span:
+                span.set_attribute("test.timeout", timeout)
+                span.set_attribute("test.timestamp", datetime.now().isoformat())
+                
+                logger.info("="*70)
+                logger.info(f"Voice Pipeline Test - {datetime.now()}")
+                logger.info("="*70)
+                
+                results = {
+                    'timestamp': datetime.now().isoformat(),
+                    'config': self.config,
+                    'errors': []
+                }
+                pipeline_start = time.time()
             
-            results = {
-                'timestamp': datetime.now().isoformat(),
-                'config': self.config
-            }
-            pipeline_start = time.time()
+                # Load audio file
+                with tracer.start_as_current_span("load_audio_file") as audio_span:
+                    try:
+                        audio_span.set_attribute("file.path", self.config['audio_file_path'])
+                        with open(self.config['audio_file_path'], 'rb') as f:
+                            audio_data = f.read()
+                        logger.info(f"✓ Loaded audio file: {len(audio_data)} bytes")
+                        results['audio_size'] = len(audio_data)
+                        audio_span.set_attribute("file.size", len(audio_data))
+                    except Exception as e:
+                        error = PipelineError(
+                            error_type="FILE_IO_ERROR",
+                            service="local",
+                            operation="load_audio_file",
+                            exception=e,
+                            context={'file_path': self.config['audio_file_path']}
+                        )
+                        error.log_error(logger)
+                        error.record_to_span(audio_span)
+                        results['audio_error'] = error.to_dict()
+                        results['errors'].append(error.to_dict())
+                        return results
             
-            # Load audio file
-            try:
-                with open(self.config['audio_file_path'], 'rb') as f:
-                    audio_data = f.read()
-                logger.info(f"✓ Loaded audio file: {len(audio_data)} bytes")
-                results['audio_size'] = len(audio_data)
-            except Exception as e:
-                logger.error(f"✗ Failed to load audio: {e}")
-                results['audio_error'] = str(e)
+                # Stage 1: Simulate openwakeword detection
+                with tracer.start_as_current_span("openwakeword_detection") as wake_span:
+                    logger.info("[1/5] Simulating wake word detection...")
+                    wake_span.set_attribute("service", "openwakeword")
+                    stage_start = time.time()
+                    time.sleep(0.05)  # Simulate detection processing
+                    results['openwakeword_ms'] = (time.time() - stage_start) * 1000
+                    wake_span.set_attribute("latency_ms", results['openwakeword_ms'])
+                    logger.info(f"      Duration: {results['openwakeword_ms']:.2f}ms")
+                
+                # Stage 2: Test HTTP connectivity to services
+                logger.info("[2/5] Testing HTTP connectivity...")
+                connectivity_results = {}
+                
+                with tracer.start_as_current_span("connectivity_tests") as conn_span:
+                    # Test Whisper HTTP
+                    with tracer.start_as_current_span("test_whisper_connectivity") as whisper_conn_span:
+                        whisper_conn_span.set_attribute("service", "whisper")
+                        whisper_conn_span.set_attribute("endpoint", self.config['whisper_endpoint'])
+                        try:
+                            start = time.time()
+                            resp = requests.get(f"{self.config['whisper_endpoint']}/", timeout=2)
+                            connectivity_results['whisper_http'] = {
+                                'status': resp.status_code,
+                                'latency_ms': (time.time() - start) * 1000
+                            }
+                            whisper_conn_span.set_attribute("http.status_code", resp.status_code)
+                            whisper_conn_span.set_attribute("latency_ms", connectivity_results['whisper_http']['latency_ms'])
+                            logger.info(f"      Whisper HTTP: {resp.status_code} ({connectivity_results['whisper_http']['latency_ms']:.2f}ms)")
+                        except Exception as e:
+                            error = PipelineError(
+                                error_type="CONNECTIVITY_ERROR",
+                                service="whisper",
+                                operation="test_http_connectivity",
+                                exception=e,
+                                context={'endpoint': self.config['whisper_endpoint']}
+                            )
+                            connectivity_results['whisper_http'] = {
+                                'error': error.to_dict(),
+                                'latency_ms': (time.time() - start) * 1000
+                            }
+                            error.record_to_span(whisper_conn_span)
+                            results['errors'].append(error.to_dict())
+                            logger.info(f"      Whisper HTTP: Failed ({connectivity_results['whisper_http']['latency_ms']:.2f}ms)")
+                    
+                    # Test Ollama HTTP
+                    with tracer.start_as_current_span("test_ollama_connectivity") as ollama_conn_span:
+                        ollama_conn_span.set_attribute("service", "ollama")
+                        ollama_conn_span.set_attribute("endpoint", self.config['ollama_endpoint'])
+                        try:
+                            start = time.time()
+                            resp = requests.get(f"{self.config['ollama_endpoint']}/", timeout=2)
+                            connectivity_results['ollama_http'] = {
+                                'status': resp.status_code,
+                                'latency_ms': (time.time() - start) * 1000
+                            }
+                            ollama_conn_span.set_attribute("http.status_code", resp.status_code)
+                            ollama_conn_span.set_attribute("latency_ms", connectivity_results['ollama_http']['latency_ms'])
+                            logger.info(f"      Ollama HTTP: {resp.status_code} ({connectivity_results['ollama_http']['latency_ms']:.2f}ms)")
+                        except Exception as e:
+                            error = PipelineError(
+                                error_type="CONNECTIVITY_ERROR",
+                                service="ollama",
+                                operation="test_http_connectivity",
+                                exception=e,
+                                context={'endpoint': self.config['ollama_endpoint']}
+                            )
+                            connectivity_results['ollama_http'] = {
+                                'error': error.to_dict(),
+                                'latency_ms': (time.time() - start) * 1000
+                            }
+                            error.record_to_span(ollama_conn_span)
+                            results['errors'].append(error.to_dict())
+                            logger.info(f"      Ollama HTTP: Failed ({connectivity_results['ollama_http']['latency_ms']:.2f}ms)")
+                    
+                    # Test Piper TCP (Wyoming protocol)
+                    with tracer.start_as_current_span("test_piper_connectivity") as piper_conn_span:
+                        piper_conn_span.set_attribute("service", "piper")
+                        piper_conn_span.set_attribute("endpoint", self.config['piper_endpoint'])
+                        piper_conn_span.set_attribute("protocol", "tcp")
+                        try:
+                            start = time.time()
+                            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            sock.settimeout(2)
+                            # Extract host and port from endpoint
+                            host = self.config['piper_endpoint'].replace('http://', '').split(':')[0]
+                            port = 10200
+                            result = sock.connect_ex((host, port))
+                            sock.close()
+                            connectivity_results['piper_tcp'] = {
+                                'connected': result == 0,
+                                'latency_ms': (time.time() - start) * 1000
+                            }
+                            piper_conn_span.set_attribute("tcp.connected", result == 0)
+                            piper_conn_span.set_attribute("latency_ms", connectivity_results['piper_tcp']['latency_ms'])
+                            logger.info(f"      Piper TCP: {'Connected' if result == 0 else 'Failed'} ({connectivity_results['piper_tcp']['latency_ms']:.2f}ms)")
+                        except Exception as e:
+                            error = PipelineError(
+                                error_type="CONNECTIVITY_ERROR",
+                                service="piper",
+                                operation="test_tcp_connectivity",
+                                exception=e,
+                                context={'endpoint': self.config['piper_endpoint'], 'protocol': 'tcp'}
+                            )
+                            connectivity_results['piper_tcp'] = {
+                                'error': error.to_dict(),
+                                'latency_ms': (time.time() - start) * 1000
+                            }
+                            error.record_to_span(piper_conn_span)
+                            results['errors'].append(error.to_dict())
+                            logger.info(f"      Piper TCP: Failed ({connectivity_results['piper_tcp']['latency_ms']:.2f}ms)")
+                    
+                results['connectivity'] = connectivity_results
+                
+                # Stage 3: Whisper transcription
+                with tracer.start_as_current_span("whisper_transcription") as whisper_span:
+                    logger.info("[3/5] Calling Whisper for transcription...")
+                    whisper_span.set_attribute("service", "whisper")
+                    whisper_span.set_attribute("endpoint", f"{self.config['whisper_endpoint']}/transcribe")
+                    whisper_span.set_attribute("audio_size", len(audio_data))
+                    stage_start = time.time()
+                    try:
+                        response = requests.post(
+                            f"{self.config['whisper_endpoint']}/transcribe",
+                            data=audio_data,
+                            headers={'Content-Type': 'audio/wav'},
+                            timeout=timeout
+                        )
+                        results['whisper_ms'] = (time.time() - stage_start) * 1000
+                        results['whisper_status'] = response.status_code
+                        whisper_span.set_attribute("http.status_code", response.status_code)
+                        whisper_span.set_attribute("latency_ms", results['whisper_ms'])
+                        
+                        # Try to extract text from response
+                        try:
+                            response_data = response.json()
+                            results['transcribed_text'] = response_data.get('text', response.text[:200])
+                        except:
+                            results['transcribed_text'] = response.text[:200] if response.text else "No text"
+                        
+                        whisper_span.set_attribute("transcribed_text_length", len(results['transcribed_text']))
+                        logger.info(f"      Status: {response.status_code}")
+                        logger.info(f"      Duration: {results['whisper_ms']:.2f}ms")
+                        logger.info(f"      Text: {results['transcribed_text'][:100]}...")
+                        
+                    except Exception as e:
+                        error = PipelineError(
+                            error_type="TRANSCRIPTION_ERROR",
+                            service="whisper",
+                            operation="transcribe_audio",
+                            exception=e,
+                            context={
+                                'endpoint': f"{self.config['whisper_endpoint']}/transcribe",
+                                'audio_size': len(audio_data),
+                                'timeout': timeout
+                            }
+                        )
+                        error.log_error(logger)
+                        error.record_to_span(whisper_span)
+                        results['whisper_ms'] = (time.time() - stage_start) * 1000
+                        results['whisper_error'] = error.to_dict()
+                        results['errors'].append(error.to_dict())
+                        results['transcribed_text'] = "ERROR"
+                
+                # Stage 4: Ollama inference
+                with tracer.start_as_current_span("ollama_inference") as ollama_span:
+                    logger.info("[4/5] Calling Ollama for LLM inference...")
+                    ollama_span.set_attribute("service", "ollama")
+                    ollama_span.set_attribute("model", self.config['ollama_model'])
+                    ollama_span.set_attribute("endpoint", f"{self.config['ollama_endpoint']}/api/generate")
+                    
+                    stage_start = time.time()
+                    try:
+                        # Use transcribed text or fallback
+                        prompt = results.get('transcribed_text', 'What is the weather like today?')
+                        if prompt == "ERROR" or not prompt:
+                            prompt = "Hello, how can I help you?"
+                        
+                        ollama_span.set_attribute("prompt_length", len(prompt))
+                        
+                        response = requests.post(
+                            f"{self.config['ollama_endpoint']}/api/generate",
+                            json={
+                                'model': self.config['ollama_model'],
+                                'prompt': prompt,
+                                'stream': False,
+                                'options': {
+                                    'temperature': 0.7,
+                                    'max_tokens': 100
+                                }
+                            },
+                            timeout=timeout
+                        )
+                        results['ollama_ms'] = (time.time() - stage_start) * 1000
+                        results['ollama_status'] = response.status_code
+                        ollama_span.set_attribute("http.status_code", response.status_code)
+                        ollama_span.set_attribute("latency_ms", results['ollama_ms'])
+                        
+                        try:
+                            response_data = response.json()
+                            results['llm_response'] = response_data.get('response', response.text[:200])
+                        except:
+                            results['llm_response'] = response.text[:200] if response.text else "No response"
+                        
+                        ollama_span.set_attribute("response_length", len(results['llm_response']))
+                        logger.info(f"      Status: {response.status_code}")
+                        logger.info(f"      Duration: {results['ollama_ms']:.2f}ms")
+                        # Log full Ollama response for visibility
+                        logger.info(f"      Response preview: {results['llm_response'][:200]}...")
+                        logger.info("      Full Ollama Response:")
+                        for line in results['llm_response'].split('\n'):
+                            if line.strip():
+                                logger.info(f"        {line}")
+                        
+                    except Exception as e:
+                        error = PipelineError(
+                            error_type="INFERENCE_ERROR",
+                            service="ollama",
+                            operation="generate_response",
+                            exception=e,
+                            context={
+                                'endpoint': f"{self.config['ollama_endpoint']}/api/generate",
+                                'model': self.config['ollama_model'],
+                                'timeout': timeout
+                            }
+                        )
+                        error.log_error(logger)
+                        error.record_to_span(ollama_span)
+                        results['ollama_ms'] = (time.time() - stage_start) * 1000
+                        results['ollama_error'] = error.to_dict()
+                        results['errors'].append(error.to_dict())
+                        results['llm_response'] = "ERROR"
+                
+                # Stage 5: Piper TTS (Note: Piper uses Wyoming protocol, not REST API)
+                with tracer.start_as_current_span("piper_tts_test") as piper_span:
+                    logger.info("[5/5] Testing Piper TTS connectivity...")
+                    piper_span.set_attribute("service", "piper")
+                    piper_span.set_attribute("protocol", "wyoming")
+                    
+                    stage_start = time.time()
+                    try:
+                        # Use LLM response or fallback
+                        text_to_speak = results.get('llm_response', 'Test text for speech synthesis')
+                        if text_to_speak == "ERROR" or not text_to_speak:
+                            text_to_speak = "Hello from the voice pipeline test"
+                        
+                        piper_span.set_attribute("text_length", len(text_to_speak))
+                        
+                        # For now, just test connectivity. Piper uses Wyoming protocol, not HTTP
+                        # This will timeout as expected since Piper doesn't respond to HTTP
+                        try:
+                            response = requests.get(
+                                f"{self.config['piper_endpoint']}/",
+                                timeout=2  # Short timeout since we expect this to fail
+                            )
+                            results['piper_status'] = response.status_code
+                        except:
+                            # Expected - Piper uses Wyoming protocol
+                            results['piper_note'] = "Piper uses Wyoming protocol (TCP), not HTTP REST"
+                        
+                        results['piper_ms'] = (time.time() - stage_start) * 1000
+                        results['tts_text'] = text_to_speak[:200]  # Store what would be synthesized
+                        piper_span.set_attribute("latency_ms", results['piper_ms'])
+                        piper_span.set_attribute("note", results.get('piper_note', ''))
+                        
+                        logger.info(f"      Duration: {results['piper_ms']:.2f}ms")
+                        logger.info(f"      Note: Piper uses Wyoming protocol, not HTTP")
+                        logger.info(f"      TTS Text preview: {results['tts_text'][:200]}...")
+                        
+                    except Exception as e:
+                        error = PipelineError(
+                            error_type="TTS_ERROR",
+                            service="piper",
+                            operation="test_tts",
+                            exception=e,
+                            context={'protocol': 'wyoming'}
+                        )
+                        error.log_error(logger)
+                        error.record_to_span(piper_span)
+                        results['piper_ms'] = (time.time() - stage_start) * 1000
+                        results['piper_error'] = error.to_dict()
+                        results['errors'].append(error.to_dict())
+                
+                # Calculate total
+                results['total_ms'] = (time.time() - pipeline_start) * 1000
+                span.set_attribute("total_latency_ms", results['total_ms'])
+                span.set_attribute("error_count", len(results['errors']))
+                
+                # Print summary with both ms and seconds
+                logger.info("="*70)
+                logger.info("SUMMARY")
+                logger.info("="*70)
+                openwakeword_ms = results.get('openwakeword_ms', 0)
+                whisper_ms = results.get('whisper_ms', 0)
+                ollama_ms = results.get('ollama_ms', 0)
+                piper_ms = results.get('piper_ms', 0)
+                total_ms = results['total_ms']
+                
+                logger.info(f"Openwakeword:  {openwakeword_ms:8.2f}ms ({openwakeword_ms/1000:6.3f}s)")
+                logger.info(f"Whisper:       {whisper_ms:8.2f}ms ({whisper_ms/1000:6.3f}s)")
+                logger.info(f"Ollama:        {ollama_ms:8.2f}ms ({ollama_ms/1000:6.3f}s)")
+                logger.info(f"Piper:         {piper_ms:8.2f}ms ({piper_ms/1000:6.3f}s)")
+                logger.info("-"*70)
+                logger.info(f"TOTAL:         {total_ms:8.2f}ms ({total_ms/1000:6.3f}s)")
+                logger.info("="*70)
+                
+                # Add seconds to results for easier consumption
+                results['openwakeword_s'] = openwakeword_ms / 1000
+                results['whisper_s'] = whisper_ms / 1000
+                results['ollama_s'] = ollama_ms / 1000
+                results['piper_s'] = piper_ms / 1000
+                results['total_s'] = total_ms / 1000
+                
+                # Store results
+                self.last_results = results
+                
+                # Determine success
+                has_errors = len(results['errors']) > 0
+                if has_errors:
+                    logger.warning(f"⚠️  Test completed with {len(results['errors'])} errors")
+                    span.set_status(Status(StatusCode.ERROR, f"Pipeline test completed with {len(results['errors'])} errors"))
+                else:
+                    logger.info("✓ Test completed successfully")
+                    span.set_status(Status(StatusCode.OK, "Pipeline test completed successfully"))
+                
                 return results
-            
-            # Stage 1: Simulate openwakeword detection
-            logger.info("[1/5] Simulating wake word detection...")
-            stage_start = time.time()
-            time.sleep(0.05)  # Simulate detection processing
-            results['openwakeword_ms'] = (time.time() - stage_start) * 1000
-            logger.info(f"      Duration: {results['openwakeword_ms']:.2f}ms")
-            
-            # Stage 2: Test HTTP connectivity to services
-            logger.info("[2/5] Testing HTTP connectivity...")
-            connectivity_results = {}
-            
-            # Test Whisper HTTP
-            try:
-                start = time.time()
-                resp = requests.get(f"{self.config['whisper_endpoint']}/", timeout=2)
-                connectivity_results['whisper_http'] = {
-                    'status': resp.status_code,
-                    'latency_ms': (time.time() - start) * 1000
-                }
-                logger.info(f"      Whisper HTTP: {resp.status_code} ({connectivity_results['whisper_http']['latency_ms']:.2f}ms)")
-            except Exception as e:
-                connectivity_results['whisper_http'] = {
-                    'error': str(e)[:100],
-                    'latency_ms': (time.time() - start) * 1000
-                }
-                logger.info(f"      Whisper HTTP: Failed ({connectivity_results['whisper_http']['latency_ms']:.2f}ms)")
-            
-            # Test Ollama HTTP
-            try:
-                start = time.time()
-                resp = requests.get(f"{self.config['ollama_endpoint']}/", timeout=2)
-                connectivity_results['ollama_http'] = {
-                    'status': resp.status_code,
-                    'latency_ms': (time.time() - start) * 1000
-                }
-                logger.info(f"      Ollama HTTP: {resp.status_code} ({connectivity_results['ollama_http']['latency_ms']:.2f}ms)")
-            except Exception as e:
-                connectivity_results['ollama_http'] = {
-                    'error': str(e)[:100],
-                    'latency_ms': (time.time() - start) * 1000
-                }
-                logger.info(f"      Ollama HTTP: Failed ({connectivity_results['ollama_http']['latency_ms']:.2f}ms)")
-            
-            # Test Piper TCP (Wyoming protocol)
-            try:
-                import socket
-                start = time.time()
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(2)
-                # Extract host and port from endpoint
-                host = self.config['piper_endpoint'].replace('http://', '').split(':')[0]
-                port = 10200
-                result = sock.connect_ex((host, port))
-                sock.close()
-                connectivity_results['piper_tcp'] = {
-                    'connected': result == 0,
-                    'latency_ms': (time.time() - start) * 1000
-                }
-                logger.info(f"      Piper TCP: {'Connected' if result == 0 else 'Failed'} ({connectivity_results['piper_tcp']['latency_ms']:.2f}ms)")
-            except Exception as e:
-                connectivity_results['piper_tcp'] = {
-                    'error': str(e)[:100],
-                    'latency_ms': (time.time() - start) * 1000
-                }
-                logger.info(f"      Piper TCP: Failed ({connectivity_results['piper_tcp']['latency_ms']:.2f}ms)")
-            
-            results['connectivity'] = connectivity_results
-            
-            # Stage 3: Whisper transcription
-            logger.info("[3/5] Calling Whisper for transcription...")
-            stage_start = time.time()
-            try:
-                response = requests.post(
-                    f"{self.config['whisper_endpoint']}/transcribe",
-                    data=audio_data,
-                    headers={'Content-Type': 'audio/wav'},
-                    timeout=timeout
-                )
-                results['whisper_ms'] = (time.time() - stage_start) * 1000
-                results['whisper_status'] = response.status_code
-                
-                # Try to extract text from response
-                try:
-                    response_data = response.json()
-                    results['transcribed_text'] = response_data.get('text', response.text[:200])
-                except:
-                    results['transcribed_text'] = response.text[:200] if response.text else "No text"
-                
-                logger.info(f"      Status: {response.status_code}")
-                logger.info(f"      Duration: {results['whisper_ms']:.2f}ms")
-                logger.info(f"      Text: {results['transcribed_text'][:100]}...")
-                
-            except Exception as e:
-                results['whisper_ms'] = (time.time() - stage_start) * 1000
-                results['whisper_error'] = str(e)
-                results['transcribed_text'] = "ERROR"
-                logger.error(f"      ERROR: {e}")
-            
-            # Stage 4: Ollama inference
-            logger.info("[4/5] Calling Ollama for LLM inference...")
-            stage_start = time.time()
-            try:
-                # Use transcribed text or fallback
-                prompt = results.get('transcribed_text', 'What is the weather like today?')
-                if prompt == "ERROR" or not prompt:
-                    prompt = "Hello, how can I help you?"
-                
-                response = requests.post(
-                    f"{self.config['ollama_endpoint']}/api/generate",
-                    json={
-                        'model': self.config['ollama_model'],
-                        'prompt': prompt,
-                        'stream': False,
-                        'options': {
-                            'temperature': 0.7,
-                            'max_tokens': 100
-                        }
-                    },
-                    timeout=timeout
-                )
-                results['ollama_ms'] = (time.time() - stage_start) * 1000
-                results['ollama_status'] = response.status_code
-                
-                try:
-                    response_data = response.json()
-                    results['llm_response'] = response_data.get('response', response.text[:200])
-                except:
-                    results['llm_response'] = response.text[:200] if response.text else "No response"
-                
-                logger.info(f"      Status: {response.status_code}")
-                logger.info(f"      Duration: {results['ollama_ms']:.2f}ms")
-                # Log full Ollama response for visibility
-                logger.info(f"      Response preview: {results['llm_response'][:200]}...")
-                logger.info("      Full Ollama Response:")
-                for line in results['llm_response'].split('\n'):
-                    if line.strip():
-                        logger.info(f"        {line}")
-                
-            except Exception as e:
-                results['ollama_ms'] = (time.time() - stage_start) * 1000
-                results['ollama_error'] = str(e)
-                results['llm_response'] = "ERROR"
-                logger.error(f"      ERROR: {e}")
-            
-            # Stage 5: Piper TTS (Note: Piper uses Wyoming protocol, not REST API)
-            logger.info("[5/5] Testing Piper TTS connectivity...")
-            stage_start = time.time()
-            try:
-                # Use LLM response or fallback
-                text_to_speak = results.get('llm_response', 'Test text for speech synthesis')
-                if text_to_speak == "ERROR" or not text_to_speak:
-                    text_to_speak = "Hello from the voice pipeline test"
-                
-                # For now, just test connectivity. Piper uses Wyoming protocol, not HTTP
-                # This will timeout as expected since Piper doesn't respond to HTTP
-                try:
-                    response = requests.get(
-                        f"{self.config['piper_endpoint']}/",
-                        timeout=2  # Short timeout since we expect this to fail
-                    )
-                    results['piper_status'] = response.status_code
-                except:
-                    # Expected - Piper uses Wyoming protocol
-                    results['piper_note'] = "Piper uses Wyoming protocol (TCP), not HTTP REST"
-                
-                results['piper_ms'] = (time.time() - stage_start) * 1000
-                results['tts_text'] = text_to_speak[:200]  # Store what would be synthesized
-                
-                logger.info(f"      Duration: {results['piper_ms']:.2f}ms")
-                logger.info(f"      Note: Piper uses Wyoming protocol, not HTTP")
-                logger.info(f"      TTS Text preview: {results['tts_text'][:200]}...")
-                
-            except Exception as e:
-                results['piper_ms'] = (time.time() - stage_start) * 1000
-                results['piper_error'] = str(e)
-                logger.error(f"      ERROR: {e}")
-            
-            # Calculate total
-            results['total_ms'] = (time.time() - pipeline_start) * 1000
-            
-            # Print summary with both ms and seconds
-            logger.info("="*70)
-            logger.info("SUMMARY")
-            logger.info("="*70)
-            openwakeword_ms = results.get('openwakeword_ms', 0)
-            whisper_ms = results.get('whisper_ms', 0)
-            ollama_ms = results.get('ollama_ms', 0)
-            piper_ms = results.get('piper_ms', 0)
-            total_ms = results['total_ms']
-            
-            logger.info(f"Openwakeword:  {openwakeword_ms:8.2f}ms ({openwakeword_ms/1000:6.3f}s)")
-            logger.info(f"Whisper:       {whisper_ms:8.2f}ms ({whisper_ms/1000:6.3f}s)")
-            logger.info(f"Ollama:        {ollama_ms:8.2f}ms ({ollama_ms/1000:6.3f}s)")
-            logger.info(f"Piper:         {piper_ms:8.2f}ms ({piper_ms/1000:6.3f}s)")
-            logger.info("-"*70)
-            logger.info(f"TOTAL:         {total_ms:8.2f}ms ({total_ms/1000:6.3f}s)")
-            logger.info("="*70)
-            
-            # Add seconds to results for easier consumption
-            results['openwakeword_s'] = openwakeword_ms / 1000
-            results['whisper_s'] = whisper_ms / 1000
-            results['ollama_s'] = ollama_ms / 1000
-            results['piper_s'] = piper_ms / 1000
-            results['total_s'] = total_ms / 1000
-            
-            # Store results
-            self.last_results = results
-            
-            # Determine success
-            has_errors = any(key.endswith('_error') for key in results.keys())
-            if has_errors:
-                logger.warning("⚠️  Test completed with errors")
-            else:
-                logger.info("✓ Test completed successfully")
-            
-            return results
         
         def get_last_results(self) -> Optional[Dict[str, Any]]:
             """Get the results from the last test run"""
@@ -426,5 +569,11 @@ data:
                 for service, data in self.last_results['connectivity'].items():
                     if 'latency_ms' in data:
                         metrics.append(f'voice_pipeline_connectivity_ms{{service="{service}"}} {data["latency_ms"]}')
+            
+            # Add error count metric
+            if 'errors' in self.last_results:
+                metrics.append("# HELP voice_pipeline_errors_total Total number of errors in pipeline")
+                metrics.append("# TYPE voice_pipeline_errors_total gauge")
+                metrics.append(f'voice_pipeline_errors_total {len(self.last_results["errors"])}')
             
             return "\n".join(metrics) + "\n"
