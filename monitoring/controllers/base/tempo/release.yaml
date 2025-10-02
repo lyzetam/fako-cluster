@@ -1,0 +1,82 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tempo
+  namespace: tempo
+spec:
+  interval: 30m
+  timeout: 10m
+  chart:
+    spec:
+      chart: tempo
+      version: "1.10.1"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: tempo
+  install:
+    crds: Create
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    # Tempo configuration
+    tempo:
+      # Disable authentication for internal cluster use
+      auth_enabled: false
+      
+      # Use filesystem storage
+      storage:
+        trace:
+          backend: local
+          local:
+            path: /var/tempo/traces
+      
+      # Receivers configuration - OTLP from Alloy
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: "0.0.0.0:4317"
+            http:
+              endpoint: "0.0.0.0:4318"
+      
+      # Retention period
+      retention:
+        traces: 720h  # 30 days
+    
+    # Server configuration
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9095
+    
+    # Persistence
+    persistence:
+      enabled: true
+      storageClassName: nfs-csi-v2
+      size: 50Gi
+    
+    # Resources
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    
+    # Service configuration
+    service:
+      type: ClusterIP
+    
+    # ServiceMonitor for Prometheus
+    serviceMonitor:
+      enabled: true
+      labels:
+        prometheus: kube-prometheus
+    
+    # Deployment mode
+    replicas: 1
