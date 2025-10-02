@@ -48,6 +48,20 @@ data:
         action = "replace"
         target_label = "container"
       }
+      
+      // Add service label from pod labels
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_app"]
+        action = "replace"
+        target_label = "service"
+      }
+      
+      // Add app name from annotations
+      rule {
+        source_labels = ["__meta_kubernetes_pod_annotation_app_kubernetes_io_name"]
+        action = "replace"
+        target_label = "app"
+      }
     }
     
     loki.source.kubernetes "pods" {
@@ -131,6 +145,76 @@ data:
     }
     
     // ============================================
+    // Voice Pipeline Logs Collection
+    // ============================================
+    
+    // Specific discovery for voice pipeline logs with proper labeling
+    discovery.kubernetes "voice_pipeline_logs" {
+      role = "pod"
+      namespaces {
+        names = ["whisper", "ollama", "piper", "openwakeword", "voice-pipeline-test"]
+      }
+    }
+    
+    discovery.relabel "voice_pipeline_pod_logs" {
+      targets = discovery.kubernetes.voice_pipeline_logs.targets
+      
+      rule {
+        source_labels = ["__meta_kubernetes_pod_phase"]
+        regex = "Running"
+        action = "keep"
+      }
+      
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        action = "replace"
+        target_label = "namespace"
+      }
+      
+      rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        action = "replace"
+        target_label = "pod"
+      }
+      
+      rule {
+        source_labels = ["__meta_kubernetes_pod_container_name"]
+        action = "replace"
+        target_label = "container"
+      }
+      
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_app"]
+        action = "replace"
+        target_label = "service"
+      }
+    }
+    
+    // Separate log source for voice pipeline with better processing
+    loki.source.kubernetes "voice_pipeline" {
+      targets = discovery.relabel.voice_pipeline_pod_logs.output
+      forward_to = [loki.process.voice_pipeline.receiver]
+    }
+    
+    loki.process "voice_pipeline" {
+      forward_to = [loki.write.default.receiver]
+      
+      stage.cri {}
+      
+      // Filter out binary/garbled content
+      stage.regex {
+        expression = "^[\\x20-\\x7E\\s]+$"
+      }
+      
+      stage.static_labels {
+        values = {
+          cluster = "production",
+          pipeline = "voice",
+        }
+      }
+    }
+    
+    // ============================================
     // Voice Pipeline Network Flow Monitoring
     // ============================================
     
@@ -138,7 +222,7 @@ data:
     discovery.kubernetes "voice_services" {
       role = "pod"
       namespaces {
-        names = ["whisper", "ollama", "piper", "openwakeword"]
+        names = ["whisper", "ollama", "piper", "openwakeword", "voice-pipeline-test"]
       }
     }
     
