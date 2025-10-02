@@ -87,7 +87,7 @@ spec:
           - name: etcd-backup
             image: rancher/kubectl:v1.28.2
             command:
-            - /bin/bash
+            - /bin/sh
             - /scripts/backup-etcd.sh
             volumeMounts:
             - name: backup-scripts
