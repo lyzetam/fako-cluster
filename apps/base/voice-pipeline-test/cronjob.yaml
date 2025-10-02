@@ -20,18 +20,16 @@ spec:
           restartPolicy: Never
           containers:
             - name: trigger
-              image: curlimages/curl:latest
+              image: busybox:1.36
               command:
                 - sh
                 - -c
                 - |
                   echo "Triggering voice pipeline test at $(date)"
-                  curl -X POST \
-                    -H "Content-Type: application/json" \
-                    -d '{"timeout": 120}' \
+                  wget -O- --post-data='{"timeout": 120}' \
+                    --header='Content-Type: application/json' \
                     http://voice-pipeline-test.voice-pipeline-test:8080/test \
-                    -w "\n\nHTTP Status: %{http_code}\n" \
-                    -o /dev/stdout
+                    2>&1
                   exit_code=$?
                   echo "Test trigger completed at $(date) with exit code: $exit_code"
                   exit $exit_code
