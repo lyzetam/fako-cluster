@@ -15,7 +15,7 @@ spec:
           serviceAccountName: backup-sa
           containers:
           - name: backup
-            image: bitnami/kubectl:1.33
+            image: registry.k8s.io/kubectl:v1.31.4
             command:
             - /bin/bash
             - /scripts/backup.sh
