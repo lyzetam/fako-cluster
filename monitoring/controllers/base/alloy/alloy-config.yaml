@@ -117,19 +117,6 @@ data:
     // Batch processor - improves performance by batching traces
     otelcol.processor.batch "traces" {
       output {
-        traces = [otelcol.processor.resource.traces.input]
-      }
-    }
-    
-    // Resource processor - add cluster and service metadata
-    otelcol.processor.resource "traces" {
-      attributes {
-        action = "upsert"
-        key = "cluster"
-        value = "fako-cluster"
-      }
-      
-      output {
         traces = [otelcol.exporter.otlp.tempo.input]
       }
     }
