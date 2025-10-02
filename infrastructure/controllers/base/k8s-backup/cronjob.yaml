@@ -15,7 +15,7 @@ spec:
           serviceAccountName: backup-sa
           containers:
           - name: backup
-            image: bitnami/kubectl:latest
+            image: bitnami/kubectl:1.33
             command:
             - /bin/bash
             - /scripts/backup.sh

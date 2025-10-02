@@ -85,7 +85,7 @@ spec:
           hostNetwork: true  # Required to access etcd
           containers:
           - name: etcd-backup
-            image: bitnami/kubectl:latest
+            image: bitnami/kubectl:1.33
             command:
             - /bin/bash
             - /scripts/backup-etcd.sh

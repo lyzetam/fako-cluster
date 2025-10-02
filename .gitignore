@@ -12,3 +12,4 @@ externalconnections/
 scripts/
 *-unencrypted.yaml
 *-unencrypted.yml
+*.sh
