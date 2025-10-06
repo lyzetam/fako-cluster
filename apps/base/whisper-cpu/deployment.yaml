@@ -16,6 +16,8 @@ spec:
       labels:
         app: whisper-cpu
     spec:
+      imagePullSecrets:
+      - name: dockerhub-registry
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

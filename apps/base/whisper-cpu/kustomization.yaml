@@ -9,3 +9,5 @@ resources:
   - service.yaml
   - nodeport-service.yaml
   - storage.yaml
+  - dockerhub-secret.yaml
+  - create-docker-registry-secret-job.yaml
