@@ -1,0 +1,16 @@
+# apps/base/whisper-cpu/nodeport-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: whisper-cpu-nodeport
+  namespace: whisper-cpu
+spec:
+  type: NodePort
+  ports:
+    - port: 10301
+      targetPort: 10301
+      nodePort: 30301
+      protocol: TCP
+      name: wyoming
+  selector:
+    app: whisper-cpu

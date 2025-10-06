@@ -1,0 +1,68 @@
+# apps/base/whisper-cpu/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisper-cpu
+  namespace: whisper-cpu
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: whisper-cpu
+  template:
+    metadata:
+      labels:
+        app: whisper-cpu
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      
+      containers:
+      - name: whisper
+        image: ghcr.io/slackr31337/wyoming-whisper:v2025.01.4
+        ports:
+        - containerPort: 10301
+          protocol: TCP
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: OMP_NUM_THREADS
+          value: "4"  # Optimize for multi-core CPU
+        envFrom:
+        - configMapRef:
+            name: whisper-cpu-configmap
+        
+        volumeMounts:
+        - mountPath: /data
+          name: whisper-models
+        
+        resources:
+          requests:
+            memory: "6Gi"
+            cpu: "4000m"
+          limits:
+            memory: "8Gi"
+            cpu: "6000m"
+        
+        livenessProbe:
+          tcpSocket:
+            port: 10301
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 10301
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+      
+      volumes:
+      - name: whisper-models
+        persistentVolumeClaim:
+          claimName: whisper-cpu-models
