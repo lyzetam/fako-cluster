@@ -1,0 +1,25 @@
+# apps/base/whisper-cpu/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whisper-cpu-configmap
+  namespace: whisper-cpu
+data:
+  # Model configuration
+  MODEL: "medium"  # Medium model for better CPU performance
+  LANGUAGE: "en"
+  COMPUTE_TYPE: "int8"  # CPU-optimized compute type
+  BEAM_SIZE: "1"
+  
+  # Wyoming protocol settings
+  WYOMING_URI: "tcp://0.0.0.0:10301"
+  
+  # Cache directory for models
+  HF_HOME: "/data/.cache"
+  TRANSFORMERS_CACHE: "/data/.cache"
+  
+  # Additional stability settings
+  VAD_THRESHOLD: "0.5"
+  MIN_SPEECH_DURATION_MS: "250"
+  MAX_SPEECH_DURATION_S: "30"
+  SPEECH_PAD_MS: "400"
