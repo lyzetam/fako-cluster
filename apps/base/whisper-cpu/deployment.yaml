@@ -27,6 +27,17 @@ spec:
       containers:
       - name: whisper
         image: rhasspy/wyoming-whisper:2.5.0
+        args:
+          - "--model"
+          - "medium-int8"
+          - "--language"
+          - "en"
+          - "--uri"
+          - "tcp://0.0.0.0:10301"
+          - "--data-dir"
+          - "/data"
+          - "--download-dir"
+          - "/data"
         ports:
         - containerPort: 10301
           protocol: TCP
@@ -35,9 +46,10 @@ spec:
           value: "1"
         - name: OMP_NUM_THREADS
           value: "4"  # Optimize for multi-core CPU
-        envFrom:
-        - configMapRef:
-            name: whisper-cpu-configmap
+        - name: HF_HOME
+          value: "/data/.cache"
+        - name: TRANSFORMERS_CACHE
+          value: "/data/.cache"
         
         volumeMounts:
         - mountPath: /data
