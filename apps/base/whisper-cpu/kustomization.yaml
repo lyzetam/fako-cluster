@@ -10,4 +10,5 @@ resources:
   - nodeport-service.yaml
   - storage.yaml
   - dockerhub-secret.yaml
-  - create-docker-registry-secret-job.yaml
+  # Note: create-docker-registry-secret-job.yaml removed due to chicken-and-egg problem
+  # Use bootstrap-docker-secret.sh script instead after namespace is deployed
