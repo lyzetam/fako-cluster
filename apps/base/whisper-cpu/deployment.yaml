@@ -24,7 +24,7 @@ spec:
       
       containers:
       - name: whisper
-        image: ghcr.io/slackr31337/wyoming-whisper:v2025.01.4
+        image: ghcr.io/slackr31337/wyoming-whisper:v2.5.0
         ports:
         - containerPort: 10301
           protocol: TCP
