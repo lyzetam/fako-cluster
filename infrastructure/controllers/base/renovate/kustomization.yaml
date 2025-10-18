@@ -4,4 +4,6 @@ resources:
   - namespace.yaml
   - renovate-container-env.yaml
   - configmap.yaml
+  - dockerhub-secret.yaml
+  - create-docker-registry-secret-job.yaml
   - cronjob.yaml

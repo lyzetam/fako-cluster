@@ -11,6 +11,8 @@ spec:
     spec:
       template:
         spec:
+          imagePullSecrets:
+            - name: dockerhub-registry
           containers:
             - name: renovate
               image: renovate/renovate:39
