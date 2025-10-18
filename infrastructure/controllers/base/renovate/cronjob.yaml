@@ -13,7 +13,8 @@ spec:
         spec:
           containers:
             - name: renovate
-              image: renovate/renovate:latest
+              image: renovate/renovate:39
+              imagePullPolicy: IfNotPresent
               args:
                 - lyzetam/fako-cluster
 
