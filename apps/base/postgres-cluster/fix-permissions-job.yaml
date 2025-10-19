@@ -4,6 +4,7 @@ metadata:
   name: postgres-fix-permissions
   namespace: postgres
 spec:
+  ttlSecondsAfterFinished: 300
   template:
     spec:
       restartPolicy: Never
@@ -18,9 +19,10 @@ spec:
         - |
           echo "Fixing permissions on /data..."
           chown -R 26:26 /data
-          chmod -R 755 /data
+          chmod 700 /data
           echo "Permissions fixed successfully!"
           ls -la /data
+          echo "Done!"
         volumeMounts:
         - name: pgdata
           mountPath: /data

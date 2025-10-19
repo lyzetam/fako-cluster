@@ -52,7 +52,7 @@ spec:
   
   storage:
     size: 50Gi
-    storageClass: "nfs-postgres-v2"
+    storageClass: "nfs-csi-v2"
   
   resources:
     requests:
