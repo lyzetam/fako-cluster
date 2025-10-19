@@ -54,6 +54,11 @@ spec:
     size: 50Gi
     storageClass: "nfs-postgres-v2"
   
+  # Security context to handle NFS mount permissions
+  securityContext:
+    fsGroup: 26  # postgres default group
+    fsGroupChangePolicy: "OnRootMismatch"
+  
   resources:
     requests:
       memory: "2Gi"
