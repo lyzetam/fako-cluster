@@ -6,7 +6,9 @@ resources:
   - rbac.yaml
   - rbac-additions.yaml      # New: Additional RBAC for External Secrets
   - secret-store.yaml        # New: Local SecretStore
+  - aws-secret-store.yaml    # New: AWS SecretStore for External Secrets
   - external-secret-aws.yaml # New: External Secret for AWS credentials
+  - external-secret-postgres.yaml # New: External Secret for PostgreSQL credentials
   - configmap.yaml
   - storage.yaml
   - deployment.yaml

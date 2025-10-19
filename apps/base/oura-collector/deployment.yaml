@@ -31,6 +31,8 @@ spec:
             name: oura-collector-config
         - secretRef:
             name: aws-credentials-env  # Changed from aws-credentials
+        - secretRef:
+            name: postgres-credentials-env
         
         resources:
           requests:
