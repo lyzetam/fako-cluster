@@ -5,6 +5,14 @@ metadata:
   namespace: postgres
 spec:
   instances: 3
+  
+  # Pod security context for proper NFS volume ownership
+  podSecurityContext:
+    fsGroup: 26
+    runAsUser: 26
+    runAsNonRoot: true
+    fsGroupChangePolicy: "OnRootMismatch"
+  
   imageName: ghcr.io/cloudnative-pg/postgresql:16.2
   enableSuperuserAccess: true
   
