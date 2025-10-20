@@ -42,7 +42,7 @@ resources:
   - piper           
   - piper-v13       # Piper (LinuxServer image) in separate namespace
   - openwakeword    
-  - node-labeling
+  # - node-labeling
   - voice-pipeline-test  # End-to-end voice pipeline testing (runs nightly at 3am)
   
   # AI Agent
