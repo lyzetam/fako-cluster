@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: n8n-migration
+
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - secret-store.yaml
+  - external-secret-postgres.yaml
+  - storage.yaml
+  # Jobs are applied manually in sequence:
+  # - 01-export-job.yaml
+  # - 02-init-db-job.yaml
+  # - 03-import-job.yaml

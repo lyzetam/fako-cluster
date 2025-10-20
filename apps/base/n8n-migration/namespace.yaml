@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: n8n-migration
+  labels:
+    app.kubernetes.io/name: n8n-migration
+    app.kubernetes.io/component: migration

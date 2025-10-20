@@ -1,0 +1,86 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: n8n-init-db
+  namespace: n8n-migration
+  labels:
+    app: n8n-migration
+    phase: init-db
+spec:
+  ttlSecondsAfterFinished: 86400  # Keep for 24 hours after completion
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: n8n-migration
+        phase: init-db
+    spec:
+      serviceAccountName: n8n-migration-sa
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: init-db
+          image: n8nio/n8n:1.115.3
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              echo "=========================================="
+              echo "n8n Database Initialization"
+              echo "=========================================="
+              
+              # Database configuration
+              export DB_TYPE="postgresdb"
+              export DB_POSTGRESDB_HOST="postgres-cluster-rw.postgres.svc.cluster.local"
+              export DB_POSTGRESDB_PORT="5432"
+              export DB_POSTGRESDB_DATABASE="app"
+              export DB_POSTGRESDB_USER="app"
+              export DB_POSTGRESDB_PASSWORD="${POSTGRES_PASSWORD}"
+              
+              echo "Database configuration:"
+              echo "  Host: ${DB_POSTGRESDB_HOST}"
+              echo "  Port: ${DB_POSTGRESDB_PORT}"
+              echo "  Database: ${DB_POSTGRESDB_DATABASE}"
+              echo "  User: ${DB_POSTGRESDB_USER}"
+              
+              echo ""
+              echo "Testing database connection..."
+              n8n db:revert --all || {
+                echo "No migrations to revert (database is empty)"
+              }
+              
+              echo ""
+              echo "Running database migrations..."
+              n8n db:migrate
+              
+              echo ""
+              echo "Verifying database schema..."
+              n8n db:migrate:status || {
+                echo "Migration status check completed"
+              }
+              
+              echo ""
+              echo "=========================================="
+              echo "Database initialization completed!"
+              echo "=========================================="
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+            - name: N8N_DIAGNOSTICS_ENABLED
+              value: "false"
+            - name: N8N_VERSION_NOTIFICATIONS_ENABLED
+              value: "false"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
