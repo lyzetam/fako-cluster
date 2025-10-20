@@ -8,7 +8,7 @@ resources:
   - external-secret-admin.yaml    
   - external-secret-app.yaml
   - aws-credentials-secret.yaml
-  - pvc-and-permissions.yaml  # Must come before postgres-cluster
+  # - pvc-and-permissions.yaml  # Must come before postgres-cluster
   - postgres-cluster.yaml
 
   # - service.yaml
