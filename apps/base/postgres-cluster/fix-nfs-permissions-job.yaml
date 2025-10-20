@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postgres-permission-fixer
+  namespace: postgres
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: postgres-pvc-access
+  namespace: postgres
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: postgres-permission-fixer
+  namespace: postgres
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: postgres-pvc-access
+subjects:
+- kind: ServiceAccount
+  name: postgres-permission-fixer
+  namespace: postgres
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fix-postgres-nfs-permissions
+  namespace: postgres
+  annotations:
+    description: "Fixes NFS volume ownership for PostgreSQL data directory"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        job: fix-postgres-permissions
+    spec:
+      serviceAccountName: postgres-permission-fixer
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 0  # Run as root to chown
+        fsGroup: 26
+      containers:
+      - name: fix-permissions
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Fixing PostgreSQL data directory ownership..."
+          echo "Current permissions:"
+          ls -la /mnt/data/
+          
+          # Remove any existing pgdata directory with wrong ownership
+          if [ -d "/mnt/data/pgdata" ]; then
+            echo "Found existing pgdata directory, removing..."
+            rm -rf /mnt/data/pgdata
+          fi
+          
+          # Create directory with correct ownership
+          mkdir -p /mnt/data/pgdata
+          chown -R 26:26 /mnt/data/pgdata
+          chmod 700 /mnt/data/pgdata
+          
+          echo "Fixed permissions:"
+          ls -la /mnt/data/
+          echo "PostgreSQL data directory is ready!"
+        volumeMounts:
+        - name: pgdata
+          mountPath: /mnt/data
+      volumes:
+      - name: pgdata
+        persistentVolumeClaim:
+          claimName: postgres-cluster-1
