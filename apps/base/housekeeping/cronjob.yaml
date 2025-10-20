@@ -20,7 +20,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: housekeeping
-            image: bitnami/kubectl:1.33
+            image: bitnami/kubectl:1.31
             command:
             - /bin/bash
             - -c
