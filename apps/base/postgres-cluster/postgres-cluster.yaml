@@ -8,34 +8,7 @@ spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:16.2
   enableSuperuserAccess: true
   
-  # Init container to fix NFS permissions before PostgreSQL starts
-  initContainers:
-  - name: fix-nfs-permissions
-    image: busybox:latest
-    command:
-    - /bin/sh
-    - -c
-    - |
-      set -e
-      echo "Fixing NFS volume permissions for PostgreSQL..."
-      echo "Current state:"
-      ls -la /var/lib/postgresql/data/
-      
-      # Ensure the data directory exists and has correct ownership
-      mkdir -p /var/lib/postgresql/data/pgdata
-      chown -R 26:26 /var/lib/postgresql/data
-      chmod 700 /var/lib/postgresql/data/pgdata
-      
-      echo "Permissions fixed:"
-      ls -la /var/lib/postgresql/data/
-      echo "Ready for PostgreSQL initialization"
-    securityContext:
-      runAsUser: 0  # Must run as root to chown
-    volumeMounts:
-    - name: pgdata
-      mountPath: /var/lib/postgresql/data
-  
-  # Add this section - uses AWS Secrets Manager for admin credentials
+  # Use AWS Secrets Manager for admin credentials
   superuserSecret:
     name: postgres-admin-secret
   

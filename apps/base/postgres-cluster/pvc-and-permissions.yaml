@@ -1,0 +1,72 @@
+# PersistentVolumeClaim for postgres-cluster-1
+# This must be created before the Cluster resource
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-cluster-1
+  namespace: postgres
+  labels:
+    cnpg.io/cluster: postgres-cluster
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-postgres-v2
+  resources:
+    requests:
+      storage: 50Gi
+---
+# Job to fix NFS permissions after PVC is created
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fix-postgres-pvc-permissions
+  namespace: postgres
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 0  # Run as root to fix ownership
+        fsGroup: 26
+      containers:
+      - name: fix-permissions
+        image: busybox:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "=== Fixing NFS permissions for PostgreSQL ==="
+          echo "Current state of /mnt/data:"
+          ls -la /mnt/data/ || echo "Directory doesn't exist yet"
+          
+          # Clean up any failed initialization attempts
+          if [ -d "/mnt/data/pgdata" ]; then
+            echo "Removing existing pgdata directory..."
+            rm -rf /mnt/data/pgdata
+          fi
+          
+          # Ensure the base directory is owned by postgres user
+          echo "Setting ownership to postgres (UID 26, GID 26)..."
+          chown -R 26:26 /mnt/data
+          chmod 755 /mnt/data
+          
+          # Pre-create pgdata directory with correct permissions
+          mkdir -p /mnt/data/pgdata
+          chown 26:26 /mnt/data/pgdata
+          chmod 700 /mnt/data/pgdata
+          
+          echo "=== Permissions fixed ==="
+          ls -la /mnt/data/
+          echo "Ready for PostgreSQL initialization!"
+        volumeMounts:
+        - name: pgdata
+          mountPath: /mnt/data
+      volumes:
+      - name: pgdata
+        persistentVolumeClaim:
+          claimName: postgres-cluster-1
