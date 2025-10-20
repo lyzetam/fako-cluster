@@ -119,11 +119,16 @@ spec:
           
           # Create nfs-postgres-v2 StorageClass
           # Using NFSv3 for compatibility
+          # NOTE: NFS export must be configured with appropriate UID/GID permissions
+          # For CloudNativePG: Either use no_root_squash/no_all_squash, or
+          # all_squash with anonuid=26,anongid=26 (postgres user)
           cat <<EOF | kubectl apply -f -
           apiVersion: storage.k8s.io/v1
           kind: StorageClass
           metadata:
             name: nfs-postgres-v2
+            annotations:
+              storageclass.kubernetes.io/notes: "Requires NFS export with UID 26 (postgres) permissions"
           provisioner: nfs.csi.k8s.io
           parameters:
             server: "$NFS_SERVER"
@@ -188,7 +193,6 @@ spec:
           parameters:
             server: "$NFS_SERVER"
             share: "$NFS_SECURITY_LOGS_PATH"
-            mountPermissions: "0755"
           reclaimPolicy: Retain
           allowVolumeExpansion: true
           mountOptions:
