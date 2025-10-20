@@ -1,0 +1,128 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: n8n-export
+  namespace: n8n-migration
+  labels:
+    app: n8n-migration
+    phase: export
+spec:
+  ttlSecondsAfterFinished: 86400  # Keep for 24 hours after completion
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: n8n-migration
+        phase: export
+    spec:
+      serviceAccountName: n8n-migration-sa
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      initContainers:
+        # Scale down n8n to release PVC lock
+        - name: scale-down-n8n
+          image: bitnami/kubectl:latest
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              echo "Scaling down n8n deployment..."
+              kubectl scale deployment n8n -n n8n --replicas=0
+              echo "Waiting for n8n pods to terminate..."
+              kubectl wait --for=delete pod -l app=n8n -n n8n --timeout=120s || true
+              echo "n8n scaled down successfully"
+      containers:
+        - name: exporter
+          image: n8nio/n8n:1.115.3
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              echo "=========================================="
+              echo "n8n Data Export Process"
+              echo "=========================================="
+              
+              # Check if old data exists
+              if [ ! -d "/old-data" ] || [ -z "$(ls -A /old-data)" ]; then
+                echo "ERROR: Old n8n data directory is empty or doesn't exist"
+                exit 1
+              fi
+              
+              echo "Old data directory contents:"
+              ls -la /old-data/
+              
+              # Create export directory
+              mkdir -p /export
+              
+              # Check what type of database was used
+              if [ -f "/old-data/database.sqlite" ]; then
+                echo "Found SQLite database - will export from it"
+                export DB_TYPE="sqlite"
+                export DB_SQLITE_DATABASE="/old-data/database.sqlite"
+              elif [ -f "/old-data/config" ]; then
+                echo "Found config file - checking for database configuration"
+                cat /old-data/config
+              fi
+              
+              echo ""
+              echo "Exporting workflows..."
+              n8n export:workflow --all --output=/export/workflows.json || {
+                echo "WARNING: Workflow export failed - may not have any workflows"
+                echo "[]" > /export/workflows.json
+              }
+              
+              echo ""
+              echo "Exporting credentials..."
+              n8n export:credentials --all --output=/export/credentials.json || {
+                echo "WARNING: Credentials export failed - may not have any credentials"
+                echo "[]" > /export/credentials.json
+              }
+              
+              echo ""
+              echo "Export completed! Files created:"
+              ls -lh /export/
+              
+              # Create manifest file with export metadata
+              cat > /export/export-manifest.json <<EOF
+              {
+                "export_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "n8n_version": "1.115.3",
+                "source": "old-pvc",
+                "files": [
+                  "workflows.json",
+                  "credentials.json"
+                ]
+              }
+              EOF
+              
+              echo ""
+              echo "Export manifest:"
+              cat /export/export-manifest.json
+              
+              echo ""
+              echo "=========================================="
+              echo "Export process completed successfully!"
+              echo "=========================================="
+          volumeMounts:
+            - name: old-data
+              mountPath: /old-data
+              readOnly: true
+            - name: export-storage
+              mountPath: /export
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+      volumes:
+        - name: old-data
+          persistentVolumeClaim:
+            claimName: n8n-data
+        - name: export-storage
+          persistentVolumeClaim:
+            claimName: n8n-export-storage

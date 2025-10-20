@@ -1,0 +1,136 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: n8n-import
+  namespace: n8n-migration
+  labels:
+    app: n8n-migration
+    phase: import
+spec:
+  ttlSecondsAfterFinished: 86400  # Keep for 24 hours after completion
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: n8n-migration
+        phase: import
+    spec:
+      serviceAccountName: n8n-migration-sa
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: importer
+          image: n8nio/n8n:1.115.3
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              echo "=========================================="
+              echo "n8n Data Import Process"
+              echo "=========================================="
+              
+              # Database configuration
+              export DB_TYPE="postgresdb"
+              export DB_POSTGRESDB_HOST="postgres-cluster-rw.postgres.svc.cluster.local"
+              export DB_POSTGRESDB_PORT="5432"
+              export DB_POSTGRESDB_DATABASE="app"
+              export DB_POSTGRESDB_USER="app"
+              export DB_POSTGRESDB_PASSWORD="${POSTGRES_PASSWORD}"
+              
+              echo "Database configuration:"
+              echo "  Host: ${DB_POSTGRESDB_HOST}"
+              echo "  Port: ${DB_POSTGRESDB_PORT}"
+              echo "  Database: ${DB_POSTGRESDB_DATABASE}"
+              echo "  User: ${DB_POSTGRESDB_USER}"
+              
+              # Check export files exist
+              if [ ! -f "/export/workflows.json" ] || [ ! -f "/export/credentials.json" ]; then
+                echo "ERROR: Export files not found!"
+                echo "Expected files:"
+                echo "  - /export/workflows.json"
+                echo "  - /export/credentials.json"
+                echo ""
+                echo "Available files:"
+                ls -la /export/
+                exit 1
+              fi
+              
+              echo ""
+              echo "Export manifest:"
+              cat /export/export-manifest.json || echo "No manifest found"
+              
+              echo ""
+              echo "Checking export file sizes:"
+              wc -l /export/workflows.json /export/credentials.json
+              
+              echo ""
+              echo "Importing workflows..."
+              WORKFLOW_COUNT=$(jq '. | length' /export/workflows.json)
+              echo "Found ${WORKFLOW_COUNT} workflows to import"
+              
+              if [ "$WORKFLOW_COUNT" -gt 0 ]; then
+                n8n import:workflow --input=/export/workflows.json || {
+                  echo "WARNING: Workflow import encountered issues"
+                }
+                echo "Workflows imported successfully"
+              else
+                echo "No workflows to import"
+              fi
+              
+              echo ""
+              echo "Importing credentials..."
+              CRED_COUNT=$(jq '. | length' /export/credentials.json)
+              echo "Found ${CRED_COUNT} credentials to import"
+              
+              if [ "$CRED_COUNT" -gt 0 ]; then
+                n8n import:credentials --input=/export/credentials.json || {
+                  echo "WARNING: Credentials import encountered issues"
+                }
+                echo "Credentials imported successfully"
+              else
+                echo "No credentials to import"
+              fi
+              
+              echo ""
+              echo "=========================================="
+              echo "Import Summary:"
+              echo "  Workflows: ${WORKFLOW_COUNT}"
+              echo "  Credentials: ${CRED_COUNT}"
+              echo "=========================================="
+              echo "Import process completed successfully!"
+              echo ""
+              echo "NEXT STEPS:"
+              echo "1. Scale up n8n deployment: kubectl scale deployment n8n -n n8n --replicas=1"
+              echo "2. Create new admin user via n8n UI at: https://n8n.landryzetam.net"
+              echo "3. Verify workflows and credentials are present"
+              echo "4. Clean up migration namespace: kubectl delete namespace n8n-migration"
+              echo "=========================================="
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+            - name: N8N_DIAGNOSTICS_ENABLED
+              value: "false"
+            - name: N8N_VERSION_NOTIFICATIONS_ENABLED
+              value: "false"
+          volumeMounts:
+            - name: export-storage
+              mountPath: /export
+              readOnly: true
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+      volumes:
+        - name: export-storage
+          persistentVolumeClaim:
+            claimName: n8n-export-storage
