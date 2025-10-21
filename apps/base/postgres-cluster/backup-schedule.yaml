@@ -4,9 +4,9 @@ metadata:
   name: postgres-backup
   namespace: postgres
 spec:
-  schedule: "0 2 * * *"  # Daily at 2 AM
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+  schedule: "0 */6 * * *"  # Every 6 hours (00:00, 06:00, 12:00, 18:00)
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
@@ -62,6 +62,17 @@ spec:
               # Backup all database roles
               echo "Backing up database roles..."
               pg_dumpall --roles-only > "${BACKUP_PATH}/roles.sql"
+              
+              # Backup complete cluster with pg_dumpall (includes globals, tablespaces, etc.)
+              echo "Backing up complete cluster (pg_dumpall)..."
+              pg_dumpall > "${BACKUP_PATH}/complete_cluster.sql"
+              echo "  ✓ Complete cluster backup created"
+              
+              # Backup PostgreSQL configuration
+              echo "Backing up PostgreSQL configuration..."
+              psql -t -c "SHOW all;" > "${BACKUP_PATH}/postgres_config.txt"
+              psql -t -c "SELECT name, setting FROM pg_settings;" > "${BACKUP_PATH}/postgres_settings.sql"
+              echo "  ✓ PostgreSQL configuration backed up"
               
               # Create a manifest file
               cat > "${BACKUP_PATH}/manifest.txt" <<EOF
