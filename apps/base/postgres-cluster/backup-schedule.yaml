@@ -1,18 +1,100 @@
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
+apiVersion: batch/v1
+kind: CronJob
 metadata:
-  name: postgres-cluster-backup
+  name: postgres-backup
   namespace: postgres
 spec:
-  # Backup schedule (daily at 2 AM)
-  schedule: "0 2 * * *"
-  
-  # Reference to the cluster
-  cluster:
-    name: postgres-cluster
-  
-  # Backup retention
-  backupOwnerReference: self
-  
-  # Optional: immediate backup on creation
-  immediate: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400  # 24 hours
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: postgres-backup
+            image: postgres:16
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: PGHOST
+              value: postgres-cluster-rw.postgres.svc.cluster.local
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-cluster-superuser
+                  key: password
+            - name: BACKUP_DIR
+              value: /backups
+            - name: RETENTION_DAYS
+              value: "30"
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_PATH="${BACKUP_DIR}/${TIMESTAMP}"
+              
+              echo "Starting backup at $(date)"
+              echo "Backup location: ${BACKUP_PATH}"
+              
+              # Create backup directory
+              mkdir -p "${BACKUP_PATH}"
+              
+              # Get list of all databases except templates
+              DATABASES=$(psql -t -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres';")
+              
+              # Backup each database
+              for DB in $DATABASES; do
+                echo "Backing up database: ${DB}"
+                pg_dump -Fc "${DB}" > "${BACKUP_PATH}/${DB}.dump"
+                echo "  ✓ ${DB} backed up successfully"
+              done
+              
+              # Backup all database roles
+              echo "Backing up database roles..."
+              pg_dumpall --roles-only > "${BACKUP_PATH}/roles.sql"
+              
+              # Create a manifest file
+              cat > "${BACKUP_PATH}/manifest.txt" <<EOF
+              Backup Date: $(date)
+              PostgreSQL Version: $(psql -t -c "SELECT version();")
+              Databases Backed Up: $(echo $DATABASES | tr '\n' ' ')
+              Backup Format: Custom (pg_dump -Fc)
+              EOF
+              
+              # Calculate backup size
+              BACKUP_SIZE=$(du -sh "${BACKUP_PATH}" | cut -f1)
+              echo "Backup completed. Size: ${BACKUP_SIZE}"
+              
+              # Cleanup old backups (older than RETENTION_DAYS)
+              echo "Cleaning up backups older than ${RETENTION_DAYS} days..."
+              find "${BACKUP_DIR}" -mindepth 1 -maxdepth 1 -type d -mtime +${RETENTION_DAYS} -exec rm -rf {} \;
+              
+              echo "Backup process completed successfully at $(date)"
+              
+              # List current backups
+              echo "Current backups:"
+              ls -lh "${BACKUP_DIR}"
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backups
+            resources:
+              requests:
+                cpu: 500m
+                memory: 1Gi
+              limits:
+                cpu: "2"
+                memory: 4Gi
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: postgres-backup
