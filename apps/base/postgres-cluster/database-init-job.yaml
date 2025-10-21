@@ -14,6 +14,7 @@ spec:
       containers:
       - name: db-init
         image: postgres:16
+        imagePullPolicy: IfNotPresent
         env:
         - name: PGHOST
           value: postgres-cluster-rw.postgres.svc.cluster.local
