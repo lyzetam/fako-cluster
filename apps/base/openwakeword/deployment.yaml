@@ -4,7 +4,7 @@ metadata:
   name: openwakeword
   namespace: openwakeword
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: openwakeword
@@ -31,7 +31,6 @@ spec:
             - "tcp://0.0.0.0:10400"
             - "--preload-model"
             - "hey_jarvis"
-            - "--debug"
           env:
             - name: WYOMING_OPENWAKEWORD_URI
               value: "tcp://0.0.0.0:10400"
