@@ -9,6 +9,7 @@ resources:
   - external-secret-app.yaml
   - aws-credentials-secret.yaml
   - postgres-cluster.yaml
+  - database-init-job.yaml
 
   # - service.yaml
   # - backup-schedule.yaml  # Uncomment if using backups

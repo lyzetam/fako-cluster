@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-database-init
+  namespace: postgres
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: db-init
+        image: postgres:16
+        env:
+        - name: PGHOST
+          value: postgres-cluster-rw.postgres.svc.cluster.local
+        - name: PGUSER
+          value: postgres
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-cluster-superuser
+              key: password
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "Initializing databases and permissions..."
+          
+          # Create admin user if it doesn't exist
+          psql -c "DO \$\$
+          BEGIN
+            IF NOT EXISTS (SELECT FROM pg_user WHERE username = 'admin') THEN
+              CREATE USER admin WITH PASSWORD 'toKbiz-cysze4-wornem';
+            END IF;
+          END
+          \$\$;" || true
+          
+          # Create databases if they don't exist
+          psql -c "SELECT 'CREATE DATABASE oura OWNER app' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'oura')\gexec"
+          psql -c "SELECT 'CREATE DATABASE keycloak OWNER app' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'keycloak')\gexec"
+          psql -c "SELECT 'CREATE DATABASE n8n OWNER app' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'n8n')\gexec"
+          
+          # Grant permissions
+          psql -d oura -c "GRANT ALL ON SCHEMA public TO admin;"
+          psql -d oura -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO admin;"
+          psql -d oura -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO admin;"
+          psql -d oura -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO admin;"
+          psql -d oura -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO admin;"
+          
+          psql -d keycloak -c "GRANT ALL ON SCHEMA public TO admin;"
+          psql -d keycloak -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO admin;"
+          psql -d keycloak -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO admin;"
+          
+          psql -d n8n -c "GRANT ALL ON SCHEMA public TO app;"
+          psql -d n8n -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO app;"
+          psql -d n8n -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO app;"
+          
+          echo "Database initialization completed successfully"
