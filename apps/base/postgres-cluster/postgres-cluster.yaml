@@ -66,19 +66,8 @@ spec:
     enablePodAntiAffinity: true
     topologyKey: kubernetes.io/hostname
   
-  # Backup configuration
-  backup:
-    barmanObjectStore:
-      destinationPath: /var/lib/postgresql/backup
-      wal:
-        compression: gzip
-        maxParallel: 2
-      data:
-        compression: gzip
-        jobs: 2
-    volumeSnapshot:
-      className: nfs-backup
-    retentionPolicy: "30d"
+  # Backup configuration via CronJob (see backup-schedule.yaml)
+  # Using NFS-based backups instead of cloud object storage
   
   # Monitoring configuration 
   # monitoring:
