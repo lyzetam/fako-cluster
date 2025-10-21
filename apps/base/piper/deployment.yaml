@@ -62,8 +62,6 @@ spec:
           args:
             - "--voice"
             - "en_US-ryan-high"
-            - "--default-voice"
-            - "en_US-ryan-high"
             - "--uri"
             - "tcp://0.0.0.0:10200"
             - "--data-dir"
