@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-backup
+  namespace: postgres
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-backup
+  resources:
+    requests:
+      storage: 100Gi

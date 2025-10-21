@@ -10,7 +10,8 @@ resources:
   - aws-credentials-secret.yaml
   - postgres-cluster.yaml
   - database-init-job.yaml
+  - backup-pvc.yaml
+  - backup-schedule.yaml
 
   # - service.yaml
-  # - backup-schedule.yaml  # Uncomment if using backups
   # - pooler.yaml  # Uncomment if using PgBouncer
