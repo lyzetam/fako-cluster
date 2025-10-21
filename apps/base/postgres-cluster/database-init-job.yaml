@@ -46,12 +46,19 @@ spec:
           psql -c "SELECT 'CREATE DATABASE keycloak OWNER app' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'keycloak')\gexec"
           psql -c "SELECT 'CREATE DATABASE n8n OWNER app' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'n8n')\gexec"
           
-          # Grant permissions
+          # Grant permissions to admin user
           psql -d oura -c "GRANT ALL ON SCHEMA public TO admin;"
           psql -d oura -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO admin;"
           psql -d oura -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO admin;"
           psql -d oura -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO admin;"
           psql -d oura -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO admin;"
+          
+          # Grant permissions to app user (used by oura-collector)
+          psql -d oura -c "GRANT ALL ON SCHEMA public TO app;"
+          psql -d oura -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO app;"
+          psql -d oura -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO app;"
+          psql -d oura -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO app;"
+          psql -d oura -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO app;"
           
           psql -d keycloak -c "GRANT ALL ON SCHEMA public TO admin;"
           psql -d keycloak -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO admin;"
