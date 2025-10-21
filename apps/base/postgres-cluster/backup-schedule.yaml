@@ -28,7 +28,7 @@ spec:
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-cluster-superuser
+                  name: postgres-admin-secret
                   key: password
             - name: BACKUP_DIR
               value: /backups

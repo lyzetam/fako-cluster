@@ -23,7 +23,7 @@ spec:
         - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
-              name: postgres-cluster-superuser
+              name: postgres-admin-secret
               key: password
         command:
         - /bin/bash
