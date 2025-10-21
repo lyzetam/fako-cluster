@@ -8,7 +8,7 @@ data:
   STORAGE_BACKEND: "postgres"
   DATABASE_HOST: "postgres-cluster-rw.postgres.svc.cluster.local"
   DATABASE_PORT: "5432"
-  DATABASE_NAME: "app"
+  DATABASE_NAME: "oura"
   
   # AWS Secrets Manager configuration
   AWS_DEFAULT_REGION: "us-east-1"
