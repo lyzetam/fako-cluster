@@ -39,16 +39,16 @@ spec:
       - host all all 172.16.0.0/12 md5
       - host all all 192.168.0.0/16 md5
   
-  # bootstrap:
-  #   initdb:
-  #     database: app
-  #     owner: app
-  #     secret:
-  #       name: app-user-secret  # This now comes from AWS via External Secrets
-  #     dataChecksums: true
-  #     encoding: "UTF8"
-  #     localeCollate: "en_US.UTF-8"
-  #     localeCType: "en_US.UTF-8"
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      secret:
+        name: app-user-secret  # This now comes from AWS via External Secrets
+      dataChecksums: true
+      encoding: "UTF8"
+      localeCollate: "en_US.UTF-8"
+      localeCType: "en_US.UTF-8"
   
   storage:
     size: 50Gi
