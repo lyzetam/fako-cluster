@@ -1,54 +1,43 @@
-# Manual backfill job - NOT included in regular deployment
-# To run manually: kubectl apply -f apps/base/oura-collector/backfill-job.yaml
-# This should only be used for initial setup or recovering from extended outages
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: oura-collector-backfill
   namespace: oura-collector
 spec:
-  ttlSecondsAfterFinished: 86400  # Clean up after 24 hours
+  ttlSecondsAfterFinished: 86400
   template:
     spec:
-      restartPolicy: OnFailure
       containers:
       - name: oura-collector
         image: lzetam/oura-collector:latest
+        imagePullPolicy: IfNotPresent
         env:
-        # Storage configuration
         - name: STORAGE_BACKEND
-          value: "postgres"
+          value: postgres
         - name: DATABASE_HOST
-          value: "postgres-cluster-rw.postgres.svc.cluster.local"
+          value: postgres-cluster-rw.postgres.svc.cluster.local
         - name: DATABASE_NAME
-          value: "app"
-        
-        # AWS Secrets Manager configuration
+          value: oura
         - name: OURA_SECRETS_NAME
-          value: "oura/api-credentials"
+          value: oura/api-credentials
         - name: POSTGRES_SECRETS_NAME
-          value: "postgres/app-user"
-        
-        # Collection configuration
+          value: postgres/app-user
         - name: DAYS_TO_BACKFILL
-          value: "1095"  # Collect last 3 years (1095 days) for initial backfill
+          value: "1095"
         - name: RUN_ONCE
           value: "true"
         - name: LOG_LEVEL
-          value: "INFO"
-
-        # Collection interval (not used for one-time job, but required)
+          value: INFO
         - name: COLLECTION_INTERVAL
           value: "3600"
-        
         envFrom:
         - secretRef:
-            name: aws-credentials-env  # Changed from aws-credentials
-        
+            name: aws-credentials-env
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
+            cpu: 500m
+            memory: 1Gi
           limits:
-            memory: "2Gi"
-            cpu: "2000m"
+            cpu: "2"
+            memory: 2Gi
+      restartPolicy: OnFailure
