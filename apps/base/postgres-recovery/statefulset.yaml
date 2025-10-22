@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-recovery
+  namespace: postgres-recovery
+spec:
+  serviceName: postgres-recovery-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-recovery
+  template:
+    metadata:
+      labels:
+        app: postgres-recovery
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: aitower
+      containers:
+      - name: postgres
+        image: postgres:16
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+          name: postgresql
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin-secret
+              key: password
+        - name: POSTGRES_USER
+          value: postgres
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: backup-access
+          mountPath: /backups
+          readOnly: true
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U postgres
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U postgres
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+      volumes:
+      - name: postgres-data
+        hostPath:
+          path: /mnt/postgres-recovery/data
+          type: DirectoryOrCreate
+      - name: backup-access
+        persistentVolumeClaim:
+          claimName: postgres-backup

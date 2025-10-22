@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-verification-queries
+  namespace: postgres-recovery
+data:
+  keycloak-verification.sql: |
+    -- Keycloak Database Verification Queries
+    -- Run these in pgadmin to verify data restoration
+    
+    \echo '=== Keycloak Database Row Counts ==='
+    \echo ''
+    
+    -- List all tables with row counts
+    SELECT 
+        schemaname,
+        tablename,
+        n_live_tup as row_count
+    FROM pg_stat_user_tables
+    WHERE schemaname = 'public'
+    ORDER BY n_live_tup DESC;
+    
+    \echo ''
+    \echo '=== Key Tables Summary ==='
+    \echo ''
+    
+    -- Key table counts
+    SELECT 'realm' as table_name, COUNT(*) as row_count FROM realm
+    UNION ALL
+    SELECT 'user_entity', COUNT(*) FROM user_entity
+    UNION ALL
+    SELECT 'client', COUNT(*) FROM client
+    UNION ALL
+    SELECT 'role_entity', COUNT(*) FROM keycloak_role
+    UNION ALL
+    SELECT 'groups', COUNT(*) FROM keycloak_group
+    ORDER BY row_count DESC;
+    
+    \echo ''
+    \echo '=== Database Size ==='
+    SELECT pg_size_pretty(pg_database_size('keycloak')) as database_size;
+
+  n8n-verification.sql: |
+    -- N8N Database Verification Queries
+    -- Run these in pgadmin to verify data restoration
+    
+    \echo '=== N8N Database Row Counts ==='
+    \echo ''
+    
+    -- List all tables with row counts
+    SELECT 
+        tablename,
+        n_live_tup as row_count
+    FROM pg_stat_user_tables
+    WHERE schemaname = 'public'
+    ORDER BY n_live_tup DESC;
+    
+    \echo ''
+    \echo '=== Key Tables Summary ==='
+    \echo ''
+    
+    -- Key table counts
+    SELECT 'workflows' as table_name, COUNT(*) as row_count FROM workflow_entity
+    UNION ALL
+    SELECT 'executions', COUNT(*) FROM execution_entity
+    UNION ALL
+    SELECT 'credentials', COUNT(*) FROM credentials_entity
+    UNION ALL
+    SELECT 'tags', COUNT(*) FROM tag_entity
+    UNION ALL
+    SELECT 'variables', COUNT(*) FROM variables
+    ORDER BY row_count DESC;
+    
+    \echo ''
+    \echo '=== Database Size ==='
+    SELECT pg_size_pretty(pg_database_size('n8n')) as database_size;
+
+  oura-verification.sql: |
+    -- Oura Database Verification Queries
+    -- Run these in pgadmin to verify data restoration
+    
+    \echo '=== Oura Database Row Counts ==='
+    \echo ''
+    
+    -- List all tables with row counts
+    SELECT 
+        tablename,
+        n_live_tup as row_count
+    FROM pg_stat_user_tables
+    WHERE schemaname = 'public'
+    ORDER BY n_live_tup DESC;
+    
+    \echo ''
+    \echo '=== Key Tables Summary ==='
+    \echo ''
+    
+    -- Key table counts (adjust table names based on actual schema)
+    SELECT 
+        table_name,
+        (xpath('/row/cnt/text()', xml_count))[1]::text::int as row_count
+    FROM (
+        SELECT 
+            table_name,
+            query_to_xml(format('SELECT COUNT(*) as cnt FROM %I', table_name), false, true, '') as xml_count
+        FROM information_schema.tables
+        WHERE table_schema = 'public' 
+        AND table_type = 'BASE TABLE'
+    ) t
+    ORDER BY row_count DESC;
+    
+    \echo ''
+    \echo '=== Database Size ==='
+    SELECT pg_size_pretty(pg_database_size('oura')) as database_size;
+
+  all-databases-summary.sql: |
+    -- Quick Summary of All Restored Databases
+    -- Run this in pgadmin against the postgres database
+    
+    \echo '=== Recovery Database Summary ==='
+    \echo ''
+    
+    SELECT 
+        datname as database,
+        pg_size_pretty(pg_database_size(datname)) as size,
+        (SELECT COUNT(*) 
+         FROM pg_stat_user_tables 
+         WHERE schemaname = 'public' 
+         AND pg_stat_user_tables.schemaname IN 
+             (SELECT nspname FROM pg_namespace WHERE nspname = 'public')
+        ) as table_count
+    FROM pg_database
+    WHERE datname IN ('keycloak', 'n8n', 'oura')
+    ORDER BY datname;
+    
+    \echo ''
+    \echo '=== Connection Info ==='
+    \echo 'Host: postgres-recovery-service.postgres-recovery.svc.cluster.local'
+    \echo 'Port: 5432'
+    \echo 'User: postgres'
+    \echo 'Databases: keycloak, n8n, oura'
