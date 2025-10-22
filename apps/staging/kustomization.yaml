@@ -13,6 +13,7 @@ resources:
   # Database Management
   - postgres-cluster
   - pgadmin
+  - postgres-recovery  # Recovery namespace with local storage on aitower
 
   # Identity Management
   - keycloak
@@ -43,7 +44,7 @@ resources:
   # - piper-v13       # Piper (LinuxServer image) in separate namespace - DEACTIVATED
   - openwakeword
   # - node-labeling
-  - voice-pipeline-test  # End-to-end voice pipeline testing (runs nightly at 3am)
+  # - voice-pipeline-test  # End-to-end voice pipeline testing (runs nightly at 3am)
   
   # AI Agent
   # - kagent         # Kubernetes AI assistant
