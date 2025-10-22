@@ -1,0 +1,118 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-restore
+  namespace: postgres-recovery
+spec:
+  ttlSecondsAfterFinished: 86400  # Keep for 24 hours
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: restore
+        image: postgres:16
+        env:
+        - name: PGHOST
+          value: postgres-recovery-service.postgres-recovery.svc.cluster.local
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          value: postgres
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin-secret
+              key: password
+        - name: BACKUP_DIR
+          value: /backups/20251022_060000
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          
+          echo "=== PostgreSQL Database Restore ==="
+          echo "Starting at $(date)"
+          
+          # Wait for PostgreSQL to be ready
+          echo "Waiting for PostgreSQL to be ready..."
+          until pg_isready -h ${PGHOST} -U ${PGUSER}; do
+            echo "  Waiting for database to be ready..."
+            sleep 5
+          done
+          echo "✓ PostgreSQL is ready"
+          
+          # Function to restore a database
+          restore_database() {
+            local db_name=$1
+            local dump_file="${BACKUP_DIR}/${db_name}.dump"
+            
+            echo ""
+            echo "=== Restoring ${db_name} database ==="
+            
+            # Check if dump file exists
+            if [ ! -f "${dump_file}" ]; then
+              echo "ERROR: Dump file not found: ${dump_file}"
+              return 1
+            fi
+            
+            echo "  Dump file size: $(du -h ${dump_file} | cut -f1)"
+            
+            # Drop database if it exists (clean slate)
+            echo "  Dropping existing database if present..."
+            psql -c "DROP DATABASE IF EXISTS ${db_name};" 2>/dev/null || true
+            
+            # Create database
+            echo "  Creating database ${db_name}..."
+            psql -c "CREATE DATABASE ${db_name};"
+            
+            # Restore from dump
+            echo "  Restoring data from ${dump_file}..."
+            pg_restore -d ${db_name} -v "${dump_file}" 2>&1 | tail -20
+            
+            # Get row counts
+            echo "  Verifying restoration..."
+            local table_count=$(psql -d ${db_name} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';")
+            echo "  ✓ ${db_name} restored successfully"
+            echo "    Tables: ${table_count}"
+            
+            return 0
+          }
+          
+          # Restore all three databases
+          restore_database "keycloak"
+          restore_database "n8n"
+          restore_database "oura"
+          
+          echo ""
+          echo "=== Restoration Summary ==="
+          echo "Completed at $(date)"
+          echo ""
+          echo "Database sizes:"
+          psql -c "SELECT datname, pg_size_pretty(pg_database_size(datname)) as size FROM pg_database WHERE datname IN ('keycloak', 'n8n', 'oura') ORDER BY datname;"
+          
+          echo ""
+          echo "✓ All databases restored successfully!"
+          echo ""
+          echo "Connect to recovery instance in pgadmin:"
+          echo "  Host: postgres-recovery-service.postgres-recovery.svc.cluster.local"
+          echo "  Port: 5432"
+          echo "  User: postgres"
+          echo "  Password: (same as production)"
+          
+        volumeMounts:
+        - name: backup-access
+          mountPath: /backups
+          readOnly: true
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: "2"
+            memory: 4Gi
+      volumes:
+      - name: backup-access
+        persistentVolumeClaim:
+          claimName: postgres-backup
