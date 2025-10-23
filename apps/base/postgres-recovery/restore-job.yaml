@@ -8,6 +8,8 @@ spec:
   backoffLimit: 3
   template:
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: aitower
       restartPolicy: OnFailure
       containers:
       - name: restore
