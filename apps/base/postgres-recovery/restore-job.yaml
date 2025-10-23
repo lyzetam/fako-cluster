@@ -114,5 +114,7 @@ spec:
             memory: 4Gi
       volumes:
       - name: backup-access
-        persistentVolumeClaim:
-          claimName: postgres-backup
+        nfs:
+          server: ***NFS-IP-REMOVED***
+          path: /volume1/k8s-backups
+          readOnly: true
