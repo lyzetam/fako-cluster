@@ -70,7 +70,5 @@ spec:
           path: /mnt/postgres-recovery/data
           type: DirectoryOrCreate
       - name: backup-access
-        nfs:
-          server: ***NFS-IP-REMOVED***
-          path: /volume1/k8s-backups
-          readOnly: true
+        persistentVolumeClaim:
+          claimName: postgres-backup-recovery

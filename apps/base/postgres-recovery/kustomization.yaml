@@ -6,6 +6,7 @@ resources:
   - aws-credentials-secret.yaml
   - secret-store.yaml
   - external-secret-admin.yaml
+  - backup-pvc.yaml
   - statefulset.yaml
   - service.yaml
   - restore-job.yaml
