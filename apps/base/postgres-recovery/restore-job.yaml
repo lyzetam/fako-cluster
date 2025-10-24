@@ -27,7 +27,7 @@ spec:
               name: postgres-admin-secret
               key: password
         - name: BACKUP_DIR
-          value: /backups/20251022_060000
+          value: /backups/pvc-54e4680f-5635-4ec0-941a-9981fcb090a8/20251023_060001
         command:
         - /bin/bash
         - -c

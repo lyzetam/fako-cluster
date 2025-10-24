@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-backup-recovery-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-backup
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: postgres-backup-recovery-pv
+    volumeAttributes:
+      server: "10.85.30.127"
+      share: "/volume1/k8s-backups"
