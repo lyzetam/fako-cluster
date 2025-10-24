@@ -7,6 +7,7 @@ spec:
   accessModes:
     - ReadOnlyMany
   storageClassName: nfs-backup
+  volumeName: postgres-backup-recovery-pv
   resources:
     requests:
       storage: 100Gi
