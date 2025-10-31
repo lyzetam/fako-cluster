@@ -8,7 +8,7 @@ metadata:
 provisioner: nfs.csi.k8s.io
 parameters:
   server: "***NFS-IP-REMOVED***"
-  share: "/shared-drives/Journals"
+  share: "/var/nfs/shared/Journals"
 reclaimPolicy: Retain
 volumeBindingMode: Immediate
 mountOptions:
