@@ -5,3 +5,4 @@ resources:
   - cert-manager
   - nfs-config
   - control-plane-taint
+  - unifi-data

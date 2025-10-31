@@ -58,6 +58,7 @@ resources:
   # Workflow Automation
   - n8n             # Workflow automation platform
   # - n8n-migration  # n8n database migration jobs
+  - sftp-server     # SFTP server for UniFi Drive access
   
   # Documentation
   - blog            # Hugo-based documentation site

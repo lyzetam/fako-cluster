@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sftp-server
+  namespace: sftp-server
+  labels:
+    app: sftp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sftp-server
+  template:
+    metadata:
+      labels:
+        app: sftp-server
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: sftp
+          image: atmoz/sftp:alpine
+          ports:
+            - containerPort: 22
+              name: ssh
+              protocol: TCP
+          env:
+            - name: SFTP_USERS
+              valueFrom:
+                secretKeyRef:
+                  name: sftp-credentials
+                  key: username
+            - name: SFTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sftp-credentials
+                  key: password
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Create user with credentials from secret
+              USERNAME="$SFTP_USERS"
+              PASSWORD="$SFTP_PASSWORD"
+              
+              # Create user with UID 1000, home directory, and bash shell
+              adduser -D -u 1000 -h /home/${USERNAME} -s /bin/bash ${USERNAME}
+              echo "${USERNAME}:${PASSWORD}" | chpasswd
+              
+              # Create audio directory symlink
+              mkdir -p /home/${USERNAME}/audio
+              
+              # Set up SSH host keys persistence
+              mkdir -p /etc/ssh/keys
+              if [ ! -f /etc/ssh/keys/ssh_host_rsa_key ]; then
+                ssh-keygen -t rsa -f /etc/ssh/keys/ssh_host_rsa_key -N ''
+              fi
+              if [ ! -f /etc/ssh/keys/ssh_host_ed25519_key ]; then
+                ssh-keygen -t ed25519 -f /etc/ssh/keys/ssh_host_ed25519_key -N ''
+              fi
+              
+              # Configure sshd
+              cat > /etc/ssh/sshd_config <<EOF
+              Port 22
+              Protocol 2
+              HostKey /etc/ssh/keys/ssh_host_rsa_key
+              HostKey /etc/ssh/keys/ssh_host_ed25519_key
+              
+              # Security settings
+              PermitRootLogin no
+              PubkeyAuthentication yes
+              PasswordAuthentication yes
+              PermitEmptyPasswords no
+              ChallengeResponseAuthentication no
+              UsePAM yes
+              
+              # SFTP subsystem
+              Subsystem sftp internal-sftp
+              
+              # Logging
+              SyslogFacility AUTH
+              LogLevel INFO
+              
+              # Performance
+              ClientAliveInterval 30
+              ClientAliveCountMax 3
+              EOF
+              
+              # Set correct permissions
+              chmod 600 /etc/ssh/keys/*
+              chmod 755 /home/${USERNAME}
+              chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}
+              
+              # Start SSH daemon
+              exec /usr/sbin/sshd -D -e
+          volumeMounts:
+            - name: unifi-audio
+              mountPath: /home/sftpuser/audio
+              readOnly: true
+            - name: host-keys
+              mountPath: /etc/ssh/keys
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            tcpSocket:
+              port: 22
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 22
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: unifi-audio
+          persistentVolumeClaim:
+            claimName: unifi-journals
+        - name: host-keys
+          persistentVolumeClaim:
+            claimName: sftp-host-keys
