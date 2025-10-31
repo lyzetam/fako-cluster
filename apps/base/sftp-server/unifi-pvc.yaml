@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unifi-journals
+  namespace: sftp-server
+  labels:
+    app: sftp-server
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: unifi-journals
+  resources:
+    requests:
+      storage: 1Gi
