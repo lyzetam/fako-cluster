@@ -8,7 +8,8 @@ metadata:
 spec:
   accessModes:
     - ReadOnlyMany
-  storageClassName: unifi-journals
+  storageClassName: ""
+  volumeName: unifi-journals-pv
   resources:
     requests:
-      storage: 1Gi
+      storage: 500Gi
