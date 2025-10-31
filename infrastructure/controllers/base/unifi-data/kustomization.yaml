@@ -1,8 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
+namespace: infrastructure
 resources:
-  - cert-manager
-  - nfs-config
-  - control-plane-taint
-  - unifi-data
+  - namespace.yaml
+  - storageclass.yaml
