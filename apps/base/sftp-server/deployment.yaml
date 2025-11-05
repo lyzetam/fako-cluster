@@ -97,10 +97,10 @@ spec:
               exec /usr/sbin/sshd -D -e
           volumeMounts:
             - name: unifi-audio
-              mountPath: /home/sftpuser/audio
+              mountPath: /home/n8nuser/audio
               readOnly: true
             - name: compressed-audio
-              mountPath: /home/sftpuser/compressed
+              mountPath: /home/n8nuser/compressed
               readOnly: false
             - name: host-keys
               mountPath: /etc/ssh/keys
