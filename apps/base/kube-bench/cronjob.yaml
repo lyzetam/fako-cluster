@@ -22,7 +22,7 @@ spec:
           hostPID: true
           containers:
           - name: kube-bench
-            image: aquasec/kube-bench:v0.13.0
+            image: aquasec/kube-bench:v0.14.0
             command:
             - /bin/sh
             - -c
