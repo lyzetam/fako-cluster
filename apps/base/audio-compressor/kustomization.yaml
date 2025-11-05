@@ -7,4 +7,5 @@ resources:
   - external-secret-sftp.yaml
   - create-docker-registry-secret-job.yaml
   - rbac.yaml
+  - storage.yaml
   - cronjob.yaml
