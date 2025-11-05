@@ -18,6 +18,7 @@ spec:
           containers:
           - name: audio-compressor
             image: lzetam/audio-compressor:latest
+            imagePullPolicy: Always
             env:
             # SFTP Configuration
             - name: SFTP_HOST
