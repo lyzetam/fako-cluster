@@ -106,6 +106,9 @@ spec:
             - name: compressed-audio
               mountPath: /home/n8nuser/compressed
               readOnly: false
+            - name: transcript-audio
+              mountPath: /home/n8nuser/transcript
+              readOnly: false
             - name: host-keys
               mountPath: /etc/ssh/keys
           resources:
@@ -136,6 +139,9 @@ spec:
         - name: compressed-audio
           persistentVolumeClaim:
             claimName: audio-compressed-pvc
+        - name: transcript-audio
+          persistentVolumeClaim:
+            claimName: audio-transcript-pvc
         - name: host-keys
           persistentVolumeClaim:
             claimName: sftp-host-keys
