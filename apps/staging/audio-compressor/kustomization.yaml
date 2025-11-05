@@ -4,3 +4,4 @@ namespace: audio-compressor
 resources:
   - ../../base/audio-compressor
   - aws-credentials-secret.yaml
+  - dockerhub-credentials-secret.yaml
