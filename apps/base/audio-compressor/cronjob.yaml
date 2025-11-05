@@ -50,7 +50,7 @@ spec:
             - name: AWS_DEFAULT_REGION
               value: "us-east-1"
             - name: SFTP_SECRETS_NAME
-              value: "sftp/audio-server"
+              value: "sftp-server/credentials"
             # Storage Configuration
             - name: OUTPUT_DIR
               value: "/data/compressed"
