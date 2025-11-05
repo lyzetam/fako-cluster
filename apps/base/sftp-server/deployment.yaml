@@ -16,7 +16,7 @@ spec:
         app: sftp-server
     spec:
       securityContext:
-        fsGroup: 1000
+        fsGroup: 1001
       nodeSelector:
         kubernetes.io/hostname: aitower
       containers:
@@ -45,8 +45,8 @@ spec:
               USERNAME="$SFTP_USERS"
               PASSWORD="$SFTP_PASSWORD"
               
-              # Create user with UID 1000, home directory, and bash shell
-              adduser -D -u 1000 -h /home/${USERNAME} -s /bin/bash ${USERNAME}
+              # Create user with UID 1001, home directory, and bash shell
+              adduser -D -u 1001 -h /home/${USERNAME} -s /bin/bash ${USERNAME}
               echo "${USERNAME}:${PASSWORD}" | chpasswd
               
               # Create audio directory symlink
