@@ -101,7 +101,7 @@ spec:
               readOnly: true
             - name: compressed-audio
               mountPath: /home/sftpuser/compressed
-              readOnly: true
+              readOnly: false
             - name: host-keys
               mountPath: /etc/ssh/keys
           resources:
