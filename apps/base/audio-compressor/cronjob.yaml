@@ -25,7 +25,7 @@ spec:
             - name: SFTP_PORT
               value: "22"
             - name: SFTP_REMOTE_PATH
-              value: "/audio"
+              value: "audio"
             # SFTP Credentials from AWS Secrets Manager
             - name: SFTP_USERNAME
               valueFrom:
@@ -41,7 +41,7 @@ spec:
             - name: STORAGE_BACKEND
               value: "sftp"
             - name: SFTP_DEST_PATH
-              value: "/compressed"
+              value: "compressed"
             - name: UPLOAD_RETRY_ATTEMPTS
               value: "3"
             - name: UPLOAD_RETRY_DELAY
