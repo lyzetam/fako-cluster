@@ -21,7 +21,7 @@ spec:
             env:
             # SFTP Configuration
             - name: SFTP_HOST
-              value: "sftp-service.sftp-server.svc.cluster.local"
+              value: "sftp-server.sftp-server.svc.cluster.local"
             - name: SFTP_PORT
               value: "22"
             - name: SFTP_REMOTE_PATH
@@ -37,6 +37,15 @@ spec:
                 secretKeyRef:
                   name: sftp-credentials
                   key: password
+            # Storage Backend Configuration
+            - name: STORAGE_BACKEND
+              value: "sftp"
+            - name: SFTP_DEST_PATH
+              value: "/compressed"
+            - name: UPLOAD_RETRY_ATTEMPTS
+              value: "3"
+            - name: UPLOAD_RETRY_DELAY
+              value: "5"
             # AWS Configuration
             - name: AWS_DEFAULT_REGION
               value: "us-east-1"
