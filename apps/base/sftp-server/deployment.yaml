@@ -99,6 +99,9 @@ spec:
             - name: unifi-audio
               mountPath: /home/sftpuser/audio
               readOnly: true
+            - name: compressed-audio
+              mountPath: /home/sftpuser/compressed
+              readOnly: true
             - name: host-keys
               mountPath: /etc/ssh/keys
           resources:
@@ -126,6 +129,9 @@ spec:
         - name: unifi-audio
           persistentVolumeClaim:
             claimName: unifi-journals
+        - name: compressed-audio
+          persistentVolumeClaim:
+            claimName: audio-compressed-pvc
         - name: host-keys
           persistentVolumeClaim:
             claimName: sftp-host-keys

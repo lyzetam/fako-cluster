@@ -6,6 +6,7 @@ resources:
   - aws-secret-store.yaml
   - external-secret-sftp-creds.yaml
   - unifi-pvc.yaml
+  - audio-compressed-pvc.yaml
   - host-keys-pvc.yaml
   - deployment.yaml
   - service.yaml

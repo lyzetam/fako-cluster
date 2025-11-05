@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: audio-compressed-pvc
+  namespace: sftp-server
+  labels:
+    app: sftp-server
+    purpose: audio-compression
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 100Gi

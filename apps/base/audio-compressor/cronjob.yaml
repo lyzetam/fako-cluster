@@ -1,0 +1,96 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: audio-compressor
+  namespace: audio-compressor
+spec:
+  schedule: "0 2 * * *"  # Run at 2 AM daily
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: audio-compressor
+          restartPolicy: OnFailure
+          imagePullSecrets:
+          - name: dockerhub-registry
+          containers:
+          - name: audio-compressor
+            image: lzetam/audio-compressor:latest
+            env:
+            # SFTP Configuration
+            - name: SFTP_HOST
+              value: "sftp-service.sftp-server.svc.cluster.local"
+            - name: SFTP_PORT
+              value: "22"
+            - name: SFTP_REMOTE_PATH
+              value: "/audio"
+            # SFTP Credentials from AWS Secrets Manager
+            - name: SFTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: sftp-credentials
+                  key: username
+            - name: SFTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sftp-credentials
+                  key: password
+            # AWS Configuration
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+            - name: SFTP_SECRETS_NAME
+              value: "sftp/audio-server"
+            # Storage Configuration
+            - name: OUTPUT_DIR
+              value: "/data/compressed"
+            - name: KEEP_ORIGINALS
+              value: "false"
+            # Compression Configuration (optimized for speech)
+            - name: SAMPLE_RATE
+              value: "16000"  # 16kHz for Whisper
+            - name: CHANNELS
+              value: "1"  # Mono
+            - name: BITRATE
+              value: "32k"  # 32 kbps
+            - name: AUDIO_FORMAT
+              value: "wav"
+            # Processing Configuration
+            - name: AUDIO_FILENAME
+              value: "StereoMix.wav"
+            - name: METADATA_FILENAME
+              value: "Meta.xml"
+            - name: COPY_METADATA
+              value: "true"
+            - name: SKIP_PROCESSED
+              value: "true"
+            - name: DIR_PATTERN
+              value: "^\\d{2}-\\d{2}-\\d{2}(-\\d{2})?$"
+            - name: MAX_FILE_SIZE_MB
+              value: "2000"
+            # Retry Configuration
+            - name: MAX_RETRIES
+              value: "3"
+            - name: RETRY_DELAY
+              value: "5"
+            # Logging
+            - name: LOG_LEVEL
+              value: "INFO"
+            # Temp directory
+            - name: TEMP_DIR
+              value: "/tmp/audio-processing"
+            volumeMounts:
+            - name: compressed-audio
+              mountPath: /data
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "500m"
+              limits:
+                memory: "2Gi"
+                cpu: "2000m"
+          volumes:
+          - name: compressed-audio
+            persistentVolumeClaim:
+              claimName: audio-compressed-pvc
