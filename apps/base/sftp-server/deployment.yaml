@@ -49,6 +49,10 @@ spec:
               adduser -D -u 1001 -h /home/${USERNAME} -s /bin/bash ${USERNAME}
               echo "${USERNAME}:${PASSWORD}" | chpasswd
               
+              # Add user to group 988 for audio file access
+              addgroup -g 988 audiogroup || true
+              addgroup ${USERNAME} audiogroup || true
+              
               # Create audio directory symlink
               mkdir -p /home/${USERNAME}/audio
               
