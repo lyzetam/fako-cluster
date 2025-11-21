@@ -65,7 +65,7 @@ spec:
             - name: BITRATE
               value: "32k"  # 32 kbps
             - name: AUDIO_FORMAT
-              value: "wav"
+              value: "mp3"
             # Processing Configuration
             - name: AUDIO_FILENAME
               value: "StereoMix.wav"
