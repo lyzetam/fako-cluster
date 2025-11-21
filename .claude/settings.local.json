@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl logs:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
