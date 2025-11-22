@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audio-transcriber-config
+  namespace: audio-compressor
+data:
+  WHISPER_MODEL: "faster-distil-whisper-large-v3-en"
+  WHISPER_LANGUAGE: "auto"
+  INPUT_DIR: "/data/compressed"
+  OUTPUT_DIR: "/data/transcriptions"
+  OUTPUT_FORMAT: "json"
+  SKIP_PROCESSED: "true"
+  MAX_FILE_SIZE_MB: "1000"
+  BATCH_SIZE: "0"
+  MAX_RETRIES: "3"
+  RETRY_DELAY: "10"
+  WHISPER_TIMEOUT: "600"
+  LOG_LEVEL: "INFO"
