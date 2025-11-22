@@ -9,6 +9,7 @@ data:
   INPUT_DIR: "/data/compressed"
   OUTPUT_DIR: "/data/transcriptions"
   OUTPUT_FORMAT: "json"
+  AUDIO_EXTENSIONS: ".mp3"
   SKIP_PROCESSED: "true"
   MAX_FILE_SIZE_MB: "1000"
   BATCH_SIZE: "0"
