@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: audio-transcriber
+  namespace: audio-compressor
+spec:
+  schedule: "0 4 * * *"  # Run at 4 AM daily (2 hours after compressor)
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: audio-compressor
+          restartPolicy: OnFailure
+          imagePullSecrets:
+          - name: dockerhub-registry
+          containers:
+          - name: audio-transcriber
+            image: lzetam/audio-transcriber:latest
+            imagePullPolicy: Always
+            envFrom:
+            - configMapRef:
+                name: audio-transcriber-config
+            env:
+            # Whisper API Configuration from AWS Secrets Manager
+            - name: WHISPER_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: gpustack-credentials
+                  key: whisper_base_url
+            - name: WHISPER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gpustack-credentials
+                  key: whisper_api_key
+            volumeMounts:
+            - name: compressed-audio
+              mountPath: /data/compressed
+              readOnly: true
+            - name: transcriptions
+              mountPath: /data/transcriptions
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+          volumes:
+          - name: compressed-audio
+            persistentVolumeClaim:
+              claimName: audio-compressed-pvc
+          - name: transcriptions
+            persistentVolumeClaim:
+              claimName: audio-transcript-pvc

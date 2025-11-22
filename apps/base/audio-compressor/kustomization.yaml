@@ -5,7 +5,10 @@ resources:
   - namespace.yaml
   - aws-secret-store.yaml
   - external-secret-sftp.yaml
+  - external-secret-gpustack.yaml
   - create-docker-registry-secret-job.yaml
   - rbac.yaml
   - storage.yaml
+  - configmap-transcriber.yaml
   - cronjob.yaml
+  - cronjob-transcriber.yaml
