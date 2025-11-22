@@ -49,8 +49,10 @@ spec:
                 cpu: "500m"
           volumes:
           - name: compressed-audio
-            persistentVolumeClaim:
-              claimName: audio-compressed-pvc
+            nfs:
+              server: ***NFS-IP-REMOVED***
+              path: /volume1/k8s-storage/pvc-fa625048-6545-4904-bc35-7111a93b21bc
           - name: transcriptions
-            persistentVolumeClaim:
-              claimName: audio-transcript-pvc
+            nfs:
+              server: ***NFS-IP-REMOVED***
+              path: /volume1/k8s-storage/pvc-1a863515-490c-4c4a-8aaa-f63ce16b8ecc
