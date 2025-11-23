@@ -15,13 +15,8 @@ spec:
           restartPolicy: OnFailure
           imagePullSecrets:
           - name: dockerhub-registry
-          affinity:
-            nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms:
-                - matchExpressions:
-                  - key: node-role.kubernetes.io/control-plane
-                    operator: DoesNotExist
+          nodeSelector:
+            kubernetes.io/hostname: pglenovo01
           containers:
           - name: audio-transcriber
             image: lzetam/audio-transcriber:latest
