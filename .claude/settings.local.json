@@ -14,9 +14,25 @@
       "Bash(git -C /Users/zz/Documents/GitHub/fako-cluster commit -m \"$(cat <<''EOF''\nfeat: change audio-compressor output format to mp3\n\nSwitch from WAV to MP3 format to significantly reduce compressed file sizes\nwhile maintaining speech quality for transcription.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(flux reconcile source git:*)",
       "Bash(flux reconcile kustomization:*)",
-      "Bash(kubectl run:*)"
+      "Bash(kubectl run:*)",
+      "mcp__MCP_DOCKER__fetch",
+      "Bash(git -C /Users/zz/Documents/GitHub/fako-cluster add:*)",
+      "Bash(git -C /Users/zz/Documents/GitHub/fako-cluster commit -m \"$(cat <<''EOF''\nchore: update n8n to 1.123.0 and add gitops hook\n\n- Update n8n image from 1.119.0 to 1.123.0\n- Add PostToolUse hook to auto-reconcile Flux after git push\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -q 'git.*push'; then echo '[GitOps] Running Flux reconciliation...' && flux reconcile source git flux-system && flux reconcile kustomization apps; fi"
+          }
+        ]
+      }
+    ]
   }
 }
