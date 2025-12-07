@@ -68,8 +68,6 @@ spec:
             - "/data"
             - "--download-dir"
             - "/data"
-            - "--max-piper-procs"
-            - "6"
             - "--update-voices"
             - "--debug"
           env:
