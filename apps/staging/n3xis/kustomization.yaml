@@ -4,3 +4,5 @@ namespace: n3xis
 
 resources:
   - ../../base/n3xis
+  - dockerhub-secret.yaml
+  - create-docker-registry-secret-job.yaml
