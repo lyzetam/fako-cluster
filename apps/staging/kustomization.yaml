@@ -66,3 +66,6 @@ resources:
   
   # Corporate Website
   - lzt-ui          # LZ Technology corporate website
+
+  # Manufacturing OEE Dashboard
+  - n3xis           # Manufacturing OEE Platform

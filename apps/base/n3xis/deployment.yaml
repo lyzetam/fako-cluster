@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n3xis
+  namespace: n3xis
+  labels:
+    app: n3xis
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: n3xis
+  template:
+    metadata:
+      labels:
+        app: n3xis
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      containers:
+        - name: n3xis
+          image: lzetam/n3xis:latest
+          ports:
+            - containerPort: 3333
+          env:
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3333
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3333
+            initialDelaySeconds: 5
+            periodSeconds: 5
