@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: n3xis
+  namespace: n3xis
+spec:
+  selector:
+    app: n3xis
+  ports:
+    - port: 80
+      targetPort: 3333
+  type: ClusterIP
