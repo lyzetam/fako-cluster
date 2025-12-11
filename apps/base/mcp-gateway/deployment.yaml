@@ -47,7 +47,7 @@ spec:
           securityContext:
             privileged: true  # Required for Docker-in-Docker
           volumeMounts:
-            - name: docker-data
+            - name: docker-data-sse
               mountPath: /var/lib/docker
           livenessProbe:
             tcpSocket:
@@ -90,7 +90,7 @@ spec:
           securityContext:
             privileged: true  # Required for Docker-in-Docker
           volumeMounts:
-            - name: docker-data
+            - name: docker-data-streaming
               mountPath: /var/lib/docker
           livenessProbe:
             tcpSocket:
@@ -107,6 +107,9 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
       volumes:
-        - name: docker-data
-          persistentVolumeClaim:
-            claimName: mcp-gateway-docker-data
+        - name: docker-data-sse
+          emptyDir:
+            sizeLimit: 10Gi
+        - name: docker-data-streaming
+          emptyDir:
+            sizeLimit: 10Gi
