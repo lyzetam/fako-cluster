@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-gateway-config
+  namespace: mcp-gateway
+  labels:
+    app.kubernetes.io/name: mcp-gateway
+    app.kubernetes.io/component: config
+data:
+  # MCP Gateway configuration
+  # Servers enabled via command line args: --servers=brave,fetch,github-official,filesystem,time
+  # Additional configuration can be added here if needed
+  servers.yaml: |
+    # Docker MCP Catalog servers to enable
+    # These are pulled from hub.docker.com/mcp automatically
+    servers:
+      - brave          # Web search via Brave API
+      - fetch          # URL fetching and content extraction
+      - github-official # GitHub API integration
+      - filesystem     # File system operations (sandboxed)
+      - time           # Time/timezone utilities

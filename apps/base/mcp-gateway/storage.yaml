@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mcp-gateway-docker-data
+  namespace: mcp-gateway
+  labels:
+    app.kubernetes.io/name: mcp-gateway
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 20Gi

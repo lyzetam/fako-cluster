@@ -69,3 +69,6 @@ resources:
 
   # Manufacturing OEE Dashboard
   - n3xis           # Manufacturing OEE Platform
+
+  # MCP Gateway
+  - mcp-gateway     # Docker MCP Gateway for remote MCP server access

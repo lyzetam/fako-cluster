@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-gateway
+  namespace: mcp-gateway
+  labels:
+    app.kubernetes.io/name: mcp-gateway
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: ai-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mcp-gateway
+      app.kubernetes.io/component: gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mcp-gateway
+        app.kubernetes.io/component: gateway
+    spec:
+      containers:
+        # SSE Transport Gateway (port 8811)
+        - name: mcp-gateway-sse
+          image: docker/mcp-gateway:dind
+          args:
+            - --transport=sse
+            - --port=8811
+            - --servers=brave,fetch,github-official,filesystem,time
+          ports:
+            - containerPort: 8811
+              protocol: TCP
+              name: sse
+          env:
+            - name: GITHUB_PERSONAL_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-gateway-secrets
+                  key: GITHUB_PERSONAL_ACCESS_TOKEN
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+          securityContext:
+            privileged: true  # Required for Docker-in-Docker
+          volumeMounts:
+            - name: docker-data
+              mountPath: /var/lib/docker
+          livenessProbe:
+            tcpSocket:
+              port: 8811
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 8811
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+        # Streamable HTTP Transport Gateway (port 8812)
+        - name: mcp-gateway-streaming
+          image: docker/mcp-gateway:dind
+          args:
+            - --transport=streaming
+            - --port=8812
+            - --servers=brave,fetch,github-official,filesystem,time
+          ports:
+            - containerPort: 8812
+              protocol: TCP
+              name: streaming
+          env:
+            - name: GITHUB_PERSONAL_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-gateway-secrets
+                  key: GITHUB_PERSONAL_ACCESS_TOKEN
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+          securityContext:
+            privileged: true  # Required for Docker-in-Docker
+          volumeMounts:
+            - name: docker-data
+              mountPath: /var/lib/docker
+          livenessProbe:
+            tcpSocket:
+              port: 8812
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 8812
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: docker-data
+          persistentVolumeClaim:
+            claimName: mcp-gateway-docker-data
