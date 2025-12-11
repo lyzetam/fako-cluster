@@ -4,3 +4,4 @@ namespace: mcp-gateway
 
 resources:
   - ../../base/mcp-gateway
+  - aws-credentials-secret.yaml
