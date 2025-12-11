@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Critical Rules
+
+**ALWAYS:**
+- Use GitOps workflow - all changes go through Git, never apply directly with `kubectl apply`
+- Use declarative manifests (YAML) - no imperative commands for resource creation
+- Trigger Flux reconciliation after pushing changes
+- Use SOPS or AWS Secrets Manager for sensitive data
+
+**NEVER:**
+- Commit credentials, passwords, API keys, or tokens to the repository
+- Hardcode IP addresses in manifests (use DNS names or ConfigMaps)
+- Use `kubectl apply` or `kubectl create` directly for persistent changes
+- Store secrets in plaintext ConfigMaps or environment variables in Git
+
 ## Project Overview
 
 Fako Cluster is a GitOps-managed Kubernetes homelab running on K3s with FluxCD. It hosts AI/ML workloads (Ollama, Whisper, Piper), productivity apps, and infrastructure services across heterogeneous hardware including GPU nodes (RTX 5070, RTX 3050) and ARM devices.
@@ -15,6 +29,11 @@ Fako Cluster is a GitOps-managed Kubernetes homelab running on K3s with FluxCD. 
 
 # Dry-run mode
 ./scripts/gitops-deploy.sh --dry-run
+
+# Manual workflow
+git add . && git commit -m "feat: description" && git push
+flux reconcile source git flux-system
+flux reconcile kustomization apps
 ```
 
 ### Flux Operations
@@ -22,11 +41,15 @@ Fako Cluster is a GitOps-managed Kubernetes homelab running on K3s with FluxCD. 
 # Check all Flux resources
 flux get all -A
 
-# Force reconciliation
-flux reconcile source git flux-system
+# Check for errors only
+flux get all -A --status-selector ready=false
 
-# Reconcile specific kustomization
+# Force full reconciliation (respects dependency order)
+flux reconcile source git flux-system
+flux reconcile kustomization infrastructure-controllers
+flux reconcile kustomization infrastructure-configs
 flux reconcile kustomization apps
+flux reconcile kustomization monitoring-configs
 
 # View Flux logs
 flux logs --follow
@@ -35,13 +58,21 @@ flux logs --follow
 flux logs --kind=Kustomization --name=apps
 ```
 
+### Flux Kustomization Order
+Reconciliation follows this dependency chain:
+```
+flux-system → infrastructure-controllers → infrastructure-configs → apps → monitoring-configs
+```
+
 ### Cluster Status
 ```bash
 # Node and pod health
 kubectl get nodes
-kubectl get pods --all-namespaces | grep -v Running
+kubectl get pods -A --field-selector=status.phase!=Running,status.phase!=Succeeded
 kubectl top nodes
-kubectl top pods --all-namespaces
+
+# Recent events (useful for debugging)
+kubectl get events -A --sort-by='.lastTimestamp' | head -20
 
 # GPU status
 kubectl exec -n gpu-operator -it $(kubectl get pods -n gpu-operator -l app=nvidia-device-plugin-daemonset -o jsonpath='{.items[0].metadata.name}') -- nvidia-smi
@@ -99,10 +130,37 @@ Each app in `apps/base/<app-name>/` typically contains:
 - **Cert-Manager**: Automated TLS certificates via Let's Encrypt
 
 ### Secret Management Pattern
-No secrets in Git. Each namespace follows:
-1. AWS Secrets Manager holds secret values
+**No secrets in Git. Ever.** Each namespace follows:
+1. AWS Secrets Manager holds secret values (preferred) or SOPS-encrypted files
 2. `SecretStore` configured per namespace with scoped IAM permissions
 3. `ExternalSecret` syncs specific secrets to Kubernetes
+
+For new secrets:
+```bash
+# Store in AWS Secrets Manager
+aws secretsmanager create-secret --name "/fako/<namespace>/<secret-name>" --secret-string '{"key":"value"}'
+```
+
+ExternalSecret pattern (this goes in Git, not the actual secret values):
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: app-secrets
+  namespace: <namespace>
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-store
+    kind: SecretStore
+  target:
+    name: app-secrets
+  data:
+    - secretKey: DB_PASSWORD
+      remoteRef:
+        key: /fako/<namespace>/<secret-name>
+        property: password
+```
 
 ### GPU Assignment
 The `yeezyai` node has dual GPUs:
@@ -118,6 +176,7 @@ Deployments use node affinity and `nvidia.com/gpu` resource requests.
 2. Add Kustomize manifests following existing app patterns
 3. Reference in `apps/staging/kustomization.yaml`
 4. Commit and push - Flux will deploy
+5. Verify with `flux reconcile kustomization apps && flux get kustomization apps`
 
 ### Commit Message Convention
 - `feat:` - New features
@@ -135,9 +194,3 @@ Deployments use node affinity and `nvidia.com/gpu` resource requests.
 - `notes/docs/operations/cluster-maintenance.md` - Operational procedures
 - `scripts/README.md` - Script documentation
 - Individual service READMEs in `notes/docs/services/<service>/README.md`
-
-## Hardware Context
-- **yeezyai**: GPU worker (Ryzen 9, 32GB, dual NVIDIA GPUs)
-- **zz-macbookpro**: Control plane (M1 Pro)
-- **thinkpad01, pgmac01/02, pglenovo01/02**: Worker nodes
-- **UGREEN NAS**: 12TB NFS storage
