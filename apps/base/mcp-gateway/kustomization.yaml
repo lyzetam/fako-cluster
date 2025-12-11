@@ -5,7 +5,6 @@ namespace: mcp-gateway
 
 resources:
   - namespace.yaml
-  - storage.yaml
   - secret-store.yaml
   - external-secret-github.yaml
   - configmap.yaml
