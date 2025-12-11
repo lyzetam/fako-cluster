@@ -1,30 +1,29 @@
-# Note: n8n uses Cloudflare Tunnel (cloudflared) for ingress instead of a traditional Kubernetes Ingress.
-# The cloudflared deployment handles routing traffic from n8n.landryzetam.net to the n8n service.
-# See cloudflare.yaml for the tunnel configuration.
-#
-# If you need to use a traditional Ingress instead of Cloudflare Tunnel, uncomment and configure below:
-#
-# apiVersion: networking.k8s.io/v1
-# kind: Ingress
-# metadata:
-#   name: n8n
-#   namespace: n8n
-#   annotations:
-#     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-# spec:
-#   ingressClassName: traefik
-#   tls:
-#   - hosts:
-#     - n8n.landryzetam.net
-#     secretName: n8n-tls
-#   rules:
-#   - host: n8n.landryzetam.net
-#     http:
-#       paths:
-#       - path: /
-#         pathType: Prefix
-#         backend:
-#           service:
-#             name: n8n
-#             port:
-#               number: 5678
+# Internal access ingress - bypasses Cloudflare Zero Trust
+# Use n8n-local.landryzetam.net when on local network
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n-local
+  namespace: n8n
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - n8n-local.landryzetam.net
+    secretName: n8n-local-tls
+  rules:
+  - host: n8n-local.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: n8n
+            port:
+              number: 5678
+---
+# Note: External access uses Cloudflare Tunnel (cloudflared) - see cloudflare.yaml
+# n8n.landryzetam.net -> Cloudflare Tunnel -> Zero Trust auth
