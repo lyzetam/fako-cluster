@@ -6,9 +6,13 @@ resources:
   - aws-secret-store.yaml
   - external-secret-sftp.yaml
   - external-secret-gpustack.yaml
+  - external-secret-summarizer.yaml
+  - external-secret-obsidian.yaml
   - create-docker-registry-secret-job.yaml
   - rbac.yaml
   - storage.yaml
   - configmap-transcriber.yaml
+  - configmap-summarizer.yaml
   - cronjob.yaml
   - cronjob-transcriber.yaml
+  - cronjob-summarizer.yaml
