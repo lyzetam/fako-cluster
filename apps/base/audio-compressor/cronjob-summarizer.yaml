@@ -1,0 +1,74 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: transcript-summarizer
+  namespace: audio-compressor
+spec:
+  schedule: "0 6 * * *"  # Run at 6 AM daily (2 hours after transcriber)
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: audio-compressor
+          restartPolicy: OnFailure
+          imagePullSecrets:
+          - name: dockerhub-registry
+          containers:
+          - name: transcript-summarizer
+            image: lzetam/transcript-summarizer:latest
+            imagePullPolicy: Always
+            envFrom:
+            - configMapRef:
+                name: transcript-summarizer-config
+            env:
+            # GPUStack Summarizer API
+            - name: SUMMARIZER_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: summarizer-credentials
+                  key: summarizer_base_url
+            - name: SUMMARIZER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: summarizer-credentials
+                  key: summarizer_api_key
+            - name: SUMMARIZER_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: summarizer-credentials
+                  key: summarizer_model
+            # Obsidian REST API
+            - name: OBSIDIAN_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_url
+            - name: OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_key
+            volumeMounts:
+            - name: transcriptions
+              mountPath: /data/transcriptions
+              readOnly: true
+            - name: state
+              mountPath: /data/state
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+          volumes:
+          - name: transcriptions
+            nfs:
+              server: ***NFS-IP-REMOVED***
+              path: /volume1/k8s-storage/pvc-1a863515-490c-4c4a-8aaa-f63ce16b8ecc
+          - name: state
+            nfs:
+              server: ***NFS-IP-REMOVED***
+              path: /volume1/k8s-storage/pvc-fa625048-6545-4904-bc35-7111a93b21bc
