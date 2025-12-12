@@ -23,18 +23,15 @@ spec:
       containers:
       - name: website
         image: lzetam/website:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
           name: http
         env:
         - name: APP_ENV
           value: "production"
-        - name: APP_DEBUG
-          value: "false"
-        - name: MAIL_FROM_NAME
-          value: "LZ Technology LLC"
-        - name: MAIL_TO_ADDRESS
-          value: "info@lztechnology.io"
+        - name: NODE_ENV
+          value: "production"
         resources:
           requests:
             cpu: 100m
@@ -60,24 +57,14 @@ spec:
           failureThreshold: 3
         securityContext:
           runAsNonRoot: true
-          runAsUser: 33  # www-data user
+          runAsUser: 1001  # nextjs user
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
           capabilities:
             drop:
             - ALL
-        volumeMounts:
-        - name: cache-volume
-          mountPath: /var/www/html/cache
-        - name: logs-volume
-          mountPath: /var/www/html/logs
-      volumes:
-      - name: cache-volume
-        emptyDir: {}
-      - name: logs-volume
-        emptyDir: {}
       imagePullSecrets:
       - name: dockerhub-registry
       securityContext:
-        fsGroup: 33  # www-data group
+        fsGroup: 1001  # nodejs group
       restartPolicy: Always
