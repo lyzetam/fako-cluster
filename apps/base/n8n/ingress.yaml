@@ -1,29 +1,31 @@
 # Internal access ingress - bypasses Cloudflare Zero Trust
 # Use n8n-local.landryzetam.net when on local network
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: n8n-local
-  namespace: n8n
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-spec:
-  ingressClassName: traefik
-  tls:
-  - hosts:
-    - n8n-local.landryzetam.net
-    secretName: n8n-local-tls
-  rules:
-  - host: n8n-local.landryzetam.net
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: n8n
-            port:
-              number: 5678
+# DISABLED: Commenting out while troubleshooting n8n.landryzetam.net access
+#
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: n8n-local
+#   namespace: n8n
+#   annotations:
+#     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+# spec:
+#   ingressClassName: traefik
+#   tls:
+#   - hosts:
+#     - n8n-local.landryzetam.net
+#     secretName: n8n-local-tls
+#   rules:
+#   - host: n8n-local.landryzetam.net
+#     http:
+#       paths:
+#       - path: /
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: n8n
+#             port:
+#               number: 5678
 ---
 # Note: External access uses Cloudflare Tunnel (cloudflared) - see cloudflare.yaml
 # n8n.landryzetam.net -> Cloudflare Tunnel -> Zero Trust auth
