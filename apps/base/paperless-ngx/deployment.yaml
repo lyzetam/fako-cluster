@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-ngx
+  namespace: paperless-ngx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paperless-ngx
+  template:
+    metadata:
+      labels:
+        app: paperless-ngx
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: paperless-ngx
+          image: ghcr.io/paperless-ngx/paperless-ngx:2.14.7
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          env:
+            # Redis Configuration
+            - name: PAPERLESS_REDIS
+              value: "redis://redis:6379"
+            # Database Configuration (PostgreSQL)
+            - name: PAPERLESS_DBENGINE
+              value: "postgresql"
+            - name: PAPERLESS_DBHOST
+              value: "postgres-cluster-rw.postgres.svc.cluster.local"
+            - name: PAPERLESS_DBPORT
+              value: "5432"
+            - name: PAPERLESS_DBNAME
+              value: "paperless"
+            - name: PAPERLESS_DBUSER
+              value: "app"
+            - name: PAPERLESS_DBPASS
+              valueFrom:
+                secretKeyRef:
+                  name: app-user-secret
+                  key: password
+            # Security
+            - name: PAPERLESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secrets
+                  key: secret-key
+            # General Configuration
+            - name: PAPERLESS_URL
+              value: "https://paperless.landryzetam.net"
+            - name: PAPERLESS_TIME_ZONE
+              value: "America/New_York"
+            - name: PAPERLESS_OCR_LANGUAGE
+              value: "eng"
+            - name: PAPERLESS_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secrets
+                  key: admin-user
+            - name: PAPERLESS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-secrets
+                  key: admin-password
+            # Paths
+            - name: PAPERLESS_DATA_DIR
+              value: "/usr/src/paperless/data"
+            - name: PAPERLESS_MEDIA_ROOT
+              value: "/usr/src/paperless/media"
+            - name: PAPERLESS_CONSUMPTION_DIR
+              value: "/usr/src/paperless/consume"
+            - name: PAPERLESS_EXPORT_DIR
+              value: "/usr/src/paperless/export"
+            # Performance
+            - name: PAPERLESS_TASK_WORKERS
+              value: "2"
+            - name: PAPERLESS_THREADS_PER_WORKER
+              value: "1"
+            - name: PAPERLESS_WEBSERVER_WORKERS
+              value: "2"
+          volumeMounts:
+            - mountPath: /usr/src/paperless/data
+              name: paperless-data
+            - mountPath: /usr/src/paperless/media
+              name: paperless-media
+            - mountPath: /usr/src/paperless/consume
+              name: paperless-consume
+            - mountPath: /usr/src/paperless/export
+              name: paperless-export
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: paperless-data
+          persistentVolumeClaim:
+            claimName: paperless-data
+        - name: paperless-media
+          persistentVolumeClaim:
+            claimName: paperless-media
+        - name: paperless-consume
+          persistentVolumeClaim:
+            claimName: paperless-consume
+        - name: paperless-export
+          persistentVolumeClaim:
+            claimName: paperless-export
