@@ -51,7 +51,7 @@ spec:
                   key: secret-key
             # General Configuration
             - name: PAPERLESS_URL
-              value: "https://paperless.landryzetam.net"
+              value: "http://paperless.landryzetam.net"
             - name: PAPERLESS_TIME_ZONE
               value: "America/New_York"
             - name: PAPERLESS_OCR_LANGUAGE
