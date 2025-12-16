@@ -67,15 +67,11 @@ spec:
     dcgm:
       enabled: true
 
+    # DCGM exporter disabled - consumer GPUs (RTX series) don't support
+    # the DCGM profiling features required by the exporter
+    # GPU metrics available via nvidia-smi and device plugin
     dcgmExporter:
-      enabled: true
-      serviceMonitor:
-        enabled: true
-      # Use basic metrics that work on consumer GPUs (RTX series)
-      # DCP metrics require datacenter GPUs with profiling support
-      args:
-        - "-f"
-        - "/etc/dcgm-exporter/default-counters.csv"  # Basic metrics, no profiling required
+      enabled: false
     
     migManager:
       enabled: false
