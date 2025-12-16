@@ -72,3 +72,6 @@ resources:
 
   # MCP Gateway
   - mcp-gateway     # Docker MCP Gateway for remote MCP server access
+
+  # Document Management
+  - paperless-ngx   # Document management system with OCR
