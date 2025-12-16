@@ -3,8 +3,6 @@ kind: Ingress
 metadata:
   name: paperless-ngx
   namespace: paperless-ngx
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
 spec:
   ingressClassName: traefik
   rules:
@@ -18,7 +16,3 @@ spec:
             name: paperless-ngx
             port:
               number: 8000
-  tls:
-  - hosts:
-    - paperless.landryzetam.net
-    secretName: paperless-tls-cert
