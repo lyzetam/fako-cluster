@@ -71,6 +71,11 @@ spec:
       enabled: true
       serviceMonitor:
         enabled: true
+      # Use basic metrics that work on consumer GPUs (RTX series)
+      # DCP metrics require datacenter GPUs with profiling support
+      args:
+        - "-f"
+        - "/etc/dcgm-exporter/default-counters.csv"  # Basic metrics, no profiling required
     
     migManager:
       enabled: false
