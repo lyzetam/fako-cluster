@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+    name: paperless-rpi-consume
+    labels:
+        app: paperless-ngx
+spec:
+    capacity:
+        storage: 10Gi
+    accessModes:
+        - ReadWriteMany
+    persistentVolumeReclaimPolicy: Retain
+    mountOptions:
+        - dir_mode=0777
+        - file_mode=0777
+        - uid=1000
+        - gid=1000
+        - noperm
+    csi:
+        driver: smb.csi.k8s.io
+        volumeHandle: paperless-rpi-consume
+        volumeAttributes:
+            source: ENC[AES256_GCM,data:Bkq5doUpNtwkqYWKrwjFpm9oSK0=,iv:NoZKgBemMteD2FIhZEjwxrmczc4NpU8Y3DF0R+bv4/U=,tag:Mm2MmQkYS/5P1VqI6WvUCg==,type:str]
+        nodeStageSecretRef:
+            name: smb-credentials
+            namespace: paperless-ngx
+sops:
+    age:
+        - recipient: age1wz30c9m30hshgx9tg5lylctp646hgu3p0v0sxjuy8xxz34exh4hstn9utd
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBwVUR3cWZNbUxUalpScWVh
+            OTBHNmdWdVhuaUl5RFBrNUNhRjNUZzVZSzBzCnpEbG81NjEzakJJa284bnBVc1hO
+            K0NieE5IKzUveExuVjdiN21CVWkxa2MKLS0tIGZjS21HWXpwZ1N1cXRpQnBpT3h0
+            aGZTc0pTR0pSTEo5SGdITUwvTlFJaUEKevICnrT10T6C08zynB0RSE0xifcVIubY
+            kasVllUmaAUAgZTV9Uu6GFTvu8ufhxSZNvV2frnhnGg+rpG0ZIzGNg==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2025-12-17T10:30:09Z"
+    mac: ENC[AES256_GCM,data:s8ESQo/kofMyUgJlXapnNi5zBeVhdR47sLoOEpJJajHpWIazhzBjftRSC+TL4u7fiwem73+jUxTcURF+rTb7pphcY79m3sUGuihNG2dPlXl/KRUq8rDYrymKCG4sNFNOWFvQal0Re/tfVpa4E+PyDjuPo48TOJ1Glez0OBfrsX4=,iv:l0SjF4tLiszNdL6VknNzM26NJNGL2Tr7CTDpocLGLVw=,tag:aUBKbVV5NjNiQRrDvLZE7Q==,type:str]
+    encrypted_regex: ^(source)$
+    version: 3.10.2
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: paperless-rpi-consume
+    namespace: paperless-ngx
+spec:
+    accessModes:
+        - ReadWriteMany
+    storageClassName: ""
+    volumeName: paperless-rpi-consume
+    resources:
+        requests:
+            storage: 10Gi
+sops:
+    age:
+        - recipient: age1wz30c9m30hshgx9tg5lylctp646hgu3p0v0sxjuy8xxz34exh4hstn9utd
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBwVUR3cWZNbUxUalpScWVh
+            OTBHNmdWdVhuaUl5RFBrNUNhRjNUZzVZSzBzCnpEbG81NjEzakJJa284bnBVc1hO
+            K0NieE5IKzUveExuVjdiN21CVWkxa2MKLS0tIGZjS21HWXpwZ1N1cXRpQnBpT3h0
+            aGZTc0pTR0pSTEo5SGdITUwvTlFJaUEKevICnrT10T6C08zynB0RSE0xifcVIubY
+            kasVllUmaAUAgZTV9Uu6GFTvu8ufhxSZNvV2frnhnGg+rpG0ZIzGNg==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2025-12-17T10:30:09Z"
+    mac: ENC[AES256_GCM,data:s8ESQo/kofMyUgJlXapnNi5zBeVhdR47sLoOEpJJajHpWIazhzBjftRSC+TL4u7fiwem73+jUxTcURF+rTb7pphcY79m3sUGuihNG2dPlXl/KRUq8rDYrymKCG4sNFNOWFvQal0Re/tfVpa4E+PyDjuPo48TOJ1Glez0OBfrsX4=,iv:l0SjF4tLiszNdL6VknNzM26NJNGL2Tr7CTDpocLGLVw=,tag:aUBKbVV5NjNiQRrDvLZE7Q==,type:str]
+    encrypted_regex: ^(source)$
+    version: 3.10.2

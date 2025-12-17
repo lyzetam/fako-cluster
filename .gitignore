@@ -13,3 +13,5 @@ scripts/
 *-unencrypted.yaml
 *-unencrypted.yml
 *.sh
+CLAUDE.md
+.claude/settings.local.json
