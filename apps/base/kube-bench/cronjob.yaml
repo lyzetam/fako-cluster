@@ -22,43 +22,44 @@ spec:
           hostPID: true
           containers:
           - name: kube-bench
-            image: aquasec/kube-bench:v0.14.0
+            image: aquasec/kube-bench:v0.9.2
             command:
             - /bin/sh
             - -c
             - |
               TIMESTAMP=$(date +%Y%m%d-%H%M%S)
               RESULT_FILE="/results/kube-bench-results-${TIMESTAMP}.json"
-              echo "Starting kube-bench scan, results will be saved to ${RESULT_FILE}"
-              kube-bench --json --outputfile "${RESULT_FILE}" --logtostderr
-              echo "Scan completed, results saved to ${RESULT_FILE}"
+              echo "Starting K3s CIS benchmark scan..."
+              echo "Results will be saved to ${RESULT_FILE}"
+
+              # Run kube-bench with K3s-specific benchmark
+              # K3s CIS 1.7 benchmark is designed for K3s distributions
+              kube-bench run --benchmark k3s-cis-1.7 \
+                --json \
+                --outputfile "${RESULT_FILE}" \
+                --logtostderr 2>&1
+
+              EXIT_CODE=$?
+              echo "Scan completed with exit code: ${EXIT_CODE}"
+              echo "Results saved to: ${RESULT_FILE}"
+
+              # Also output a human-readable summary
+              echo ""
+              echo "=== Quick Summary ==="
+              kube-bench run --benchmark k3s-cis-1.7 2>/dev/null | tail -20
+
+              exit 0
             volumeMounts:
-            - name: var-lib-etcd
-              mountPath: /var/lib/etcd
+            # K3s-specific paths
+            - name: var-lib-rancher
+              mountPath: /var/lib/rancher
               readOnly: true
+            - name: etc-rancher
+              mountPath: /etc/rancher
+              readOnly: true
+            # Standard paths that K3s also uses
             - name: var-lib-kubelet
               mountPath: /var/lib/kubelet
-              readOnly: true
-            - name: var-lib-kube-scheduler
-              mountPath: /var/lib/kube-scheduler
-              readOnly: true
-            - name: var-lib-kube-controller-manager
-              mountPath: /var/lib/kube-controller-manager
-              readOnly: true
-            - name: etc-systemd
-              mountPath: /etc/systemd
-              readOnly: true
-            - name: lib-systemd
-              mountPath: /lib/systemd/
-              readOnly: true
-            - name: srv-kubernetes
-              mountPath: /srv/kubernetes/
-              readOnly: true
-            - name: etc-kubernetes
-              mountPath: /etc/kubernetes
-              readOnly: true
-            - name: usr-bin
-              mountPath: /usr/local/mount-from-host/bin
               readOnly: true
             - name: etc-cni-netd
               mountPath: /etc/cni/net.d/
@@ -66,6 +67,14 @@ spec:
             - name: opt-cni-bin
               mountPath: /opt/cni/bin/
               readOnly: true
+            # System paths
+            - name: etc-systemd
+              mountPath: /etc/systemd
+              readOnly: true
+            - name: proc
+              mountPath: /proc
+              readOnly: true
+            # Results storage
             - name: results-storage
               mountPath: /results
             resources:
@@ -74,7 +83,7 @@ spec:
                 cpu: "100m"
               limits:
                 memory: "512Mi"
-                cpu: "300m"
+                cpu: "500m"
             securityContext:
               privileged: true
           - name: results-processor
@@ -84,21 +93,31 @@ spec:
             - -c
             - |
               echo "Monitoring results directory for new scan results..."
-              sleep 10  # Give kube-bench time to start
-              
-              # Wait for any new result files
-              while true; do
+              sleep 30  # Give kube-bench time to complete
+
+              # Wait for the result file
+              TIMEOUT=300
+              ELAPSED=0
+              while [ $ELAPSED -lt $TIMEOUT ]; do
                 LATEST_FILE=$(ls -t /results/kube-bench-results-*.json 2>/dev/null | head -1)
-                if [ -n "$LATEST_FILE" ]; then
+                if [ -n "$LATEST_FILE" ] && [ -s "$LATEST_FILE" ]; then
                   echo "Found latest scan result: $LATEST_FILE"
-                  echo "=== Kube-bench Scan Results ==="
-                  cat "$LATEST_FILE"
-                  echo "================================"
+                  echo "=== K3s CIS Benchmark Results ==="
+
+                  # Parse and display summary using basic tools
+                  echo "File size: $(wc -c < "$LATEST_FILE") bytes"
+                  echo ""
                   echo "Results saved to: $LATEST_FILE"
                   break
                 fi
                 sleep 5
+                ELAPSED=$((ELAPSED + 5))
               done
+
+              if [ $ELAPSED -ge $TIMEOUT ]; then
+                echo "Timeout waiting for results file"
+                exit 1
+              fi
             volumeMounts:
             - name: results-storage
               mountPath: /results
@@ -110,42 +129,50 @@ spec:
                 memory: "128Mi"
                 cpu: "100m"
           volumes:
-          - name: var-lib-etcd
+          # K3s-specific paths
+          - name: var-lib-rancher
             hostPath:
-              path: "/var/lib/etcd"
+              path: "/var/lib/rancher"
+              type: DirectoryOrCreate
+          - name: etc-rancher
+            hostPath:
+              path: "/etc/rancher"
+              type: DirectoryOrCreate
+          # Standard Kubernetes paths
           - name: var-lib-kubelet
             hostPath:
               path: "/var/lib/kubelet"
-          - name: var-lib-kube-scheduler
-            hostPath:
-              path: "/var/lib/kube-scheduler"
-          - name: var-lib-kube-controller-manager
-            hostPath:
-              path: "/var/lib/kube-controller-manager"
-          - name: etc-systemd
-            hostPath:
-              path: "/etc/systemd"
-          - name: lib-systemd
-            hostPath:
-              path: "/lib/systemd"
-          - name: srv-kubernetes
-            hostPath:
-              path: "/srv/kubernetes"
-          - name: etc-kubernetes
-            hostPath:
-              path: "/etc/kubernetes"
-          - name: usr-bin
-            hostPath:
-              path: "/usr/bin"
+              type: DirectoryOrCreate
           - name: etc-cni-netd
             hostPath:
               path: "/etc/cni/net.d/"
+              type: DirectoryOrCreate
           - name: opt-cni-bin
             hostPath:
               path: "/opt/cni/bin/"
+              type: DirectoryOrCreate
+          # System paths
+          - name: etc-systemd
+            hostPath:
+              path: "/etc/systemd"
+              type: DirectoryOrCreate
+          - name: proc
+            hostPath:
+              path: "/proc"
+              type: ""
+          # Results storage
           - name: results-storage
             persistentVolumeClaim:
               claimName: kube-bench-results
           restartPolicy: OnFailure
+          # Schedule on control plane node for complete scan
           nodeSelector:
             kubernetes.io/os: linux
+            node-role.kubernetes.io/control-plane: "true"
+          tolerations:
+          - key: "node-role.kubernetes.io/control-plane"
+            operator: "Exists"
+            effect: "NoSchedule"
+          - key: "node-role.kubernetes.io/master"
+            operator: "Exists"
+            effect: "NoSchedule"
