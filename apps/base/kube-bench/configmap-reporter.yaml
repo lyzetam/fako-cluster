@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-bench-reporter-config
+  namespace: kube-bench
+data:
+  RESULTS_DIR: "/results"
+  OBSIDIAN_FOLDER: "Cluster/Security"
+  SUMMARY_PREFIX: "Kube-Bench-Summary"
+  DETAILS_PREFIX: "Kube-Bench-Details"
+  LOG_LEVEL: "INFO"
