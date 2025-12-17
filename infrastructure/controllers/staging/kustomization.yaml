@@ -5,6 +5,7 @@ resources:
   - external-secrets
   - renovate
   - nfs-storage
+  - smb-csi
   - gpu-operator
   - k8s-backup
   - system-tuning
