@@ -20,6 +20,8 @@ spec:
         spec:
           serviceAccountName: kube-bench
           hostPID: true
+          imagePullSecrets:
+          - name: dockerhub-registry
           containers:
           - name: kube-bench
             image: aquasec/kube-bench:v0.9.2
