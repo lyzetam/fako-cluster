@@ -123,7 +123,7 @@ spec:
             claimName: paperless-media
         - name: paperless-consume
           persistentVolumeClaim:
-            claimName: paperless-consume
+            claimName: paperless-rpi-consume
         - name: paperless-export
           persistentVolumeClaim:
             claimName: paperless-export
