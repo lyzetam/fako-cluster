@@ -4,6 +4,7 @@ namespace: paperless-ngx
 resources:
   - namespace.yaml
   - storage.yaml
+  - smb-storage.yaml
   - redis.yaml
   - service.yaml
   - deployment.yaml
@@ -11,3 +12,4 @@ resources:
   - secret-store.yaml
   - external-secret-postgres.yaml
   - external-secret-paperless.yaml
+  - external-secret-smb.yaml
