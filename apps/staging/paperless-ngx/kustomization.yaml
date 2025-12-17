@@ -4,3 +4,4 @@ namespace: paperless-ngx
 resources:
   - ../../base/paperless-ngx
   - aws-credentials-secret.yaml
+  - smb-storage.yaml
