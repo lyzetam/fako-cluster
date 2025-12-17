@@ -82,6 +82,15 @@ spec:
               value: "1"
             - name: PAPERLESS_WEBSERVER_WORKERS
               value: "2"
+            # Consumer timing fixes for SMB mount
+            - name: PAPERLESS_CONSUMER_POLLING
+              value: "10"
+            - name: PAPERLESS_CONSUMER_POLLING_DELAY
+              value: "15"
+            - name: PAPERLESS_CONSUMER_POLLING_RETRY_COUNT
+              value: "10"
+            - name: PAPERLESS_CONSUMER_INOTIFY_DELAY
+              value: "5"
           volumeMounts:
             - mountPath: /usr/src/paperless/data
               name: paperless-data
