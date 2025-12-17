@@ -7,6 +7,11 @@ resources:
   - rbac.yaml
   - storage.yaml
   - cronjob.yaml
+  # Obsidian reporting
+  - aws-secret-store.yaml
+  - external-secret-obsidian.yaml
+  - configmap-reporter.yaml
+  - cronjob-reporter.yaml
 
 labels:
 - pairs:
