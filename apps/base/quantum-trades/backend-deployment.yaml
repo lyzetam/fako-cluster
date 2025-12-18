@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-trades-backend
+  labels:
+    app: quantum-trades
+    component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: quantum-trades
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: quantum-trades
+        component: backend
+    spec:
+      containers:
+        - name: backend
+          image: lzetam/quantum-trades-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          env:
+            - name: MASSIVE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: MASSIVE_API_KEY
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: quantum-trades-config
+                  key: CORS_ORIGINS
+            - name: RATE_LIMIT_CALLS_PER_MINUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: quantum-trades-config
+                  key: RATE_LIMIT_CALLS_PER_MINUTE
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "8000"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      restartPolicy: Always
