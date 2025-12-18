@@ -4,3 +4,5 @@ namespace: quantum-trades
 resources:
   - ../../base/quantum-trades
   - aws-credentials-secret.yaml
+  - dockerhub-secret.yaml
+  - create-docker-registry-secret-job.yaml
