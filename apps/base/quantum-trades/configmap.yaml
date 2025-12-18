@@ -5,8 +5,8 @@ metadata:
   labels:
     app: quantum-trades
 data:
-  # CORS origins - update with your production domain
-  CORS_ORIGINS: '["https://quantum-trades.com","https://www.quantum-trades.com"]'
+  # CORS origins
+  CORS_ORIGINS: '["https://quantum.landryzetam.net"]'
 
   # Rate limiting configuration
   RATE_LIMIT_CALLS_PER_MINUTE: "5"
