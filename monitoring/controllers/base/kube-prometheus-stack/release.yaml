@@ -55,12 +55,6 @@ spec:
         # Retention
         retention: 30d
 
-        # Startup probe - increase timeout for large WAL replay
-        # Default is 60 failures × 15s = 15min, which is insufficient for large TSDB
-        # 1000 × 15s = 4.1 hours for WAL replay
-        startupProbe:
-          failureThreshold: 1000
-
         # WAL replay timeout - default is 600s (10min), insufficient for large TSDB
         # 4400 segments × ~3s each = ~13200s needed, set to 15000s (~4.2 hours)
         maximumStartupDurationSeconds: 15000
