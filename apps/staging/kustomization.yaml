@@ -75,3 +75,6 @@ resources:
 
   # Document Management
   - paperless-ngx   # Document management system with OCR
+
+  # Trading Platform
+  - quantum-trades  # Quantum Trades trading platform

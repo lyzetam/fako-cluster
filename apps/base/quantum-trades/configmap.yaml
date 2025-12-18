@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quantum-trades-config
+  labels:
+    app: quantum-trades
+data:
+  # CORS origins - update with your production domain
+  CORS_ORIGINS: '["https://quantum-trades.com","https://www.quantum-trades.com"]'
+
+  # Rate limiting configuration
+  RATE_LIMIT_CALLS_PER_MINUTE: "5"
