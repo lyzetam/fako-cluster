@@ -17,6 +17,8 @@ spec:
         app: quantum-trades
         component: frontend
     spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
       containers:
         - name: frontend
           image: lzetam/quantum-trades-frontend:latest
