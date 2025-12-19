@@ -5,6 +5,7 @@ namespace: kubescape
 resources:
   - ../../base/kubescape-operator
   - aws-credentials-secret.yaml
+  - dockerhub-secret.yaml
 
 patchesStrategicMerge:
   - patch-nodeagent-exclusion.yaml

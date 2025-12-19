@@ -6,6 +6,8 @@ resources:
   - namespace.yaml
   - repository.yaml
   - release.yaml
+  # Docker Hub credentials
+  - create-docker-registry-secret-job.yaml
   # Obsidian reporting
   - aws-secret-store.yaml
   - external-secret-obsidian.yaml
