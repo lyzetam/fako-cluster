@@ -1,0 +1,43 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubescape-reporter
+  namespace: kubescape
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubescape-reporter
+rules:
+  # Read kubescape scan results
+  - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+    resources:
+      - configurationscansummaries
+      - vulnerabilitymanifestsummaries
+      - workloadconfigurationscans
+      - workloadconfigurationscansummaries
+    verbs: ["get", "list"]
+  # Read generated network policies
+  - apiGroups: ["kubescape.io"]
+    resources:
+      - generatednetworkpolicies
+    verbs: ["get", "list"]
+  # Read namespaces for context
+  - apiGroups: [""]
+    resources:
+      - namespaces
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubescape-reporter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubescape-reporter
+subjects:
+  - kind: ServiceAccount
+    name: kubescape-reporter
+    namespace: kubescape

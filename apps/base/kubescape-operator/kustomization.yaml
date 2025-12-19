@@ -6,6 +6,12 @@ resources:
   - namespace.yaml
   - repository.yaml
   - release.yaml
+  # Obsidian reporting
+  - aws-secret-store.yaml
+  - external-secret-obsidian.yaml
+  - configmap-reporter.yaml
+  - rbac-reporter.yaml
+  - cronjob-reporter.yaml
 
 labels:
 - pairs:
