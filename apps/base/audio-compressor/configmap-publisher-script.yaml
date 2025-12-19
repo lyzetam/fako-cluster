@@ -13,11 +13,17 @@ data:
     import json
     import logging
     import textwrap
+    import ssl
     import urllib.request
     import urllib.error
     from pathlib import Path
     from datetime import datetime
     import time
+
+    # Create SSL context that doesn't verify certificates (for self-signed certs)
+    SSL_CONTEXT = ssl.create_default_context()
+    SSL_CONTEXT.check_hostname = False
+    SSL_CONTEXT.verify_mode = ssl.CERT_NONE
 
     # Configuration from environment
     INPUT_DIR = os.environ.get('INPUT_DIR', '/data/transcriptions')
@@ -87,7 +93,7 @@ data:
         for attempt in range(MAX_RETRIES):
             try:
                 req = urllib.request.Request(url, data=content.encode('utf-8'), headers=headers, method='PUT')
-                with urllib.request.urlopen(req) as response:
+                with urllib.request.urlopen(req, context=SSL_CONTEXT) as response:
                     if response.status in (200, 201, 204):
                         logger.info(f"Posted {filename} to Obsidian")
                         return True
