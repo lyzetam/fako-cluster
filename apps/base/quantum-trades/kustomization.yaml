@@ -8,5 +8,9 @@ resources:
   - external-secret.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
+  - signals-deployment.yaml
+  - technicals-deployment.yaml
+  - strategies-deployment.yaml
+  - backtesting-deployment.yaml
   - services.yaml
   - ingress.yaml
