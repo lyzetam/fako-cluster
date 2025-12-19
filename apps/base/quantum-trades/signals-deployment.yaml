@@ -21,7 +21,7 @@ spec:
         - name: dockerhub-registry
       containers:
         - name: signals
-          image: lzetam/quantum-trades-signals@sha256:cc16f582abd9bd13221ae620b243ce7fa73193b1143dbb8b0e5be92f316bd776
+          image: lzetam/quantum-trades-signals:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8002
