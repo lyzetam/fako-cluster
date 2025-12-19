@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: transcript-publisher
+  namespace: audio-compressor
+spec:
+  schedule: "0 5 * * *"  # 5 AM daily (after transcriber at 4 AM, before summarizer at 6 AM)
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: audio-compressor
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: pglenovo01
+          initContainers:
+          - name: install-deps
+            image: python:3.11-slim
+            command: ['pip', 'install', '--target=/deps', 'requests']
+            volumeMounts:
+            - name: deps
+              mountPath: /deps
+          containers:
+          - name: transcript-publisher
+            image: python:3.11-slim
+            command: ['python', '/scripts/publisher.py']
+            envFrom:
+            - configMapRef:
+                name: transcript-publisher-config
+            env:
+            - name: PYTHONPATH
+              value: "/deps"
+            - name: OBSIDIAN_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_url
+            - name: OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_key
+            volumeMounts:
+            - name: script
+              mountPath: /scripts
+            - name: deps
+              mountPath: /deps
+            - name: transcriptions
+              mountPath: /data/transcriptions
+              readOnly: true
+            - name: state
+              mountPath: /data/state
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "50m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+          volumes:
+          - name: script
+            configMap:
+              name: transcript-publisher-script
+          - name: deps
+            emptyDir: {}
+          - name: transcriptions
+            nfs:
+              server: ***NFS-IP-REMOVED***
+              path: /volume1/k8s-storage/pvc-1a863515-490c-4c4a-8aaa-f63ce16b8ecc
+          - name: state
+            nfs:
+              server: ***NFS-IP-REMOVED***
+              path: /volume1/k8s-storage/pvc-fa625048-6545-4904-bc35-7111a93b21bc
