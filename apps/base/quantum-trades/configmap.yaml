@@ -10,3 +10,9 @@ data:
 
   # Rate limiting configuration
   RATE_LIMIT_CALLS_PER_MINUTE: "5"
+
+  # Microservice URLs
+  TECHNICALS_SERVICE_URL: "http://technicals-service:8001"
+  SIGNALS_SERVICE_URL: "http://signals-service:8002"
+  STRATEGIES_SERVICE_URL: "http://strategies-service:8003"
+  BACKTESTING_SERVICE_URL: "http://backtesting-service:8004"
