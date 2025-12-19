@@ -13,6 +13,9 @@ resources:
   - storage.yaml
   - configmap-transcriber.yaml
   - configmap-summarizer.yaml
+  - configmap-publisher.yaml
+  - configmap-publisher-script.yaml
   - cronjob.yaml
   - cronjob-transcriber.yaml
+  - cronjob-publisher.yaml
   - cronjob-summarizer.yaml
