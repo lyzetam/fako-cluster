@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubescape-reporter-config
+  namespace: kubescape
+data:
+  OBSIDIAN_FOLDER: "Cluster/Security"
+  SUMMARY_PREFIX: "Kubescape-Summary"
+  DETAILS_PREFIX: "Kubescape-Details"
+  FRAMEWORKS: "nsa,mitre,cis-v1.23-t1.0.1"
+  LOG_LEVEL: "INFO"
