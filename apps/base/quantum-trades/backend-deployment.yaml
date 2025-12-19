@@ -51,6 +51,26 @@ spec:
               value: "0.0.0.0"
             - name: PORT
               value: "8000"
+            - name: TECHNICALS_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: quantum-trades-config
+                  key: TECHNICALS_SERVICE_URL
+            - name: SIGNALS_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: quantum-trades-config
+                  key: SIGNALS_SERVICE_URL
+            - name: STRATEGIES_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: quantum-trades-config
+                  key: STRATEGIES_SERVICE_URL
+            - name: BACKTESTING_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: quantum-trades-config
+                  key: BACKTESTING_SERVICE_URL
           livenessProbe:
             httpGet:
               path: /api/health
