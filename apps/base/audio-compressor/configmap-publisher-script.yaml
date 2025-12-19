@@ -13,6 +13,7 @@ data:
     import json
     import logging
     import requests
+    import textwrap
     from pathlib import Path
     from datetime import datetime
     import time
@@ -55,22 +56,23 @@ data:
         hours, mins = divmod(mins, 60)
         duration_str = f"{hours}h {mins}m {secs}s" if hours else f"{mins}m {secs}s"
 
-        md = f"""# {FILE_PREFIX}: {filename}
+        md = textwrap.dedent(f"""\
+            # {FILE_PREFIX}: {filename}
 
-**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M')}
-**Duration**: {duration_str}
-**Language**: {language}
+            **Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+            **Duration**: {duration_str}
+            **Language**: {language}
 
----
+            ---
 
-## Full Transcript
+            ## Full Transcript
 
-{text}
+            {text}
 
----
+            ---
 
-*Published by transcript-publisher*
-"""
+            *Published by transcript-publisher*
+            """)
         return md
 
     def post_to_obsidian(filename, content):
