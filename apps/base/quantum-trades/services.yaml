@@ -34,3 +34,79 @@ spec:
       targetPort: 3000
       protocol: TCP
   type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: signals-service
+  labels:
+    app: quantum-trades
+    component: signals
+spec:
+  selector:
+    app: quantum-trades
+    component: signals
+  ports:
+    - name: http
+      port: 8002
+      targetPort: 8002
+      protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: technicals-service
+  labels:
+    app: quantum-trades
+    component: technicals
+spec:
+  selector:
+    app: quantum-trades
+    component: technicals
+  ports:
+    - name: http
+      port: 8001
+      targetPort: 8001
+      protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: strategies-service
+  labels:
+    app: quantum-trades
+    component: strategies
+spec:
+  selector:
+    app: quantum-trades
+    component: strategies
+  ports:
+    - name: http
+      port: 8003
+      targetPort: 8003
+      protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backtesting-service
+  labels:
+    app: quantum-trades
+    component: backtesting
+spec:
+  selector:
+    app: quantum-trades
+    component: backtesting
+  ports:
+    - name: http
+      port: 8004
+      targetPort: 8004
+      protocol: TCP
+  type: ClusterIP

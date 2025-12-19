@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-trades-signals
+  labels:
+    app: quantum-trades
+    component: signals
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: quantum-trades
+      component: signals
+  template:
+    metadata:
+      labels:
+        app: quantum-trades
+        component: signals
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: signals
+          image: lzetam/quantum-trades-signals:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8002
+              protocol: TCP
+          env:
+            - name: MASSIVE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: MASSIVE_API_KEY
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      restartPolicy: Always
