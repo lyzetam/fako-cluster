@@ -15,23 +15,17 @@ spec:
           restartPolicy: OnFailure
           nodeSelector:
             kubernetes.io/hostname: pglenovo01
-          initContainers:
-          - name: install-deps
-            image: python:3.11-slim
-            command: ['pip', 'install', '--target=/deps', 'requests']
-            volumeMounts:
-            - name: deps
-              mountPath: /deps
+          imagePullSecrets:
+          - name: dockerhub-registry
           containers:
           - name: transcript-publisher
             image: python:3.11-slim
+            imagePullPolicy: IfNotPresent
             command: ['python', '/scripts/publisher.py']
             envFrom:
             - configMapRef:
                 name: transcript-publisher-config
             env:
-            - name: PYTHONPATH
-              value: "/deps"
             - name: OBSIDIAN_API_URL
               valueFrom:
                 secretKeyRef:
@@ -45,8 +39,6 @@ spec:
             volumeMounts:
             - name: script
               mountPath: /scripts
-            - name: deps
-              mountPath: /deps
             - name: transcriptions
               mountPath: /data/transcriptions
               readOnly: true
@@ -63,8 +55,6 @@ spec:
           - name: script
             configMap:
               name: transcript-publisher-script
-          - name: deps
-            emptyDir: {}
           - name: transcriptions
             nfs:
               server: ***NFS-IP-REMOVED***
