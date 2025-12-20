@@ -91,7 +91,8 @@ data:
                     result = json.loads(response.read().decode('utf-8'))
                     return result['choices'][0]['message']['content']
             except urllib.error.HTTPError as e:
-                logger.warning(f"LLM API returned {e.code}: {e.reason}")
+                error_body = e.read().decode('utf-8') if e.fp else ''
+                logger.warning(f"LLM API returned {e.code}: {e.reason} - {error_body}")
             except Exception as e:
                 logger.error(f"LLM attempt {attempt+1} failed: {e}")
 
