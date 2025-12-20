@@ -39,6 +39,8 @@ data:
     RETRY_DELAY = int(os.environ.get('RETRY_DELAY', '10'))
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
 
+    MAX_TRANSCRIPT_CHARS = int(os.environ.get('MAX_TRANSCRIPT_CHARS', '25000'))  # ~6K tokens
+
     SUMMARY_PROMPT = os.environ.get('SUMMARY_PROMPT', textwrap.dedent("""\
         You are analyzing an audio transcript. Provide a concise summary that includes:
 
@@ -72,6 +74,11 @@ data:
             'Authorization': f'Bearer {SUMMARIZER_API_KEY}',
             'Content-Type': 'application/json'
         }
+
+        # Truncate if too long for context window
+        if len(transcript_text) > MAX_TRANSCRIPT_CHARS:
+            logger.warning(f"Truncating transcript from {len(transcript_text)} to {MAX_TRANSCRIPT_CHARS} chars")
+            transcript_text = transcript_text[:MAX_TRANSCRIPT_CHARS] + "\n\n[... transcript truncated ...]"
 
         payload = {
             "model": SUMMARIZER_MODEL,
