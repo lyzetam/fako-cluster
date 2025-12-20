@@ -16,5 +16,5 @@ spec:
     - nolock
     - ro
   nfs:
-    server: ***NFS-IP-REMOVED***
+    server: unas.landryzetam.net
     path: /var/nfs/shared/Journals

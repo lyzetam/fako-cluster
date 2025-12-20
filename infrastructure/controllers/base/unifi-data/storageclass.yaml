@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/component: storage
 provisioner: nfs.csi.k8s.io
 parameters:
-  server: "***NFS-IP-REMOVED***"
+  server: "unas.landryzetam.net"
   share: "/var/nfs/shared/Journals"
 reclaimPolicy: Retain
 volumeBindingMode: Immediate

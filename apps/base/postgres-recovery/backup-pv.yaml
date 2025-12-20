@@ -13,5 +13,5 @@ spec:
     driver: nfs.csi.k8s.io
     volumeHandle: postgres-backup-recovery-pv
     volumeAttributes:
-      server: "***NFS-IP-REMOVED***"
+      server: "ugnas.landryzetam.net"
       share: "/volume1/k8s-backups"
