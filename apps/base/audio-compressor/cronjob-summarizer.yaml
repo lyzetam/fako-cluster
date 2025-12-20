@@ -4,7 +4,7 @@ metadata:
   name: transcript-summarizer
   namespace: audio-compressor
 spec:
-  schedule: "0 6 * * *"  # Run at 6 AM daily (2 hours after transcriber)
+  schedule: "0 6 * * *"  # Run at 6 AM daily (after publisher at 5 AM)
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
@@ -14,13 +14,14 @@ spec:
           serviceAccountName: audio-compressor
           restartPolicy: OnFailure
           nodeSelector:
-            kubernetes.io/hostname: pglenovo01  # Node with NFS client installed
+            kubernetes.io/hostname: pglenovo01
           imagePullSecrets:
           - name: dockerhub-registry
           containers:
           - name: transcript-summarizer
-            image: lzetam/transcript-summarizer:latest
-            imagePullPolicy: Always
+            image: python:3.11-slim
+            imagePullPolicy: IfNotPresent
+            command: ['python', '/scripts/summarizer.py']
             envFrom:
             - configMapRef:
                 name: transcript-summarizer-config
@@ -53,6 +54,8 @@ spec:
                   name: obsidian-api
                   key: api_key
             volumeMounts:
+            - name: script
+              mountPath: /scripts
             - name: transcriptions
               mountPath: /data/transcriptions
               readOnly: true
@@ -66,6 +69,9 @@ spec:
                 memory: "1Gi"
                 cpu: "500m"
           volumes:
+          - name: script
+            configMap:
+              name: transcript-summarizer-script
           - name: transcriptions
             nfs:
               server: ***NFS-IP-REMOVED***
