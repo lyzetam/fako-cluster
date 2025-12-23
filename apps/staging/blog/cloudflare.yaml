@@ -73,6 +73,10 @@ data:
     # Main blog hostname
     - hostname: blog.landryzetam.net
       service: http://hugo-blog:80
-    
+
+    # Umami analytics for the blog
+    - hostname: umami.landryzetam.net
+      service: http://umami.umami.svc.cluster.local:3000
+
     # This rule matches any traffic which didn't match a previous rule, and responds with HTTP 404.
     - service: http_status:404
