@@ -49,6 +49,6 @@ spec:
   data:
     - secretKey: password
       remoteRef:
-        key: postgres/superuser
+        key: postgres/admin-credentials
         property: password
   refreshInterval: 1h
