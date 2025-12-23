@@ -91,6 +91,18 @@ spec:
               value: "10"
             - name: PAPERLESS_CONSUMER_INOTIFY_DELAY
               value: "5"
+            # File organization
+            - name: PAPERLESS_FILENAME_FORMAT
+              value: "{{ created_year }}/{{ correspondent }}/{{ created }}_{{ title }}"
+            - name: PAPERLESS_CONSUMER_RECURSIVE
+              value: "true"
+            - name: PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS
+              value: "true"
+            # OCR improvements
+            - name: PAPERLESS_OCR_DESKEW
+              value: "true"
+            - name: PAPERLESS_OCR_ROTATE_PAGES
+              value: "true"
           volumeMounts:
             - mountPath: /usr/src/paperless/data
               name: paperless-data
