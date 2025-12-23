@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: umami-database-init
+  namespace: umami
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: create-database
+          image: postgres:16-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Checking if umami database exists..."
+              PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'umami'" | grep -q 1
+              if [ $? -eq 0 ]; then
+                echo "Database 'umami' already exists"
+              else
+                echo "Creating database 'umami'..."
+                PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -d postgres -c "CREATE DATABASE umami"
+                echo "Granting privileges to app user..."
+                PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -d umami -c "GRANT ALL PRIVILEGES ON DATABASE umami TO app"
+                PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -d umami -c "GRANT ALL ON SCHEMA public TO app"
+                echo "Database 'umami' created successfully"
+              fi
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-superuser-secret
+                  key: password
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: postgres-superuser-external-secret
+  namespace: umami
+spec:
+  secretStoreRef:
+    name: aws-secrets-store
+    kind: SecretStore
+  target:
+    name: postgres-superuser-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: password
+      remoteRef:
+        key: postgres/superuser
+        property: password
+  refreshInterval: 1h
