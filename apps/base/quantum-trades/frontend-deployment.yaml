@@ -21,7 +21,7 @@ spec:
         - name: dockerhub-registry
       containers:
         - name: frontend
-          image: lzetam/quantum-trades-frontend:latest
+          image: lzetam/quantum-trades-frontend:8f294ffee85cf222e0aea2d8491211f14bba2e91
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
