@@ -78,3 +78,6 @@ resources:
 
   # Trading Platform
   - quantum-trades  # Quantum Trades trading platform
+
+  # Analytics
+  - umami           # Privacy-focused website analytics
