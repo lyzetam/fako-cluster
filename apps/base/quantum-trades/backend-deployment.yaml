@@ -71,6 +71,8 @@ spec:
                 configMapKeyRef:
                   name: quantum-trades-config
                   key: BACKTESTING_SERVICE_URL
+            - name: SCAN_RESULTS_PATH
+              value: "/app/scan_results"
           livenessProbe:
             httpGet:
               path: /api/health
@@ -97,7 +99,12 @@ spec:
           volumeMounts:
             - name: reports
               mountPath: /app/reports
+            - name: scan-results
+              mountPath: /app/scan_results
       volumes:
         - name: reports
           emptyDir: {}
+        - name: scan-results
+          persistentVolumeClaim:
+            claimName: quantum-trades-scan-results
       restartPolicy: Always
