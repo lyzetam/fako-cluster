@@ -6,6 +6,7 @@ resources:
   - configmap.yaml
   - secret-store.yaml
   - external-secret.yaml
+  - pvc-scan-results.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - signals-deployment.yaml
