@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quantum-trades-scan-results
+  namespace: quantum-trades
+  labels:
+    app: quantum-trades
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 10Gi
