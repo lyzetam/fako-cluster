@@ -6,7 +6,7 @@ metadata:
     app: quantum-trades
     component: backend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: quantum-trades
