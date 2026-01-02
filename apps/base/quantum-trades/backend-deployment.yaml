@@ -83,6 +83,11 @@ spec:
                 configMapKeyRef:
                   name: quantum-trades-config
                   key: BACKTESTING_SERVICE_URL
+            - name: TRADING_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: quantum-trades-config
+                  key: TRADING_SERVICE_URL
             - name: SCAN_RESULTS_PATH
               value: "/app/scan_results"
           livenessProbe:
