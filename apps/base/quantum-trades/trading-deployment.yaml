@@ -40,9 +40,15 @@ spec:
             - containerPort: 8005
               protocol: TCP
           env:
-            - name: DATABASE_URL
-              value: "postgresql://trading:$(TRADING_DB_PASSWORD)@trading-db-service:5432/trading"
-            - name: TRADING_DB_PASSWORD
+            - name: DB_HOST
+              value: "trading-db-service"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "trading"
+            - name: DB_USER
+              value: "trading"
+            - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: quantum-trades-secrets
