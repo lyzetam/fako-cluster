@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-trades-trading
+  labels:
+    app: quantum-trades
+    component: trading
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quantum-trades
+      component: trading
+  template:
+    metadata:
+      labels:
+        app: quantum-trades
+        component: trading
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until nc -z trading-db-service 5432; do
+                echo "PostgreSQL is not ready yet - sleeping"
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+      containers:
+        - name: trading
+          image: lzetam/quantum-trades-trading:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8005
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://trading:$(TRADING_DB_PASSWORD)@trading-db-service:5432/trading"
+            - name: TRADING_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: TRADING_DB_PASSWORD
+            - name: TRADIER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: TRADIER_API_KEY
+            - name: TRADIER_ACCOUNT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: TRADIER_ACCOUNT_ID
+            - name: TRADIER_PAPER_TRADING
+              value: "false"
+            - name: ENABLE_LIVE_TRADING
+              value: "true"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "8005"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      restartPolicy: Always

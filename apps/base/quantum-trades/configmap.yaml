@@ -16,3 +16,4 @@ data:
   SIGNALS_SERVICE_URL: "http://signals-service:8002"
   STRATEGIES_SERVICE_URL: "http://strategies-service:8003"
   BACKTESTING_SERVICE_URL: "http://backtesting-service:8004"
+  TRADING_SERVICE_URL: "http://trading-service:8005"
