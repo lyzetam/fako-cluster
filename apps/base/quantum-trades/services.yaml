@@ -130,21 +130,3 @@ spec:
       protocol: TCP
   type: ClusterIP
 
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: trading-db-service
-  labels:
-    app: quantum-trades
-    component: trading-db
-spec:
-  selector:
-    app: quantum-trades
-    component: trading-db
-  ports:
-    - name: postgres
-      port: 5432
-      targetPort: 5432
-      protocol: TCP
-  type: ClusterIP
