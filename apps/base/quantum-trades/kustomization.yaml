@@ -13,7 +13,6 @@ resources:
   - technicals-deployment.yaml
   - strategies-deployment.yaml
   - backtesting-deployment.yaml
-  - trading-db-statefulset.yaml
   - trading-deployment.yaml
   - services.yaml
   - ingress.yaml

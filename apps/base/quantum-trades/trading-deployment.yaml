@@ -41,7 +41,7 @@ spec:
               protocol: TCP
           env:
             - name: DB_HOST
-              value: "trading-db-service"
+              value: "postgres-cluster-rw.postgres"
             - name: DB_PORT
               value: "5432"
             - name: DB_NAME
