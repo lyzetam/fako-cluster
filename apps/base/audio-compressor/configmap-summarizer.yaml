@@ -5,7 +5,7 @@ metadata:
   namespace: audio-compressor
 data:
   INPUT_DIR: "/data/transcriptions"
-  OBSIDIAN_FOLDER: "Transcripts"
+  OBSIDIAN_FOLDER: "Transcripts/summary"
   SKIP_PROCESSED: "true"
   LOG_LEVEL: "INFO"
   MAX_RETRIES: "3"
