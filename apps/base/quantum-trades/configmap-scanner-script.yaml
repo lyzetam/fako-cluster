@@ -76,7 +76,10 @@ data:
         """Fetch all available symbol lists from the backend."""
         url = f"{BACKEND_URL}/api/screeners/bulk/symbol-lists"
         logger.info(f"Fetching symbol lists from {url}")
-        return api_request(url)
+        response = api_request(url)
+        # Convert lists array to dict keyed by id
+        lists_array = response.get('lists', [])
+        return {lst['id']: lst for lst in lists_array}
 
 
     def deduplicate_symbols(symbol_lists_data):
