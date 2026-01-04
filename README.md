@@ -390,6 +390,6 @@ The goal isn't just to run services—it's to deeply understand how modern cloud
 
 ---
 
-*Built by Landry Zetam | [GitHub](https://github.com/lyzetam)*
+*Built by Landry Zetam | [Blog](https://blog.landryzetam.net) | [GitHub](https://github.com/lyzetam)*
 
 *Infrastructure automation assisted by Claude AI*
