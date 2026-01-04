@@ -10,7 +10,7 @@ data:
   LOG_LEVEL: "INFO"
   MAX_RETRIES: "3"
   RETRY_DELAY: "10"
-  MAX_TRANSCRIPT_CHARS: "50000"
+  MAX_TRANSCRIPT_CHARS: "15000"
   DIARY_PROMPT: |
     You are creating a personal diary entry from audio transcripts recorded throughout the day.
     Write in a narrative "Day in the Life" style that captures the essence of conversations,
