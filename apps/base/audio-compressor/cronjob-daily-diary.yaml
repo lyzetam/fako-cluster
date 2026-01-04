@@ -14,6 +14,8 @@ spec:
         spec:
           serviceAccountName: audio-compressor
           restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: pglenovo01
           imagePullSecrets:
           - name: dockerhub-registry
           containers:
