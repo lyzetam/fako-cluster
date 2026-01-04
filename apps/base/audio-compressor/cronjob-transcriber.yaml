@@ -5,6 +5,7 @@ metadata:
   namespace: audio-compressor
 spec:
   schedule: "0 4 * * *"  # Run at 4 AM daily (2 hours after compressor)
+  concurrencyPolicy: Forbid  # Prevent job pile-up if previous job still running
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
