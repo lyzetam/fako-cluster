@@ -28,7 +28,7 @@ spec:
             env:
             # Use CPU whisper (2 replicas, no GPU dependency, faster parallel processing)
             - name: WHISPER_BASE_URL
-              value: "http://whisper-cpu.whisper-cpu.svc.cluster.local:8000"
+              value: "http://whisper-cpu.whisper-cpu.svc.cluster.local:8000/v1"
             - name: WHISPER_API_KEY
               value: "not-required"  # Internal service doesn't need auth
             volumeMounts:
