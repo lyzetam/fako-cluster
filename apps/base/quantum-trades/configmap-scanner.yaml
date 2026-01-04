@@ -5,14 +5,14 @@ metadata:
   namespace: quantum-trades
 data:
   BACKEND_URL: "http://backend-service:8000"
+  SIGNALS_SERVICE_URL: "http://signals-service:8002"
   OBSIDIAN_FOLDER: "trading/Options/Scans"
-  # Core high-value lists only (faster scans, ~40 unique symbols)
-  SYMBOL_LISTS: "tech_mega,high_iv,popular_options"
-  STRATEGY: "covered_call"
+  # All 7 symbol lists - scanner will deduplicate (~100-110 unique symbols)
+  SYMBOL_LISTS: "tech_mega,sp500_top50,popular_options,etf_major,tech_growth,high_iv,dividend_aristocrats"
+  STRATEGY: "long_option"
   SCORING_PROFILE: "balanced"
   MIN_SIGNAL_STRENGTH: "50"
   MAX_RESULTS_PER_SYMBOL: "3"
-  MAX_SYMBOLS: "40"
+  MAX_SYMBOLS: "150"
+  TOP_PICKS_COUNT: "10"
   LOG_LEVEL: "INFO"
-  POLL_INTERVAL: "5"
-  MAX_POLL_TIME: "1800"
