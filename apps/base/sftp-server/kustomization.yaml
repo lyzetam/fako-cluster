@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: sftp-server
 resources:
   - namespace.yaml
+  - aws-credentials-secret.yaml
   - aws-secret-store.yaml
   - external-secret-sftp-creds.yaml
   - unifi-pvc.yaml
