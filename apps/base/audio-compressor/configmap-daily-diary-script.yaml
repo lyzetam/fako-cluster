@@ -78,11 +78,11 @@ data:
         STATE_FILE.write_text('\n'.join(sorted(processed)))
 
     def extract_date_from_filename(filename):
-        """Extract date from filename like '25-01-04' or '25-01-04-01'."""
-        # Match YY-MM-DD pattern at start of filename
+        """Extract date from filename like '16-10-25' (DD-MM-YY) or '16-10-25-01'."""
+        # Match DD-MM-YY pattern at start of filename
         match = re.match(r'^(\d{2})-(\d{2})-(\d{2})', filename)
         if match:
-            yy, mm, dd = match.groups()
+            dd, mm, yy = match.groups()
             year = 2000 + int(yy)
             return f"{year}-{mm}-{dd}"
         return None
