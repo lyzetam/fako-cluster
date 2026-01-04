@@ -16,29 +16,24 @@ spec:
       labels:
         app: whisper-cpu
     spec:
-      imagePullSecrets:
-      - name: dockerhub-registry
+      # No imagePullSecrets needed - ghcr.io is public
 
       containers:
       - name: whisper
-        image: fedirz/faster-whisper-server:0.3.1-cpu
+        image: ghcr.io/speaches-ai/speaches:latest-cpu
         ports:
         - containerPort: 8000
           protocol: TCP
         env:
-        - name: WHISPER__MODEL
-          value: "Systran/faster-distil-whisper-large-v3"
         - name: WHISPER__INFERENCE_DEVICE
           value: "cpu"
         - name: WHISPER__COMPUTE_TYPE
           value: "int8"
-        - name: UVICORN_HOST
-          value: "0.0.0.0"
-        - name: UVICORN_PORT
-          value: "8000"
+        - name: PRELOAD_MODELS
+          value: '["Systran/faster-distil-whisper-large-v3"]'
 
         volumeMounts:
-        - mountPath: /root/.cache/huggingface
+        - mountPath: /home/ubuntu/.cache/huggingface/hub
           name: whisper-models
 
         resources:
@@ -53,14 +48,14 @@ spec:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 120
+          initialDelaySeconds: 180  # Model download may take time
           periodSeconds: 30
           timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 60
+          initialDelaySeconds: 120
           periodSeconds: 10
           timeoutSeconds: 5
 
