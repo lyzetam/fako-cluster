@@ -33,29 +33,29 @@ spec:
             - name: OBSIDIAN_API_URL
               valueFrom:
                 secretKeyRef:
-                  name: obsidian-credentials
+                  name: obsidian-api
                   key: api_url
             - name: OBSIDIAN_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: obsidian-credentials
+                  name: obsidian-api
                   key: api_key
             # LLM API (GPUStack)
             - name: SUMMARIZER_BASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: gpustack-credentials
-                  key: base_url
+                  name: summarizer-credentials
+                  key: summarizer_base_url
             - name: SUMMARIZER_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: gpustack-credentials
-                  key: api_key
+                  name: summarizer-credentials
+                  key: summarizer_api_key
             - name: SUMMARIZER_MODEL
               valueFrom:
                 secretKeyRef:
-                  name: gpustack-credentials
-                  key: model
+                  name: summarizer-credentials
+                  key: summarizer_model
             volumeMounts:
             - name: transcriptions
               mountPath: /data/transcriptions
