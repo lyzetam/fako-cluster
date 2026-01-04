@@ -4,7 +4,7 @@ metadata:
   name: audio-transcriber-config
   namespace: audio-compressor
 data:
-  WHISPER_MODEL: "faster-distil-whisper-large-v3-en"
+  WHISPER_MODEL: "Systran/faster-distil-whisper-large-v3"
   WHISPER_LANGUAGE: "auto"
   INPUT_DIR: "/data/compressed"
   OUTPUT_DIR: "/data/transcriptions"
