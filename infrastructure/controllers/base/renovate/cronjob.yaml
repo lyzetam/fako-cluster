@@ -25,6 +25,18 @@ spec:
                     name: renovate-container-env
                 - configMapRef:
                     name: renovate-configmap
+              env:
+                # Docker Hub credentials for registry lookups (avoid rate limiting)
+                - name: DOCKER_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: dockerhub-credentials
+                      key: username
+                - name: DOCKER_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: dockerhub-credentials
+                      key: password
 
           # The restartPolicy is set to Never because CronJobs are expected to run to completion without restarting.
           restartPolicy: Never

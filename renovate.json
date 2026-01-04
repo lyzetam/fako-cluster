@@ -7,8 +7,8 @@
   "baseBranches": ["main"],
   "branchPrefix": "renovate/",
   "labels": ["dependencies", "renovate"],
-  "prConcurrentLimit": 5,
-  "prHourlyLimit": 2,
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 5,
   "automerge": false,
   "platformAutomerge": false,
   "dependencyDashboard": true,
@@ -59,7 +59,6 @@
   "commitMessagePrefix": "chore(deps):",
   "commitMessageTopic": "{{depName}}",
   "commitMessageExtra": "to {{newVersion}}",
-  "prTitle": "chore(deps): update {{depName}} to {{newVersion}}",
   "prBodyDefinitions": {
     "Package": "{{{depNameLinked}}}",
     "Type": "{{{depType}}}",
