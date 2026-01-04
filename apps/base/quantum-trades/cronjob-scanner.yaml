@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: options-scanner
+  namespace: quantum-trades
+spec:
+  schedule: "30 6,9,11,13,15 * * 1-5"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 10
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          serviceAccountName: quantum-trades
+          restartPolicy: OnFailure
+          imagePullSecrets:
+          - name: dockerhub-registry
+          containers:
+          - name: scanner
+            image: python:3.11-slim
+            command: ['python', '/scripts/scanner.py']
+            envFrom:
+            - configMapRef:
+                name: options-scanner-config
+            env:
+            - name: OBSIDIAN_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_url
+            - name: OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_key
+            volumeMounts:
+            - name: script
+              mountPath: /scripts
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+          volumes:
+          - name: script
+            configMap:
+              name: options-scanner-script
