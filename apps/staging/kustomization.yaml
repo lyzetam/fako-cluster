@@ -13,7 +13,7 @@ resources:
   # Database Management
   - postgres-cluster
   - pgadmin
-  - postgres-recovery  # Recovery namespace with local storage on aitower
+  # - postgres-recovery  # DISABLED: aitower offline (local storage on aitower)
 
   # Identity Management
   - keycloak
@@ -40,7 +40,7 @@ resources:
   - open-webui      # Test new namespace with shared storage
   # - whisper        # DISABLED: aitower GPU node offline
   # - whisper-cpu     # CPU-only Whisper deployment
-  - piper
+  # - piper           # DISABLED: aitower GPU node offline
   # - piper-v13       # Piper (LinuxServer image) in separate namespace - DEACTIVATED
   # - openwakeword   # DISABLED: aitower GPU node offline
   # - node-labeling
@@ -58,7 +58,7 @@ resources:
   # Workflow Automation
   - n8n             # Workflow automation platform
   # - n8n-migration  # n8n database migration jobs
-  - sftp-server     # SFTP server for UniFi Drive access
+  # - sftp-server     # DISABLED: aitower offline (UniFi Drive access)
   - audio-compressor # Nightly audio compression job
   
   # Documentation
