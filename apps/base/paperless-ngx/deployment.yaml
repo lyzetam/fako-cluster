@@ -17,6 +17,32 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+      # Wait for SMB mount to be ready before starting main container
+      initContainers:
+        - name: wait-for-smb-mount
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for SMB consume mount to be ready..."
+              attempt=0
+              max_attempts=30
+              while [ $attempt -lt $max_attempts ]; do
+                # Try to create and remove a test file to verify mount is writable
+                if touch /consume/.mount-test-$$ 2>/dev/null && rm /consume/.mount-test-$$ 2>/dev/null; then
+                  echo "SMB mount is ready after $attempt attempts"
+                  exit 0
+                fi
+                attempt=$((attempt + 1))
+                echo "Mount not ready, attempt $attempt/$max_attempts, waiting 2s..."
+                sleep 2
+              done
+              echo "ERROR: SMB mount not ready after $max_attempts attempts"
+              exit 1
+          volumeMounts:
+            - mountPath: /consume
+              name: paperless-consume
       containers:
         - name: paperless-ngx
           image: ghcr.io/paperless-ngx/paperless-ngx:2.20.3
