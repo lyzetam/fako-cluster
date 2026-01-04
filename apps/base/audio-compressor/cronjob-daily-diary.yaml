@@ -1,0 +1,84 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-diary
+  namespace: audio-compressor
+spec:
+  schedule: "30 5 * * *"  # Run at 5:30 AM daily (after transcriber and summarizer)
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: audio-compressor
+          restartPolicy: OnFailure
+          imagePullSecrets:
+          - name: dockerhub-registry
+          containers:
+          - name: daily-diary
+            image: python:3.11-slim
+            imagePullPolicy: IfNotPresent
+            command: ["python", "/scripts/daily-diary.py"]
+            envFrom:
+            - configMapRef:
+                name: daily-diary-config
+            env:
+            - name: STATE_DIR
+              value: "/data/state"
+            # Obsidian API
+            - name: OBSIDIAN_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-credentials
+                  key: api_url
+            - name: OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-credentials
+                  key: api_key
+            # LLM API (GPUStack)
+            - name: SUMMARIZER_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: gpustack-credentials
+                  key: base_url
+            - name: SUMMARIZER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gpustack-credentials
+                  key: api_key
+            - name: SUMMARIZER_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: gpustack-credentials
+                  key: model
+            volumeMounts:
+            - name: transcriptions
+              mountPath: /data/transcriptions
+              readOnly: true
+            - name: state
+              mountPath: /data/state
+            - name: script
+              mountPath: /scripts
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "50m"
+              limits:
+                memory: "512Mi"
+                cpu: "200m"
+          volumes:
+          - name: transcriptions
+            nfs:
+              server: ugnas.landryzetam.net
+              path: /volume1/k8s-storage/pvc-1a863515-490c-4c4a-8aaa-f63ce16b8ecc
+          - name: state
+            nfs:
+              server: ugnas.landryzetam.net
+              path: /volume1/k8s-storage/pvc-1a863515-490c-4c4a-8aaa-f63ce16b8ecc
+          - name: script
+            configMap:
+              name: daily-diary-script
+              defaultMode: 0755
