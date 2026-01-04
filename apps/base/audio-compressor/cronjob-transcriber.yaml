@@ -26,17 +26,11 @@ spec:
             - configMapRef:
                 name: audio-transcriber-config
             env:
-            # Whisper API Configuration from AWS Secrets Manager
+            # Use internal Kubernetes service (faster, no proxy timeout)
             - name: WHISPER_BASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: gpustack-credentials
-                  key: whisper_base_url
+              value: "http://whisper-gpu.whisper.svc.cluster.local:10300"
             - name: WHISPER_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: gpustack-credentials
-                  key: whisper_api_key
+              value: "not-required"  # Internal service doesn't need auth
             volumeMounts:
             - name: compressed-audio
               mountPath: /data/compressed
