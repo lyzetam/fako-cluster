@@ -26,9 +26,9 @@ spec:
             - configMapRef:
                 name: audio-transcriber-config
             env:
-            # Use GPU whisper (aitower) - faster for large files
+            # Use CPU whisper (speaches) - OpenAI API compatible
             - name: WHISPER_BASE_URL
-              value: "http://whisper-gpu.whisper.svc.cluster.local:10300"
+              value: "http://whisper-cpu.whisper-cpu.svc.cluster.local:8000/v1"
             - name: WHISPER_API_KEY
               value: "not-required"  # Internal service doesn't need auth
             volumeMounts:
