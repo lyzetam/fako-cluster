@@ -1,0 +1,366 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: options-scanner-script
+  namespace: quantum-trades
+data:
+  scanner.py: |
+    #!/usr/bin/env python3
+    """
+    Options Scanner - Runs bulk scans and publishes results to Obsidian vault.
+
+    This script:
+    1. Fetches all symbol lists from the backend API
+    2. Deduplicates symbols across lists (tracking membership)
+    3. Runs a single bulk scan with unique symbols
+    4. Formats results as markdown
+    5. Posts to Obsidian REST API
+    """
+    import os
+    import json
+    import logging
+    import ssl
+    import time
+    import urllib.request
+    import urllib.error
+    from datetime import datetime
+    from collections import defaultdict
+
+    # Create SSL context for Obsidian (may use self-signed certs)
+    SSL_CONTEXT = ssl.create_default_context()
+    SSL_CONTEXT.check_hostname = False
+    SSL_CONTEXT.verify_mode = ssl.CERT_NONE
+
+    # Configuration from environment
+    BACKEND_URL = os.environ.get('BACKEND_URL', 'http://backend-service:8000')
+    OBSIDIAN_FOLDER = os.environ.get('OBSIDIAN_FOLDER', 'trading/Options/Scans')
+    OBSIDIAN_API_URL = os.environ['OBSIDIAN_API_URL']
+    OBSIDIAN_API_KEY = os.environ['OBSIDIAN_API_KEY']
+    SYMBOL_LISTS = os.environ.get('SYMBOL_LISTS', 'tech_mega,etf_major,high_iv').split(',')
+    STRATEGY = os.environ.get('STRATEGY', 'covered_call')
+    SCORING_PROFILE = os.environ.get('SCORING_PROFILE', 'balanced')
+    MIN_SIGNAL_STRENGTH = int(os.environ.get('MIN_SIGNAL_STRENGTH', '50'))
+    MAX_RESULTS_PER_SYMBOL = int(os.environ.get('MAX_RESULTS_PER_SYMBOL', '3'))
+    MAX_SYMBOLS = int(os.environ.get('MAX_SYMBOLS', '100'))
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    POLL_INTERVAL = int(os.environ.get('POLL_INTERVAL', '5'))
+    MAX_POLL_TIME = int(os.environ.get('MAX_POLL_TIME', '1800'))
+
+    logging.basicConfig(
+        level=getattr(logging, LOG_LEVEL),
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+
+
+    def api_request(url, method='GET', data=None, headers=None):
+        """Make HTTP request to backend API."""
+        if headers is None:
+            headers = {'Content-Type': 'application/json'}
+
+        body = json.dumps(data).encode('utf-8') if data else None
+        req = urllib.request.Request(url, data=body, headers=headers, method=method)
+
+        try:
+            with urllib.request.urlopen(req, timeout=30) as response:
+                return json.loads(response.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            logger.error(f"HTTP Error {e.code}: {e.reason}")
+            raise
+        except Exception as e:
+            logger.error(f"Request failed: {e}")
+            raise
+
+
+    def fetch_symbol_lists():
+        """Fetch all available symbol lists from the backend."""
+        url = f"{BACKEND_URL}/api/screeners/bulk/symbol-lists"
+        logger.info(f"Fetching symbol lists from {url}")
+        return api_request(url)
+
+
+    def deduplicate_symbols(symbol_lists_data):
+        """
+        Deduplicate symbols across all lists while tracking membership.
+
+        Returns:
+            tuple: (unique_symbols list, symbol_to_lists dict mapping symbol to list names)
+        """
+        symbol_to_lists = defaultdict(list)
+
+        for list_id in SYMBOL_LISTS:
+            if list_id not in symbol_lists_data:
+                logger.warning(f"Symbol list '{list_id}' not found, skipping")
+                continue
+
+            list_data = symbol_lists_data[list_id]
+            list_name = list_data.get('name', list_id)
+            symbols = list_data.get('symbols', [])
+
+            for symbol in symbols:
+                if symbol not in symbol_to_lists:
+                    symbol_to_lists[symbol] = []
+                symbol_to_lists[symbol].append(list_name)
+
+        unique_symbols = list(symbol_to_lists.keys())[:MAX_SYMBOLS]
+        logger.info(f"Deduplicated {len(unique_symbols)} unique symbols from {len(SYMBOL_LISTS)} lists")
+
+        return unique_symbols, dict(symbol_to_lists)
+
+
+    def start_bulk_scan(symbols):
+        """Start a bulk scan with the given symbols."""
+        url = f"{BACKEND_URL}/api/screeners/bulk/start"
+
+        payload = {
+            "symbol_list": "custom",
+            "custom_symbols": symbols,
+            "strategy": STRATEGY,
+            "scoring_profile": SCORING_PROFILE,
+            "use_technical_filter": True,
+            "min_signal_strength": MIN_SIGNAL_STRENGTH,
+            "max_results_per_symbol": MAX_RESULTS_PER_SYMBOL,
+            "expiration_range": "near_term"
+        }
+
+        logger.info(f"Starting bulk scan with {len(symbols)} symbols")
+        return api_request(url, method='POST', data=payload)
+
+
+    def poll_scan_status(scan_id):
+        """Poll scan status until complete or timeout."""
+        url = f"{BACKEND_URL}/api/screeners/bulk/status/{scan_id}"
+        start_time = time.time()
+
+        while True:
+            elapsed = time.time() - start_time
+            if elapsed > MAX_POLL_TIME:
+                raise TimeoutError(f"Scan timed out after {MAX_POLL_TIME}s")
+
+            status = api_request(url)
+            scan_status = status.get('status', 'unknown')
+            progress = status.get('progress', {})
+
+            completed = progress.get('completed', 0)
+            total = progress.get('total', 0)
+            current_symbol = progress.get('current_symbol', '')
+
+            logger.info(f"Scan progress: {completed}/{total} - Current: {current_symbol} - Status: {scan_status}")
+
+            if scan_status == 'completed':
+                return status
+            elif scan_status in ('failed', 'cancelled'):
+                raise Exception(f"Scan {scan_status}: {status.get('error', 'Unknown error')}")
+
+            time.sleep(POLL_INTERVAL)
+
+
+    def fetch_scan_results(scan_id):
+        """Fetch the full scan results."""
+        url = f"{BACKEND_URL}/api/screeners/bulk/results/{scan_id}"
+        logger.info(f"Fetching results for scan {scan_id}")
+        return api_request(url)
+
+
+    def format_results_as_markdown(results, symbol_to_lists, scan_duration):
+        """Format scan results as Obsidian-compatible markdown."""
+        now = datetime.now()
+        date_str = now.strftime('%Y-%m-%d')
+        time_str = now.strftime('%H:%M')
+        hour_str = now.strftime('%Hh')
+
+        unified = results.get('unified_results', [])
+        total_symbols = results.get('symbols_scanned', 0)
+        total_opps = results.get('total_opportunities', 0)
+
+        # Build markdown
+        md = []
+        md.append(f"# Options Scan - {date_str} {time_str} ET\n")
+        md.append("## Summary")
+        md.append(f"- **Scanned**: {total_symbols} unique symbols (deduplicated from {len(SYMBOL_LISTS)} lists)")
+        md.append(f"- **Opportunities Found**: {total_opps}")
+        md.append(f"- **Scan Duration**: {scan_duration:.1f}s")
+        md.append(f"- **Strategy**: {STRATEGY.replace('_', ' ').title()}")
+        md.append(f"- **Scoring Profile**: {SCORING_PROFILE.title()}")
+        md.append("")
+        md.append("---")
+        md.append("")
+
+        # Top 20 opportunities
+        md.append("## Top 20 Opportunities\n")
+        if unified:
+            md.append("| Rank | Symbol | Lists | Expiration | Strike | Credit | PoP | Score |")
+            md.append("|------|--------|-------|------------|--------|--------|-----|-------|")
+
+            for i, opp in enumerate(unified[:20], 1):
+                symbol = opp.get('symbol', '')
+                lists = ', '.join(symbol_to_lists.get(symbol, ['custom'])[:2])
+                expiration = opp.get('expiration', '')
+
+                # Get strategy-specific data
+                if STRATEGY == 'covered_call' and opp.get('covered_call'):
+                    cc = opp['covered_call']
+                    strike = f"${cc.get('strike', 0)}"
+                    credit = f"${cc.get('premium', 0):.2f}"
+                elif STRATEGY == 'iron_condor' and opp.get('iron_condor'):
+                    ic = opp['iron_condor']
+                    strike = f"${ic.get('call_sell_strike', 0)}/{ic.get('put_sell_strike', 0)}"
+                    credit = f"${ic.get('net_credit', 0):.2f}"
+                else:
+                    strike = "-"
+                    credit = f"${opp.get('premium_or_credit', 0):.2f}"
+
+                pop = f"{opp.get('probability_of_profit', 0) * 100:.0f}%"
+                score = f"{opp.get('composite_score', 0):.0f}"
+
+                md.append(f"| {i} | {symbol} | {lists} | {expiration} | {strike} | {credit} | {pop} | {score} |")
+        else:
+            md.append("*No opportunities found matching criteria*")
+
+        md.append("")
+        md.append("---")
+        md.append("")
+
+        # Group by category
+        md.append("## By Category\n")
+
+        # Build symbol to best opportunity mapping
+        symbol_best = {}
+        for opp in unified:
+            symbol = opp.get('symbol', '')
+            if symbol not in symbol_best:
+                symbol_best[symbol] = opp
+
+        # Group symbols by their primary list
+        list_symbols = defaultdict(list)
+        for symbol, lists in symbol_to_lists.items():
+            if lists:
+                primary_list = lists[0]
+                list_symbols[primary_list].append(symbol)
+
+        for list_name in list_symbols:
+            symbols_in_list = list_symbols[list_name]
+            md.append(f"### {list_name} ({len(symbols_in_list)} symbols)\n")
+
+            # Find symbols with opportunities
+            opps_in_list = [(s, symbol_best.get(s)) for s in symbols_in_list if s in symbol_best]
+            opps_in_list.sort(key=lambda x: x[1].get('composite_score', 0) if x[1] else 0, reverse=True)
+
+            if opps_in_list:
+                md.append("| Symbol | Best Opportunity | Score |")
+                md.append("|--------|------------------|-------|")
+
+                for symbol, opp in opps_in_list[:10]:
+                    if opp:
+                        exp = opp.get('expiration', '')
+                        if STRATEGY == 'covered_call' and opp.get('covered_call'):
+                            strike = f"${opp['covered_call'].get('strike', 0)}C"
+                        else:
+                            strike = ""
+                        score = f"{opp.get('composite_score', 0):.0f}"
+                        md.append(f"| {symbol} | {exp} {strike} | {score} |")
+            else:
+                md.append("*No opportunities found*")
+
+            md.append("")
+
+        md.append("---")
+        md.append("")
+        md.append(f"*Generated by options-scanner CronJob at {now.strftime('%Y-%m-%d %H:%M:%S')} UTC*")
+
+        return '\n'.join(md), f"{date_str}-{hour_str}"
+
+
+    def post_to_obsidian(filename, content):
+        """Post markdown content to Obsidian REST API."""
+        url = f"{OBSIDIAN_API_URL}/vault/{OBSIDIAN_FOLDER}/{filename}"
+        headers = {
+            'Authorization': f'Bearer {OBSIDIAN_API_KEY}',
+            'Content-Type': 'text/markdown'
+        }
+
+        logger.info(f"Posting to Obsidian: {OBSIDIAN_FOLDER}/{filename}")
+
+        try:
+            req = urllib.request.Request(
+                url,
+                data=content.encode('utf-8'),
+                headers=headers,
+                method='PUT'
+            )
+            with urllib.request.urlopen(req, context=SSL_CONTEXT, timeout=30) as response:
+                if response.status in (200, 201, 204):
+                    logger.info(f"Successfully posted to Obsidian: {filename}")
+                    return True
+                logger.warning(f"Obsidian API returned {response.status}")
+                return False
+        except urllib.error.HTTPError as e:
+            logger.error(f"Obsidian API error {e.code}: {e.reason}")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to post to Obsidian: {e}")
+            return False
+
+
+    def main():
+        logger.info("=" * 60)
+        logger.info("Starting Options Scanner")
+        logger.info(f"Backend: {BACKEND_URL}")
+        logger.info(f"Symbol Lists: {SYMBOL_LISTS}")
+        logger.info(f"Strategy: {STRATEGY}")
+        logger.info("=" * 60)
+
+        start_time = time.time()
+
+        try:
+            # Step 1: Fetch symbol lists
+            symbol_lists_data = fetch_symbol_lists()
+
+            # Step 2: Deduplicate symbols
+            unique_symbols, symbol_to_lists = deduplicate_symbols(symbol_lists_data)
+
+            if not unique_symbols:
+                logger.error("No symbols to scan")
+                return 1
+
+            # Step 3: Start bulk scan
+            scan_response = start_bulk_scan(unique_symbols)
+            scan_id = scan_response.get('scan_id')
+
+            if not scan_id:
+                logger.error("Failed to start scan - no scan_id returned")
+                return 1
+
+            logger.info(f"Scan started with ID: {scan_id}")
+
+            # Step 4: Poll for completion
+            poll_scan_status(scan_id)
+
+            # Step 5: Fetch results
+            results = fetch_scan_results(scan_id)
+
+            scan_duration = time.time() - start_time
+
+            # Step 6: Format as markdown
+            markdown, filename_suffix = format_results_as_markdown(
+                results, symbol_to_lists, scan_duration
+            )
+
+            # Step 7: Post to Obsidian
+            filename = f"{filename_suffix}.md"
+            success = post_to_obsidian(filename, markdown)
+
+            if success:
+                logger.info(f"Scan complete! Results saved to {OBSIDIAN_FOLDER}/{filename}")
+                return 0
+            else:
+                logger.error("Failed to save results to Obsidian")
+                return 1
+
+        except Exception as e:
+            logger.exception(f"Scanner failed: {e}")
+            return 1
+
+
+    if __name__ == '__main__':
+        exit(main())
