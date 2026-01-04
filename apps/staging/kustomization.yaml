@@ -33,16 +33,16 @@ resources:
   # - pixie     # Now deployed via New Relic in monitoring/controllers
   
   # AI/ML stack with GPU support
-  - ollama         
+  # - ollama         # DISABLED: aitower GPU node offline
   # - ollama-jetson   # Separate deployment for Jetson Orin Nano
   # - ollama-jetson2  # Separate deployment for jetson02 node with qwen3:4b
   - ollama-webui    # Keep original running
   - open-webui      # Test new namespace with shared storage
-  - whisper         
+  # - whisper        # DISABLED: aitower GPU node offline
   # - whisper-cpu     # CPU-only Whisper deployment
-  - piper           
+  - piper
   # - piper-v13       # Piper (LinuxServer image) in separate namespace - DEACTIVATED
-  - openwakeword
+  # - openwakeword   # DISABLED: aitower GPU node offline
   # - node-labeling
   # - voice-pipeline-test  # End-to-end voice pipeline testing (runs nightly at 3am)
   
