@@ -10,5 +10,5 @@ resources:
   - backup-pvc.yaml
   - statefulset.yaml
   - service.yaml
-  - restore-job.yaml
+  # - restore-job.yaml  # Manual job - run only when needed with updated backup path
   - verification-configmap.yaml
