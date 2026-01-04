@@ -5,9 +5,12 @@ metadata:
   name: whisper-cpu
   namespace: whisper-cpu
 spec:
-  replicas: 2  # Multiple replicas for parallel processing
+  replicas: 4  # Increased for parallel processing
   strategy:
     type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       app: whisper-cpu
@@ -17,6 +20,37 @@ spec:
         app: whisper-cpu
     spec:
       # No imagePullSecrets needed - ghcr.io is public
+
+      # Init container to download models before main container starts
+      initContainers:
+      - name: model-downloader
+        image: ghcr.io/speaches-ai/speaches:latest-cpu
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Downloading Whisper model..."
+          python3 -c "
+          from speaches.hf_utils import download_model
+          model_id = 'Systran/faster-distil-whisper-large-v3'
+          print(f'Downloading {model_id}...')
+          download_model(model_id)
+          print(f'Successfully downloaded {model_id}')
+          "
+          echo "Model download complete"
+        env:
+        - name: HF_HOME
+          value: "/home/ubuntu/.cache/huggingface"
+        volumeMounts:
+        - mountPath: /home/ubuntu/.cache/huggingface/hub
+          name: whisper-models
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
 
       containers:
       - name: whisper
@@ -29,8 +63,11 @@ spec:
           value: "cpu"
         - name: WHISPER__COMPUTE_TYPE
           value: "int8"
-        - name: PRELOAD_MODELS
-          value: '["Systran/faster-distil-whisper-large-v3"]'
+        - name: HF_HOME
+          value: "/home/ubuntu/.cache/huggingface"
+        # Keep models loaded longer (10 min instead of 5 min default)
+        - name: STT_MODEL_TTL
+          value: "600"
 
         volumeMounts:
         - mountPath: /home/ubuntu/.cache/huggingface/hub
@@ -38,24 +75,24 @@ spec:
 
         resources:
           requests:
-            memory: "4Gi"
-            cpu: "2000m"
+            memory: "6Gi"
+            cpu: "3000m"
           limits:
-            memory: "8Gi"
-            cpu: "4000m"
+            memory: "10Gi"
+            cpu: "6000m"
 
         livenessProbe:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 180  # Model download may take time
+          initialDelaySeconds: 60  # Models already downloaded by init
           periodSeconds: 30
           timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 120
+          initialDelaySeconds: 30  # Faster startup since models cached
           periodSeconds: 10
           timeoutSeconds: 5
 
