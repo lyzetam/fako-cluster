@@ -16,3 +16,8 @@ resources:
   - trading-deployment.yaml
   - services.yaml
   - ingress.yaml
+  # Options Scanner CronJob
+  - external-secret-obsidian.yaml
+  - configmap-scanner.yaml
+  - configmap-scanner-script.yaml
+  - cronjob-scanner.yaml
