@@ -39,7 +39,7 @@ resources:
   - ollama-webui    # Keep original running
   - open-webui      # Test new namespace with shared storage
   - whisper
-  # - whisper-cpu     # CPU-only Whisper deployment
+  - whisper-cpu       # CPU-only Whisper with OpenAI-compatible API
   - piper
   # - piper-v13       # Piper (LinuxServer image) in separate namespace - DEACTIVATED
   - openwakeword

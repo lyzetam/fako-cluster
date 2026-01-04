@@ -7,10 +7,10 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - port: 10301
-      targetPort: 10301
-      nodePort: 30301
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30801
       protocol: TCP
-      name: wyoming
+      name: http
   selector:
     app: whisper-cpu
