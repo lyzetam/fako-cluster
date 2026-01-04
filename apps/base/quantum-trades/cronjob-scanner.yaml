@@ -19,12 +19,17 @@ spec:
           - name: dockerhub-registry
           containers:
           - name: scanner
-            image: python:3.11-slim
-            command: ['python', '/scripts/scanner.py']
+            image: lzetam/quantum-trades-scanner:latest
+            # Command is built into the image (python -m app.cli.scanner)
             envFrom:
             - configMapRef:
                 name: options-scanner-config
             env:
+            - name: MASSIVE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: MASSIVE_API_KEY
             - name: OBSIDIAN_API_URL
               valueFrom:
                 secretKeyRef:
@@ -35,17 +40,12 @@ spec:
                 secretKeyRef:
                   name: obsidian-api
                   key: api_key
-            volumeMounts:
-            - name: script
-              mountPath: /scripts
+            - name: SIGNALS_SERVICE_URL
+              value: "http://signals-service:8002"
             resources:
               requests:
-                memory: "256Mi"
-                cpu: "100m"
-              limits:
                 memory: "512Mi"
-                cpu: "500m"
-          volumes:
-          - name: script
-            configMap:
-              name: options-scanner-script
+                cpu: "200m"
+              limits:
+                memory: "1Gi"
+                cpu: "1000m"
