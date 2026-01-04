@@ -95,7 +95,7 @@ One of the unique challenges was making enterprise patterns work on consumer har
 
 | Node | Role | CPU | Memory | Storage | GPU | Network | Cost |
 |------|------|-----|---------|---------|-----|---------|------|
-| **yeezyai** | GPU Worker | AMD Ryzen 9 3900X (24 cores @ 3.8GHz) | 32GB DDR4 | 957GB NVMe | NVIDIA RTX 5070 (12GB) + RTX 3050 | 1Gbps | ~$1800 |
+| **aitower** | GPU Worker | AMD Ryzen 9 3900X (24 cores @ 3.8GHz) | 32GB DDR4 | 957GB NVMe | NVIDIA RTX 5070 (12GB) + RTX 3050 | 1Gbps | ~$1800 |
 | **zz-macbookpro** | Control Plane | Apple M1 Pro (12 cores) | 16GB | 479GB SSD | - | WiFi 6 | Daily driver |
 | **thinkpad01** | Worker | Intel i5-8250U (8 cores @ 1.6GHz) | 16GB DDR4 | 102GB SSD | - | 1Gbps | ~$80 |
 | **pgmac01** | Worker | Intel Core i5 (4 cores @ 2.4GHz) | 8GB DDR3 | 102GB SSD | - | 1Gbps | ~$80 |
@@ -162,7 +162,7 @@ Running LLMs locally isn't just about avoiding API costs – it's about data sov
 - **OpenWebUI + GPUStack**: Beautiful interface powered by a distributed macOS cluster for family-wide AI access
 - **MLX Distributed Inference**: Leveraging Apple Silicon for efficient model serving ([see the implementation →](https://github.com/lyzetam/mlx-distributed-inference))
 
-**GPU Assignment Strategy**: The yeezyai node's dual GPUs are strategically allocated:
+**GPU Assignment Strategy**: The aitower node's dual GPUs are strategically allocated:
 - **RTX 5070 (12GB GDDR7)**: Runs large language models with DLSS 4 and ray tracing capabilities
 - **RTX 3050**: Dedicated to Whisper for speech-to-text processing
 - Deployments use node affinity and GPU device selection for optimal resource utilization
@@ -173,7 +173,7 @@ I built a complete voice assistant that respects privacy and runs entirely on-pr
 
 - **Home Assistant**: Running on Raspberry Pi, the brain of my smart home
 - **Voice Preview Edition**: Captures voice input throughout the house
-- **YeezyAI Processing**: The GPU node handles:
+- **AI Tower Processing**: The GPU node handles:
   - **Whisper**: Speech-to-text conversion
   - **LLM Integration**: Natural language understanding
   - **Piper**: Text-to-speech for responses
@@ -326,6 +326,27 @@ kubectl exec -n gpu-operator -it $(kubectl get pods -n gpu-operator -l app=nvidi
 
 # Monitor backups
 kubectl get backups -A
+```
+
+### Renovate: Automated Dependency Updates
+
+Renovate runs hourly via CronJob to scan for outdated container images and Helm charts, creating PRs automatically:
+
+- **Config**: `renovate.json` in repo root
+- **Dashboard**: GitHub Issue #89 tracks all pending updates
+- **CronJob**: `infrastructure/controllers/base/renovate/`
+
+**Important**: Container images must use **pinned versions** (e.g., `image: nginx:1.25.3`), NOT the `latest` tag. Renovate cannot track `latest` tags since there's no version to compare against.
+
+```bash
+# Manual trigger
+kubectl create job renovate-manual --from=cronjob/renovate-cronjob -n renovate
+
+# Check logs
+kubectl logs -n renovate -l job-name=renovate-manual --tail=100
+
+# Delete manual job after inspection
+kubectl delete job renovate-manual -n renovate
 ```
 
 ## Lessons Learned
