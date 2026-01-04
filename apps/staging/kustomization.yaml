@@ -13,7 +13,7 @@ resources:
   # Database Management
   - postgres-cluster
   - pgadmin
-  # - postgres-recovery  # DISABLED: aitower offline (local storage on aitower)
+  - postgres-recovery  # Recovery namespace with local storage on aitower
 
   # Identity Management
   - keycloak
@@ -33,16 +33,16 @@ resources:
   # - pixie     # Now deployed via New Relic in monitoring/controllers
   
   # AI/ML stack with GPU support
-  # - ollama         # DISABLED: aitower GPU node offline
+  - ollama
   # - ollama-jetson   # Separate deployment for Jetson Orin Nano
   # - ollama-jetson2  # Separate deployment for jetson02 node with qwen3:4b
   - ollama-webui    # Keep original running
   - open-webui      # Test new namespace with shared storage
-  # - whisper        # DISABLED: aitower GPU node offline
+  - whisper
   # - whisper-cpu     # CPU-only Whisper deployment
-  # - piper           # DISABLED: aitower GPU node offline
+  - piper
   # - piper-v13       # Piper (LinuxServer image) in separate namespace - DEACTIVATED
-  # - openwakeword   # DISABLED: aitower GPU node offline
+  - openwakeword
   # - node-labeling
   # - voice-pipeline-test  # End-to-end voice pipeline testing (runs nightly at 3am)
   
@@ -58,7 +58,7 @@ resources:
   # Workflow Automation
   - n8n             # Workflow automation platform
   # - n8n-migration  # n8n database migration jobs
-  # - sftp-server     # DISABLED: aitower offline (UniFi Drive access)
+  - sftp-server     # SFTP server for UniFi Drive access
   - audio-compressor # Nightly audio compression job
   
   # Documentation
