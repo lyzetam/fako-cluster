@@ -20,6 +20,7 @@ spec:
           containers:
           - name: scanner
             image: lzetam/quantum-trades-scanner:latest
+            imagePullPolicy: Always
             # Command is built into the image (python -m app.cli.scanner)
             envFrom:
             - configMapRef:
