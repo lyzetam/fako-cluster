@@ -20,7 +20,7 @@ spec:
         operator: Exists
       containers:
       - name: whisperx
-        image: vilimas/whisperx:latest
+        image: vilimas/whisperx:1.2.0
         imagePullPolicy: Always
         command: ["python", "/scripts/process.py"]
         env:
