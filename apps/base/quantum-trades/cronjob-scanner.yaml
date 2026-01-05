@@ -43,6 +43,11 @@ spec:
                   key: api_key
             - name: SIGNALS_SERVICE_URL
               value: "http://signals-service:8002"
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: ANTHROPIC_API_KEY
             resources:
               requests:
                 memory: "512Mi"
