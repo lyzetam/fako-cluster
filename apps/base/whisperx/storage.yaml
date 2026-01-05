@@ -1,0 +1,39 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: whisperx-models
+  namespace: whisperx
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 20Gi  # Large models (large-v3 ~3GB, alignment models, diarization models)
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: whisperx-data
+  namespace: whisperx
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 10Gi  # Input audio files
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: whisperx-output
+  namespace: whisperx
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 10Gi  # Transcription output files
