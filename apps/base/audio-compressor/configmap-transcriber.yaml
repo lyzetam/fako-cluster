@@ -17,4 +17,4 @@ data:
   RETRY_DELAY: "10"
   WHISPER_TIMEOUT: "7200"
   LOG_LEVEL: "INFO"
-  CONCURRENT_CHUNKS: "4"  # Parallel chunk transcription (matches whisper-cpu replicas)
+  CONCURRENT_CHUNKS: "8"  # Parallel chunk transcription (matches whisper-cpu replicas)

@@ -5,7 +5,7 @@ metadata:
   name: whisper-cpu
   namespace: whisper-cpu
 spec:
-  replicas: 4  # Increased for parallel processing
+  replicas: 8  # Increased for parallel processing
   strategy:
     type: RollingUpdate
     rollingUpdate:
