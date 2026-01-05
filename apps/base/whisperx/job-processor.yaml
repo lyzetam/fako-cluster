@@ -18,6 +18,8 @@ spec:
       - effect: NoSchedule
         key: nvidia.com/gpu
         operator: Exists
+      imagePullSecrets:
+      - name: dockerhub-registry
       containers:
       - name: whisperx
         image: vilimas/whisperx:1.2.0
