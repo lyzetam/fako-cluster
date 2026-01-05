@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: transcript-publisher-config
+  namespace: audio-workflows
+data:
+  INPUT_DIR: "/data/transcriptions"
+  STATE_DIR: "/data/state"
+  OBSIDIAN_FOLDER: "Transcripts/Raw"
+  SKIP_PROCESSED: "false"
+  USE_TIMESTAMP_FILTER: "true"
+  LOG_LEVEL: "INFO"
+  FILE_PREFIX: "Transcript"
+  MAX_RETRIES: "3"
+  RETRY_DELAY: "10"

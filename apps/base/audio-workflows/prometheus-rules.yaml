@@ -1,0 +1,77 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: audio-workflow-alerts
+  namespace: audio-workflows
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: audio-workflow.rules
+    rules:
+    # Alert if workflow has been running for more than 2 hours
+    - alert: AudioWorkflowRunningTooLong
+      expr: |
+        sum by (workflow) (
+          argo_workflow_status_phase{namespace="audio-workflows", phase="Running"} == 1
+        ) > 0
+        and
+        time() - argo_workflow_start_time{namespace="audio-workflows"} > 7200
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Audio workflow running too long"
+        description: "Workflow {{ $labels.workflow }} has been running for more than 2 hours"
+
+    # Alert if workflow failed
+    - alert: AudioWorkflowFailed
+      expr: |
+        sum by (workflow) (
+          increase(argo_workflow_count{namespace="audio-workflows", status="Failed"}[15m])
+        ) > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Audio workflow failed"
+        description: "Workflow {{ $labels.workflow }} has failed"
+
+    # Alert if no successful workflows in 36 hours (should run daily)
+    - alert: AudioWorkflowNotRunning
+      expr: |
+        sum(increase(argo_workflow_count{namespace="audio-workflows", status="Succeeded"}[36h])) == 0
+        or absent(argo_workflow_count{namespace="audio-workflows", status="Succeeded"})
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "No successful audio workflows in 36 hours"
+        description: "The nightly audio processing workflow may not be running"
+
+    # Alert on high error rate in workflow steps
+    - alert: AudioWorkflowStepFailures
+      expr: |
+        sum by (workflow) (
+          increase(argo_workflows_pods_count{namespace="audio-workflows", phase="Failed"}[1h])
+        ) > 3
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Multiple workflow step failures"
+        description: "Workflow {{ $labels.workflow }} has had multiple step failures in the last hour"
+
+  - name: audio-workflow.slo
+    rules:
+    # Track workflow success rate over time
+    - record: audio_workflow:success_rate:ratio_1d
+      expr: |
+        sum(increase(argo_workflow_count{namespace="audio-workflows", status="Succeeded"}[1d]))
+        /
+        sum(increase(argo_workflow_count{namespace="audio-workflows"}[1d]))
+
+    # Track average workflow duration
+    - record: audio_workflow:duration:avg_1d
+      expr: |
+        avg(argo_workflow_duration_seconds{namespace="audio-workflows", status="Succeeded"})
