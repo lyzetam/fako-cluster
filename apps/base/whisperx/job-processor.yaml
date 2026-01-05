@@ -20,16 +20,38 @@ spec:
         operator: Exists
       imagePullSecrets:
       - name: dockerhub-registry
+      initContainers:
+      - name: install-whisperx
+        image: python:3.11-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Installing WhisperX and dependencies..."
+          apt-get update && apt-get install -y ffmpeg git
+          pip install --target=/packages whisperx torch torchaudio
+          echo "Installation complete. Packages:"
+          ls -la /packages/
+        volumeMounts:
+        - name: packages
+          mountPath: /packages
       containers:
       - name: whisperx
-        image: vilimas/whisperx:1.2.0
-        imagePullPolicy: Always
-        command: ["python", "/scripts/process.py"]
+        image: nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Setting up Python environment..."
+          apt-get update && apt-get install -y python3 python3-pip ffmpeg
+          export PYTHONPATH=/packages:$PYTHONPATH
+          echo "Running WhisperX processor..."
+          python3 /scripts/process.py
         env:
         - name: INPUT_DIR
           value: "/data/compressed"
         - name: OUTPUT_DIR
-          value: "/data/output/whisperx"  # Subfolder in transcriptions volume
+          value: "/data/output/whisperx"
         - name: WHISPER_MODEL
           value: "large-v2"
         - name: LANGUAGE
@@ -39,7 +61,7 @@ spec:
         - name: COMPUTE_TYPE
           value: "float16"
         - name: MAX_FILES
-          value: "5"  # Process only 5 files for testing
+          value: "5"
         - name: SKIP_PROCESSED
           value: "true"
         - name: LOG_LEVEL
@@ -49,7 +71,7 @@ spec:
             secretKeyRef:
               name: huggingface-token
               key: token
-              optional: true  # Allow running without diarization
+              optional: true
         resources:
           limits:
             nvidia.com/gpu: 1
@@ -67,6 +89,8 @@ spec:
           mountPath: /scripts
         - name: huggingface-cache
           mountPath: /root/.cache/huggingface
+        - name: packages
+          mountPath: /packages
       volumes:
       - name: compressed-audio
         nfs:
@@ -75,10 +99,12 @@ spec:
       - name: output
         nfs:
           server: ugnas.landryzetam.net
-          path: /volume1/k8s-storage/pvc-1a863515-490c-4c4a-8aaa-f63ce16b8ecc  # Same as transcriptions
+          path: /volume1/k8s-storage/pvc-1a863515-490c-4c4a-8aaa-f63ce16b8ecc
       - name: script
         configMap:
           name: whisperx-processor-script
           defaultMode: 0755
       - name: huggingface-cache
+        emptyDir: {}
+      - name: packages
         emptyDir: {}
