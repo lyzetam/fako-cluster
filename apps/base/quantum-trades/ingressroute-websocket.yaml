@@ -1,0 +1,22 @@
+# IngressRoute for WebSocket with extended timeouts
+# Traefik IngressRoute allows specifying ServersTransport for long-lived connections
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: quantum-trades-websocket
+  namespace: quantum-trades
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`quantum.landryzetam.net`) && PathPrefix(`/ws`)
+      kind: Rule
+      middlewares:
+        - name: websocket-headers
+          namespace: quantum-trades
+      services:
+        - name: backend-service
+          port: 8000
+          serversTransport: websocket-transport
+  tls:
+    secretName: quantum-trades-tls

@@ -16,6 +16,9 @@ resources:
   - trading-deployment.yaml
   - services.yaml
   - ingress.yaml
+  # WebSocket IngressRoute with extended timeouts
+  - middleware-websocket.yaml
+  - ingressroute-websocket.yaml
   # Options Scanner CronJob
   - external-secret-obsidian.yaml
   - configmap-scanner.yaml

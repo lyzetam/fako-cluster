@@ -33,10 +33,4 @@ spec:
                 name: backend-service
                 port:
                   number: 8000
-          - path: /ws
-            pathType: Prefix
-            backend:
-              service:
-                name: backend-service
-                port:
-                  number: 8000
+          # WebSocket /ws path handled by IngressRoute with extended timeouts
