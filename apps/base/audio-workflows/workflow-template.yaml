@@ -9,6 +9,8 @@ spec:
   ttlStrategy:
     secondsAfterCompletion: 86400  # 24h retention
 
+  activeDeadlineSeconds: 21600  # 6 hour max runtime
+
   imagePullSecrets:
   - name: dockerhub-registry
 
