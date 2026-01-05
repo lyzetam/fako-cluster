@@ -9,6 +9,9 @@ spec:
   ttlStrategy:
     secondsAfterCompletion: 86400  # 24h retention
 
+  imagePullSecrets:
+  - name: dockerhub-registry
+
   # Use direct NFS mounts to share data with existing audio-compressor namespace
   volumes:
   - name: compressed-audio
@@ -143,8 +146,6 @@ spec:
         limits:
           memory: "2Gi"
           cpu: "2000m"
-    imagePullSecrets:
-    - name: dockerhub-registry
 
   # Step 2: Audio Transcription (Whisper)
   - name: audio-transcriber
@@ -181,8 +182,6 @@ spec:
         limits:
           memory: "1Gi"
           cpu: "500m"
-    imagePullSecrets:
-    - name: dockerhub-registry
 
   # Step 3a: Transcript Publisher (parallel)
   - name: transcript-publisher
