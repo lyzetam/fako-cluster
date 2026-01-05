@@ -84,3 +84,6 @@ resources:
 
   # WhisperX - Speaker diarization testing
   - whisperx        # WhisperX with speaker diarization (GPU)
+
+  # Argo Workflows - Audio Processing Pipeline
+  - audio-workflows # Unified audio processing DAG (replaces CronJobs)

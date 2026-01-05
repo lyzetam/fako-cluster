@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: nightly-audio-processing
+  namespace: audio-workflows
+spec:
+  # Run at 3 AM daily (offset from existing CronJobs at 2 AM during parallel operation)
+  # Change to "0 2 * * *" after migration is complete
+  schedule: "0 3 * * *"
+  timezone: "America/Chicago"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  workflowSpec:
+    workflowTemplateRef:
+      name: audio-processing-pipeline

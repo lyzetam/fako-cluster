@@ -1,0 +1,253 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: transcript-summarizer-script
+  namespace: audio-workflows
+data:
+  summarizer.py: |
+    #!/usr/bin/env python3
+    """
+    Transcript Summarizer - Summarizes transcripts using LLM and posts to Obsidian
+    Modified for Argo Workflows with timestamp-based filtering
+    """
+    import os
+    import json
+    import logging
+    import textwrap
+    import ssl
+    import urllib.request
+    import urllib.error
+    from pathlib import Path
+    from datetime import datetime
+    import time
+
+    # Create SSL context that doesn't verify certificates (for self-signed certs)
+    SSL_CONTEXT = ssl.create_default_context()
+    SSL_CONTEXT.check_hostname = False
+    SSL_CONTEXT.verify_mode = ssl.CERT_NONE
+
+    # Configuration from environment
+    INPUT_DIR = os.environ.get('INPUT_DIR', '/data/transcriptions')
+    STATE_DIR = os.environ.get('STATE_DIR', '/data/state')
+    OBSIDIAN_FOLDER = os.environ.get('OBSIDIAN_FOLDER', 'Transcripts')
+    OBSIDIAN_API_URL = os.environ['OBSIDIAN_API_URL']
+    OBSIDIAN_API_KEY = os.environ['OBSIDIAN_API_KEY']
+    SUMMARIZER_BASE_URL = os.environ['SUMMARIZER_BASE_URL']
+    SUMMARIZER_API_KEY = os.environ['SUMMARIZER_API_KEY']
+    SUMMARIZER_MODEL = os.environ.get('SUMMARIZER_MODEL', 'gemma3')
+    MAX_RETRIES = int(os.environ.get('MAX_RETRIES', '3'))
+    RETRY_DELAY = int(os.environ.get('RETRY_DELAY', '10'))
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+
+    MAX_TRANSCRIPT_CHARS = int(os.environ.get('MAX_TRANSCRIPT_CHARS', '25000'))
+
+    # Timestamp-based filtering (for Argo Workflows)
+    USE_TIMESTAMP_FILTER = os.environ.get('USE_TIMESTAMP_FILTER', 'false').lower() == 'true'
+    WORKFLOW_START_TIME = os.environ.get('WORKFLOW_START_TIME', '')
+    # Legacy state file-based filtering
+    SKIP_PROCESSED = os.environ.get('SKIP_PROCESSED', 'true').lower() == 'true'
+
+    SUMMARY_PROMPT = os.environ.get('SUMMARY_PROMPT', textwrap.dedent("""\
+        You are analyzing an audio transcript. Provide a concise summary that includes:
+
+        1. **Main Topics**: List the key subjects discussed
+        2. **Summary**: A brief overview of the content (2-3 paragraphs)
+        3. **Key Points**: Important facts, decisions, or insights
+        4. **Action Items**: Any tasks or follow-ups mentioned (if applicable)
+
+        Be concise but comprehensive. Format your response in markdown.
+        """))
+
+    logging.basicConfig(level=getattr(logging, LOG_LEVEL),
+                        format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    STATE_FILE = Path(STATE_DIR) / 'summarizer-processed.txt'
+
+    def load_processed():
+        if STATE_FILE.exists():
+            return set(STATE_FILE.read_text().strip().split('\n'))
+        return set()
+
+    def save_processed(processed):
+        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        STATE_FILE.write_text('\n'.join(sorted(processed)))
+
+    def get_workflow_cutoff_time():
+        """Parse workflow start time for timestamp filtering."""
+        if WORKFLOW_START_TIME:
+            try:
+                return datetime.fromisoformat(WORKFLOW_START_TIME.replace('Z', '+00:00'))
+            except ValueError:
+                logger.warning(f"Could not parse WORKFLOW_START_TIME: {WORKFLOW_START_TIME}")
+        return None
+
+    def should_process_file(json_file, processed_set, cutoff_time):
+        """Determine if file should be processed based on filtering mode."""
+        if USE_TIMESTAMP_FILTER and cutoff_time:
+            mtime = datetime.fromtimestamp(json_file.stat().st_mtime)
+            if mtime < cutoff_time:
+                logger.debug(f"Skipping {json_file.name} - older than cutoff")
+                return False
+            return True
+        elif SKIP_PROCESSED:
+            if json_file.name in processed_set:
+                logger.debug(f"Skipping already processed: {json_file.name}")
+                return False
+            return True
+        return True
+
+    def call_llm(transcript_text):
+        """Call GPUStack/OpenAI-compatible API to summarize transcript."""
+        url = f"{SUMMARIZER_BASE_URL}/chat/completions"
+        headers = {
+            'Authorization': f'Bearer {SUMMARIZER_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+
+        if len(transcript_text) > MAX_TRANSCRIPT_CHARS:
+            logger.warning(f"Truncating transcript from {len(transcript_text)} to {MAX_TRANSCRIPT_CHARS} chars")
+            transcript_text = transcript_text[:MAX_TRANSCRIPT_CHARS] + "\n\n[... transcript truncated ...]"
+
+        payload = {
+            "model": SUMMARIZER_MODEL,
+            "messages": [
+                {"role": "system", "content": SUMMARY_PROMPT},
+                {"role": "user", "content": f"Please summarize this transcript:\n\n{transcript_text}"}
+            ],
+            "temperature": 0.3,
+            "max_tokens": 2000
+        }
+
+        for attempt in range(MAX_RETRIES):
+            try:
+                data = json.dumps(payload).encode('utf-8')
+                req = urllib.request.Request(url, data=data, headers=headers, method='POST')
+                with urllib.request.urlopen(req, timeout=120) as response:
+                    result = json.loads(response.read().decode('utf-8'))
+                    return result['choices'][0]['message']['content']
+            except urllib.error.HTTPError as e:
+                error_body = e.read().decode('utf-8') if e.fp else ''
+                logger.warning(f"LLM API returned {e.code}: {e.reason} - {error_body}")
+            except Exception as e:
+                logger.error(f"LLM attempt {attempt+1} failed: {e}")
+
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+
+        return None
+
+    def create_summary_markdown(filename, transcript_data, summary):
+        """Create markdown document with summary and metadata."""
+        text = transcript_data.get('text', '')
+        duration = transcript_data.get('duration', 0)
+        language = transcript_data.get('language', 'unknown')
+
+        mins, secs = divmod(int(duration), 60)
+        hours, mins = divmod(mins, 60)
+        duration_str = f"{hours}h {mins}m {secs}s" if hours else f"{mins}m {secs}s"
+
+        md = textwrap.dedent(f"""\
+            # Summary: {filename}
+
+            **Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+            **Duration**: {duration_str}
+            **Language**: {language}
+            **Model**: {SUMMARIZER_MODEL}
+
+            ---
+
+            {summary}
+
+            ---
+
+            ## Original Transcript
+
+            <details>
+            <summary>Click to expand full transcript</summary>
+
+            {text}
+
+            </details>
+
+            ---
+
+            *Generated by transcript-summarizer*
+            """)
+        return md
+
+    def post_to_obsidian(filename, content):
+        """Post markdown content to Obsidian REST API."""
+        url = f"{OBSIDIAN_API_URL}/vault/{OBSIDIAN_FOLDER}/{filename}"
+        headers = {
+            'Authorization': f'Bearer {OBSIDIAN_API_KEY}',
+            'Content-Type': 'text/markdown'
+        }
+
+        for attempt in range(MAX_RETRIES):
+            try:
+                req = urllib.request.Request(url, data=content.encode('utf-8'), headers=headers, method='PUT')
+                with urllib.request.urlopen(req, context=SSL_CONTEXT) as response:
+                    if response.status in (200, 201, 204):
+                        logger.info(f"Posted {filename} to Obsidian")
+                        return True
+                    logger.warning(f"Obsidian API returned {response.status}")
+            except urllib.error.HTTPError as e:
+                logger.warning(f"Obsidian API returned {e.code}: {e.reason}")
+            except Exception as e:
+                logger.error(f"Obsidian attempt {attempt+1} failed: {e}")
+
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+
+        return False
+
+    def main():
+        logger.info("Starting transcript summarizer")
+        logger.info(f"Input: {INPUT_DIR}, Output: {OBSIDIAN_FOLDER}")
+        logger.info(f"Using model: {SUMMARIZER_MODEL} at {SUMMARIZER_BASE_URL}")
+        logger.info(f"Filtering mode: {'timestamp' if USE_TIMESTAMP_FILTER else 'state-file'}")
+
+        processed = load_processed() if SKIP_PROCESSED and not USE_TIMESTAMP_FILTER else set()
+        cutoff_time = get_workflow_cutoff_time()
+        input_path = Path(INPUT_DIR)
+
+        json_files = list(input_path.glob('*.json'))
+        logger.info(f"Found {len(json_files)} JSON files")
+
+        success_count = 0
+        for json_file in json_files:
+            if not should_process_file(json_file, processed, cutoff_time):
+                continue
+
+            try:
+                logger.info(f"Processing: {json_file.name}")
+                data = json.loads(json_file.read_text())
+                transcript_text = data.get('text', '')
+
+                if not transcript_text:
+                    logger.warning(f"Empty transcript in {json_file.name}")
+                    continue
+
+                summary = call_llm(transcript_text)
+                if not summary:
+                    logger.error(f"Failed to get summary for {json_file.name}")
+                    continue
+
+                md_content = create_summary_markdown(json_file.stem, data, summary)
+                md_filename = f"{json_file.stem}.md"
+
+                if post_to_obsidian(md_filename, md_content):
+                    processed.add(json_file.name)
+                    success_count += 1
+                    logger.info(f"Successfully summarized and posted: {json_file.name}")
+
+            except Exception as e:
+                logger.error(f"Failed to process {json_file.name}: {e}")
+
+        if SKIP_PROCESSED and not USE_TIMESTAMP_FILTER:
+            save_processed(processed)
+        logger.info(f"Summarized {success_count} transcripts to Obsidian")
+
+    if __name__ == '__main__':
+        main()
