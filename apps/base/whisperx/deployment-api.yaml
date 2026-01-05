@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisperx-api
+  namespace: whisperx
+  labels:
+    app: whisperx-api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # GPU workloads need exclusive access
+  selector:
+    matchLabels:
+      app: whisperx-api
+  template:
+    metadata:
+      labels:
+        app: whisperx-api
+    spec:
+      runtimeClassName: nvidia
+      hostIPC: true
+      nodeSelector:
+        kubernetes.io/hostname: aitower
+        nvidia.com/gpu.present: "true"
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      imagePullSecrets:
+      - name: dockerhub-registry
+      containers:
+      - name: whisperx-api
+        image: landryzetam/whisperx:latest
+        args: ["api"]
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: WHISPER_MODEL
+          value: "large-v3"
+        - name: COMPUTE_TYPE
+          value: "float16"
+        - name: BATCH_SIZE
+          value: "16"
+        - name: DEVICE
+          value: "cuda"
+        - name: PRELOAD_MODEL
+          value: "true"
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: huggingface-token
+              key: token
+        - name: HF_HOME
+          value: "/app/models"
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: "14Gi"
+          requests:
+            memory: "8Gi"
+            cpu: "2"
+        volumeMounts:
+        - name: models-cache
+          mountPath: /app/models
+        - name: data
+          mountPath: /app/data
+        - name: output
+          mountPath: /app/output
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120  # Model loading takes time
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 180
+          periodSeconds: 30
+          timeoutSeconds: 10
+      volumes:
+      - name: models-cache
+        persistentVolumeClaim:
+          claimName: whisperx-models
+      - name: data
+        persistentVolumeClaim:
+          claimName: whisperx-data
+      - name: output
+        persistentVolumeClaim:
+          claimName: whisperx-output

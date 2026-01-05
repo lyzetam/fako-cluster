@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: whisperx-api
+  namespace: whisperx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+    # Increase timeouts for long transcriptions
+    traefik.ingress.kubernetes.io/router.middlewares: default-timeout-middleware@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: whisperx.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: whisperx-api
+            port:
+              number: 8000
+  tls:
+  - hosts:
+    - whisperx.landryzetam.net
+    secretName: whisperx-tls-cert
