@@ -74,7 +74,7 @@ spec:
             - name: COPY_METADATA
               value: "true"
             - name: SKIP_PROCESSED
-              value: "false"
+              value: "true"  # Skip already-compressed files to avoid duplicates
             - name: DIR_PATTERN
               value: "^\\d{2}-\\d{2}-\\d{2}(-\\d{2})?$"
             - name: MAX_FILE_SIZE_MB
