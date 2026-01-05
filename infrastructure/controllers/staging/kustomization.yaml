@@ -11,4 +11,5 @@ resources:
   - system-tuning
   - cloudnative-pg
   - unifi-data
+  - argo-workflows
   # - newrelic

@@ -1,0 +1,345 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: audio-processing-pipeline
+  namespace: audio-workflows
+spec:
+  serviceAccountName: audio-workflow-runner
+  entrypoint: audio-pipeline
+  ttlStrategy:
+    secondsAfterCompletion: 86400  # 24h retention
+
+  # Use direct NFS mounts to share data with existing audio-compressor namespace
+  volumes:
+  - name: compressed-audio
+    nfs:
+      server: ugnas.landryzetam.net
+      path: /volume1/k8s-storage/pvc-fa625048-6545-4904-bc35-7111a93b21bc
+  - name: transcriptions
+    nfs:
+      server: ugnas.landryzetam.net
+      path: /volume1/k8s-storage/pvc-1a863515-490c-4c4a-8aaa-f63ce16b8ecc
+  - name: publisher-script
+    configMap:
+      name: transcript-publisher-script
+  - name: summarizer-script
+    configMap:
+      name: transcript-summarizer-script
+  - name: diary-script
+    configMap:
+      name: daily-diary-script
+
+  templates:
+  # Main DAG orchestrating the pipeline
+  - name: audio-pipeline
+    dag:
+      tasks:
+      - name: compress
+        template: audio-compressor
+
+      - name: transcribe
+        template: audio-transcriber
+        dependencies: [compress]
+
+      # Fan-out: these 3 run in parallel after transcription
+      - name: publish
+        template: transcript-publisher
+        dependencies: [transcribe]
+
+      - name: summarize
+        template: transcript-summarizer
+        dependencies: [transcribe]
+
+      - name: diary
+        template: daily-diary
+        dependencies: [transcribe]
+
+  # Step 1: Audio Compression (SFTP download + WAV->MP3)
+  - name: audio-compressor
+    retryStrategy:
+      limit: 3
+      backoff:
+        duration: "1m"
+        factor: 2
+        maxDuration: "10m"
+    container:
+      image: lzetam/audio-compressor:latest
+      imagePullPolicy: Always
+      env:
+      # SFTP Configuration
+      - name: SFTP_HOST
+        value: "sftp-server.sftp-server.svc.cluster.local"
+      - name: SFTP_PORT
+        value: "22"
+      - name: SFTP_REMOTE_PATH
+        value: "audio"
+      - name: SFTP_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: sftp-credentials
+            key: username
+      - name: SFTP_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: sftp-credentials
+            key: password
+      # Storage Backend Configuration
+      - name: STORAGE_BACKEND
+        value: "sftp"
+      - name: SFTP_DEST_PATH
+        value: "compressed"
+      - name: UPLOAD_RETRY_ATTEMPTS
+        value: "3"
+      - name: UPLOAD_RETRY_DELAY
+        value: "5"
+      # AWS Configuration
+      - name: AWS_DEFAULT_REGION
+        value: "us-east-1"
+      - name: SFTP_SECRETS_NAME
+        value: "sftp-server/credentials"
+      # Storage Configuration
+      - name: OUTPUT_DIR
+        value: "/data/compressed"
+      - name: KEEP_ORIGINALS
+        value: "false"
+      # Compression Configuration (optimized for speech)
+      - name: SAMPLE_RATE
+        value: "16000"
+      - name: CHANNELS
+        value: "1"
+      - name: BITRATE
+        value: "32k"
+      - name: AUDIO_FORMAT
+        value: "mp3"
+      # Processing Configuration
+      - name: AUDIO_FILENAME
+        value: "StereoMix.wav"
+      - name: METADATA_FILENAME
+        value: "Meta.xml"
+      - name: COPY_METADATA
+        value: "true"
+      - name: SKIP_PROCESSED
+        value: "false"
+      - name: DIR_PATTERN
+        value: "^\\d{2}-\\d{2}-\\d{2}(-\\d{2})?$"
+      - name: MAX_FILE_SIZE_MB
+        value: "100000"
+      - name: MAX_RETRIES
+        value: "3"
+      - name: RETRY_DELAY
+        value: "5"
+      - name: LOG_LEVEL
+        value: "INFO"
+      - name: TEMP_DIR
+        value: "/tmp/audio-processing"
+      volumeMounts:
+      - name: compressed-audio
+        mountPath: /data
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "500m"
+        limits:
+          memory: "2Gi"
+          cpu: "2000m"
+    imagePullSecrets:
+    - name: dockerhub-registry
+
+  # Step 2: Audio Transcription (Whisper)
+  - name: audio-transcriber
+    retryStrategy:
+      limit: 3
+      backoff:
+        duration: "2m"
+        factor: 2
+        maxDuration: "15m"
+    nodeSelector:
+      kubernetes.io/hostname: pglenovo01
+    container:
+      image: lzetam/audio-transcriber:latest
+      imagePullPolicy: Always
+      envFrom:
+      - configMapRef:
+          name: audio-transcriber-config
+      env:
+      - name: WHISPER_BASE_URL
+        value: "http://whisper-cpu.whisper-cpu.svc.cluster.local:8000/v1"
+      - name: WHISPER_API_KEY
+        value: "not-required"
+      volumeMounts:
+      - name: compressed-audio
+        mountPath: /data/compressed
+        readOnly: true
+      - name: transcriptions
+        mountPath: /data/transcriptions
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+    imagePullSecrets:
+    - name: dockerhub-registry
+
+  # Step 3a: Transcript Publisher (parallel)
+  - name: transcript-publisher
+    retryStrategy:
+      limit: 3
+      backoff:
+        duration: "30s"
+        factor: 2
+    nodeSelector:
+      kubernetes.io/hostname: pglenovo01
+    container:
+      image: python:3.11-slim
+      command: ["python", "/scripts/publisher.py"]
+      envFrom:
+      - configMapRef:
+          name: transcript-publisher-config
+      env:
+      - name: OBSIDIAN_API_URL
+        valueFrom:
+          secretKeyRef:
+            name: obsidian-api
+            key: api_url
+      - name: OBSIDIAN_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: obsidian-api
+            key: api_key
+      - name: USE_TIMESTAMP_FILTER
+        value: "true"
+      - name: WORKFLOW_START_TIME
+        value: "{{workflow.creationTimestamp}}"
+      volumeMounts:
+      - name: publisher-script
+        mountPath: /scripts
+      - name: transcriptions
+        mountPath: /data/transcriptions
+        readOnly: true
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "50m"
+        limits:
+          memory: "256Mi"
+          cpu: "200m"
+
+  # Step 3b: Transcript Summarizer (parallel)
+  - name: transcript-summarizer
+    retryStrategy:
+      limit: 3
+      backoff:
+        duration: "30s"
+        factor: 2
+    nodeSelector:
+      kubernetes.io/hostname: pglenovo01
+    container:
+      image: python:3.11-slim
+      command: ["python", "/scripts/summarizer.py"]
+      envFrom:
+      - configMapRef:
+          name: transcript-summarizer-config
+      env:
+      - name: OBSIDIAN_API_URL
+        valueFrom:
+          secretKeyRef:
+            name: obsidian-api
+            key: api_url
+      - name: OBSIDIAN_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: obsidian-api
+            key: api_key
+      - name: SUMMARIZER_BASE_URL
+        valueFrom:
+          secretKeyRef:
+            name: summarizer-credentials
+            key: summarizer_base_url
+      - name: SUMMARIZER_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: summarizer-credentials
+            key: summarizer_api_key
+      - name: SUMMARIZER_MODEL
+        valueFrom:
+          secretKeyRef:
+            name: summarizer-credentials
+            key: summarizer_model
+      - name: USE_TIMESTAMP_FILTER
+        value: "true"
+      - name: WORKFLOW_START_TIME
+        value: "{{workflow.creationTimestamp}}"
+      volumeMounts:
+      - name: summarizer-script
+        mountPath: /scripts
+      - name: transcriptions
+        mountPath: /data/transcriptions
+        readOnly: true
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+
+  # Step 3c: Daily Diary (parallel)
+  - name: daily-diary
+    retryStrategy:
+      limit: 3
+      backoff:
+        duration: "30s"
+        factor: 2
+    nodeSelector:
+      kubernetes.io/hostname: pglenovo01
+    container:
+      image: python:3.11-slim
+      command: ["python", "/scripts/daily-diary.py"]
+      envFrom:
+      - configMapRef:
+          name: daily-diary-config
+      env:
+      - name: OBSIDIAN_API_URL
+        valueFrom:
+          secretKeyRef:
+            name: obsidian-api
+            key: api_url
+      - name: OBSIDIAN_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: obsidian-api
+            key: api_key
+      - name: SUMMARIZER_BASE_URL
+        valueFrom:
+          secretKeyRef:
+            name: summarizer-credentials
+            key: summarizer_base_url
+      - name: SUMMARIZER_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: summarizer-credentials
+            key: summarizer_api_key
+      - name: SUMMARIZER_MODEL
+        valueFrom:
+          secretKeyRef:
+            name: summarizer-credentials
+            key: summarizer_model
+      - name: USE_TIMESTAMP_FILTER
+        value: "true"
+      - name: WORKFLOW_START_TIME
+        value: "{{workflow.creationTimestamp}}"
+      volumeMounts:
+      - name: diary-script
+        mountPath: /scripts
+      - name: transcriptions
+        mountPath: /data/transcriptions
+        readOnly: true
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "50m"
+        limits:
+          memory: "512Mi"
+          cpu: "200m"

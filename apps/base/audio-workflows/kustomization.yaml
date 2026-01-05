@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Namespace
+  - namespace.yaml
+
+  # Secrets Management
+  - aws-credentials-secret.yaml
+  - secret-store.yaml
+  - external-secret-sftp.yaml
+  - external-secret-obsidian.yaml
+  - external-secret-summarizer.yaml
+  - external-secret-dockerhub.yaml
+  - create-docker-registry-secret-job.yaml
+
+  # RBAC
+  - rbac.yaml
+
+  # ConfigMaps - Configuration
+  - configmap-transcriber.yaml
+  - configmap-publisher.yaml
+  - configmap-summarizer.yaml
+  - configmap-daily-diary.yaml
+
+  # ConfigMaps - Scripts
+  - configmap-publisher-script.yaml
+  - configmap-summarizer-script.yaml
+  - configmap-daily-diary-script.yaml
+
+  # Argo Workflows
+  - workflow-template.yaml
+  - cron-workflow.yaml
+
+  # Monitoring
+  - prometheus-rules.yaml
