@@ -17,6 +17,10 @@ data:
   MIN_SIGNAL_STRENGTH: "0"
   MAX_RESULTS_PER_SYMBOL: "3"
   MAX_SYMBOLS: "150"
-  TOP_PICKS_COUNT: "5"
+  # Swing trade settings: scan for longer-dated options (45-60 DTE)
+  MIN_DTE: "45"
+  MAX_DTE: "60"
+  # Top picks: 3 from each symbol list (7 lists = up to 21 picks)
+  TOP_PICKS_PER_LIST: "3"
   LOG_LEVEL: "INFO"
   # Market context is now auto-generated from sector ETF APIs (no manual updates needed)
