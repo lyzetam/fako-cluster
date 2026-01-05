@@ -81,3 +81,6 @@ resources:
 
   # Analytics
   - umami           # Privacy-focused website analytics
+
+  # WhisperX - Speaker diarization testing
+  - whisperx        # WhisperX with speaker diarization (GPU)
