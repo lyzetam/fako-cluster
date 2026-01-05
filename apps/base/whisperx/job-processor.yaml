@@ -51,9 +51,9 @@ spec:
         resources:
           limits:
             nvidia.com/gpu: 1
-            memory: "16Gi"
+            memory: "12Gi"
           requests:
-            memory: "8Gi"
+            memory: "6Gi"
             cpu: "2"
         volumeMounts:
         - name: compressed-audio
