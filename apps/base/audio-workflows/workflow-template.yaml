@@ -163,7 +163,7 @@ spec:
           name: audio-transcriber-config
       env:
       - name: WHISPER_BASE_URL
-        value: "http://whisper-cpu.whisper-cpu.svc.cluster.local:8000/v1"
+        value: "http://whisperx-api.whisperx.svc.cluster.local:8000"
       - name: WHISPER_API_KEY
         value: "not-required"
       volumeMounts:
