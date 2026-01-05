@@ -59,7 +59,7 @@ spec:
         hosts:
           - argo.landryzetam.net
         annotations:
-          cert-manager.io/cluster-issuer: letsencrypt-production
+          cert-manager.io/cluster-issuer: letsencrypt-dns01
         tls:
           - secretName: argo-workflows-tls
             hosts:
