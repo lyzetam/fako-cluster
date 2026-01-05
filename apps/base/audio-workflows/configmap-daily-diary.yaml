@@ -6,7 +6,7 @@ metadata:
 data:
   INPUT_DIR: "/data/transcriptions"
   STATE_DIR: "/data/state"
-  OBSIDIAN_FOLDER: "Landry/daily-life"
+  OBSIDIAN_FOLDER: "transcripts/argo/diary"
   SKIP_PROCESSED: "false"
   USE_TIMESTAMP_FILTER: "true"
   LOG_LEVEL: "INFO"
