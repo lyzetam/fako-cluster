@@ -8,13 +8,13 @@ data:
     #!/usr/bin/env python3
     """
     WhisperX Audio Processor - Transcribes audio with speaker diarization
+    Uses WhisperX Python API for GPU-accelerated transcription
     """
     import os
     import json
-    import subprocess
     import logging
+    import torch
     from pathlib import Path
-    from datetime import datetime
 
     # Configuration
     INPUT_DIR = os.environ.get('INPUT_DIR', '/data/compressed')
@@ -22,7 +22,7 @@ data:
     HF_TOKEN = os.environ.get('HF_TOKEN', '')
     MODEL = os.environ.get('WHISPER_MODEL', 'large-v2')
     LANGUAGE = os.environ.get('LANGUAGE', 'en')
-    BATCH_SIZE = os.environ.get('BATCH_SIZE', '16')
+    BATCH_SIZE = int(os.environ.get('BATCH_SIZE', '16'))
     COMPUTE_TYPE = os.environ.get('COMPUTE_TYPE', 'float16')
     MAX_FILES = int(os.environ.get('MAX_FILES', '0'))  # 0 = all files
     SKIP_PROCESSED = os.environ.get('SKIP_PROCESSED', 'true').lower() == 'true'
@@ -43,44 +43,72 @@ data:
         STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
         STATE_FILE.write_text('\n'.join(sorted(processed)))
 
-    def process_audio(audio_path, output_path):
-        """Run WhisperX on a single audio file."""
-        cmd = [
-            'whisperx',
-            str(audio_path),
-            '--model', MODEL,
-            '--language', LANGUAGE,
-            '--batch_size', BATCH_SIZE,
-            '--compute_type', COMPUTE_TYPE,
-            '--output_dir', str(output_path.parent),
-            '--output_format', 'json',
-        ]
-
-        # Add diarization if HF token is available
-        if HF_TOKEN:
-            cmd.extend(['--diarize', '--hf_token', HF_TOKEN])
-
-        logger.info(f"Running: {' '.join(cmd[:6])}...")  # Don't log token
+    def process_audio(audio_path, output_path, whisper_model, align_model, align_metadata, diarize_model, device):
+        """Run WhisperX on a single audio file using Python API."""
+        import whisperx
 
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
-            if result.returncode != 0:
-                logger.error(f"WhisperX failed: {result.stderr}")
-                return False
-            logger.info(f"WhisperX output: {result.stdout[-500:] if len(result.stdout) > 500 else result.stdout}")
+            # Load audio
+            audio = whisperx.load_audio(str(audio_path))
+
+            # 1. Transcribe with Whisper
+            logger.info(f"Transcribing {audio_path.name}...")
+            result = whisper_model.transcribe(audio, batch_size=BATCH_SIZE, language=LANGUAGE)
+
+            # 2. Align whisper output for word-level timestamps
+            logger.info(f"Aligning timestamps for {audio_path.name}...")
+            result = whisperx.align(result["segments"], align_model, align_metadata,
+                                   audio, device, return_char_alignments=False)
+
+            # 3. Speaker diarization (if HF token available)
+            if diarize_model is not None:
+                logger.info(f"Running speaker diarization for {audio_path.name}...")
+                diarize_segments = diarize_model(audio)
+                result = whisperx.assign_word_speakers(diarize_segments, result)
+
+            # Save result as JSON
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, 'w') as f:
+                json.dump(result, f, indent=2, default=str)
+
+            logger.info(f"Saved result to {output_path}")
             return True
-        except subprocess.TimeoutExpired:
-            logger.error(f"WhisperX timed out for {audio_path}")
-            return False
+
         except Exception as e:
             logger.error(f"Error processing {audio_path}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return False
 
     def main():
+        import whisperx
+
         logger.info("Starting WhisperX processor")
         logger.info(f"Input: {INPUT_DIR}, Output: {OUTPUT_DIR}")
-        logger.info(f"Model: {MODEL}, Language: {LANGUAGE}")
+        logger.info(f"Model: {MODEL}, Language: {LANGUAGE}, Batch size: {BATCH_SIZE}")
         logger.info(f"Diarization: {'enabled' if HF_TOKEN else 'disabled (no HF_TOKEN)'}")
+
+        # Detect device
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"Using device: {device}")
+        if device == "cuda":
+            logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
+
+        # Load models once
+        logger.info(f"Loading Whisper model: {MODEL}...")
+        whisper_model = whisperx.load_model(MODEL, device=device, compute_type=COMPUTE_TYPE)
+
+        logger.info(f"Loading alignment model for language: {LANGUAGE}...")
+        align_model, align_metadata = whisperx.load_align_model(language_code=LANGUAGE, device=device)
+
+        diarize_model = None
+        if HF_TOKEN:
+            logger.info("Loading diarization model...")
+            try:
+                diarize_model = whisperx.DiarizationPipeline(use_auth_token=HF_TOKEN, device=device)
+            except Exception as e:
+                logger.warning(f"Failed to load diarization model: {e}")
+                logger.warning("Continuing without speaker diarization")
 
         processed = load_processed() if SKIP_PROCESSED else set()
         input_path = Path(INPUT_DIR)
@@ -108,12 +136,13 @@ data:
             logger.info(f"Processing: {audio_file.name}")
             output_file = output_path / f"{audio_file.stem}.json"
 
-            if process_audio(audio_file, output_file):
+            if process_audio(audio_file, output_file, whisper_model, align_model,
+                           align_metadata, diarize_model, device):
                 processed.add(audio_file.name)
                 success_count += 1
+                save_processed(processed)  # Save after each success
                 logger.info(f"Successfully processed: {audio_file.name}")
 
-        save_processed(processed)
         logger.info(f"Processed {success_count} audio files with WhisperX")
 
     if __name__ == '__main__':
