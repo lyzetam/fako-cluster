@@ -65,6 +65,7 @@ spec:
     container:
       image: lzetam/audio-compressor:latest
       imagePullPolicy: Always
+      command: ["python", "-u", "-m", "src.main"]
       env:
       # SFTP Configuration
       - name: SFTP_HOST
@@ -158,6 +159,7 @@ spec:
     container:
       image: lzetam/audio-transcriber:latest
       imagePullPolicy: Always
+      command: ["python", "-m", "src.main"]
       envFrom:
       - configMapRef:
           name: audio-transcriber-config
