@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: whisperx-processor
+  namespace: whisperx
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400  # Clean up after 24 hours
+  template:
+    spec:
+      restartPolicy: Never
+      runtimeClassName: nvidia
+      hostIPC: true
+      nodeSelector:
+        kubernetes.io/hostname: aitower
+        nvidia.com/gpu.present: "true"
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      containers:
+      - name: whisperx
+        image: vilimas/whisperx:latest
+        imagePullPolicy: Always
+        command: ["python", "/scripts/process.py"]
+        env:
+        - name: INPUT_DIR
+          value: "/data/compressed"
+        - name: OUTPUT_DIR
+          value: "/data/output/whisperx"  # Subfolder in transcriptions volume
+        - name: WHISPER_MODEL
+          value: "large-v2"
+        - name: LANGUAGE
+          value: "en"
+        - name: BATCH_SIZE
+          value: "16"
+        - name: COMPUTE_TYPE
+          value: "float16"
+        - name: MAX_FILES
+          value: "5"  # Process only 5 files for testing
+        - name: SKIP_PROCESSED
+          value: "true"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: huggingface-token
+              key: token
+              optional: true  # Allow running without diarization
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: "16Gi"
+          requests:
+            memory: "8Gi"
+            cpu: "2"
+        volumeMounts:
+        - name: compressed-audio
+          mountPath: /data/compressed
+          readOnly: true
+        - name: output
+          mountPath: /data/output
+        - name: script
+          mountPath: /scripts
+        - name: huggingface-cache
+          mountPath: /root/.cache/huggingface
+      volumes:
+      - name: compressed-audio
+        nfs:
+          server: ugnas.landryzetam.net
+          path: /volume1/k8s-storage/pvc-fa625048-6545-4904-bc35-7111a93b21bc
+      - name: output
+        nfs:
+          server: ugnas.landryzetam.net
+          path: /volume1/k8s-storage/pvc-1a863515-490c-4c4a-8aaa-f63ce16b8ecc  # Same as transcriptions
+      - name: script
+        configMap:
+          name: whisperx-processor-script
+          defaultMode: 0755
+      - name: huggingface-cache
+        emptyDir: {}

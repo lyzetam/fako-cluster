@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whisperx-processor-script
+  namespace: whisperx
+data:
+  process.py: |
+    #!/usr/bin/env python3
+    """
+    WhisperX Audio Processor - Transcribes audio with speaker diarization
+    """
+    import os
+    import json
+    import subprocess
+    import logging
+    from pathlib import Path
+    from datetime import datetime
+
+    # Configuration
+    INPUT_DIR = os.environ.get('INPUT_DIR', '/data/compressed')
+    OUTPUT_DIR = os.environ.get('OUTPUT_DIR', '/data/whisperx-output')
+    HF_TOKEN = os.environ.get('HF_TOKEN', '')
+    MODEL = os.environ.get('WHISPER_MODEL', 'large-v2')
+    LANGUAGE = os.environ.get('LANGUAGE', 'en')
+    BATCH_SIZE = os.environ.get('BATCH_SIZE', '16')
+    COMPUTE_TYPE = os.environ.get('COMPUTE_TYPE', 'float16')
+    MAX_FILES = int(os.environ.get('MAX_FILES', '0'))  # 0 = all files
+    SKIP_PROCESSED = os.environ.get('SKIP_PROCESSED', 'true').lower() == 'true'
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+
+    logging.basicConfig(level=getattr(logging, LOG_LEVEL),
+                        format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    STATE_FILE = Path(OUTPUT_DIR) / '.processed.txt'
+
+    def load_processed():
+        if STATE_FILE.exists():
+            return set(STATE_FILE.read_text().strip().split('\n'))
+        return set()
+
+    def save_processed(processed):
+        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        STATE_FILE.write_text('\n'.join(sorted(processed)))
+
+    def process_audio(audio_path, output_path):
+        """Run WhisperX on a single audio file."""
+        cmd = [
+            'whisperx',
+            str(audio_path),
+            '--model', MODEL,
+            '--language', LANGUAGE,
+            '--batch_size', BATCH_SIZE,
+            '--compute_type', COMPUTE_TYPE,
+            '--output_dir', str(output_path.parent),
+            '--output_format', 'json',
+        ]
+
+        # Add diarization if HF token is available
+        if HF_TOKEN:
+            cmd.extend(['--diarize', '--hf_token', HF_TOKEN])
+
+        logger.info(f"Running: {' '.join(cmd[:6])}...")  # Don't log token
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+            if result.returncode != 0:
+                logger.error(f"WhisperX failed: {result.stderr}")
+                return False
+            logger.info(f"WhisperX output: {result.stdout[-500:] if len(result.stdout) > 500 else result.stdout}")
+            return True
+        except subprocess.TimeoutExpired:
+            logger.error(f"WhisperX timed out for {audio_path}")
+            return False
+        except Exception as e:
+            logger.error(f"Error processing {audio_path}: {e}")
+            return False
+
+    def main():
+        logger.info("Starting WhisperX processor")
+        logger.info(f"Input: {INPUT_DIR}, Output: {OUTPUT_DIR}")
+        logger.info(f"Model: {MODEL}, Language: {LANGUAGE}")
+        logger.info(f"Diarization: {'enabled' if HF_TOKEN else 'disabled (no HF_TOKEN)'}")
+
+        processed = load_processed() if SKIP_PROCESSED else set()
+        input_path = Path(INPUT_DIR)
+        output_path = Path(OUTPUT_DIR)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        # Find all audio files
+        audio_files = []
+        for ext in ['*.mp3', '*.wav', '*.m4a', '*.flac']:
+            audio_files.extend(input_path.glob(ext))
+
+        audio_files = sorted(audio_files, key=lambda f: f.name)
+        logger.info(f"Found {len(audio_files)} audio files")
+
+        if MAX_FILES > 0:
+            audio_files = audio_files[:MAX_FILES]
+            logger.info(f"Limited to {MAX_FILES} files for testing")
+
+        success_count = 0
+        for audio_file in audio_files:
+            if audio_file.name in processed:
+                logger.debug(f"Skipping already processed: {audio_file.name}")
+                continue
+
+            logger.info(f"Processing: {audio_file.name}")
+            output_file = output_path / f"{audio_file.stem}.json"
+
+            if process_audio(audio_file, output_file):
+                processed.add(audio_file.name)
+                success_count += 1
+                logger.info(f"Successfully processed: {audio_file.name}")
+
+        save_processed(processed)
+        logger.info(f"Processed {success_count} audio files with WhisperX")
+
+    if __name__ == '__main__':
+        main()
