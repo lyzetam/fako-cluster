@@ -38,7 +38,7 @@ resources:
   # - ollama-jetson2  # Separate deployment for jetson02 node with qwen3:4b
   - ollama-webui    # Keep original running
   - open-webui      # Test new namespace with shared storage
-  - whisper
+  # - whisper         # Disabled for WhisperX testing
   - whisper-cpu       # CPU-only Whisper with OpenAI-compatible API
   - piper
   # - piper-v13       # Piper (LinuxServer image) in separate namespace - DEACTIVATED
