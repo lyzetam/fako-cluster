@@ -21,6 +21,12 @@ spec:
     spec:
       # No imagePullSecrets needed - ghcr.io is public
 
+      # Ensure consistent permissions across init and main containers
+      securityContext:
+        runAsUser: 1000      # ubuntu user in speaches image
+        runAsGroup: 1000
+        fsGroup: 1000        # Ensures PVC is writable by group
+
       # Init container to download models before main container starts
       initContainers:
       - name: model-downloader
@@ -29,6 +35,8 @@ spec:
         - /bin/sh
         - -c
         - |
+          echo "Fixing permissions on existing cache..."
+          chmod -R u+rwX /home/ubuntu/.cache/huggingface/hub 2>/dev/null || true
           echo "Downloading Whisper model..."
           python3 -c "
           from huggingface_hub import snapshot_download
