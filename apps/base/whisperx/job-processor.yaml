@@ -20,21 +20,6 @@ spec:
         operator: Exists
       imagePullSecrets:
       - name: dockerhub-registry
-      initContainers:
-      - name: install-whisperx
-        image: python:3.11-slim
-        command:
-        - /bin/bash
-        - -c
-        - |
-          echo "Installing WhisperX and dependencies..."
-          apt-get update && apt-get install -y ffmpeg git
-          pip install --target=/packages whisperx torch torchaudio
-          echo "Installation complete. Packages:"
-          ls -la /packages/
-        volumeMounts:
-        - name: packages
-          mountPath: /packages
       containers:
       - name: whisperx
         image: nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
@@ -42,9 +27,13 @@ spec:
         - /bin/bash
         - -c
         - |
+          set -e
           echo "Setting up Python environment..."
-          apt-get update && apt-get install -y python3 python3-pip ffmpeg
-          export PYTHONPATH=/packages:$PYTHONPATH
+          apt-get update && apt-get install -y python3 python3-pip ffmpeg git
+          echo "Installing PyTorch with CUDA support..."
+          pip3 install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+          echo "Installing WhisperX..."
+          pip3 install --no-cache-dir whisperx
           echo "Running WhisperX processor..."
           python3 /scripts/process.py
         env:
@@ -89,8 +78,6 @@ spec:
           mountPath: /scripts
         - name: huggingface-cache
           mountPath: /root/.cache/huggingface
-        - name: packages
-          mountPath: /packages
       volumes:
       - name: compressed-audio
         nfs:
@@ -105,6 +92,4 @@ spec:
           name: whisperx-processor-script
           defaultMode: 0755
       - name: huggingface-cache
-        emptyDir: {}
-      - name: packages
         emptyDir: {}
