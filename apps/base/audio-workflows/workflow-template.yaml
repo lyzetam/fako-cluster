@@ -167,10 +167,16 @@ spec:
       - configMapRef:
           name: audio-transcriber-config
       env:
+      - name: WHISPER_API_TYPE
+        value: "whisperx"
       - name: WHISPER_BASE_URL
         value: "http://whisperx-api.whisperx.svc.cluster.local:8000"
       - name: WHISPER_API_KEY
         value: "not-required"
+      - name: WHISPERX_ALIGN
+        value: "true"
+      - name: WHISPERX_DIARIZE
+        value: "false"
       volumeMounts:
       - name: compressed-audio
         mountPath: /data/compressed
