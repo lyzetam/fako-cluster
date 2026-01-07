@@ -71,6 +71,21 @@ spec:
               value: "0.0.0.0"
             - name: PORT
               value: "8005"
+            # Obsidian trade journal integration (uses existing obsidian-api secret)
+            - name: OBSIDIAN_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_url
+                  optional: true
+            - name: OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_key
+                  optional: true
+            - name: OBSIDIAN_JOURNAL_FOLDER
+              value: "trading/Journal"
           livenessProbe:
             httpGet:
               path: /health
