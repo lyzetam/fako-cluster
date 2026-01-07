@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: trade-journal-sync
+  namespace: quantum-trades
+spec:
+  schedule: "0 * * * *"  # Every hour on the hour
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600  # Clean up after 1 hour
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: sync
+            image: curlimages/curl:8.5.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Syncing trades to Obsidian journal..."
+              curl -sf -X POST "http://trading-service:8005/api/trading/api/v1/orders/sync-journal" \
+                -H "Content-Type: application/json" \
+                --connect-timeout 10 \
+                --max-time 60
+              echo ""
+              echo "Sync complete"
+            resources:
+              requests:
+                memory: "32Mi"
+                cpu: "10m"
+              limits:
+                memory: "64Mi"
+                cpu: "100m"

@@ -23,3 +23,5 @@ resources:
   - external-secret-obsidian.yaml
   - configmap-scanner.yaml
   - cronjob-scanner.yaml
+  # Trade Journal Sync CronJob (hourly)
+  - cronjob-journal-sync.yaml
