@@ -9,7 +9,7 @@ data:
   CORS_ORIGINS: '["https://quantum.landryzetam.net"]'
 
   # Rate limiting configuration
-  RATE_LIMIT_CALLS_PER_MINUTE: "5"
+  RATE_LIMIT_CALLS_PER_MINUTE: "1000"
 
   # Microservice URLs
   TECHNICALS_SERVICE_URL: "http://technicals-service:8001"
