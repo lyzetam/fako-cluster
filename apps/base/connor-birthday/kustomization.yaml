@@ -12,4 +12,5 @@ resources:
 - aws-secret-store.yaml
 - external-secret-tunnel.yaml
 - external-secret-ghcr.yaml
+- external-secret-dockerhub.yaml
 - create-docker-registry-secret-job.yaml
