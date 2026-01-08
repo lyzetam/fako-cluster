@@ -14,10 +14,10 @@ spec:
         app: connor-birthday
     spec:
       imagePullSecrets:
-      - name: dockerhub-registry
+      - name: ghcr-registry
       containers:
       - name: nginx
-        image: lzetam/connor-birthday-trip:1.0.0
+        image: ghcr.io/lyzetam/connor-birthday-trip:1.0.0
         ports:
         - containerPort: 80
           name: http
