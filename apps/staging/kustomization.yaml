@@ -87,3 +87,6 @@ resources:
 
   # Argo Workflows - Audio Processing Pipeline
   - audio-workflows # Unified audio processing DAG (replaces CronJobs)
+
+  # Family Websites
+  - connor-birthday # Connor's 35th birthday surprise site
