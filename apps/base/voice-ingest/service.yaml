@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: voice-ingest
+  namespace: voice-ingest
+  labels:
+    app: voice-ingest
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: voice-ingest

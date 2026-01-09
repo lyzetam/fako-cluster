@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voice-ingest
+  namespace: voice-ingest
+  labels:
+    app: voice-ingest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voice-ingest
+  template:
+    metadata:
+      labels:
+        app: voice-ingest
+    spec:
+      containers:
+      - name: voice-ingest
+        image: python:3.11-slim
+        command: ['python', '/app/server.py']
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PORT
+          value: "8080"
+        - name: WHISPERX_URL
+          value: "http://whisperx-api.whisperx.svc.cluster.local:8000"
+        - name: OLLAMA_URL
+          value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+        - name: OLLAMA_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: voice-ingest-config
+              key: ollama_model
+        - name: OBSIDIAN_API_URL
+          valueFrom:
+            secretKeyRef:
+              name: obsidian-credentials
+              key: api_url
+              optional: true
+        - name: OBSIDIAN_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: obsidian-credentials
+              key: api_key
+              optional: true
+        - name: OBSIDIAN_FOLDER
+          valueFrom:
+            configMapKeyRef:
+              name: voice-ingest-config
+              key: obsidian_folder
+        - name: API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: voice-ingest-credentials
+              key: api_token
+        - name: UPLOAD_DIR
+          value: "/data/uploads"
+        - name: PROCESSED_DIR
+          value: "/data/processed"
+        - name: STATE_DIR
+          value: "/data/state"
+        volumeMounts:
+        - name: server-script
+          mountPath: /app
+        - name: uploads
+          mountPath: /data/uploads
+        - name: processed
+          mountPath: /data/processed
+        - name: state
+          mountPath: /data/state
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+      volumes:
+      - name: server-script
+        configMap:
+          name: voice-ingest-server-script
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: voice-uploads-pvc
+      - name: processed
+        persistentVolumeClaim:
+          claimName: voice-processed-pvc
+      - name: state
+        persistentVolumeClaim:
+          claimName: voice-state-pvc
