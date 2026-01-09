@@ -86,12 +86,6 @@ data:
     ingress:
     - hostname: fakocluster.landryzetam.net
       service: http://linkding:9090
-    # Cross-namespace route for family-webhook (shared tunnel)
-    - hostname: family-webhook.landryzetam.net
-      service: http://family-manager-webhook.family-manager.svc.cluster.local:80
-      originRequest:
-        connectTimeout: 30s
-        httpHostHeader: family-webhook.landryzetam.net
 
     - hostname: hello.example.com
       service: hello_world

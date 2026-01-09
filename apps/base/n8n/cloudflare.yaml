@@ -93,12 +93,6 @@ data:
         noTLSVerify: false
         keepAliveTimeout: 90s
         httpHostHeader: n8n.landryzetam.net
-    # Cross-namespace route for family-webhook (shared tunnel)
-    - hostname: family-webhook.landryzetam.net
-      service: http://family-manager-webhook.family-manager.svc.cluster.local:80
-      originRequest:
-        connectTimeout: 30s
-        httpHostHeader: family-webhook.landryzetam.net
 
     - hostname: hello.example.com
       service: hello_world
