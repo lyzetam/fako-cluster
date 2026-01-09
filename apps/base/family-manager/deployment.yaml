@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: family-manager-webhook
+  namespace: family-manager
+  labels:
+    app: family-manager-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: family-manager-webhook
+  template:
+    metadata:
+      labels:
+        app: family-manager-webhook
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: webhook
+          image: ghcr.io/lyzetam/family-manager-webhook:latest
+          ports:
+            - containerPort: 8765
+          env:
+            - name: OLLAMA_BASE_URL
+              value: "http://ollama.ollama.svc.cluster.local:11434"
+            - name: OLLAMA_MODEL
+              value: "gpt-oss:20b"
+          envFrom:
+            - secretRef:
+                name: family-manager-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8765
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8765
+            initialDelaySeconds: 5
+            periodSeconds: 10

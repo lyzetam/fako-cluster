@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: family-manager-webhook
+  namespace: family-manager
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - landryzetam.net
+      secretName: landryzetam-net-tls
+  rules:
+    - host: landryzetam.net
+      http:
+        paths:
+          - path: /voice
+            pathType: Prefix
+            backend:
+              service:
+                name: family-manager-webhook
+                port:
+                  number: 80
+          - path: /webhook
+            pathType: Prefix
+            backend:
+              service:
+                name: family-manager-webhook
+                port:
+                  number: 80
