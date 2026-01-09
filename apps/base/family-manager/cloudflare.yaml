@@ -71,12 +71,13 @@ data:
 
     ingress:
     - hostname: family-webhook.landryzetam.net
-      service: http://family-manager-webhook:80
+      service: http://family-manager-webhook.family-manager.svc.cluster.local:80
       originRequest:
         connectTimeout: 30s
         noTLSVerify: false
         keepAliveTimeout: 90s
         httpHostHeader: family-webhook.landryzetam.net
+        disableChunkedEncoding: true
 
     - hostname: hello.example.com
       service: hello_world
