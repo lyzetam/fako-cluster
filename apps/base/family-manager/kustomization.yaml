@@ -9,6 +9,7 @@ resources:
   - external-secret.yaml
   - external-secret-dockerhub.yaml
   - deployment.yaml
+  - deployment-bot.yaml
   - service.yaml
   - ingress.yaml
 
