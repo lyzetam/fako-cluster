@@ -90,3 +90,9 @@ resources:
 
   # Family Websites
   - connor-birthday # Connor's 35th birthday surprise site
+
+  # Voice Recording Pipeline
+  - voice-ingest    # Wearable voice recorder ingest service (Pi/XIAO → WhisperX → Obsidian)
+
+  # Family Management
+  - family-manager  # Family Manager webhook for Discord bot, Twilio voice, Nylas email
