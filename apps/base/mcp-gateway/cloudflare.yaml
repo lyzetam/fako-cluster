@@ -84,5 +84,12 @@ data:
         connectTimeout: 30s
         keepAliveTimeout: 90s
 
+    # Family Manager Webhook - ElevenLabs voice assistant
+    - hostname: family-webhook.landryzetam.net
+      service: http://family-manager-webhook.family-manager.svc.cluster.local:80
+      originRequest:
+        connectTimeout: 30s
+        keepAliveTimeout: 90s
+
     # Catch-all rule
     - service: http_status:404
