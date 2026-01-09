@@ -16,10 +16,10 @@ spec:
         app: family-manager-bot
     spec:
       imagePullSecrets:
-        - name: dockerhub-secret
+        - name: ghcr-registry
       containers:
         - name: bot
-          image: lzetam/family-manager-bot:latest
+          image: ghcr.io/lyzetam/family-manager-bot:latest
           command: ["python", "bot.py"]
           env:
             - name: OLLAMA_BASE_URL
