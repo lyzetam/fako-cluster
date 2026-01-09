@@ -12,6 +12,7 @@ resources:
   - deployment-bot.yaml
   - service.yaml
   - ingress.yaml
+  - cloudflare.yaml
 
 labels:
   - pairs:
