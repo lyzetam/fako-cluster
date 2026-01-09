@@ -86,11 +86,13 @@ data:
     ingress:
     - hostname: fakocluster.landryzetam.net
       service: http://linkding:9090
+    # Cross-namespace route for family-webhook (shared tunnel)
+    - hostname: family-webhook.landryzetam.net
+      service: http://family-manager-webhook.family-manager.svc.cluster.local:80
+      originRequest:
+        connectTimeout: 30s
+        httpHostHeader: family-webhook.landryzetam.net
 
-    # This rule sends traffic to the built-in hello-world HTTP server. This can help debug connectivity
-    # issues. If hello.example.com resolves and tunnel.example.com does not, then the problem is
-    # in the connection from cloudflared to your local service, not from the internet to cloudflared.
     - hostname: hello.example.com
       service: hello_world
-    # This rule matches any traffic which didn't match a previous rule, and responds with HTTP 404.
     - service: http_status:404
