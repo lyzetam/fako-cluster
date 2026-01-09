@@ -4,7 +4,9 @@ metadata:
   name: options-scanner
   namespace: quantum-trades
 spec:
-  schedule: "30 6,9,11,13,15 * * 1-5"
+  # Runs at 6am, 9am, 11am, 1pm, 3pm ET on weekdays
+  # Last scan at 3pm gives 1 hour to act before 4pm market close
+  schedule: "0 6,9,11,13,15 * * 1-5"
   timeZone: "America/New_York"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 10
