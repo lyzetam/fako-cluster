@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: voice-ingest-config
+  namespace: voice-ingest
+data:
+  ollama_model: "llama3.2:3b"
+  obsidian_folder: "Voice-Journals"

@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: voice-ingest
+resources:
+  - namespace.yaml
+  - aws-credentials-secret.yaml
+  - secret-store.yaml
+  - external-secret-obsidian.yaml
+  - external-secret-api-token.yaml
+  - storage.yaml
+  - configmap.yaml
+  - configmap-server-script.yaml
+  - deployment.yaml
+  - service.yaml
+  - service-nodeport.yaml
