@@ -24,3 +24,11 @@ data:
   TOP_PICKS_PER_LIST: "3"
   LOG_LEVEL: "INFO"
   # Market context is now auto-generated from sector ETF APIs (no manual updates needed)
+
+  # Sector Scanner Settings
+  # Scans healthcare, tech, financials, energy, consumer sectors for bullish/bearish signals
+  SECTOR_SCAN_ENABLED: "true"
+  SECTOR_SCAN_SECTORS: "healthcare,technology,financials,energy,consumer_discretionary"
+  SECTOR_SCAN_CALLS_PER_SECTOR: "5"
+  SECTOR_SCAN_PUTS_PER_SECTOR: "5"
+  SECTOR_SCAN_MIN_STRENGTH: "50"

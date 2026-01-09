@@ -32,9 +32,16 @@ spec:
           httpGet:
             path: /ready
             port: 2000
-          failureThreshold: 1
+          failureThreshold: 3
           initialDelaySeconds: 10
           periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 2000
+          failureThreshold: 2
+          initialDelaySeconds: 5
+          periodSeconds: 5
         volumeMounts:
         - name: config
           mountPath: /etc/cloudflared/config
@@ -62,7 +69,8 @@ metadata:
   namespace: family-manager
 data:
   config.yaml: |
-    tunnel: fakocluster
+    # Dedicated tunnel for family-manager (not shared with other apps)
+    tunnel: family-manager
 
     credentials-file: /etc/cloudflared/creds/credentials.json
 
@@ -79,6 +87,5 @@ data:
         httpHostHeader: family-webhook.landryzetam.net
         disableChunkedEncoding: true
 
-    - hostname: hello.example.com
-      service: hello_world
+    # Catch-all returns 404 for unmatched requests
     - service: http_status:404
