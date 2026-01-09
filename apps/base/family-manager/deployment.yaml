@@ -16,10 +16,10 @@ spec:
         app: family-manager-webhook
     spec:
       imagePullSecrets:
-        - name: ghcr-secret
+        - name: dockerhub-secret
       containers:
         - name: webhook
-          image: ghcr.io/lyzetam/family-manager-webhook:latest
+          image: lzetam/family-manager-webhook:latest
           ports:
             - containerPort: 8765
           env:
