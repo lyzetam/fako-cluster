@@ -8,6 +8,7 @@ resources:
   - secretstore.yaml
   - external-secret.yaml
   - external-secret-dockerhub.yaml
+  - redis.yaml
   - deployment.yaml
   - deployment-bot.yaml
   - service.yaml

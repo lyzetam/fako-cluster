@@ -27,6 +27,8 @@ spec:
               value: "http://ollama.ollama.svc.cluster.local:11434"
             - name: OLLAMA_MODEL
               value: "gpt-oss:20b"
+            - name: REDIS_URL
+              value: "redis://redis.family-manager.svc.cluster.local:6379/0"
           envFrom:
             - secretRef:
                 name: family-manager-secrets
