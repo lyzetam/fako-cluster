@@ -29,6 +29,8 @@ spec:
               value: "gpt-oss:20b"
             - name: REDIS_URL
               value: "redis://redis.family-manager.svc.cluster.local:6379/0"
+            - name: MEMORY_BACKEND
+              value: "supabase"
           envFrom:
             - secretRef:
                 name: family-manager-secrets
