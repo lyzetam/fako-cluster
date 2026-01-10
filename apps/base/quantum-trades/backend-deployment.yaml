@@ -90,6 +90,16 @@ spec:
                   key: TRADING_SERVICE_URL
             - name: SCAN_RESULTS_PATH
               value: "/app/scan_results"
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: NEXT_PUBLIC_SUPABASE_URL
+            - name: SUPABASE_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: SUPABASE_JWT_SECRET
           livenessProbe:
             httpGet:
               path: /api/health
