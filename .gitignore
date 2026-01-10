@@ -13,5 +13,7 @@ scripts/
 *-unencrypted.yaml
 *-unencrypted.yml
 *.sh
+# Allow automation scripts
+!automation/*.sh
 CLAUDE.md
 .claude/settings.local.json

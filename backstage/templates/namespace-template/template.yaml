@@ -1,0 +1,208 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: fako-namespace
+  title: Fako Cluster Namespace
+  description: Create a new Kubernetes namespace with all required scaffolding for fako-cluster
+  tags:
+    - kubernetes
+    - namespace
+    - gitops
+    - recommended
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Application Details
+      required:
+        - appName
+        - description
+      properties:
+        appName:
+          title: Application Name
+          type: string
+          description: Unique name for your application (lowercase, alphanumeric, dashes allowed)
+          pattern: "^[a-z][a-z0-9-]*[a-z0-9]$"
+          ui:autofocus: true
+          ui:help: "Example: my-awesome-api"
+        description:
+          title: Description
+          type: string
+          description: Short description of the application
+          ui:widget: textarea
+        owner:
+          title: Owner
+          type: string
+          description: Team or individual responsible for this application
+          ui:field: OwnerPicker
+          ui:options:
+            allowedKinds:
+              - Group
+              - User
+
+    - title: Container Configuration
+      required:
+        - image
+        - port
+      properties:
+        image:
+          title: Container Image
+          type: string
+          description: Docker image for the application
+          default: ghcr.io/lzetam/${{ parameters.appName }}:latest
+        port:
+          title: Container Port
+          type: integer
+          description: Port the application listens on
+          default: 8080
+        replicas:
+          title: Replicas
+          type: integer
+          description: Number of pod replicas
+          default: 1
+          minimum: 1
+          maximum: 10
+
+    - title: Features
+      properties:
+        enableIngress:
+          title: Enable Ingress
+          type: boolean
+          description: Expose the application via ingress controller
+          default: true
+        hostname:
+          title: Hostname
+          type: string
+          description: Ingress hostname (only if ingress is enabled)
+          default: ${{ parameters.appName }}.fako-cluster.local
+          ui:options:
+            dependencies:
+              enableIngress: true
+        enableSecrets:
+          title: Enable AWS Secrets Manager
+          type: boolean
+          description: Configure External Secrets for AWS Secrets Manager integration
+          default: false
+        enableStorage:
+          title: Enable Persistent Storage
+          type: boolean
+          description: Add a PersistentVolumeClaim for data persistence
+          default: false
+        storageSize:
+          title: Storage Size
+          type: string
+          description: Size of the PersistentVolumeClaim
+          default: "10Gi"
+          enum:
+            - "1Gi"
+            - "5Gi"
+            - "10Gi"
+            - "25Gi"
+            - "50Gi"
+            - "100Gi"
+          ui:options:
+            dependencies:
+              enableStorage: true
+        enableRedis:
+          title: Enable Redis Cache
+          type: boolean
+          description: Deploy a Redis instance for caching
+          default: false
+
+    - title: Resource Configuration
+      properties:
+        component:
+          title: Component Type
+          type: string
+          description: Application component label
+          default: application
+          enum:
+            - application
+            - frontend
+            - backend
+            - worker
+            - api
+            - database
+            - cache
+        partOf:
+          title: Part Of
+          type: string
+          description: Parent application or platform name
+          default: ${{ parameters.appName }}
+        resourcePreset:
+          title: Resource Preset
+          type: string
+          description: Predefined resource limits
+          default: small
+          enum:
+            - tiny
+            - small
+            - medium
+            - large
+          enumNames:
+            - "Tiny (128Mi/100m)"
+            - "Small (256Mi/100m)"
+            - "Medium (512Mi/250m)"
+            - "Large (1Gi/500m)"
+
+  steps:
+    - id: fetch-base
+      name: Fetch Base Template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        targetPath: apps
+        values:
+          appName: ${{ parameters.appName }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          image: ${{ parameters.image }}
+          port: ${{ parameters.port }}
+          replicas: ${{ parameters.replicas }}
+          enableIngress: ${{ parameters.enableIngress }}
+          hostname: ${{ parameters.hostname }}
+          enableSecrets: ${{ parameters.enableSecrets }}
+          enableStorage: ${{ parameters.enableStorage }}
+          storageSize: ${{ parameters.storageSize }}
+          enableRedis: ${{ parameters.enableRedis }}
+          component: ${{ parameters.component }}
+          partOf: ${{ parameters.partOf }}
+          resourcePreset: ${{ parameters.resourcePreset }}
+
+    - id: publish
+      name: Create Pull Request
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?repo=fako-cluster&owner=lzetam
+        branchName: feat/add-${{ parameters.appName }}-namespace
+        title: "feat: Add ${{ parameters.appName }} namespace"
+        description: |
+          ## New Namespace: ${{ parameters.appName }}
+
+          ${{ parameters.description }}
+
+          ### Configuration
+          - **Image**: `${{ parameters.image }}`
+          - **Port**: ${{ parameters.port }}
+          - **Replicas**: ${{ parameters.replicas }}
+          - **Ingress**: ${{ parameters.enableIngress }}
+          - **Secrets**: ${{ parameters.enableSecrets }}
+          - **Storage**: ${{ parameters.enableStorage }}
+          - **Redis**: ${{ parameters.enableRedis }}
+
+          ### Next Steps
+          1. Review the generated manifests
+          2. Update `external-secret.yaml` with your AWS secret paths (if secrets enabled)
+          3. Add `  - ${{ parameters.appName }}` to `apps/staging/kustomization.yaml`
+          4. Merge this PR to deploy via FluxCD
+
+          ---
+          *Generated by Backstage Software Template*
+
+  output:
+    links:
+      - title: View Pull Request
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: View Application Manifests
+        url: ${{ steps['publish'].output.remoteUrl }}/files

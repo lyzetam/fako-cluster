@@ -1,0 +1,16 @@
+{%- if values.enableStorage %}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ${{ values.appName }}-pvc
+  namespace: ${{ values.appName }}
+  labels:
+    app.kubernetes.io/name: ${{ values.appName }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: ${{ values.storageSize }}
+{%- endif %}

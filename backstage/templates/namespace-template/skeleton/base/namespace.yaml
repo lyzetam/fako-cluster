@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${{ values.appName }}
+  labels:
+    app.kubernetes.io/name: ${{ values.appName }}
+    app.kubernetes.io/part-of: ${{ values.partOf }}
+    app.kubernetes.io/managed-by: backstage
+  annotations:
+    backstage.io/owner: ${{ values.owner }}
+    backstage.io/description: ${{ values.description }}
