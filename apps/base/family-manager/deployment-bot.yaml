@@ -26,6 +26,8 @@ spec:
               value: "http://ollama.ollama.svc.cluster.local:11434"
             - name: OLLAMA_MODEL
               value: "llama3.2:3b"
+            - name: MEMORY_BACKEND
+              value: "supabase"
           envFrom:
             - secretRef:
                 name: family-manager-secrets
