@@ -15,3 +15,20 @@ scripts/
 *.sh
 CLAUDE.md
 .claude/settings.local.json
+
+# Terraform (IaC directory only - not Flux managed)
+iac/.terraform/
+iac/**/.terraform/
+iac/*.tfstate
+iac/*.tfstate.*
+iac/*.tfvars
+iac/*.tfvars.json
+iac/.terraform.lock.hcl
+iac/**/.terraform.lock.hcl
+iac/crash.log
+iac/crash.*.log
+iac/override.tf
+iac/override.tf.json
+iac/*_override.tf
+iac/*_override.tf.json
+iac/.DS_Store
