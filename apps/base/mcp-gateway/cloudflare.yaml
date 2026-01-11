@@ -91,5 +91,12 @@ data:
         connectTimeout: 30s
         keepAliveTimeout: 90s
 
+    # Market Replay Gateway - Options data recording and replay
+    - hostname: market-replay.landryzetam.net
+      service: http://market-replay-gateway.market-replay.svc.cluster.local:8000
+      originRequest:
+        connectTimeout: 30s
+        keepAliveTimeout: 90s
+
     # Catch-all rule
     - service: http_status:404
