@@ -33,17 +33,17 @@ spec:
       # Init container to verify service dependencies
       initContainers:
         - name: check-dependencies
-          image: curlimages/curl:8.0.1
+          image: busybox:1.36
           command:
             - sh
             - -c
             - |
               echo "Checking service dependencies..."
-              curl -f http://quantum-trades-technicals:8001/health/live || exit 1
-              curl -f http://quantum-trades-signals:8002/health/live || exit 1
-              curl -f http://quantum-trades-trading:8005/health/live || exit 1
-              curl -f http://quantum-trades-backend:8000/health/live || exit 1
-              echo "All dependencies healthy!"
+              nc -z technicals-service:8001 || exit 1
+              nc -z signals-service:8002 || exit 1
+              nc -z trading-service:8005 || exit 1
+              nc -z backend-service:8000 || exit 1
+              echo "All dependencies reachable!"
 
       # Main FastAPI service container
       containers:
@@ -97,17 +97,17 @@ spec:
 
             # Service URLs
             - name: TECHNICALS_SERVICE_URL
-              value: "http://quantum-trades-technicals:8001"
+              value: "http://technicals-service:8001"
             - name: SIGNALS_SERVICE_URL
-              value: "http://quantum-trades-signals:8002"
+              value: "http://signals-service:8002"
             - name: TRADING_SERVICE_URL
-              value: "http://quantum-trades-trading:8005"
+              value: "http://trading-service:8005"
             - name: BACKEND_SERVICE_URL
-              value: "http://quantum-trades-backend:8000"
+              value: "http://backend-service:8000"
 
             # Redis for state management
             - name: REDIS_URL
-              value: "redis://redis-cluster:6379/0"
+              value: "redis://redis-cluster:6379"
 
             # Memory paths
             - name: MEMORIES_DIR
