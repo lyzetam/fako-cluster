@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agents-config
+  namespace: quantum-trades
+  labels:
+    app: trading-coordinator
+data:
+  watchlist.json: |
+    ["NVDA", "AAPL", "TSLA", "AMD", "MSFT", "GOOGL", "META", "AMZN", "SPY", "QQQ"]
+  strategy_params.json: |
+    {
+      "min_signal_strength": 70,
+      "max_position_size": 100,
+      "profit_target_1": 0.30,
+      "profit_target_2": 0.50,
+      "stop_loss": 0.50,
+      "max_dte_entry": 30,
+      "min_dte_exit": 5,
+      "allowed_strategies": ["LONG_CALL", "LONG_PUT"],
+      "max_trades_per_day": 2
+    }
+  risk_limits.json: |
+    {
+      "daily_loss_limit": 50,
+      "weekly_loss_limit": 150,
+      "max_position_loss": 50
+    }
