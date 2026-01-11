@@ -96,3 +96,6 @@ resources:
 
   # Family Management
   - family-manager  # Family Manager webhook for Discord bot, Twilio voice, Nylas email
+
+  # AI Agents
+  - social-marketing-agent  # Social media marketing agent for new product introduction

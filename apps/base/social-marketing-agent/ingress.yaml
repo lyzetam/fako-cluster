@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: social-marketing-agent
+  namespace: social-marketing-agent
+  labels:
+    app.kubernetes.io/name: social-marketing-agent
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - social-marketing.local.lyzetam.com
+      secretName: social-marketing-tls
+  rules:
+    - host: social-marketing.local.lyzetam.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: social-marketing-coordinator
+                port:
+                  number: 80

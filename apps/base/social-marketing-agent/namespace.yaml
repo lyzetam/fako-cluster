@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: social-marketing-agent
+  labels:
+    app.kubernetes.io/name: social-marketing-agent
+    app.kubernetes.io/part-of: ai-agents

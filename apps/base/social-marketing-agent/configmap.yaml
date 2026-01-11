@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: social-marketing-config
+  namespace: social-marketing-agent
+  labels:
+    app.kubernetes.io/name: social-marketing-agent
+    app.kubernetes.io/component: config
+data:
+  # Platform configuration
+  platforms.json: |
+    {
+      "enabled": ["twitter", "linkedin", "instagram"],
+      "twitter": {
+        "max_length": 280,
+        "hashtag_count": 3,
+        "media_types": ["image", "video", "gif"],
+        "optimal_times": ["09:00", "12:00", "17:00", "20:00"]
+      },
+      "linkedin": {
+        "max_length": 3000,
+        "hashtag_count": 5,
+        "media_types": ["image", "video", "document", "carousel"],
+        "optimal_times": ["08:00", "12:00", "17:00"]
+      },
+      "instagram": {
+        "max_length": 2200,
+        "hashtag_count": 30,
+        "media_types": ["image", "video", "carousel", "reel", "story"],
+        "optimal_times": ["11:00", "14:00", "19:00"]
+      }
+    }
+
+  # Content strategy for new product introduction
+  content_strategy.json: |
+    {
+      "campaign_phases": [
+        {
+          "name": "teaser",
+          "duration_days": 7,
+          "post_frequency": 1,
+          "content_types": ["mystery", "countdown", "behind_scenes"]
+        },
+        {
+          "name": "launch",
+          "duration_days": 3,
+          "post_frequency": 3,
+          "content_types": ["announcement", "features", "demo", "testimonial"]
+        },
+        {
+          "name": "momentum",
+          "duration_days": 14,
+          "post_frequency": 2,
+          "content_types": ["use_cases", "tutorials", "user_stories", "faq"]
+        },
+        {
+          "name": "sustain",
+          "duration_days": 30,
+          "post_frequency": 1,
+          "content_types": ["updates", "community", "tips", "engagement"]
+        }
+      ],
+      "content_pillars": [
+        "product_features",
+        "customer_success",
+        "industry_insights",
+        "behind_the_scenes",
+        "community_engagement"
+      ],
+      "tone": "professional_yet_approachable",
+      "brand_voice": "innovative, helpful, authentic"
+    }
+
+  # Posting schedule configuration
+  schedule.json: |
+    {
+      "timezone": "America/New_York",
+      "posting_windows": {
+        "weekday": ["09:00-11:00", "12:00-14:00", "17:00-19:00"],
+        "weekend": ["10:00-12:00", "15:00-17:00"]
+      },
+      "max_posts_per_day": {
+        "twitter": 5,
+        "linkedin": 2,
+        "instagram": 3
+      },
+      "min_hours_between_posts": 2
+    }
+
+  # Engagement and analytics settings
+  engagement.json: |
+    {
+      "auto_respond": false,
+      "monitor_mentions": true,
+      "monitor_keywords": [],
+      "sentiment_threshold": 0.3,
+      "response_time_target_minutes": 60,
+      "analytics_refresh_interval": "1h"
+    }
+
+  # MCP tools configuration
+  mcp_tools.json: |
+    {
+      "mcp_gateway_url": "http://mcp-gateway.mcp-gateway.svc.cluster.local:8811",
+      "enabled_tools": [
+        "brave",
+        "fetch"
+      ],
+      "tool_usage": {
+        "brave": ["competitor_research", "trend_analysis", "hashtag_research"],
+        "fetch": ["content_scraping", "link_preview", "reference_gathering"]
+      }
+    }
+
+  # Agent prompts and instructions
+  agent_prompts.json: |
+    {
+      "system_prompt": "You are an expert social media marketing agent specializing in new product introductions. Your role is to create engaging, platform-optimized content that drives awareness, engagement, and conversions. You have access to tools for market research, competitor analysis, and content optimization.",
+      "content_generation": "Create compelling social media content for {platform} about {product}. Focus on {content_type}. Use the brand voice: {brand_voice}. Include relevant hashtags and a clear call-to-action.",
+      "competitor_analysis": "Analyze competitor {competitor} social media presence. Identify their content strategy, posting frequency, engagement rates, and successful content themes.",
+      "trend_research": "Research current trends in {industry} relevant to {product}. Identify trending hashtags, topics, and content formats that could enhance our product launch."
+    }

@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: social-marketing-memories-pvc
+  namespace: social-marketing-agent
+  labels:
+    app.kubernetes.io/name: social-marketing-agent
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: social-marketing-content-pvc
+  namespace: social-marketing-agent
+  labels:
+    app.kubernetes.io/name: social-marketing-agent
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 10Gi

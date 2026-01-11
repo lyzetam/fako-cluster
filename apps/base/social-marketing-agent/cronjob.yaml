@@ -1,0 +1,357 @@
+---
+# Content Generation CronJob - Runs every 4 hours during business hours
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: social-marketing-content-gen
+  namespace: social-marketing-agent
+  labels:
+    app.kubernetes.io/name: social-marketing-agent
+    app.kubernetes.io/component: content-generation
+spec:
+  schedule: "0 9,13,17 * * 1-5"  # 9am, 1pm, 5pm weekdays
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800  # 30 minutes max
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: social-marketing-agent
+            app.kubernetes.io/component: content-generation
+            job-type: content-gen
+        spec:
+          serviceAccountName: social-marketing-agent
+          imagePullSecrets:
+            - name: dockerhub-registry
+          restartPolicy: OnFailure
+          containers:
+            - name: content-gen
+              image: lzetam/social-marketing-agent:latest
+              imagePullPolicy: Always
+              command:
+                - python
+                - /app/app/loop/content_generation_loop.py
+              env:
+                - name: LOG_LEVEL
+                  value: "INFO"
+                - name: ANTHROPIC_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: ANTHROPIC_API_KEY
+                - name: MCP_GATEWAY_URL
+                  value: "http://mcp-gateway.mcp-gateway.svc.cluster.local:8811"
+                - name: MODEL_ID
+                  value: "claude-sonnet-4-5-20250929"
+                - name: MEMORIES_DIR
+                  value: "/memories"
+                - name: CONTENT_DIR
+                  value: "/content"
+                - name: CONFIG_DIR
+                  value: "/etc/config"
+              volumeMounts:
+                - name: memories
+                  mountPath: /memories
+                - name: content
+                  mountPath: /content
+                - name: config
+                  mountPath: /etc/config
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "256Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "512Mi"
+          volumes:
+            - name: memories
+              persistentVolumeClaim:
+                claimName: social-marketing-memories-pvc
+            - name: content
+              persistentVolumeClaim:
+                claimName: social-marketing-content-pvc
+            - name: config
+              configMap:
+                name: social-marketing-config
+---
+# Posting CronJob - Runs every hour during optimal posting windows
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: social-marketing-posting
+  namespace: social-marketing-agent
+  labels:
+    app.kubernetes.io/name: social-marketing-agent
+    app.kubernetes.io/component: posting
+spec:
+  schedule: "0 9-19 * * *"  # Every hour 9am-7pm
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900  # 15 minutes max
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: social-marketing-agent
+            app.kubernetes.io/component: posting
+            job-type: posting
+        spec:
+          serviceAccountName: social-marketing-agent
+          imagePullSecrets:
+            - name: dockerhub-registry
+          restartPolicy: OnFailure
+          containers:
+            - name: poster
+              image: lzetam/social-marketing-agent:latest
+              imagePullPolicy: Always
+              command:
+                - python
+                - /app/app/loop/posting_loop.py
+              env:
+                - name: LOG_LEVEL
+                  value: "INFO"
+                - name: ANTHROPIC_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: ANTHROPIC_API_KEY
+                - name: TWITTER_BEARER_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: TWITTER_BEARER_TOKEN
+                - name: TWITTER_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: TWITTER_API_KEY
+                - name: TWITTER_API_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: TWITTER_API_SECRET
+                - name: TWITTER_ACCESS_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: TWITTER_ACCESS_TOKEN
+                - name: TWITTER_ACCESS_TOKEN_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: TWITTER_ACCESS_TOKEN_SECRET
+                - name: LINKEDIN_ACCESS_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: LINKEDIN_ACCESS_TOKEN
+                - name: INSTAGRAM_ACCESS_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: INSTAGRAM_ACCESS_TOKEN
+                - name: INSTAGRAM_BUSINESS_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: INSTAGRAM_BUSINESS_ID
+                - name: MEMORIES_DIR
+                  value: "/memories"
+                - name: CONTENT_DIR
+                  value: "/content"
+                - name: CONFIG_DIR
+                  value: "/etc/config"
+              volumeMounts:
+                - name: memories
+                  mountPath: /memories
+                - name: content
+                  mountPath: /content
+                - name: config
+                  mountPath: /etc/config
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "128Mi"
+                limits:
+                  cpu: "250m"
+                  memory: "256Mi"
+          volumes:
+            - name: memories
+              persistentVolumeClaim:
+                claimName: social-marketing-memories-pvc
+            - name: content
+              persistentVolumeClaim:
+                claimName: social-marketing-content-pvc
+            - name: config
+              configMap:
+                name: social-marketing-config
+---
+# Analytics CronJob - Runs daily to gather engagement metrics
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: social-marketing-analytics
+  namespace: social-marketing-agent
+  labels:
+    app.kubernetes.io/name: social-marketing-agent
+    app.kubernetes.io/component: analytics
+spec:
+  schedule: "0 6 * * *"  # 6am daily
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800  # 30 minutes max
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: social-marketing-agent
+            app.kubernetes.io/component: analytics
+            job-type: analytics
+        spec:
+          serviceAccountName: social-marketing-agent
+          imagePullSecrets:
+            - name: dockerhub-registry
+          restartPolicy: OnFailure
+          containers:
+            - name: analytics
+              image: lzetam/social-marketing-agent:latest
+              imagePullPolicy: Always
+              command:
+                - python
+                - /app/app/loop/analytics_loop.py
+              env:
+                - name: LOG_LEVEL
+                  value: "INFO"
+                - name: ANTHROPIC_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: ANTHROPIC_API_KEY
+                - name: TWITTER_BEARER_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: TWITTER_BEARER_TOKEN
+                - name: LINKEDIN_ACCESS_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: LINKEDIN_ACCESS_TOKEN
+                - name: INSTAGRAM_ACCESS_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: INSTAGRAM_ACCESS_TOKEN
+                - name: MEMORIES_DIR
+                  value: "/memories"
+                - name: CONFIG_DIR
+                  value: "/etc/config"
+              volumeMounts:
+                - name: memories
+                  mountPath: /memories
+                - name: config
+                  mountPath: /etc/config
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "128Mi"
+                limits:
+                  cpu: "250m"
+                  memory: "256Mi"
+          volumes:
+            - name: memories
+              persistentVolumeClaim:
+                claimName: social-marketing-memories-pvc
+            - name: config
+              configMap:
+                name: social-marketing-config
+---
+# Competitor Research CronJob - Weekly deep analysis
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: social-marketing-competitor-research
+  namespace: social-marketing-agent
+  labels:
+    app.kubernetes.io/name: social-marketing-agent
+    app.kubernetes.io/component: research
+spec:
+  schedule: "0 5 * * 1"  # 5am every Monday
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 4
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600  # 1 hour max
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: social-marketing-agent
+            app.kubernetes.io/component: research
+            job-type: competitor-research
+        spec:
+          serviceAccountName: social-marketing-agent
+          imagePullSecrets:
+            - name: dockerhub-registry
+          restartPolicy: OnFailure
+          containers:
+            - name: researcher
+              image: lzetam/social-marketing-agent:latest
+              imagePullPolicy: Always
+              command:
+                - python
+                - /app/app/loop/research_loop.py
+              env:
+                - name: LOG_LEVEL
+                  value: "INFO"
+                - name: ANTHROPIC_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: agents-secrets
+                      key: ANTHROPIC_API_KEY
+                - name: MCP_GATEWAY_URL
+                  value: "http://mcp-gateway.mcp-gateway.svc.cluster.local:8811"
+                - name: MODEL_ID
+                  value: "claude-sonnet-4-5-20250929"
+                - name: MEMORIES_DIR
+                  value: "/memories"
+                - name: CONFIG_DIR
+                  value: "/etc/config"
+              volumeMounts:
+                - name: memories
+                  mountPath: /memories
+                - name: config
+                  mountPath: /etc/config
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "256Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "512Mi"
+          volumes:
+            - name: memories
+              persistentVolumeClaim:
+                claimName: social-marketing-memories-pvc
+            - name: config
+              configMap:
+                name: social-marketing-config
