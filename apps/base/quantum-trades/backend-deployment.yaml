@@ -88,6 +88,11 @@ spec:
                 configMapKeyRef:
                   name: quantum-trades-config
                   key: TRADING_SERVICE_URL
+            - name: MARKET_REPLAY_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: quantum-trades-config
+                  key: MARKET_REPLAY_URL
             - name: SCAN_RESULTS_PATH
               value: "/app/scan_results"
             - name: SUPABASE_URL
