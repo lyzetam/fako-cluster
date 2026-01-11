@@ -68,17 +68,17 @@ spec:
 
             # Service URLs
             - name: TECHNICALS_SERVICE_URL
-              value: "http://quantum-trades-technicals:8001"
+              value: "http://technicals-service:8001"
             - name: SIGNALS_SERVICE_URL
-              value: "http://quantum-trades-signals:8002"
+              value: "http://signals-service:8002"
             - name: TRADING_SERVICE_URL
-              value: "http://quantum-trades-trading:8005"
+              value: "http://trading-service:8005"
             - name: BACKEND_SERVICE_URL
-              value: "http://quantum-trades-backend:8000"
+              value: "http://backend-service:8000"
 
             # Redis for state
             - name: REDIS_URL
-              value: "redis://redis-cluster:6379/0"
+              value: "redis://redis-cluster:6379"
 
             # Memory paths
             - name: MEMORIES_DIR
