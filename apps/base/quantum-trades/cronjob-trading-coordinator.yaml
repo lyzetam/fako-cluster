@@ -1,0 +1,186 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: trading-coordinator
+  namespace: quantum-trades
+  labels:
+    app: trading-coordinator
+    component: autonomous-trading
+spec:
+  # Run every minute during market hours (9:30 AM - 4:00 PM ET, Mon-Fri)
+  # Kubernetes CronJob uses UTC, so we need to adjust for ET timezone
+  # EST: 9:30 AM = 14:30 UTC, 4:00 PM = 21:00 UTC
+  # EDT: 9:30 AM = 13:30 UTC, 4:00 PM = 20:00 UTC
+  # For simplicity, run every minute during a wider window to catch market hours
+  schedule: "*/1 * * * *"
+
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 120  # 2 minutes max per cycle
+
+      template:
+        metadata:
+          labels:
+            app: trading-coordinator
+            job-type: trading-cycle
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "8086"
+
+        spec:
+          serviceAccountName: trading-coordinator
+          restartPolicy: Never
+
+          containers:
+          - name: coordinator
+            image: lzetam/quantum-trades-agents:latest
+            imagePullPolicy: Always
+
+            command:
+            - python
+            - -m
+            - app.loop.trading_loop
+
+            env:
+            # Core configuration
+            - name: TRADING_MODE
+              value: "live"
+            - name: LOG_LEVEL
+              value: "INFO"
+
+            # API Keys
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agents-secrets
+                  key: anthropic_api_key
+
+            - name: TRADIER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agents-secrets
+                  key: tradier_api_key
+
+            # Service URLs
+            - name: TECHNICALS_SERVICE_URL
+              value: "http://quantum-trades-technicals:8001"
+            - name: SIGNALS_SERVICE_URL
+              value: "http://quantum-trades-signals:8002"
+            - name: TRADING_SERVICE_URL
+              value: "http://quantum-trades-trading:8005"
+            - name: BACKEND_SERVICE_URL
+              value: "http://quantum-trades-backend:8000"
+
+            # Redis for state
+            - name: REDIS_URL
+              value: "redis://redis-cluster:6379/0"
+
+            # Memory paths
+            - name: MEMORIES_DIR
+              value: "/memories"
+
+            # Capital settings
+            - name: INITIAL_CAPITAL
+              value: "500"
+            - name: MAX_DAILY_LOSS
+              value: "50"
+            - name: MAX_WEEKLY_LOSS
+              value: "150"
+
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+
+            volumeMounts:
+            - name: memories
+              mountPath: /memories
+            - name: config
+              mountPath: /etc/agents
+              readOnly: true
+
+          volumes:
+          - name: memories
+            persistentVolumeClaim:
+              claimName: trading-memories-pvc
+
+          - name: config
+            configMap:
+              name: agents-config
+              items:
+              - key: strategy_params.json
+                path: strategy_params.json
+              - key: risk_limits.json
+                path: risk_limits.json
+              - key: watchlist.json
+                path: watchlist.json
+
+---
+# Service Account for CronJob
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: trading-coordinator
+  namespace: quantum-trades
+
+---
+# Role for trading operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: trading-coordinator
+  namespace: quantum-trades
+rules:
+# Allow reading/writing ConfigMaps
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+# Allow reading Secrets
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+# Allow creating Events for logging
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+# RoleBinding for ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: trading-coordinator
+  namespace: quantum-trades
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: trading-coordinator
+subjects:
+- kind: ServiceAccount
+  name: trading-coordinator
+  namespace: quantum-trades
+
+---
+# PVC for persistent memory (/memories directory)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: trading-memories-pvc
+  namespace: quantum-trades
+  labels:
+    app: trading-coordinator
+spec:
+  accessModes:
+    - ReadWriteMany  # Multiple pods can read/write
+  storageClassName: nfs-csi-v2  # Use NFS CSI v2 for shared storage
+  resources:
+    requests:
+      storage: 10Gi  # 10GB for trade history, patterns, logs

@@ -1,0 +1,242 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-coordinator
+  namespace: quantum-trades
+  labels:
+    app: trading-coordinator
+    component: autonomous-trading
+spec:
+  replicas: 1  # CRITICAL: Only 1 replica to avoid concurrent autonomous loops
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1      # Allow 1 extra pod during rolling update
+      maxUnavailable: 0  # Always have 1 running (for zero-downtime deployments)
+  selector:
+    matchLabels:
+      app: trading-coordinator
+      component: autonomous-trading
+  template:
+    metadata:
+      labels:
+        app: trading-coordinator
+        component: autonomous-trading
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8086"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: trading-coordinator
+      automountServiceAccountToken: true
+
+      # Init container to verify service dependencies
+      initContainers:
+        - name: check-dependencies
+          image: curlimages/curl:8.0.1
+          command:
+            - sh
+            - -c
+            - |
+              echo "Checking service dependencies..."
+              curl -f http://quantum-trades-technicals:8001/health/live || exit 1
+              curl -f http://quantum-trades-signals:8002/health/live || exit 1
+              curl -f http://quantum-trades-trading:8005/health/live || exit 1
+              curl -f http://quantum-trades-backend:8000/health/live || exit 1
+              echo "All dependencies healthy!"
+
+      # Main FastAPI service container
+      containers:
+        - name: coordinator
+          image: lzetam/quantum-trades-agents:latest
+          imagePullPolicy: Always
+
+          # Command to run FastAPI via uvicorn
+          command:
+            - python
+            - -m
+            - uvicorn
+            - app.main:app
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8006"
+            - --loop
+            - uvloop
+
+          ports:
+            - name: http
+              containerPort: 8006
+              protocol: TCP
+            - name: metrics
+              containerPort: 8086
+              protocol: TCP
+
+          # Environment Variables
+          env:
+            # Core configuration
+            - name: TRADING_MODE
+              value: "live"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: LOG_FORMAT
+              value: "json"
+
+            # API Keys - from Kubernetes Secrets
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agents-secrets
+                  key: anthropic_api_key
+
+            - name: TRADIER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agents-secrets
+                  key: tradier_api_key
+
+            # Service URLs
+            - name: TECHNICALS_SERVICE_URL
+              value: "http://quantum-trades-technicals:8001"
+            - name: SIGNALS_SERVICE_URL
+              value: "http://quantum-trades-signals:8002"
+            - name: TRADING_SERVICE_URL
+              value: "http://quantum-trades-trading:8005"
+            - name: BACKEND_SERVICE_URL
+              value: "http://quantum-trades-backend:8000"
+
+            # Redis for state management
+            - name: REDIS_URL
+              value: "redis://redis-cluster:6379/0"
+
+            # Memory paths
+            - name: MEMORIES_DIR
+              value: "/memories"
+
+            # Capital settings
+            - name: INITIAL_CAPITAL
+              value: "500"
+            - name: MAX_DAILY_LOSS
+              value: "50"
+            - name: MAX_WEEKLY_LOSS
+              value: "150"
+            - name: MAX_POSITION_SIZE
+              value: "100"
+            - name: TARGET_DAILY_GAIN_PERCENT
+              value: "20"
+
+            # AWS Configuration (for Secrets Manager if needed)
+            - name: AWS_REGION
+              value: "us-east-1"
+
+            # Model Configuration
+            - name: MODEL_ID
+              value: "claude-sonnet-4-5-20250929"
+            - name: MAX_TOKENS
+              value: "4096"
+
+          # Volume Mounts
+          volumeMounts:
+            - name: memories
+              mountPath: /memories
+            - name: config
+              mountPath: /etc/agents
+              readOnly: true
+
+          # Resource Limits and Requests
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          # Liveness Probe - is the service running?
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Readiness Probe - is it ready to accept requests?
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+
+          # Security Context
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+
+      # Volumes
+      volumes:
+        - name: memories
+          persistentVolumeClaim:
+            claimName: trading-memories-pvc  # Shared with CronJob
+        - name: config
+          configMap:
+            name: agents-config  # Shared with CronJob
+            items:
+              - key: strategy_params.json
+                path: strategy_params.json
+              - key: risk_limits.json
+                path: risk_limits.json
+              - key: watchlist.json
+                path: watchlist.json
+
+      # Pod Behavior
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+
+      # Node Affinity - prefer to run on same node as CronJob pod if possible
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: job-type
+                      operator: In
+                      values:
+                        - trading-cycle
+                topologyKey: kubernetes.io/hostname
+
+---
+# Service for trading-coordinator Deployment
+apiVersion: v1
+kind: Service
+metadata:
+  name: trading-coordinator
+  namespace: quantum-trades
+  labels:
+    app: trading-coordinator
+spec:
+  type: ClusterIP
+  selector:
+    app: trading-coordinator
+    component: autonomous-trading
+  ports:
+    - name: http
+      port: 8086
+      targetPort: 8006
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 8086
+      protocol: TCP
+  sessionAffinity: None
