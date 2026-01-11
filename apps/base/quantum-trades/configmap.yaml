@@ -17,3 +17,6 @@ data:
   STRATEGIES_SERVICE_URL: "http://strategies-service:8003"
   BACKTESTING_SERVICE_URL: "http://backtesting-service:8004"
   TRADING_SERVICE_URL: "http://trading-service:8005"
+
+  # Market Replay Service (in market-replay namespace)
+  MARKET_REPLAY_URL: "http://market-replay-gateway.market-replay.svc.cluster.local:8000"
