@@ -47,8 +47,7 @@ spec:
 
             command:
             - python
-            - -m
-            - app.loop.trading_loop
+            - /app/app/loop/trading_loop.py
 
             env:
             # Core configuration
