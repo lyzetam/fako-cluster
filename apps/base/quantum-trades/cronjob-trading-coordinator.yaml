@@ -62,13 +62,13 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: agents-secrets
-                  key: anthropic_api_key
+                  key: ANTHROPIC_API_KEY
 
             - name: TRADIER_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: agents-secrets
-                  key: tradier_api_key
+                  key: TRADIER_API_KEY
 
             # Service URLs
             - name: TECHNICALS_SERVICE_URL
