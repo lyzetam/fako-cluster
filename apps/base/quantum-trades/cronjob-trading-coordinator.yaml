@@ -36,6 +36,10 @@ spec:
           serviceAccountName: trading-coordinator
           restartPolicy: Never
 
+          # Docker Hub credentials for image pull
+          imagePullSecrets:
+            - name: dockerhub-registry
+
           containers:
           - name: coordinator
             image: lzetam/quantum-trades-agents:latest

@@ -30,6 +30,10 @@ spec:
       serviceAccountName: trading-coordinator
       automountServiceAccountToken: true
 
+      # Docker Hub credentials for image pull
+      imagePullSecrets:
+        - name: dockerhub-registry
+
       # Init container to verify service dependencies
       initContainers:
         - name: check-dependencies
