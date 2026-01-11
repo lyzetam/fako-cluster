@@ -25,3 +25,6 @@ resources:
   - cronjob-scanner.yaml
   # Trade Journal Sync CronJob (hourly)
   - cronjob-journal-sync.yaml
+  # Trading Coordinator - Autonomous trading system with 8 LangChain Deep Agents
+  - cronjob-trading-coordinator.yaml
+  - agents-coordinator-deployment.yaml
