@@ -1,0 +1,263 @@
+# Namespace Automation Agent - Tool Definitions
+# These tools can be used by an AI agent to automate namespace creation
+
+tools:
+  - name: create_namespace
+    description: |
+      Create a new Kubernetes namespace with all required scaffolding for fako-cluster.
+      Generates deployment, service, and optional components (ingress, secrets, storage, redis).
+      Use this for quick, single namespace creation via CLI.
+    parameters:
+      type: object
+      required:
+        - app_name
+      properties:
+        app_name:
+          type: string
+          description: Unique name for the application (lowercase, alphanumeric, dashes allowed)
+          pattern: "^[a-z][a-z0-9-]*[a-z0-9]$"
+        image:
+          type: string
+          description: Container image (default: ghcr.io/lzetam/<app-name>:latest)
+        port:
+          type: integer
+          description: Container port (default: 8080)
+          default: 8080
+        replicas:
+          type: integer
+          description: Number of pod replicas
+          default: 1
+        enable_ingress:
+          type: boolean
+          description: Expose the application via ingress controller
+          default: false
+        hostname:
+          type: string
+          description: Ingress hostname (only used if enable_ingress is true)
+        enable_secrets:
+          type: boolean
+          description: Configure External Secrets for AWS Secrets Manager integration
+          default: false
+        enable_storage:
+          type: boolean
+          description: Add a PersistentVolumeClaim for data persistence
+          default: false
+        storage_size:
+          type: string
+          description: Size of the PersistentVolumeClaim
+          default: "10Gi"
+        enable_redis:
+          type: boolean
+          description: Deploy a Redis instance for caching
+          default: false
+        component:
+          type: string
+          description: Application component label
+          enum: [application, frontend, backend, worker, api, database, cache]
+          default: application
+        part_of:
+          type: string
+          description: Parent application or platform name
+        register:
+          type: boolean
+          description: Automatically register in apps/staging/kustomization.yaml
+          default: false
+        dry_run:
+          type: boolean
+          description: Preview what would be created without writing files
+          default: false
+
+  - name: create_namespace_batch
+    description: |
+      Create multiple Kubernetes namespaces at once using Terraform.
+      Best for bulk creation or when you need to track state.
+      Generates all manifests and can apply them in one operation.
+    parameters:
+      type: object
+      required:
+        - namespaces
+      properties:
+        namespaces:
+          type: array
+          description: List of namespace configurations to create
+          items:
+            type: object
+            required:
+              - app_name
+            properties:
+              app_name:
+                type: string
+                description: Unique name for the application
+              image:
+                type: string
+              port:
+                type: integer
+                default: 8080
+              enable_ingress:
+                type: boolean
+                default: false
+              enable_secrets:
+                type: boolean
+                default: false
+              enable_storage:
+                type: boolean
+                default: false
+              enable_redis:
+                type: boolean
+                default: false
+              component:
+                type: string
+                default: application
+              part_of:
+                type: string
+        plan_only:
+          type: boolean
+          description: Only show what would be created (terraform plan)
+          default: false
+        auto_approve:
+          type: boolean
+          description: Apply without confirmation
+          default: false
+
+  - name: list_namespaces
+    description: |
+      List all application namespaces currently deployed in the cluster.
+      Returns namespace names, their components, and deployment status.
+    parameters:
+      type: object
+      properties:
+        filter:
+          type: string
+          description: Filter namespaces by name pattern (glob)
+        show_status:
+          type: boolean
+          description: Include pod status for each namespace
+          default: false
+
+  - name: get_namespace_template
+    description: |
+      Get the YAML template for a specific namespace configuration.
+      Useful for reviewing what would be generated without creating files.
+    parameters:
+      type: object
+      required:
+        - app_name
+      properties:
+        app_name:
+          type: string
+        enable_ingress:
+          type: boolean
+          default: false
+        enable_secrets:
+          type: boolean
+          default: false
+        enable_storage:
+          type: boolean
+          default: false
+        enable_redis:
+          type: boolean
+          default: false
+
+  - name: validate_namespace_config
+    description: |
+      Validate a namespace configuration before creation.
+      Checks for naming conflicts, resource availability, and configuration errors.
+    parameters:
+      type: object
+      required:
+        - app_name
+      properties:
+        app_name:
+          type: string
+        check_secrets:
+          type: boolean
+          description: Verify AWS secrets exist
+          default: false
+        check_resources:
+          type: boolean
+          description: Check cluster has sufficient resources
+          default: false
+
+  - name: delete_namespace
+    description: |
+      Remove a namespace and all its resources from the GitOps configuration.
+      This removes the manifests from git; FluxCD will handle actual deletion.
+    parameters:
+      type: object
+      required:
+        - app_name
+      properties:
+        app_name:
+          type: string
+          description: Name of the namespace to delete
+        force:
+          type: boolean
+          description: Skip confirmation prompt
+          default: false
+        keep_secrets:
+          type: boolean
+          description: Keep AWS Secrets Manager secrets
+          default: true
+
+  - name: update_namespace
+    description: |
+      Update an existing namespace configuration.
+      Modifies manifests and commits changes for FluxCD reconciliation.
+    parameters:
+      type: object
+      required:
+        - app_name
+      properties:
+        app_name:
+          type: string
+        image:
+          type: string
+          description: New container image
+        replicas:
+          type: integer
+          description: New replica count
+        add_ingress:
+          type: boolean
+          description: Add ingress if not present
+        add_storage:
+          type: boolean
+          description: Add storage if not present
+        add_redis:
+          type: boolean
+          description: Add redis if not present
+        resources:
+          type: object
+          description: Update resource requests/limits
+          properties:
+            requests_memory:
+              type: string
+            requests_cpu:
+              type: string
+            limits_memory:
+              type: string
+            limits_cpu:
+              type: string
+
+  - name: add_secret_mapping
+    description: |
+      Add a new secret mapping to an existing namespace's external-secret.yaml.
+      Maps an AWS Secrets Manager secret to a Kubernetes secret key.
+    parameters:
+      type: object
+      required:
+        - app_name
+        - secret_key
+        - aws_secret_path
+      properties:
+        app_name:
+          type: string
+          description: Target namespace
+        secret_key:
+          type: string
+          description: Environment variable name in the pod
+        aws_secret_path:
+          type: string
+          description: Path in AWS Secrets Manager
+        property:
+          type: string
+          description: JSON property within the secret
