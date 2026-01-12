@@ -13,7 +13,10 @@ resources:
   - networkpolicy.yaml
   - agent-prompts-configmap.yaml
 
-commonLabels:
-  app.kubernetes.io/name: orchestrator
-  app.kubernetes.io/component: ai-agents
-  app.kubernetes.io/part-of: claude-agent-platform
+# Use labels instead of commonLabels to avoid corrupting network policy selectors
+labels:
+  - pairs:
+      app.kubernetes.io/name: orchestrator
+      app.kubernetes.io/component: ai-agents
+      app.kubernetes.io/part-of: claude-agent-platform
+    includeSelectors: false
