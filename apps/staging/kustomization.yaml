@@ -48,7 +48,8 @@ resources:
   
   # AI Agent
   # - kagent         # Kubernetes AI assistant
-  
+  - claude-code     # Claude Code container for n8n SSH orchestration
+
   # MCP Servers for Kagent
   # - mcp-servers    # Model Context Protocol servers
   
