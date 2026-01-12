@@ -5,6 +5,7 @@ namespace: orchestrator
 
 resources:
   - namespace.yaml
+  - aws-secret-store.yaml
   - deployment.yaml
   - service.yaml
   - external-secret.yaml
