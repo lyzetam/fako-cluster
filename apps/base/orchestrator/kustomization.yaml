@@ -9,6 +9,7 @@ resources:
   - service.yaml
   - external-secret.yaml
   - networkpolicy.yaml
+  - agent-prompts-configmap.yaml
 
 commonLabels:
   app.kubernetes.io/name: orchestrator
