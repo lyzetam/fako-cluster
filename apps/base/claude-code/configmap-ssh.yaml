@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: claude-code-ssh-pubkey
+  namespace: claude-code
+data:
+  authorized_keys: |
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHRgY0/fh/JEI2P+dsmkcLIAJ7Vzw+Gi5FJa1cBThWpv n8n-claude-code

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-code
+  namespace: claude-code
+  labels:
+    app: claude-code
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: claude-code
+  template:
+    metadata:
+      labels:
+        app: claude-code
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: claude-code
+          image: lzetam/claude-code:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 22
+              name: ssh
+          env:
+            - name: CLAUDE_CODE_OAUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: claude-code-oauth
+                  key: oauth-token
+          volumeMounts:
+            - name: ssh-pubkey
+              mountPath: /home/claude/.ssh
+              readOnly: true
+          resources:
+            limits:
+              cpu: "2"
+              memory: 4Gi
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+          livenessProbe:
+            exec:
+              command:
+                - service
+                - ssh
+                - status
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: 22
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: ssh-pubkey
+          configMap:
+            name: claude-code-ssh-pubkey
+            defaultMode: 0600
+            items:
+              - key: authorized_keys
+                path: authorized_keys
