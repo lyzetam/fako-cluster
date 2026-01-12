@@ -97,3 +97,6 @@ resources:
 
   # Family Management
   - family-manager  # Family Manager webhook for Discord bot, Twilio voice, Nylas email
+
+  # Agent Orchestration
+  - orchestrator    # Claude Agent SDK orchestrator for AI workflows
