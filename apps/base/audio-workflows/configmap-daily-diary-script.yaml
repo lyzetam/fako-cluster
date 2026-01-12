@@ -103,11 +103,12 @@ data:
 
     def group_transcripts_by_date(json_files, cutoff_time=None):
         """Group JSON transcript files by date, optionally filtering by timestamp."""
+        from datetime import timezone
         by_date = defaultdict(list)
         for json_file in json_files:
             # Apply timestamp filter if enabled
             if USE_TIMESTAMP_FILTER and cutoff_time:
-                mtime = datetime.fromtimestamp(json_file.stat().st_mtime)
+                mtime = datetime.fromtimestamp(json_file.stat().st_mtime, tz=timezone.utc)
                 if mtime < cutoff_time:
                     continue
 

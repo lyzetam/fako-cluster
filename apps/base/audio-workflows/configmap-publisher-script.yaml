@@ -71,8 +71,9 @@ data:
     def should_process_file(json_file, processed_set, cutoff_time):
         """Determine if file should be processed based on filtering mode."""
         if USE_TIMESTAMP_FILTER and cutoff_time:
-            # Use file modification time for filtering
-            mtime = datetime.fromtimestamp(json_file.stat().st_mtime)
+            # Use file modification time for filtering (timezone-aware to match cutoff_time)
+            from datetime import timezone
+            mtime = datetime.fromtimestamp(json_file.stat().st_mtime, tz=timezone.utc)
             # Process files modified since last workflow (with buffer)
             if mtime < cutoff_time:
                 logger.debug(f"Skipping {json_file.name} - older than cutoff")
