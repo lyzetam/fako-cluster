@@ -9,6 +9,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - external-secret.yaml
+  - external-secret-dockerhub.yaml
   - networkpolicy.yaml
   - agent-prompts-configmap.yaml
 
