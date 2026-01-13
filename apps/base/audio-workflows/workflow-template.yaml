@@ -178,7 +178,7 @@ spec:
       - name: WHISPER_API_KEY
         value: "not-required"
       - name: WHISPERX_ALIGN
-        value: "true"
+        value: "false"
       - name: WHISPERX_DIARIZE
         value: "false"
       volumeMounts:
