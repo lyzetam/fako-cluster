@@ -22,10 +22,6 @@ spec:
           image: lzetam/family-manager-bot:latest
           command: ["python", "bot.py"]
           env:
-            - name: OLLAMA_BASE_URL
-              value: "http://10.85.30.20:11434"
-            - name: OLLAMA_MODEL
-              value: "gpt-oss:20b"
             - name: MEMORY_BACKEND
               value: "supabase"
           envFrom:
