@@ -60,7 +60,7 @@ resources:
   - n8n             # Workflow automation platform
   # - n8n-migration  # n8n database migration jobs
   - sftp-server     # SFTP server for UniFi Drive access
-  - audio-compressor # Nightly audio compression job
+  # - audio-compressor # OLD: Nightly audio compression job - replaced by audio-workflows
   
   # Documentation
   - blog            # Hugo-based documentation site
