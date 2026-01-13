@@ -133,7 +133,7 @@ spec:
       - name: COPY_METADATA
         value: "false"  # No metadata files in flat mode
       - name: SKIP_PROCESSED
-        value: "false"  # Process all files in workflow
+        value: "true"  # Skip already processed files (don't reprocess 2025 files)
       - name: MAX_FILE_SIZE_MB
         value: "100000"
       - name: MAX_RETRIES
