@@ -53,7 +53,7 @@ spec:
                   exit(0 if status.status == 'healthy' else 1)
             initialDelaySeconds: 10
             periodSeconds: 10
-            timeoutSeconds: 5
+            timeoutSeconds: 30
             failureThreshold: 30
           livenessProbe:
             exec:
