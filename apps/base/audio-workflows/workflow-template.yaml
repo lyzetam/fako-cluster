@@ -163,8 +163,6 @@ spec:
         duration: "2m"
         factor: 2
         maxDuration: "15m"
-    nodeSelector:
-      kubernetes.io/hostname: pglenovo01
     container:
       image: lzetam/audio-transcriber:latest
       imagePullPolicy: Always
