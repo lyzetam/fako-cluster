@@ -48,6 +48,31 @@ spec:
                 secretKeyRef:
                   name: autobots-secrets
                   key: anthropic-api-key
+            # Discord webhook secrets for agent notifications
+            - name: DISCORD_WEBHOOK_DEPLOYMENTS
+              valueFrom:
+                secretKeyRef:
+                  name: autobots-secrets
+                  key: discord-webhook-deployments
+                  optional: true
+            - name: DISCORD_WEBHOOK_CI_CD
+              valueFrom:
+                secretKeyRef:
+                  name: autobots-secrets
+                  key: discord-webhook-ci-cd
+                  optional: true
+            - name: DISCORD_WEBHOOK_SRE_ALERTS
+              valueFrom:
+                secretKeyRef:
+                  name: autobots-secrets
+                  key: discord-webhook-sre-alerts
+                  optional: true
+            - name: DISCORD_WEBHOOK_SECURITY_ALERTS
+              valueFrom:
+                secretKeyRef:
+                  name: autobots-secrets
+                  key: discord-webhook-security-alerts
+                  optional: true
           resources:
             limits:
               cpu: "2"
