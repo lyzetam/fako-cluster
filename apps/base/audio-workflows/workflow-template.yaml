@@ -106,7 +106,7 @@ spec:
         value: "sftp-server/credentials"
       # Storage Configuration
       - name: OUTPUT_DIR
-        value: "/data/compressed"
+        value: "/data"  # Volume mounted at /data, save to root
       - name: KEEP_ORIGINALS
         value: "false"
       # Compression Configuration (optimized for speech)
