@@ -78,7 +78,7 @@ spec:
       - name: SFTP_PORT
         value: "22"
       - name: SFTP_REMOTE_PATH
-        value: "audio"
+        value: "Journals/Voice Recordings"
       - name: SFTP_USERNAME
         valueFrom:
           secretKeyRef:
@@ -118,16 +118,21 @@ spec:
       - name: AUDIO_FORMAT
         value: "mp3"
       # Processing Configuration
-      - name: AUDIO_FILENAME
-        value: "StereoMix.wav"
+      - name: PROCESSING_MODE
+        value: "flat"  # Flat file mode for .m4a files
+      - name: FILE_EXTENSION
+        value: ".m4a"  # File extension to process
+      # Directory mode variables (not used in flat mode)
+      # - name: AUDIO_FILENAME
+      #   value: "StereoMix.wav"
+      # - name: DIR_PATTERN
+      #   value: "^\\d{2}-\\d{2}-\\d{2}(-\\d{2})?$"
       - name: METADATA_FILENAME
         value: "Meta.xml"
       - name: COPY_METADATA
-        value: "true"
+        value: "false"  # No metadata files in flat mode
       - name: SKIP_PROCESSED
-        value: "false"
-      - name: DIR_PATTERN
-        value: "^\\d{2}-\\d{2}-\\d{2}(-\\d{2})?$"
+        value: "false"  # Process all files in workflow
       - name: MAX_FILE_SIZE_MB
         value: "100000"
       - name: MAX_RETRIES
