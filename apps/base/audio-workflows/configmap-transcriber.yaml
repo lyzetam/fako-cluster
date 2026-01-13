@@ -6,13 +6,13 @@ metadata:
 data:
   WHISPER_MODEL: "Systran/faster-distil-whisper-large-v3"
   WHISPER_LANGUAGE: "auto"
-  INPUT_DIR: "/data/compressed"
+  INPUT_DIR: "/data/compressed"  # Compressor saves to /data, transcriber reads from /data/compressed mount
   OUTPUT_DIR: "/data/transcriptions"
   OUTPUT_FORMAT: "json"
   AUDIO_EXTENSIONS: ".mp3"
-  SKIP_PROCESSED: "true"
+  SKIP_PROCESSED: "false"  # Disabled to process new 2026-01-* files
   MAX_FILE_SIZE_MB: "10000"
-  BATCH_SIZE: "5"  # Process 5 files per workflow run (large files can be 39h each)
+  BATCH_SIZE: "10"  # Increased to process more files per run
   MAX_RETRIES: "3"
   RETRY_DELAY: "10"
   WHISPER_TIMEOUT: "7200"
