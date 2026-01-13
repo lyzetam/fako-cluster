@@ -14,7 +14,7 @@ data:
   RETRY_DELAY: "10"
   SUMMARIZER_BASE_URL: "http://ollama-gpu.ollama.svc.cluster.local:11434/v1"
   SUMMARIZER_API_KEY: "not-required"
-  SUMMARIZER_MODEL: "qwen2.5:3b"
+  SUMMARIZER_MODEL: "qwen3:8b"
   SUMMARY_PROMPT: |
     You are analyzing an audio transcript. Provide a concise summary that includes:
 
