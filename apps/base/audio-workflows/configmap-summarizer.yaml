@@ -12,6 +12,9 @@ data:
   LOG_LEVEL: "INFO"
   MAX_RETRIES: "3"
   RETRY_DELAY: "10"
+  SUMMARIZER_BASE_URL: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+  SUMMARIZER_API_KEY: "not-required"
+  SUMMARIZER_MODEL: "gemma3"
   SUMMARY_PROMPT: |
     You are analyzing an audio transcript. Provide a concise summary that includes:
 
