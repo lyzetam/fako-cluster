@@ -78,7 +78,7 @@ spec:
       - name: SFTP_PORT
         value: "22"
       - name: SFTP_REMOTE_PATH
-        value: "Journals/Voice Recordings"
+        value: "audio/Voice Recordings"
       - name: SFTP_USERNAME
         valueFrom:
           secretKeyRef:
