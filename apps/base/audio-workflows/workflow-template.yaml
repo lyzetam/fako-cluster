@@ -91,13 +91,14 @@ spec:
             key: password
       # Storage Backend Configuration
       - name: STORAGE_BACKEND
-        value: "sftp"
-      - name: SFTP_DEST_PATH
-        value: "compressed"
-      - name: UPLOAD_RETRY_ATTEMPTS
-        value: "3"
-      - name: UPLOAD_RETRY_DELAY
-        value: "5"
+        value: "local"  # Use local NFS volume for workflow steps
+      # SFTP upload not needed in workflow - files go to shared NFS volume
+      # - name: SFTP_DEST_PATH
+      #   value: "compressed"
+      # - name: UPLOAD_RETRY_ATTEMPTS
+      #   value: "3"
+      # - name: UPLOAD_RETRY_DELAY
+      #   value: "5"
       # AWS Configuration
       - name: AWS_DEFAULT_REGION
         value: "us-east-1"
