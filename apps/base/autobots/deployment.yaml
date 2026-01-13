@@ -69,11 +69,3 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
-          volumeMounts:
-            - name: agent-prompts
-              mountPath: /app/agents
-              readOnly: true
-      volumes:
-        - name: agent-prompts
-          configMap:
-            name: agent-prompts
