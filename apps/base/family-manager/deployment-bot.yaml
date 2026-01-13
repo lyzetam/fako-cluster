@@ -41,6 +41,30 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /app/data
+          startupProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - |
+                  import asyncio
+                  from services.health_check import check_readiness
+                  status = asyncio.run(check_readiness())
+                  exit(0 if status.status == 'healthy' else 1)
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            exec:
+              command:
+                - pgrep
+                - -f
+                - "python bot.py"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 3
       volumes:
         - name: data
           emptyDir: {}

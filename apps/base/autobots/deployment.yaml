@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: orchestrator
-  namespace: orchestrator
+  name: autobots
+  namespace: autobots
   labels:
-    app: orchestrator
+    app: autobots
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: orchestrator
+      app: autobots
   template:
     metadata:
       labels:
-        app: orchestrator
+        app: autobots
     spec:
       imagePullSecrets:
         - name: dockerhub-registry
       containers:
-        - name: orchestrator
-          image: lzetam/orchestrator:latest
+        - name: autobots
+          image: lzetam/autobots:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
@@ -46,7 +46,7 @@ spec:
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: orchestrator-secrets
+                  name: autobots-secrets
                   key: anthropic-api-key
           resources:
             limits:
