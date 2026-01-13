@@ -10,7 +10,7 @@ data:
   OUTPUT_DIR: "/data/transcriptions"
   OUTPUT_FORMAT: "json"
   AUDIO_EXTENSIONS: ".mp3"
-  SKIP_PROCESSED: "false"  # Disabled to process new 2026-01-* files
+  SKIP_PROCESSED: "true"  # Skip already transcribed files
   MAX_FILE_SIZE_MB: "10000"
   BATCH_SIZE: "3"  # Reduced to avoid timeout with large chunked files
   MAX_RETRIES: "3"
