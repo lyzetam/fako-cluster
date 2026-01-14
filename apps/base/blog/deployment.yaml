@@ -15,8 +15,6 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: hugo-blog
-      annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-01-14T00:15:00Z"
     spec:
       imagePullSecrets:
       - name: dockerhub-registry
