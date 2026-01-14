@@ -15,6 +15,9 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: hugo-blog
+      annotations:
+        # Update this timestamp to force a new image pull
+        deploy.kubernetes.io/revision: "2026-01-14T00:20:00Z"
     spec:
       imagePullSecrets:
       - name: dockerhub-registry
