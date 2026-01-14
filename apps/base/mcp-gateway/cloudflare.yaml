@@ -98,5 +98,12 @@ data:
         connectTimeout: 30s
         keepAliveTimeout: 90s
 
+    # Autobots - AI Engineering Agent Orchestrator
+    - hostname: autobots.landryzetam.net
+      service: http://autobots.autobots.svc.cluster.local:8000
+      originRequest:
+        connectTimeout: 60s
+        keepAliveTimeout: 120s
+
     # Catch-all rule
     - service: http_status:404
