@@ -63,6 +63,16 @@ spec:
                 secretKeyRef:
                   name: quantum-trades-secrets
                   key: TRADIER_ACCOUNT_ID
+            - name: TRADIER_SANDBOX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: TRADIER_SANDBOX_API_KEY
+            - name: TRADIER_SANDBOX_ACCOUNT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: TRADIER_SANDBOX_ACCOUNT_ID
             - name: TRADIER_PAPER_TRADING
               value: "true"
             - name: ENABLE_LIVE_TRADING
