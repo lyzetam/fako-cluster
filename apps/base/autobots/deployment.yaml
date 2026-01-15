@@ -73,6 +73,25 @@ spec:
                   name: autobots-secrets
                   key: discord-webhook-security-alerts
                   optional: true
+            # Memory settings for agent persistence
+            - name: MEMORY_ENABLED
+              value: "true"
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: autobots-secrets
+                  key: supabase-url
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: autobots-secrets
+                  key: supabase-service-role-key
+            - name: OLLAMA_BASE_URL
+              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+            - name: MEMORY_SIMILARITY_THRESHOLD
+              value: "0.7"
+            - name: MEMORY_MAX_RESULTS
+              value: "5"
           resources:
             limits:
               cpu: "2"
