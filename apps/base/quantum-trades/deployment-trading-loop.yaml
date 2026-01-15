@@ -1,0 +1,226 @@
+# Trading Coordinator - Continuous Service
+# Replaces the CronJob with a persistent deployment that runs the trading loop continuously
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-loop
+  namespace: quantum-trades
+  labels:
+    app: trading-loop
+    component: autonomous-trading
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-loop
+  template:
+    metadata:
+      labels:
+        app: trading-loop
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8086"
+    spec:
+      serviceAccountName: trading-coordinator
+      imagePullSecrets:
+        - name: dockerhub-registry
+
+      initContainers:
+        - name: check-dependencies
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Checking service dependencies..."
+              for i in 1 2 3 4 5; do
+                nc -z technicals-service 8001 && \
+                nc -z signals-service 8002 && \
+                nc -z trading-service 8005 && \
+                echo "All dependencies healthy!" && exit 0
+                echo "Attempt $i failed, retrying in 10s..."
+                sleep 10
+              done
+              echo "Dependencies not ready, proceeding anyway..."
+
+      containers:
+      - name: coordinator
+        image: lzetam/quantum-trades-agents:latest
+        imagePullPolicy: Always
+
+        command:
+        - python
+        - -m
+        - app.loop.trading_loop
+        - --continuous
+
+        env:
+        # Continuous mode
+        - name: CONTINUOUS_MODE
+          value: "true"
+        - name: LOOP_INTERVAL_SECONDS
+          value: "60"
+
+        # Core configuration
+        - name: TRADING_MODE
+          value: "paper"
+        - name: LOG_LEVEL
+          value: "INFO"
+
+        # Multi-Broker Configuration
+        - name: LIVE_BROKER
+          value: "tradier"
+        - name: ALPACA_ENABLED
+          value: "true"
+        - name: PAPER_SIMULATION_ENABLED
+          value: "true"
+
+        # API Keys
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agents-secrets
+              key: ANTHROPIC_API_KEY
+
+        - name: TRADIER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: quantum-trades-secrets
+              key: TRADIER_API_KEY
+
+        - name: TRADIER_ACCOUNT_ID
+          valueFrom:
+            secretKeyRef:
+              name: quantum-trades-secrets
+              key: TRADIER_ACCOUNT_ID
+
+        # Alpaca (Paper)
+        - name: ALPACA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agents-secrets
+              key: ALPACA_API_KEY
+
+        - name: ALPACA_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agents-secrets
+              key: ALPACA_SECRET_KEY
+
+        # Service URLs
+        - name: TECHNICALS_SERVICE_URL
+          value: "http://technicals-service:8001"
+        - name: SIGNALS_SERVICE_URL
+          value: "http://signals-service:8002"
+        - name: TRADING_SERVICE_URL
+          value: "http://trading-service:8005"
+        - name: BACKEND_SERVICE_URL
+          value: "http://backend-service:8000"
+
+        # Redis for state
+        - name: REDIS_URL
+          value: "redis://agent-redis:6379/0"
+
+        # Memory paths
+        - name: MEMORIES_DIR
+          value: "/memories"
+
+        # Capital settings
+        - name: INITIAL_CAPITAL
+          value: "500"
+        - name: MAX_DAILY_LOSS
+          value: "50"
+        - name: MAX_WEEKLY_LOSS
+          value: "150"
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        volumeMounts:
+        - name: memories
+          mountPath: /memories
+        - name: config
+          mountPath: /etc/agents
+          readOnly: true
+
+      volumes:
+      - name: memories
+        persistentVolumeClaim:
+          claimName: trading-memories-pvc
+
+      - name: config
+        configMap:
+          name: agents-config
+          items:
+          - key: strategy_params.json
+            path: strategy_params.json
+          - key: risk_limits.json
+            path: risk_limits.json
+          - key: watchlist.json
+            path: watchlist.json
+
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+
+---
+# Keep ServiceAccount and RBAC from original CronJob
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: trading-coordinator
+  namespace: quantum-trades
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: trading-coordinator
+  namespace: quantum-trades
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: trading-coordinator
+  namespace: quantum-trades
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: trading-coordinator
+subjects:
+- kind: ServiceAccount
+  name: trading-coordinator
+  namespace: quantum-trades
+
+---
+# PVC for persistent memory
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: trading-memories-pvc
+  namespace: quantum-trades
+  labels:
+    app: trading-coordinator
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 10Gi
