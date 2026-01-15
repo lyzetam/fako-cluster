@@ -15,7 +15,7 @@ spec:
       labels:
         app: family-manager-webhook
       annotations:
-        rollout/timestamp: "2026-01-14T20:25:00Z"
+        rollout/timestamp: "2026-01-14T21:00:00Z"
     spec:
       imagePullSecrets:
         - name: dockerhub-secret
