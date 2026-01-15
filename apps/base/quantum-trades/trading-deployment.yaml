@@ -64,9 +64,9 @@ spec:
                   name: quantum-trades-secrets
                   key: TRADIER_ACCOUNT_ID
             - name: TRADIER_PAPER_TRADING
-              value: "false"
-            - name: ENABLE_LIVE_TRADING
               value: "true"
+            - name: ENABLE_LIVE_TRADING
+              value: "false"
             - name: HOST
               value: "0.0.0.0"
             - name: PORT
