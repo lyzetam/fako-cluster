@@ -20,6 +20,14 @@ spec:
           port: 8811
         - protocol: TCP
           port: 8812
+    # Allow Ollama for embeddings (agent memory)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
     # Allow Anthropic API (HTTPS)
     - to:
         - ipBlock:
