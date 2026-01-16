@@ -26,6 +26,13 @@ spec:
                 name: frontend-service
                 port:
                   number: 80
+          - path: /api/chat
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
           - path: /api
             pathType: Prefix
             backend:
