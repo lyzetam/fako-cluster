@@ -78,7 +78,7 @@ spec:
             - name: N8N_RUNNERS_TASK_TIMEOUT
               value: "600"
             - name: N8N_RUNNERS_MAX_OLD_SPACE_SIZE
-              value: "512"
+              value: "1024"
             - name: N8N_BLOCK_ENV_ACCESS_IN_NODE
               value: "false"
             - name: N8N_GIT_NODE_DISABLE_BARE_REPOS
