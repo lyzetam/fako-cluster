@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zi
+  namespace: autobots
+  labels:
+    app: zi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zi
+  template:
+    metadata:
+      labels:
+        app: zi
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: zi
+          image: lzetam/zi:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            # Config file path (mounted from ConfigMap)
+            - name: ZI_CONFIG_PATH
+              value: "/config/app.yaml"
+            # Server configuration
+            - name: ZI_HOST
+              value: "0.0.0.0"
+            - name: ZI_PORT
+              value: "8080"
+            - name: ZI_LOG_LEVEL
+              value: "INFO"
+            - name: ZI_ENV
+              value: "production"
+            # Brain path (mounted PVC)
+            - name: ZI_BRAIN_PATH
+              value: "/data/second-brain"
+            # autobots API (internal service)
+            - name: ZI_AUTOBOTS_API_URL
+              value: "http://autobots.autobots.svc.cluster.local:8000"
+            # AI Provider URLs
+            - name: ZI_OLLAMA_URL
+              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+            # MCP Gateway
+            - name: ZI_MCP_GATEWAY_URL
+              value: "http://mcp-gateway.mcp-gateway.svc.cluster.local:8811"
+            # Anthropic API key
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: anthropic-api-key
+            # OpenAI API key (for vision/specialized tasks)
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: openai-api-key
+                  optional: true
+            # Discord bot token
+            - name: ZI_DISCORD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: discord-bot-token
+            # Discord allowed users (comma-separated IDs)
+            - name: ZI_DISCORD_ALLOWED_USERS
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: discord-allowed-users
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: brain-data
+              mountPath: /data/second-brain
+          resources:
+            limits:
+              cpu: "2"
+              memory: 4Gi
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+      volumes:
+        - name: config
+          configMap:
+            name: zi-config
+        - name: brain-data
+          persistentVolumeClaim:
+            claimName: zi-brain-pvc

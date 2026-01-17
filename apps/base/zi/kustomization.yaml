@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: autobots
+
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - external-secret.yaml
+  - pvc.yaml
+  - networkpolicy.yaml
+
+# Use labels instead of commonLabels to avoid corrupting network policy selectors
+labels:
+  - pairs:
+      app.kubernetes.io/name: zi
+      app.kubernetes.io/component: ai-interface
+      app.kubernetes.io/part-of: claude-agent-platform
+    includeSelectors: false
