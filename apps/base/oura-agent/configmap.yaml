@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oura-agent-config
+  namespace: oura-agent
+data:
+  # Database configuration
+  DATABASE_HOST: "postgres-cluster-rw.postgres.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "oura"
+  DB_POOL_SIZE: "5"
+  DB_MAX_OVERFLOW: "10"
+
+  # Discord configuration
+  POLL_INTERVAL: "30"  # seconds between Discord polls
+  MESSAGE_WINDOW_MINUTES: "30"  # only process messages from last N minutes
+
+  # LLM configuration
+  LLM_MODEL: "claude-sonnet-4-20250514"
+  LLM_TEMPERATURE: "0.3"
+  LLM_MAX_TOKENS: "4096"
+
+  # Ollama embedding service (cluster internal)
+  OLLAMA_BASE_URL: "http://ollama.ollama.svc.cluster.local:11434"
+  OLLAMA_MODEL: "nomic-embed-text"
+  OLLAMA_EMBEDDING_DIM: "768"
+
+  # AWS configuration
+  AWS_DEFAULT_REGION: "us-east-1"
+
+  # Logging
+  LOG_LEVEL: "INFO"
+
+  # Run mode
+  RUN_ONCE: "false"

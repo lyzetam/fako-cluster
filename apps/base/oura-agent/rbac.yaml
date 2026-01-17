@@ -1,0 +1,30 @@
+# RBAC configuration for Oura Health Agent
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oura-agent
+  namespace: oura-agent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: oura-agent
+  namespace: oura-agent
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: oura-agent
+  namespace: oura-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: oura-agent
+subjects:
+- kind: ServiceAccount
+  name: oura-agent
+  namespace: oura-agent

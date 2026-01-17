@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oura-agent
+  namespace: oura-agent
+  labels:
+    app: oura-agent
+spec:
+  replicas: 1  # Single replica for Discord polling
+  selector:
+    matchLabels:
+      app: oura-agent
+  template:
+    metadata:
+      labels:
+        app: oura-agent
+    spec:
+      serviceAccountName: oura-agent
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: oura-agent
+        image: lzetam/oura-agent:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: health
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: oura-agent-config
+        - secretRef:
+            name: aws-credentials-env
+        - secretRef:
+            name: postgres-credentials-env
+        - secretRef:
+            name: discord-credentials-env
+        - secretRef:
+            name: anthropic-credentials-env
+
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
