@@ -10,6 +10,7 @@ resources:
   - external-secret-postgres.yaml
   - external-secret-discord.yaml
   - external-secret-anthropic.yaml
+  - external-secret-dockerhub.yaml
   - deployment.yaml
   - service.yaml
 
