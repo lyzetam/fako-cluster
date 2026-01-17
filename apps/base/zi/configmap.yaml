@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zi-config
+  namespace: autobots
+  labels:
+    app: zi
+data:
+  # Application configuration file (mounted as /config/app.yaml)
+  app.yaml: |
+    # zI Application Configuration
+    # This ConfigMap is mounted at /config/app.yaml
+    # Changes here don't require image rebuild
+
+    general:
+      name: zI
+      description: "Zetam Intelligence - Landry's digital twin"
+      version: "0.1.0"
+
+    ai:
+      default_provider: anthropic
+      default_model: claude-sonnet-4-20250514
+
+      providers:
+        anthropic:
+          enabled: true
+          models:
+            default: claude-sonnet-4-20250514
+            advanced: claude-opus-4-20250514
+        openai:
+          enabled: true
+          models:
+            default: gpt-4o
+            vision: gpt-4o
+        ollama:
+          enabled: true
+          models:
+            default: llama3.2:3b
+            embed: nomic-embed-text
+
+      routing:
+        intent_classification:
+          provider: ollama
+          model: llama3.2:3b
+        embeddings:
+          provider: ollama
+          model: nomic-embed-text
+        planning:
+          provider: anthropic
+          model: claude-sonnet-4-20250514
+        code_generation:
+          provider: anthropic
+          model: claude-sonnet-4-20250514
+        image_analysis:
+          provider: openai
+          model: gpt-4o
+
+      circuit_breaker:
+        failure_threshold: 3
+        recovery_timeout_seconds: 30
+
+      fallbacks:
+        anthropic: [openai, ollama]
+        openai: [anthropic, ollama]
+        ollama: [anthropic]
+
+    security:
+      audit_enabled: true
+      approval_timeout_seconds: 86400
+
+      tiers:
+        tier_1_autonomous:
+          intents: [query, search, status, health, summarize, explain]
+        tier_2_notify:
+          intents: [deploy_staging, create_branch, draft_pr, create_note, send_discord_message]
+        tier_3_approve:
+          intents: [deploy_production, delete_resource, trade_execute, send_external_email]
+        tier_4_never:
+          intents: [delete_production_data, expose_secrets, disable_security]
+
+    interfaces:
+      discord:
+        enabled: true
+        respond_to_dm: true
+        respond_to_mention: true
+        show_typing: true
+        max_message_length: 2000
+      voice:
+        enabled: false
+      api:
+        enabled: true
+
+    mcp:
+      enabled: true
+      enabled_categories:
+        - cloud
+        - infrastructure
+        - database
+        - trading
+        - communication
+        - home
+        - workflow
+        - search
+
+    brain:
+      sync_enabled: true
+      sync_interval_seconds: 300
+      files:
+        landry_model: zi/landry.md
+        boundaries: zi/boundaries.md
+        skills_dir: zi/skills/
+
+    autobots:
+      timeout_seconds: 300
+      workflows:
+        - pr-review
+        - deployment
+        - incident
+        - design-review
