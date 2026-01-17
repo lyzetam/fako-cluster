@@ -30,9 +30,11 @@ spec:
         - configMapRef:
             name: oura-collector-config
         - secretRef:
-            name: aws-credentials-env  # Changed from aws-credentials
+            name: aws-credentials-env
         - secretRef:
             name: postgres-credentials-env
+        - secretRef:
+            name: discord-webhook-env
         
         resources:
           requests:
