@@ -1,0 +1,76 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zi-network-policy
+  namespace: autobots
+spec:
+  podSelector:
+    matchLabels:
+      app: zi
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from within autobots namespace
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow traffic from ingress controller (for external API access if needed)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow autobots API (same namespace)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: autobots
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Allow Ollama for local AI
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    # Allow MCP Gateway (for tool access)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: mcp-gateway
+      ports:
+        - protocol: TCP
+          port: 8811
+        - protocol: TCP
+          port: 8812
+    # Allow external HTTPS (Anthropic, OpenAI, Discord APIs)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
