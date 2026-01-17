@@ -6,7 +6,8 @@ resources:
   # - audiobookshelf
   # - homebot
   - oura-collector
-  - oura-dashboard
+  - oura-agent        # Oura health assistant Discord bot
+  # - oura-dashboard  # Deactivated - not in use
   # - wger
   # - donetick         # Task & chore management
 
