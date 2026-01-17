@@ -16,6 +16,8 @@ spec:
         app: oura-agent
     spec:
       serviceAccountName: oura-agent
+      imagePullSecrets:
+      - name: dockerhub-registry
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
