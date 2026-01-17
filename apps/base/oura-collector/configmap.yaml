@@ -22,7 +22,11 @@ data:
   
   # Logging
   LOG_LEVEL: "INFO"
-  
+
+  # Stale Data Detection
+  STALE_DATA_THRESHOLD_DAYS: "3"
+  ALERT_ON_STALE_DATA: "true"
+
   # API Configuration
   API_TIMEOUT: "30"
   MAX_RETRIES: "3"
