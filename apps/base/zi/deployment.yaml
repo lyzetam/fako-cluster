@@ -61,6 +61,11 @@ spec:
             # autobots API (internal service)
             - name: ZI_AUTOBOTS_API_URL
               value: "http://autobots.autobots.svc.cluster.local:8000"
+            - name: ZI_AUTOBOTS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: autobots-api-key
             # AI Provider URLs
             - name: ZI_OLLAMA_URL
               value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
