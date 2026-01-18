@@ -72,14 +72,14 @@ spec:
             # MCP Gateway
             - name: ZI_MCP_GATEWAY_URL
               value: "http://mcp-gateway.mcp-gateway.svc.cluster.local:8811"
-            # Anthropic API key
-            - name: ANTHROPIC_API_KEY
+            # Anthropic API key (ZI_ prefix for pydantic-settings)
+            - name: ZI_ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: zi-secrets
                   key: anthropic-api-key
             # OpenAI API key (for vision/specialized tasks)
-            - name: OPENAI_API_KEY
+            - name: ZI_OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: zi-secrets
