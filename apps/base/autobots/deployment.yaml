@@ -37,6 +37,12 @@ spec:
               value: "5"
             - name: ORCHESTRATOR_AGENT_TIMEOUT_SECONDS
               value: "300"
+            # API authentication
+            - name: AUTOBOTS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: autobots-secrets
+                  key: api-key
             # MCP Gateway configuration (used by Claude Agent SDK)
             - name: ORCHESTRATOR_MCP_ENABLED
               value: "true"
