@@ -1,0 +1,33 @@
+---
+# Backend Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: task-tracker-backend-pdb
+  namespace: task-tracker
+  labels:
+    app: task-tracker
+    component: backend
+spec:
+  minAvailable: 1  # Always keep at least 1 backend pod running
+  selector:
+    matchLabels:
+      app: task-tracker
+      component: backend
+
+---
+# Frontend Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: task-tracker-frontend-pdb
+  namespace: task-tracker
+  labels:
+    app: task-tracker
+    component: frontend
+spec:
+  minAvailable: 1  # Always keep at least 1 frontend pod running
+  selector:
+    matchLabels:
+      app: task-tracker
+      component: frontend

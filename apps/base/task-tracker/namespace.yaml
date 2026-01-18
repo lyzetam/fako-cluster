@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: task-tracker
+  labels:
+    name: task-tracker
+    app.kubernetes.io/name: task-tracker
+    app.kubernetes.io/instance: task-tracker
+    app.kubernetes.io/part-of: task-tracker
+    app.kubernetes.io/component: namespace
+    kubernetes.io/metadata.name: task-tracker

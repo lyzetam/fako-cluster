@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-tracker-frontend
+  namespace: task-tracker
+  labels:
+    app: task-tracker-frontend
+    component: frontend
+    app.kubernetes.io/name: task-tracker-frontend
+    app.kubernetes.io/instance: task-tracker
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: task-tracker-frontend
+  template:
+    metadata:
+      labels:
+        app: task-tracker-frontend
+        component: frontend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: task-tracker-frontend
+        image: lzetam/task-tracker-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        env:
+        # Non-secret environment variables
+        - name: NEXT_PUBLIC_API_URL
+          value: "https://api.task-tracker.example.com"
+        - name: NEXT_PUBLIC_ENVIRONMENT
+          value: "production"
+        - name: NEXT_PUBLIC_SENTRY_DSN
+          value: ""
+        - name: NODE_ENV
+          value: "production"
+        # Secrets from ExternalSecret
+        - name: NEXTAUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: task-tracker-frontend-secrets
+              key: NEXTAUTH_SECRET
+        - name: NEXTAUTH_URL
+          valueFrom:
+            secretKeyRef:
+              name: task-tracker-frontend-secrets
+              key: NEXTAUTH_URL
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        # Security context for container
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+      # Pod anti-affinity for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: task-tracker-frontend
+              topologyKey: kubernetes.io/hostname
+      # Restart policy
+      restartPolicy: Always
