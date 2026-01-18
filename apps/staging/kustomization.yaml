@@ -101,3 +101,7 @@ resources:
 
   # Agent Orchestration
   - autobots    # Claude Agent SDK orchestrator for AI workflows
+  - zi          # zI (Zetam Intelligence) - AI interface layer on autobots
+
+  # UniFi Clips Exporter
+  - unifi-clients  # Daily export of UniFi Protect motion clips to S3
