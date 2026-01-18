@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: unifi-clips-exporter
+  namespace: unifi-clients
+spec:
+  schedule: "0 0 * * *"  # Run daily at midnight UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400  # Clean up job pods after 24 hours
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: unifi-clips-exporter
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: unifi-clips-exporter
+            image: lzetam/unifi-clients:latest
+            imagePullPolicy: Always
+            envFrom:
+            - secretRef:
+                name: unifi-clients-secret
+            env:
+            - name: UNIFI_VERIFY_SSL
+              value: "false"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+          imagePullSecrets:
+          - name: dockerhub-registry
