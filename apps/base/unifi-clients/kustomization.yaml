@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: unifi-clients
+
+resources:
+  - namespace.yaml
+  - aws-credentials-secret.yaml
+  - secret-store.yaml
+  - external-secret.yaml
+  - external-secret-dockerhub.yaml
+  - rbac.yaml
+  - create-docker-registry-secret-job.yaml
+  - cronjob.yaml
