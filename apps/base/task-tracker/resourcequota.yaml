@@ -1,0 +1,72 @@
+---
+# Resource Quota for task-tracker namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: task-tracker-quota
+  namespace: task-tracker
+  labels:
+    app: task-tracker
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "1000m"      # 1 CPU core total requests
+    requests.memory: "2Gi"     # 2GB memory total requests
+    limits.cpu: "2000m"        # 2 CPU cores total limits
+    limits.memory: "4Gi"       # 4GB memory total limits
+
+    # Storage
+    requests.storage: "10Gi"   # 10GB persistent storage
+    persistentvolumeclaims: "5" # Max 5 PVCs
+
+    # Object counts
+    pods: "10"                 # Max 10 pods
+    services: "5"              # Max 5 services
+    secrets: "10"              # Max 10 secrets
+    configmaps: "10"           # Max 10 configmaps
+    ingresses.networking.k8s.io: "5" # Max 5 ingresses
+
+---
+# Limit Range for task-tracker namespace
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: task-tracker-limits
+  namespace: task-tracker
+  labels:
+    app: task-tracker
+spec:
+  limits:
+  # Pod limits
+  - type: Pod
+    max:
+      cpu: "1000m"
+      memory: "1Gi"
+    min:
+      cpu: "10m"
+      memory: "32Mi"
+
+  # Container limits
+  - type: Container
+    default:              # Default limits if not specified
+      cpu: "200m"
+      memory: "256Mi"
+    defaultRequest:       # Default requests if not specified
+      cpu: "50m"
+      memory: "128Mi"
+    max:                  # Maximum allowed
+      cpu: "1000m"
+      memory: "1Gi"
+    min:                  # Minimum required
+      cpu: "10m"
+      memory: "32Mi"
+    maxLimitRequestRatio: # Max ratio of limit to request
+      cpu: "10"           # Limit can be at most 10x the request
+      memory: "8"         # Limit can be at most 8x the request
+
+  # PVC limits
+  - type: PersistentVolumeClaim
+    max:
+      storage: "5Gi"
+    min:
+      storage: "1Gi"

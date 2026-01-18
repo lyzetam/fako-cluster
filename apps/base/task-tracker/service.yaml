@@ -1,0 +1,78 @@
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-tracker-backend
+  namespace: task-tracker
+  labels:
+    app: task-tracker
+    component: backend
+    app.kubernetes.io/name: task-tracker
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/instance: production
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 3000
+    protocol: TCP
+  selector:
+    app: task-tracker
+    component: backend
+
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-tracker-frontend
+  namespace: task-tracker
+  labels:
+    app: task-tracker
+    component: frontend
+    app.kubernetes.io/name: task-tracker
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/instance: production
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: task-tracker
+    component: frontend
+
+---
+# Main Service (for external access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-tracker
+  namespace: task-tracker
+  labels:
+    app: task-tracker
+    app.kubernetes.io/name: task-tracker
+    app.kubernetes.io/instance: production
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: task-tracker
+    component: frontend

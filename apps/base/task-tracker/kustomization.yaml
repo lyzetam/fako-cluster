@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: task-tracker
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: task-tracker
+  app.kubernetes.io/instance: production
+  app.kubernetes.io/managed-by: flux
+
+# Resources to include in this kustomization
+resources:
+- namespace.yaml
+- deployment.yaml
+- service.yaml
+- externalsecret.yaml
+
+# Images to replace
+images:
+- name: lzetam/task-tracker
+  newTag: latest
+
+# Replica counts
+replicas:
+- name: task-tracker-backend
+  count: 2
+- name: task-tracker-frontend
+  count: 2
