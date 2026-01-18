@@ -99,12 +99,13 @@ spec:
             - name: brain-data
               mountPath: /data/second-brain
           resources:
+            # Increased for embedded autobots (21 agents + 6 workflows)
             limits:
-              cpu: "2"
-              memory: 4Gi
+              cpu: "4"
+              memory: 8Gi
             requests:
-              cpu: "500m"
-              memory: 1Gi
+              cpu: "1"
+              memory: 2Gi
           livenessProbe:
             httpGet:
               path: /health
