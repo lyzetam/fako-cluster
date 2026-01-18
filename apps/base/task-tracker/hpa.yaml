@@ -1,0 +1,107 @@
+---
+# Backend Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: task-tracker-backend-hpa
+  namespace: task-tracker
+  labels:
+    app: task-tracker
+    component: backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: task-tracker-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  # CPU utilization target
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  # Memory utilization target
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60      # Wait 60s before scaling up again
+      policies:
+      - type: Percent
+        value: 100                        # Double the replicas
+        periodSeconds: 60
+      - type: Pods
+        value: 2                          # Or add 2 pods max
+        periodSeconds: 60
+      selectPolicy: Min                   # Use the more conservative policy
+    scaleDown:
+      stabilizationWindowSeconds: 300     # Wait 5min before scaling down
+      policies:
+      - type: Percent
+        value: 10                         # Remove 10% of replicas
+        periodSeconds: 60
+      - type: Pods
+        value: 1                          # Or remove 1 pod max
+        periodSeconds: 60
+      selectPolicy: Min                   # Use the more conservative policy
+
+---
+# Frontend Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: task-tracker-frontend-hpa
+  namespace: task-tracker
+  labels:
+    app: task-tracker
+    component: frontend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: task-tracker-frontend
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  # CPU utilization target
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  # Memory utilization target
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50                         # Add 50% more replicas
+        periodSeconds: 60
+      - type: Pods
+        value: 2                          # Or add 2 pods max
+        periodSeconds: 60
+      selectPolicy: Min
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10                         # Remove 10% of replicas
+        periodSeconds: 60
+      - type: Pods
+        value: 1                          # Or remove 1 pod max
+        periodSeconds: 60
+      selectPolicy: Min
