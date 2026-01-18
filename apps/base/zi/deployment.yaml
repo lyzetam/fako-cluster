@@ -92,6 +92,19 @@ spec:
                 secretKeyRef:
                   name: zi-secrets
                   key: discord-allowed-users
+            # Obsidian Local REST API for brain access
+            - name: ZI_OBSIDIAN_API_ENABLED
+              value: "true"
+            - name: ZI_OBSIDIAN_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: obsidian-api-url
+            - name: ZI_OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: obsidian-api-key
           volumeMounts:
             - name: config
               mountPath: /config
