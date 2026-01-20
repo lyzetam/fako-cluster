@@ -61,6 +61,8 @@ spec:
 
   # Step 1: Audio Compression (SFTP download + WAV->MP3)
   - name: audio-compressor
+    nodeSelector:
+      kubernetes.io/hostname: pglenovo01
     retryStrategy:
       limit: 3
       backoff:
@@ -157,6 +159,8 @@ spec:
 
   # Step 2: Audio Transcription (Whisper)
   - name: audio-transcriber
+    nodeSelector:
+      kubernetes.io/hostname: pglenovo01
     retryStrategy:
       limit: 3
       backoff:
