@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: autobots
+  namespace: autobots
+  labels:
+    app: autobots
+    app.kubernetes.io/component: orchestrator
+    app.kubernetes.io/name: autobots
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: autobots.fako.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: autobots
+                port:
+                  number: 8000
