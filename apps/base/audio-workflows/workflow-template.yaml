@@ -14,16 +14,14 @@ spec:
   imagePullSecrets:
   - name: dockerhub-registry
 
-  # Use direct NFS mounts to share data with existing audio-compressor namespace
+  # Shared storage via NFS CSI PVCs
   volumes:
   - name: compressed-audio
-    nfs:
-      server: ugnas.landryzetam.net
-      path: /volume1/k8s-storage/pvc-fa625048-6545-4904-bc35-7111a93b21bc
+    persistentVolumeClaim:
+      claimName: compressed-audio
   - name: transcriptions
-    nfs:
-      server: ugnas.landryzetam.net
-      path: /volume1/k8s-storage/pvc-1a863515-490c-4c4a-8aaa-f63ce16b8ecc
+    persistentVolumeClaim:
+      claimName: transcriptions
   - name: publisher-script
     configMap:
       name: transcript-publisher-script
@@ -61,8 +59,6 @@ spec:
 
   # Step 1: Audio Compression (SFTP download + WAV->MP3)
   - name: audio-compressor
-    nodeSelector:
-      kubernetes.io/hostname: pglenovo01
     retryStrategy:
       limit: 3
       backoff:
@@ -159,8 +155,6 @@ spec:
 
   # Step 2: Audio Transcription (Whisper)
   - name: audio-transcriber
-    nodeSelector:
-      kubernetes.io/hostname: pglenovo01
     retryStrategy:
       limit: 3
       backoff:
@@ -206,8 +200,6 @@ spec:
       backoff:
         duration: "30s"
         factor: 2
-    nodeSelector:
-      kubernetes.io/hostname: pglenovo01
     container:
       image: python:3.11-slim
       command: ["python", "/scripts/publisher.py"]
@@ -250,8 +242,6 @@ spec:
       backoff:
         duration: "30s"
         factor: 2
-    nodeSelector:
-      kubernetes.io/hostname: pglenovo01
     container:
       image: python:3.11-slim
       command: ["python", "/scripts/summarizer.py"]
@@ -309,8 +299,6 @@ spec:
       backoff:
         duration: "30s"
         factor: 2
-    nodeSelector:
-      kubernetes.io/hostname: pglenovo01
     container:
       image: python:3.11-slim
       command: ["python", "/scripts/daily-diary.py"]

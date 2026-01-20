@@ -16,6 +16,9 @@ resources:
   # RBAC
   - rbac.yaml
 
+  # Storage
+  - storage.yaml
+
   # ConfigMaps - Configuration
   - configmap-transcriber.yaml
   - configmap-publisher.yaml
