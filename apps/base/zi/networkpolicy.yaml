@@ -17,11 +17,11 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-    # Allow traffic from ingress controller (for external API access if needed)
+    # Allow traffic from Traefik ingress controller (kube-system namespace)
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: traefik
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: TCP
           port: 8080
