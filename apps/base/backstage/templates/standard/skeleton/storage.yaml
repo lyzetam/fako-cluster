@@ -1,0 +1,18 @@
+{%- if values.enableStorage %}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ${{ values.name }}-data
+  namespace: ${{ values.name }}
+  labels:
+    app: ${{ values.name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: ${{ values.storageSize }}
+{%- else %}
+# Storage disabled - delete this file if not needed
+{%- endif %}

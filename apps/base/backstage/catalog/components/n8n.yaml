@@ -1,0 +1,53 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: n8n
+  description: Workflow automation platform for orchestrating tasks and integrations
+  annotations:
+    backstage.io/kubernetes-id: n8n
+    backstage.io/kubernetes-namespace: n8n
+    backstage.io/kubernetes-label-selector: app=n8n
+    github.com/project-slug: lyzetam/fako-cluster
+  tags:
+    - automation
+    - workflows
+    - integrations
+  links:
+    - url: https://n8n.landryzetam.net
+      title: n8n Dashboard
+      icon: dashboard
+    - url: https://docs.n8n.io
+      title: n8n Documentation
+      icon: docs
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: fako-cluster
+  dependsOn:
+    - component:default/postgres-cluster
+  providesApis:
+    - n8n-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: n8n-api
+  description: n8n Workflow API and Webhooks
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-team
+  system: fako-cluster
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: n8n API
+      version: "1.0"
+    paths:
+      /api/v1/workflows:
+        get:
+          summary: List workflows
+      /webhook/{path}:
+        post:
+          summary: Trigger webhook workflow

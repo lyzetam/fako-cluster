@@ -1,0 +1,54 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ollama
+  description: LLM inference server with GPU support (RTX 5070)
+  annotations:
+    backstage.io/kubernetes-id: ollama
+    backstage.io/kubernetes-namespace: ollama
+    backstage.io/kubernetes-label-selector: app=ollama
+    github.com/project-slug: lyzetam/fako-cluster
+  tags:
+    - ai-ml
+    - gpu
+    - llm
+    - inference
+  links:
+    - url: https://ollama.ai
+      title: Ollama Documentation
+      icon: docs
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: fako-cluster
+  dependsOn:
+    - resource:default/gpu-operator
+  providesApis:
+    - ollama-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: ollama-api
+  description: Ollama REST API for LLM inference
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-team
+  system: fako-cluster
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Ollama API
+      version: "1.0"
+    paths:
+      /api/generate:
+        post:
+          summary: Generate text completion
+      /api/chat:
+        post:
+          summary: Chat with model
+      /api/tags:
+        get:
+          summary: List available models

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${{ values.name }}
+  namespace: ${{ values.name }}
+  labels:
+    app: ${{ values.name }}
+    app.kubernetes.io/name: ${{ values.name }}
+    app.kubernetes.io/managed-by: backstage
+spec:
+  replicas: ${{ values.replicas }}
+  selector:
+    matchLabels:
+      app: ${{ values.name }}
+  template:
+    metadata:
+      labels:
+        app: ${{ values.name }}
+    spec:
+      containers:
+        - name: ${{ values.name }}
+          image: ${{ values.image }}
+          ports:
+            - containerPort: ${{ values.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: ${{ values.name }}-config
+            - secretRef:
+                name: ${{ values.name }}-secret
+          resources:
+            requests:
+              memory: "${{ values.memoryRequest }}"
+              cpu: "${{ values.cpuRequest }}"
+            limits:
+              memory: "${{ values.memoryLimit }}"
+              cpu: "${{ values.cpuLimit }}"
+{%- if values.enableStorage %}
+          volumeMounts:
+            - name: data
+              mountPath: ${{ values.storageMountPath }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ${{ values.name }}-data
+{%- endif %}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: ${{ values.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: ${{ values.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
