@@ -1,0 +1,196 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: fako-full-stack
+  title: Full-Stack Application
+  description: |
+    Deploy a complete full-stack application with frontend, backend, and database (15-20 files):
+    - Separate frontend and backend deployments
+    - Shared PostgreSQL database (uses existing postgres-cluster)
+    - AWS Secrets Manager integration
+    - Persistent storage for uploads/assets
+    - Configurable ingress for both services
+
+    Best for: Web applications, APIs with frontends, dashboards
+  tags:
+    - kubernetes
+    - full-stack
+    - frontend
+    - backend
+    - database
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Application Details
+      required:
+        - name
+        - description
+      properties:
+        name:
+          title: Application Name
+          type: string
+          description: Base name for the application (e.g., my-app creates my-app-frontend, my-app-backend)
+          pattern: '^[a-z][a-z0-9-]*$'
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+          description: Brief description of the application
+
+    - title: Frontend Configuration
+      required:
+        - frontendImage
+        - frontendHostname
+      properties:
+        frontendImage:
+          title: Frontend Image
+          type: string
+          description: Frontend container image (e.g., ghcr.io/org/app-frontend:v1.0)
+        frontendPort:
+          title: Frontend Port
+          type: integer
+          default: 3000
+        frontendHostname:
+          title: Frontend Hostname
+          type: string
+          description: Public hostname (e.g., myapp.landryzetam.net)
+          pattern: '^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$'
+        frontendReplicas:
+          title: Frontend Replicas
+          type: integer
+          default: 2
+          minimum: 1
+          maximum: 5
+
+    - title: Backend Configuration
+      required:
+        - backendImage
+      properties:
+        backendImage:
+          title: Backend Image
+          type: string
+          description: Backend container image (e.g., ghcr.io/org/app-backend:v1.0)
+        backendPort:
+          title: Backend Port
+          type: integer
+          default: 8000
+        backendHostname:
+          title: Backend API Hostname
+          type: string
+          description: API hostname (e.g., api.myapp.landryzetam.net) - leave empty to use /api path on frontend
+        backendReplicas:
+          title: Backend Replicas
+          type: integer
+          default: 2
+          minimum: 1
+          maximum: 5
+
+    - title: Database Configuration
+      required:
+        - databaseName
+      properties:
+        databaseName:
+          title: Database Name
+          type: string
+          description: PostgreSQL database name (will be created in postgres-cluster)
+          pattern: '^[a-z][a-z0-9_]*$'
+
+    - title: Secrets Configuration
+      required:
+        - awsSecretPath
+      properties:
+        awsSecretPath:
+          title: AWS Secret Path
+          type: string
+          description: Path in AWS Secrets Manager (e.g., /fako/myapp/config)
+          pattern: '^/fako/[a-z0-9-]+/[a-z0-9-]+$'
+
+    - title: Storage Configuration
+      properties:
+        enableStorage:
+          title: Enable Shared Storage
+          type: boolean
+          default: true
+          description: Enable shared storage for uploads/assets
+        storageSize:
+          title: Storage Size
+          type: string
+          default: "10Gi"
+
+  steps:
+    - id: fetch-skeleton
+      name: Fetch Skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          frontendImage: ${{ parameters.frontendImage }}
+          frontendPort: ${{ parameters.frontendPort }}
+          frontendHostname: ${{ parameters.frontendHostname }}
+          frontendReplicas: ${{ parameters.frontendReplicas }}
+          backendImage: ${{ parameters.backendImage }}
+          backendPort: ${{ parameters.backendPort }}
+          backendHostname: ${{ parameters.backendHostname }}
+          backendReplicas: ${{ parameters.backendReplicas }}
+          databaseName: ${{ parameters.databaseName }}
+          awsSecretPath: ${{ parameters.awsSecretPath }}
+          enableStorage: ${{ parameters.enableStorage }}
+          storageSize: ${{ parameters.storageSize }}
+
+    - id: publish
+      name: Create Pull Request
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?owner=lyzetam&repo=fako-cluster
+        branchName: backstage/add-${{ parameters.name }}
+        title: 'feat(backstage): Add full-stack app ${{ parameters.name }}'
+        description: |
+          ## New Full-Stack Application: ${{ parameters.name }}
+
+          **Description:** ${{ parameters.description }}
+
+          ### Frontend
+          - Image: ${{ parameters.frontendImage }}
+          - Hostname: ${{ parameters.frontendHostname }}
+          - Replicas: ${{ parameters.frontendReplicas }}
+
+          ### Backend
+          - Image: ${{ parameters.backendImage }}
+          - Hostname: ${{ parameters.backendHostname }}
+          - Replicas: ${{ parameters.backendReplicas }}
+
+          ### Database
+          - Name: ${{ parameters.databaseName }}
+
+          ---
+          Created by Backstage Developer Portal
+
+          ### Post-merge steps:
+          1. Create secret in AWS Secrets Manager: `${{ parameters.awsSecretPath }}`
+          2. Update the SOPS-encrypted `aws-credentials-secret.yaml` with real values
+          3. Add database to `postgres-cluster/database-init-job.yaml`:
+             ```sql
+             psql -c "CREATE DATABASE ${{ parameters.databaseName }} OWNER app"
+             psql -d ${{ parameters.databaseName }} -c "GRANT ALL ON SCHEMA public TO app;"
+             ```
+          4. Add the app to `apps/staging/kustomization.yaml`
+        targetPath: apps/base/${{ parameters.name }}
+
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /apps/base/${{ parameters.name }}/catalog-info.yaml
+
+  output:
+    links:
+      - title: Pull Request
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: View in Catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

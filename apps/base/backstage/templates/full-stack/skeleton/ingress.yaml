@@ -1,0 +1,56 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${{ values.name }}
+  namespace: ${{ values.name }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  labels:
+    app.kubernetes.io/name: ${{ values.name }}
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - ${{ values.frontendHostname }}
+{%- if values.backendHostname %}
+        - ${{ values.backendHostname }}
+{%- endif %}
+      secretName: ${{ values.name }}-tls
+  rules:
+    # Frontend
+    - host: ${{ values.frontendHostname }}
+      http:
+        paths:
+{%- if not values.backendHostname %}
+          # Route /api to backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: ${{ values.name }}-backend
+                port:
+                  number: ${{ values.backendPort }}
+{%- endif %}
+          # Everything else to frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ${{ values.name }}-frontend
+                port:
+                  number: ${{ values.frontendPort }}
+{%- if values.backendHostname %}
+    # Separate backend API hostname
+    - host: ${{ values.backendHostname }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ${{ values.name }}-backend
+                port:
+                  number: ${{ values.backendPort }}
+{%- endif %}

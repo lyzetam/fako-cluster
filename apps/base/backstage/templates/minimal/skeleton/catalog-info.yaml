@@ -1,0 +1,22 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}
+  description: ${{ values.description }}
+  annotations:
+    backstage.io/kubernetes-id: ${{ values.name }}
+    backstage.io/kubernetes-namespace: ${{ values.name }}
+    backstage.io/kubernetes-label-selector: app=${{ values.name }}
+    github.com/project-slug: lyzetam/fako-cluster
+  tags:
+    - kubernetes
+    - minimal
+  links:
+    - url: https://${{ values.hostname }}
+      title: Application
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: fako-cluster

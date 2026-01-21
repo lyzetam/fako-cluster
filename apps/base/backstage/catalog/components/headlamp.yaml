@@ -1,0 +1,27 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: headlamp
+  description: Kubernetes dashboard with Kubescape security integration
+  annotations:
+    backstage.io/kubernetes-id: headlamp
+    backstage.io/kubernetes-namespace: headlamp
+    backstage.io/kubernetes-label-selector: app=headlamp
+    github.com/project-slug: lyzetam/fako-cluster
+  tags:
+    - infrastructure
+    - dashboard
+    - kubernetes
+    - security
+  links:
+    - url: https://headlamp.landryzetam.net
+      title: Headlamp Dashboard
+      icon: dashboard
+    - url: https://headlamp.dev/docs
+      title: Headlamp Documentation
+      icon: docs
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: fako-cluster

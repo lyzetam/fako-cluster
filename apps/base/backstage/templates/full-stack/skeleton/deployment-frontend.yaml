@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${{ values.name }}-frontend
+  namespace: ${{ values.name }}
+  labels:
+    app: ${{ values.name }}-frontend
+    app.kubernetes.io/name: ${{ values.name }}
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: ${{ values.frontendReplicas }}
+  selector:
+    matchLabels:
+      app: ${{ values.name }}-frontend
+  template:
+    metadata:
+      labels:
+        app: ${{ values.name }}-frontend
+        app.kubernetes.io/name: ${{ values.name }}
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ${{ values.frontendImage }}
+          ports:
+            - containerPort: ${{ values.frontendPort }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: ${{ values.name }}-config
+            - secretRef:
+                name: ${{ values.name }}-secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+{%- if values.enableStorage %}
+          volumeMounts:
+            - name: shared-data
+              mountPath: /app/public/uploads
+              subPath: uploads
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: ${{ values.name }}-shared-data
+{%- endif %}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: ${{ values.frontendPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: ${{ values.frontendPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10

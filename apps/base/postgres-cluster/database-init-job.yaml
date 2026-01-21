@@ -46,6 +46,7 @@ spec:
           psql -c "CREATE DATABASE keycloak OWNER app" 2>/dev/null || echo "Database keycloak already exists"
           psql -c "CREATE DATABASE n8n OWNER app" 2>/dev/null || echo "Database n8n already exists"
           psql -c "CREATE DATABASE paperless OWNER app" 2>/dev/null || echo "Database paperless already exists"
+          psql -c "CREATE DATABASE backstage OWNER app" 2>/dev/null || echo "Database backstage already exists"
           
           # Set schema ownership and permissions for oura database
           psql -d oura -c "ALTER SCHEMA public OWNER TO app;"
@@ -66,5 +67,9 @@ spec:
           psql -d paperless -c "GRANT ALL ON SCHEMA public TO app;"
           psql -d paperless -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO app;"
           psql -d paperless -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO app;"
+
+          psql -d backstage -c "GRANT ALL ON SCHEMA public TO app;"
+          psql -d backstage -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO app;"
+          psql -d backstage -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO app;"
 
           echo "Database initialization completed successfully"

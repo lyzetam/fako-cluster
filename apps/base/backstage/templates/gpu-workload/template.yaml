@@ -1,0 +1,197 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: fako-gpu-workload
+  title: GPU Workload Application
+  description: |
+    Deploy an AI/ML application with GPU support on the aitower node (12 files):
+    - namespace.yaml
+    - deployment-gpu.yaml (with NVIDIA runtime, tolerations, nodeSelector)
+    - service.yaml
+    - ingress.yaml
+    - configmap.yaml
+    - aws-credentials-secret.yaml (SOPS encrypted)
+    - secret-store.yaml
+    - external-secret.yaml
+    - storage.yaml
+    - kustomization.yaml
+    - catalog-info.yaml
+
+    Best for: LLM inference, speech-to-text, image processing, ML models
+    GPU: RTX 5070 (12GB) or RTX 3050 on aitower node
+  tags:
+    - kubernetes
+    - gpu
+    - ai-ml
+    - nvidia
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Application Details
+      required:
+        - name
+        - description
+        - image
+      properties:
+        name:
+          title: Application Name
+          type: string
+          description: Lowercase, hyphen-separated (e.g., my-llm-app)
+          pattern: '^[a-z][a-z0-9-]*$'
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+          description: Brief description of the AI/ML application
+        image:
+          title: Container Image
+          type: string
+          description: GPU-enabled image (e.g., ollama/ollama:latest)
+        port:
+          title: Container Port
+          type: integer
+          default: 8080
+
+    - title: GPU Configuration
+      required:
+        - gpuCount
+      properties:
+        gpuCount:
+          title: GPU Count
+          type: integer
+          default: 1
+          minimum: 1
+          maximum: 2
+          description: Number of GPUs (aitower has 2 GPUs)
+        gpuMemoryRequired:
+          title: GPU Memory Required
+          type: string
+          enum:
+            - "4GB"
+            - "8GB"
+            - "12GB"
+          default: "8GB"
+          description: Helps determine which GPU to use
+
+    - title: Ingress Configuration
+      required:
+        - hostname
+      properties:
+        hostname:
+          title: Hostname
+          type: string
+          description: Public hostname (e.g., myml.landryzetam.net)
+          pattern: '^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$'
+
+    - title: Secrets Configuration
+      properties:
+        enableSecrets:
+          title: Enable AWS Secrets
+          type: boolean
+          default: false
+        awsSecretPath:
+          title: AWS Secret Path
+          type: string
+          description: Path in AWS Secrets Manager (e.g., /fako/myapp/config)
+          pattern: '^/fako/[a-z0-9-]+/[a-z0-9-]+$'
+
+    - title: Storage Configuration
+      properties:
+        storageSize:
+          title: Model Storage Size
+          type: string
+          default: "50Gi"
+          description: Storage for models/data (e.g., 50Gi, 100Gi)
+        storageMountPath:
+          title: Mount Path
+          type: string
+          default: "/data"
+          description: Path inside container for models/data
+
+    - title: Resource Limits
+      properties:
+        memoryRequest:
+          title: Memory Request
+          type: string
+          default: "4Gi"
+        memoryLimit:
+          title: Memory Limit
+          type: string
+          default: "16Gi"
+        cpuRequest:
+          title: CPU Request
+          type: string
+          default: "1"
+        cpuLimit:
+          title: CPU Limit
+          type: string
+          default: "4"
+
+  steps:
+    - id: fetch-skeleton
+      name: Fetch Skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          image: ${{ parameters.image }}
+          port: ${{ parameters.port }}
+          gpuCount: ${{ parameters.gpuCount }}
+          gpuMemoryRequired: ${{ parameters.gpuMemoryRequired }}
+          hostname: ${{ parameters.hostname }}
+          enableSecrets: ${{ parameters.enableSecrets }}
+          awsSecretPath: ${{ parameters.awsSecretPath }}
+          storageSize: ${{ parameters.storageSize }}
+          storageMountPath: ${{ parameters.storageMountPath }}
+          memoryRequest: ${{ parameters.memoryRequest }}
+          memoryLimit: ${{ parameters.memoryLimit }}
+          cpuRequest: ${{ parameters.cpuRequest }}
+          cpuLimit: ${{ parameters.cpuLimit }}
+
+    - id: publish
+      name: Create Pull Request
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?owner=lyzetam&repo=fako-cluster
+        branchName: backstage/add-${{ parameters.name }}
+        title: 'feat(backstage): Add GPU workload ${{ parameters.name }}'
+        description: |
+          ## New GPU Workload: ${{ parameters.name }}
+
+          **Description:** ${{ parameters.description }}
+
+          **Image:** ${{ parameters.image }}
+
+          **GPU Count:** ${{ parameters.gpuCount }}
+
+          **GPU Memory:** ${{ parameters.gpuMemoryRequired }}
+
+          **Hostname:** ${{ parameters.hostname }}
+
+          ---
+          Created by Backstage Developer Portal
+
+          ### Notes:
+          - Deploys to `aitower` node with NVIDIA GPU support
+          - Uses `nvidia` runtimeClass
+          - Includes tolerations for GPU scheduling
+        targetPath: apps/base/${{ parameters.name }}
+
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /apps/base/${{ parameters.name }}/catalog-info.yaml
+
+  output:
+    links:
+      - title: Pull Request
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: View in Catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

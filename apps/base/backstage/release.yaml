@@ -1,0 +1,72 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: backstage
+  namespace: backstage
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: backstage
+      version: "2.x"
+      sourceRef:
+        kind: HelmRepository
+        name: backstage
+        namespace: backstage
+  values:
+    backstage:
+      image:
+        registry: ghcr.io
+        repository: backstage/backstage
+        tag: latest
+
+      # Mount app-config from ConfigMap
+      extraAppConfig:
+        - filename: app-config.yaml
+          configMapRef: backstage-app-config
+
+      # Environment variables from secrets
+      extraEnvVarsSecrets:
+        - backstage-postgres-secret
+        - backstage-github-secret
+
+      # Additional environment variables
+      extraEnvVars:
+        - name: NODE_OPTIONS
+          value: "--max-old-space-size=4096"
+
+      # Resource limits
+      resources:
+        requests:
+          memory: "1Gi"
+          cpu: "500m"
+        limits:
+          memory: "2Gi"
+          cpu: "2"
+
+      # Service account for Kubernetes plugin
+      serviceAccount:
+        create: true
+        name: backstage
+
+      # RBAC for Kubernetes plugin
+      podSecurityContext:
+        fsGroup: 1000
+
+      containerSecurityContext:
+        runAsUser: 1000
+        runAsNonRoot: true
+
+    # Disable built-in PostgreSQL (using CloudNative-PG)
+    postgresql:
+      enabled: false
+
+    # Ingress handled separately by our ingress.yaml
+    ingress:
+      enabled: false
+
+    # Service configuration
+    service:
+      type: ClusterIP
+      ports:
+        backend: 7007

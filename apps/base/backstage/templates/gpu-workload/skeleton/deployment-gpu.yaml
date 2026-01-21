@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${{ values.name }}
+  namespace: ${{ values.name }}
+  labels:
+    app: ${{ values.name }}
+    app.kubernetes.io/name: ${{ values.name }}
+    app.kubernetes.io/managed-by: backstage
+    workload-type: gpu
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Required for GPU workloads with PVC
+  selector:
+    matchLabels:
+      app: ${{ values.name }}
+  template:
+    metadata:
+      labels:
+        app: ${{ values.name }}
+        workload-type: gpu
+    spec:
+      runtimeClassName: nvidia
+      hostIPC: true
+      nodeSelector:
+        kubernetes.io/hostname: aitower
+        nvidia.com/gpu.present: "true"
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: ${{ values.name }}
+          image: ${{ values.image }}
+          ports:
+            - containerPort: ${{ values.port }}
+              protocol: TCP
+          env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: "all"
+{%- if values.enableSecrets %}
+          envFrom:
+            - secretRef:
+                name: ${{ values.name }}-secret
+{%- endif %}
+          resources:
+            requests:
+              memory: "${{ values.memoryRequest }}"
+              cpu: "${{ values.cpuRequest }}"
+              nvidia.com/gpu: ${{ values.gpuCount }}
+            limits:
+              memory: "${{ values.memoryLimit }}"
+              cpu: "${{ values.cpuLimit }}"
+              nvidia.com/gpu: ${{ values.gpuCount }}
+          volumeMounts:
+            - name: data
+              mountPath: ${{ values.storageMountPath }}
+            - name: shm
+              mountPath: /dev/shm
+          livenessProbe:
+            httpGet:
+              path: /
+              port: ${{ values.port }}
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: ${{ values.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ${{ values.name }}-data
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: "8Gi"
