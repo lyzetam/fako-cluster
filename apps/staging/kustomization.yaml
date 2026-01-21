@@ -29,6 +29,9 @@ resources:
   
   # Dashboard
   - headlamp  # Kubernetes dashboard with Kubescape plugin
+
+  # Developer Portal
+  - backstage  # Backstage developer portal with service catalog and templates
   
   # Observability
   # - pixie     # Now deployed via New Relic in monitoring/controllers
@@ -70,7 +73,7 @@ resources:
   - lzt-ui          # LZ Technology corporate website
 
   # Manufacturing OEE Dashboard
-  - n3xis           # Manufacturing OEE Platform
+  # - n3xis           # Manufacturing OEE Platform
 
   # MCP Gateway
   - mcp-gateway     # Docker MCP Gateway for remote MCP server access

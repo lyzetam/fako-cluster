@@ -1,0 +1,76 @@
+---
+# Central catalog location file for all fako-cluster components
+# This file is read by Backstage to discover all entities
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: fako-cluster-apps
+  description: All applications deployed in fako-cluster
+  annotations:
+    backstage.io/managed-by-location: url:https://github.com/lyzetam/fako-cluster/blob/main/apps/base/backstage/catalog/all-components.yaml
+spec:
+  targets:
+    # AI/ML Stack
+    - ./components/ollama.yaml
+    - ./components/ollama-webui.yaml
+    - ./components/open-webui.yaml
+    - ./components/whisper-cpu.yaml
+    - ./components/whisperx.yaml
+    - ./components/piper.yaml
+    - ./components/openwakeword.yaml
+    - ./components/claude-code.yaml
+    - ./components/autobots.yaml
+    - ./components/zi.yaml
+
+    # Database
+    - ./components/postgres-cluster.yaml
+    - ./components/pgadmin.yaml
+
+    # Identity
+    - ./components/keycloak.yaml
+
+    # Workflow Automation
+    - ./components/n8n.yaml
+    - ./components/audio-workflows.yaml
+
+    # Web Applications
+    - ./components/blog.yaml
+    - ./components/lzt-ui.yaml
+    - ./components/quantum-trades.yaml
+    - ./components/n3xis.yaml
+    - ./components/umami.yaml
+
+    # Security
+    - ./components/gitleaks.yaml
+    - ./components/kube-bench.yaml
+    - ./components/kubescape-operator.yaml
+
+    # Infrastructure
+    - ./components/headlamp.yaml
+    - ./components/paperless-ngx.yaml
+    - ./components/sftp-server.yaml
+    - ./components/mcp-gateway.yaml
+    - ./components/gpustack-proxy.yaml
+
+    # Data Collectors
+    - ./components/oura-collector.yaml
+    - ./components/oura-agent.yaml
+    - ./components/voice-ingest.yaml
+    - ./components/unifi-clients.yaml
+    - ./components/family-manager.yaml
+---
+# System definition for the entire fako-cluster
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: fako-cluster
+  description: K3s homelab running AI/ML workloads, productivity apps, and infrastructure services
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - kubernetes
+    - homelab
+    - gitops
+spec:
+  owner: platform-team
+  domain: infrastructure

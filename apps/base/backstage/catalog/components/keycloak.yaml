@@ -1,0 +1,54 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: keycloak
+  description: Identity and access management (SSO, OAuth2, OIDC)
+  annotations:
+    backstage.io/kubernetes-id: keycloak
+    backstage.io/kubernetes-namespace: keycloak
+    backstage.io/kubernetes-label-selector: app=keycloak
+    github.com/project-slug: lyzetam/fako-cluster
+  tags:
+    - identity
+    - authentication
+    - oauth2
+    - sso
+  links:
+    - url: https://keycloak.landryzetam.net
+      title: Keycloak Admin Console
+      icon: dashboard
+    - url: https://www.keycloak.org/documentation
+      title: Keycloak Documentation
+      icon: docs
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: fako-cluster
+  dependsOn:
+    - component:default/postgres-cluster
+  providesApis:
+    - keycloak-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: keycloak-api
+  description: Keycloak OpenID Connect API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-team
+  system: fako-cluster
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Keycloak OIDC API
+      version: "1.0"
+    paths:
+      /realms/{realm}/protocol/openid-connect/token:
+        post:
+          summary: Get access token
+      /realms/{realm}/protocol/openid-connect/userinfo:
+        get:
+          summary: Get user info

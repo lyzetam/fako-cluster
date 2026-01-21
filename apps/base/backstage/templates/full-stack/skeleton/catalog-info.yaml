@@ -1,0 +1,96 @@
+---
+# System definition
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: ${{ values.name }}
+  description: ${{ values.description }}
+  annotations:
+    github.com/project-slug: lyzetam/fako-cluster
+  tags:
+    - full-stack
+spec:
+  owner: platform-team
+  domain: applications
+---
+# Frontend component
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}-frontend
+  description: Frontend for ${{ values.description }}
+  annotations:
+    backstage.io/kubernetes-id: ${{ values.name }}-frontend
+    backstage.io/kubernetes-namespace: ${{ values.name }}
+    backstage.io/kubernetes-label-selector: app=${{ values.name }}-frontend
+    github.com/project-slug: lyzetam/fako-cluster
+  tags:
+    - frontend
+    - nextjs
+  links:
+    - url: https://${{ values.frontendHostname }}
+      title: Application
+      icon: dashboard
+spec:
+  type: website
+  lifecycle: production
+  owner: platform-team
+  system: ${{ values.name }}
+  dependsOn:
+    - component:default/${{ values.name }}-backend
+---
+# Backend component
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}-backend
+  description: Backend API for ${{ values.description }}
+  annotations:
+    backstage.io/kubernetes-id: ${{ values.name }}-backend
+    backstage.io/kubernetes-namespace: ${{ values.name }}
+    backstage.io/kubernetes-label-selector: app=${{ values.name }}-backend
+    github.com/project-slug: lyzetam/fako-cluster
+  tags:
+    - backend
+    - api
+    - fastapi
+  links:
+{%- if values.backendHostname %}
+    - url: https://${{ values.backendHostname }}
+      title: API
+      icon: code
+{%- else %}
+    - url: https://${{ values.frontendHostname }}/api
+      title: API
+      icon: code
+{%- endif %}
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: ${{ values.name }}
+  dependsOn:
+    - component:default/postgres-cluster
+  providesApis:
+    - ${{ values.name }}-api
+---
+# API definition
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: ${{ values.name }}-api
+  description: ${{ values.name }} REST API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-team
+  system: ${{ values.name }}
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: ${{ values.name }} API
+      version: "1.0"
+    paths:
+      /health:
+        get:
+          summary: Health check
