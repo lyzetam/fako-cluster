@@ -8,61 +8,62 @@ spec:
   chart:
     spec:
       chart: backstage
-      version: "2.x"
+      version: "5.x"
       sourceRef:
         kind: HelmRepository
-        name: backstage
+        name: rhdh-chart
         namespace: backstage
   values:
-    backstage:
-      image:
-        registry: ghcr.io
-        repository: backstage/backstage
-        # Using latest - requires custom backend for auth providers
-        tag: "latest"
+    # Global RHDH configuration
+    global:
+      host: backstage.landryzetam.net
+      dynamic:
+        includes:
+          - "dynamic-plugins.default.yaml"
+        plugins: []
 
-      # Mount app-config from ConfigMap
-      extraAppConfig:
-        - filename: app-config.yaml
-          configMapRef: backstage-app-config
+    # Upstream Backstage configuration
+    upstream:
+      backstage:
+        image:
+          registry: quay.io
+          repository: rhdh-community/rhdh
+          tag: "next"
 
-      # Environment variables from secrets
-      extraEnvVarsSecrets:
-        - backstage-postgres-secret
-        - backstage-github-secret
+        # Mount app-config from ConfigMap
+        extraAppConfig:
+          - filename: app-config.yaml
+            configMapRef: backstage-app-config
 
-      # Additional environment variables
-      extraEnvVars:
-        - name: NODE_OPTIONS
-          value: "--max-old-space-size=4096"
+        # Environment variables from secrets
+        extraEnvVarsSecrets:
+          - backstage-postgres-secret
+          - backstage-keycloak-secret
 
-      # Resource limits
-      resources:
-        requests:
-          memory: "1Gi"
-          cpu: "500m"
-        limits:
-          memory: "2Gi"
-          cpu: "2"
+        # Additional environment variables
+        extraEnvVars:
+          - name: NODE_OPTIONS
+            value: "--max-old-space-size=4096"
 
-      # RBAC for Kubernetes plugin
-      podSecurityContext:
-        fsGroup: 1000
+        # Resource limits
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2"
 
-      containerSecurityContext:
-        runAsUser: 1000
-        runAsNonRoot: true
+      # Disable built-in PostgreSQL (using CloudNative-PG)
+      postgresql:
+        enabled: false
 
-    # Disable built-in PostgreSQL (using CloudNative-PG)
-    postgresql:
-      enabled: false
+      # Ingress handled separately by our ingress.yaml
+      ingress:
+        enabled: false
 
-    # Ingress handled separately by our ingress.yaml
-    ingress:
-      enabled: false
-
-    # Service configuration
-    service:
-      type: ClusterIP
-      ports:
-        backend: 7007
+      # Service configuration
+      service:
+        type: ClusterIP
+        ports:
+          backend: 7007
