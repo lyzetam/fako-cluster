@@ -32,6 +32,9 @@ data:
           database: backstage
           ssl:
             rejectUnauthorized: false
+        # Use schemas instead of separate databases for plugins
+        # This is required when the database user doesn't have CREATE DATABASE privilege
+        pluginDivisionMode: 'schema'
 
     integrations:
       github:
