@@ -21,6 +21,10 @@ spec:
         # Disable default plugins catalog to avoid init container errors
         includes: []
         plugins: []
+      # Disable catalog index extraction to prevent plugin installation errors
+      catalogIndex:
+        image:
+          tag: "nonexistent"
 
     # Disable OpenShift Route (we use Ingress instead)
     route:
