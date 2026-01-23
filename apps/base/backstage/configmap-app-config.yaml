@@ -44,10 +44,15 @@ data:
     auth:
       environment: production
       providers:
-        github:
-          production:
-            clientId: ${AUTH_GITHUB_CLIENT_ID}
-            clientSecret: ${AUTH_GITHUB_CLIENT_SECRET}
+        # Guest authentication - allows anonymous access
+        guest:
+          dangerouslyAllowOutsideDevelopment: true
+        # GitHub authentication - currently disabled due to missing OAuth app
+        # Uncomment and configure when GitHub OAuth app is created
+        # github:
+        #   production:
+        #     clientId: ${AUTH_GITHUB_CLIENT_ID}
+        #     clientSecret: ${AUTH_GITHUB_CLIENT_SECRET}
 
     scaffolder:
       defaultAuthor:
