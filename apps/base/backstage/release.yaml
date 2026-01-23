@@ -22,6 +22,10 @@ spec:
           - "dynamic-plugins.default.yaml"
         plugins: []
 
+    # Disable OpenShift Route (we use Ingress instead)
+    route:
+      enabled: false
+
     # Upstream Backstage configuration
     upstream:
       backstage:
