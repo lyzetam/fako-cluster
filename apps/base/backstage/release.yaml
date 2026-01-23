@@ -18,8 +18,8 @@ spec:
     global:
       host: backstage.landryzetam.net
       dynamic:
-        includes:
-          - "dynamic-plugins.default.yaml"
+        # Disable default plugins catalog to avoid init container errors
+        includes: []
         plugins: []
 
     # Disable OpenShift Route (we use Ingress instead)
