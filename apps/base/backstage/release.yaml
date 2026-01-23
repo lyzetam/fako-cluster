@@ -34,15 +34,103 @@ spec:
           repository: rhdh-community/rhdh
           tag: "next"
 
-        # Mount app-config from ConfigMap
-        extraAppConfig:
-          - filename: app-config.yaml
-            configMapRef: backstage-app-config
+        # Inline app configuration (RHDH style)
+        appConfig:
+          app:
+            title: Fako Cluster Developer Portal
+            baseUrl: https://backstage.landryzetam.net
+
+          organization:
+            name: Landry Zetam
+
+          backend:
+            baseUrl: https://backstage.landryzetam.net
+            listen:
+              port: 7007
+            csp:
+              connect-src: ["'self'", 'http:', 'https:']
+            cors:
+              origin: https://backstage.landryzetam.net
+              methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+              credentials: true
+            database:
+              client: pg
+              connection:
+                host: ${POSTGRES_HOST}
+                port: ${POSTGRES_PORT}
+                user: ${POSTGRES_USER}
+                password: ${POSTGRES_PASSWORD}
+                database: backstage
+                ssl:
+                  rejectUnauthorized: false
+              pluginDivisionMode: 'schema'
+
+          integrations:
+            github:
+              - host: github.com
+                token: ${GITHUB_TOKEN}
+
+          auth:
+            environment: production
+            session:
+              secret: ${BACKEND_SECRET}
+            providers:
+              oidc:
+                production:
+                  metadataUrl: ${AUTH_OIDC_METADATA_URL}
+                  clientId: ${AUTH_OIDC_CLIENT_ID}
+                  clientSecret: ${AUTH_OIDC_CLIENT_SECRET}
+                  prompt: auto
+                  signIn:
+                    resolvers:
+                      - resolver: preferredUsernameMatchingUserEntityName
+            signInPage: oidc
+
+          scaffolder:
+            defaultAuthor:
+              name: Backstage Scaffolder
+              email: backstage@landryzetam.net
+            defaultCommitMessage: "feat(backstage): Initial scaffolding"
+
+          catalog:
+            import:
+              entityFilename: catalog-info.yaml
+              pullRequestBranchName: backstage-integration
+            rules:
+              - allow: [Component, System, API, Resource, Location, Template, Group, User]
+            locations:
+              - type: url
+                target: https://github.com/lyzetam/fako-cluster-catalog/blob/main/catalog-info.yaml
+                rules:
+                  - allow: [Component, System, API, Resource, Location, Template, Group, User]
+            providers:
+              github:
+                fako-cluster:
+                  organization: 'lyzetam'
+                  catalogPath: '/apps/base/**/catalog-info.yaml'
+                  filters:
+                    repository: 'fako-cluster'
+                  schedule:
+                    frequency: { minutes: 30 }
+                    timeout: { minutes: 3 }
+
+          kubernetes:
+            serviceLocatorMethod:
+              type: multiTenant
+            clusterLocatorMethods:
+              - type: config
+                clusters:
+                  - name: fako-cluster
+                    url: https://kubernetes.default.svc
+                    authProvider: serviceAccount
+                    skipTLSVerify: true
+                    skipMetricsLookup: false
 
         # Environment variables from secrets
         extraEnvVarsSecrets:
           - backstage-postgres-secret
           - backstage-keycloak-secret
+          - backstage-github-credentials
 
         # Additional environment variables
         extraEnvVars:
