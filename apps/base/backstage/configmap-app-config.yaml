@@ -59,28 +59,11 @@ data:
       rules:
         - allow: [Component, System, API, Resource, Location, Template, Group, User]
       locations:
-        # Local entity catalog from fako-cluster repo
+        # Discover all entities from the new catalog repository
         - type: url
-          target: https://github.com/lyzetam/fako-cluster/blob/main/apps/base/backstage/catalog/all-components.yaml
+          target: https://github.com/lyzetam/fako-cluster-catalog/blob/main/catalog-info.yaml
           rules:
-            - allow: [Component, System, Location]
-        # Software templates
-        - type: url
-          target: https://github.com/lyzetam/fako-cluster/blob/main/apps/base/backstage/templates/minimal/template.yaml
-          rules:
-            - allow: [Template]
-        - type: url
-          target: https://github.com/lyzetam/fako-cluster/blob/main/apps/base/backstage/templates/standard/template.yaml
-          rules:
-            - allow: [Template]
-        - type: url
-          target: https://github.com/lyzetam/fako-cluster/blob/main/apps/base/backstage/templates/gpu-workload/template.yaml
-          rules:
-            - allow: [Template]
-        - type: url
-          target: https://github.com/lyzetam/fako-cluster/blob/main/apps/base/backstage/templates/full-stack/template.yaml
-          rules:
-            - allow: [Template]
+            - allow: [Component, System, API, Resource, Location, Template, Group, User]
       providers:
         github:
           fako-cluster:
