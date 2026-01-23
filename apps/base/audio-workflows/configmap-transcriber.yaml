@@ -12,7 +12,7 @@ data:
   AUDIO_EXTENSIONS: ".mp3"
   SKIP_PROCESSED: "true"  # Skip already transcribed files
   MAX_FILE_SIZE_MB: "10000"
-  BATCH_SIZE: "3"  # Reduced to avoid timeout with large chunked files
+  BATCH_SIZE: "0"  # 0 = no limit, process all files
   MAX_RETRIES: "3"
   RETRY_DELAY: "10"
   WHISPER_TIMEOUT: "7200"
