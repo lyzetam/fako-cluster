@@ -218,9 +218,7 @@ spec:
             name: obsidian-api
             key: api_key
       - name: USE_TIMESTAMP_FILTER
-        value: "true"
-      - name: WORKFLOW_START_TIME
-        value: "{{workflow.creationTimestamp}}"
+        value: "false"  # Rely on SKIP_PROCESSED for idempotency
       volumeMounts:
       - name: publisher-script
         mountPath: /scripts
