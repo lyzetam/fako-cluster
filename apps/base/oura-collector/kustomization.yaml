@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - rbac.yaml
   - rbac-additions.yaml      # New: Additional RBAC for External Secrets
+  - secret-store.yaml        # SecretStore for local K8s secret transformation
   - external-secret-aws.yaml # New: External Secret for AWS credentials
   - external-secret-postgres.yaml # New: External Secret for PostgreSQL credentials
   - external-secret-discord.yaml # New: Discord webhook for stale data alerts
