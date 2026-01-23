@@ -18,7 +18,8 @@ spec:
       image:
         registry: ghcr.io
         repository: backstage/backstage
-        tag: latest
+        # Use v1.30.x which has stable auth providers
+        tag: "v1.30.0"
 
       # Mount app-config from ConfigMap
       extraAppConfig:
