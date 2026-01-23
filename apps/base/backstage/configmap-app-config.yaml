@@ -44,14 +44,14 @@ data:
     auth:
       environment: production
       providers:
-        # Guest authentication - allows anonymous access
-        guest:
-          dangerouslyAllowOutsideDevelopment: true
         # GitHub authentication
         github:
           production:
             clientId: ${AUTH_GITHUB_CLIENT_ID}
             clientSecret: ${AUTH_GITHUB_CLIENT_SECRET}
+
+    # Guest authentication is now handled by the new backend module
+    # No legacy configuration needed - the module handles it automatically
 
     scaffolder:
       defaultAuthor:
