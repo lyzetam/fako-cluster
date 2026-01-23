@@ -176,9 +176,9 @@ spec:
       - name: WHISPER_API_KEY
         value: "not-required"
       - name: WHISPERX_ALIGN
-        value: "false"
+        value: "true"
       - name: WHISPERX_DIARIZE
-        value: "false"
+        value: "true"
       volumeMounts:
       - name: compressed-audio
         mountPath: /data/compressed
