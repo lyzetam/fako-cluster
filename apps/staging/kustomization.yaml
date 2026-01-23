@@ -31,7 +31,7 @@ resources:
   - headlamp  # Kubernetes dashboard with Kubescape plugin
 
   # Developer Portal
-  # - backstage  # Disabled: SOPS decryption error blocking entire apps kustomization
+  - backstage
   
   # Observability
   # - pixie     # Now deployed via New Relic in monitoring/controllers
