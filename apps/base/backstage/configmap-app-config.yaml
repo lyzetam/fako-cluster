@@ -43,19 +43,19 @@ data:
 
     auth:
       environment: production
+      session:
+        secret: ${BACKEND_SECRET}
       providers:
-        # GitHub authentication - NOT WORKING with default image
-        # The ghcr.io/backstage/backstage:latest image doesn't include auth provider modules
-        # To enable GitHub auth, you need to build a custom Backstage backend
-        # See: https://backstage.io/docs/auth/github/provider
-        github:
+        oidc:
           production:
-            clientId: ${AUTH_GITHUB_CLIENT_ID}
-            clientSecret: ${AUTH_GITHUB_CLIENT_SECRET}
-
-    # Guest access enabled (read-only recommended via permissions)
-    # To disable guests and require GitHub auth, uncomment:
-    # signInPage: github
+            metadataUrl: ${AUTH_OIDC_METADATA_URL}
+            clientId: ${AUTH_OIDC_CLIENT_ID}
+            clientSecret: ${AUTH_OIDC_CLIENT_SECRET}
+            prompt: auto
+            signIn:
+              resolvers:
+                - resolver: preferredUsernameMatchingUserEntityName
+      signInPage: oidc  # Disable guest access, require Keycloak authentication
 
     scaffolder:
       defaultAuthor:
