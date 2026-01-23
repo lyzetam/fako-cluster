@@ -8,38 +8,20 @@ spec:
   chart:
     spec:
       chart: backstage
-      version: "5.x"
+      version: "1.x"
       sourceRef:
         kind: HelmRepository
-        name: rhdh-chart
+        name: backstage
         namespace: backstage
   values:
-    # Global RHDH configuration
-    global:
-      host: backstage.landryzetam.net
-      dynamic:
-        # Disable default plugins catalog to avoid init container errors
-        includes: []
-        plugins: []
-      # Disable catalog index extraction to prevent plugin installation errors
-      catalogIndex:
-        image:
-          tag: "nonexistent"
+    backstage:
+      image:
+        registry: ghcr.io
+        repository: backstage/backstage
+        tag: "latest"
 
-    # Disable OpenShift Route (we use Ingress instead)
-    route:
-      enabled: false
-
-    # Upstream Backstage configuration
-    upstream:
-      backstage:
-        image:
-          registry: quay.io
-          repository: rhdh-community/rhdh
-          tag: "next"
-
-        # Inline app configuration (RHDH style)
-        appConfig:
+      # Application configuration
+      appConfig:
           app:
             title: Fako Cluster Developer Portal
             baseUrl: https://backstage.landryzetam.net
@@ -130,36 +112,36 @@ spec:
                     skipTLSVerify: true
                     skipMetricsLookup: false
 
-        # Environment variables from secrets
-        extraEnvVarsSecrets:
-          - backstage-postgres-secret
-          - backstage-keycloak-secret
-          - backstage-github-credentials
+      # Environment variables from secrets
+      extraEnvVarsSecrets:
+        - backstage-postgres-secret
+        - backstage-keycloak-secret
+        - backstage-github-credentials
 
-        # Additional environment variables
-        extraEnvVars:
-          - name: NODE_OPTIONS
-            value: "--max-old-space-size=4096"
+      # Additional environment variables
+      extraEnvVars:
+        - name: NODE_OPTIONS
+          value: "--max-old-space-size=4096"
 
-        # Resource limits
-        resources:
-          requests:
-            memory: "1Gi"
-            cpu: "500m"
-          limits:
-            memory: "2Gi"
-            cpu: "2"
+      # Resource limits
+      resources:
+        requests:
+          memory: "1Gi"
+          cpu: "500m"
+        limits:
+          memory: "2Gi"
+          cpu: "2"
 
-      # Disable built-in PostgreSQL (using CloudNative-PG)
-      postgresql:
-        enabled: false
+    # Disable built-in PostgreSQL (using CloudNative-PG)
+    postgresql:
+      enabled: false
 
-      # Ingress handled separately by our ingress.yaml
-      ingress:
-        enabled: false
+    # Ingress handled separately by our ingress.yaml
+    ingress:
+      enabled: false
 
-      # Service configuration
-      service:
-        type: ClusterIP
-        ports:
-          backend: 7007
+    # Service configuration
+    service:
+      type: ClusterIP
+      ports:
+        backend: 7007
