@@ -1,8 +1,8 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
-  name: backstage
+  name: rhdh-chart
   namespace: backstage
 spec:
   interval: 1h
-  url: https://backstage.github.io/charts
+  url: https://redhat-developer.github.io/rhdh-chart/
