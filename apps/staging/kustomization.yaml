@@ -31,8 +31,8 @@ resources:
   - headlamp  # Kubernetes dashboard with Kubescape plugin
 
   # Developer Portal
-  - backstage
-  
+  # - backstage  # Disabled - waiting for AWS secret /fako/backstage/keycloak-oidc (see apps/base/backstage/STATUS.md)
+
   # Observability
   # - pixie     # Now deployed via New Relic in monitoring/controllers
   
