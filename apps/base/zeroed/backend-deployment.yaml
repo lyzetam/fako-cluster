@@ -24,7 +24,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: backend
-          image: lzetam/zeroed-backend:v1.0.4
+          image: lzetam/zeroed-backend:v1.0.5
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
