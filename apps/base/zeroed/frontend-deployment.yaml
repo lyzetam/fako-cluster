@@ -24,7 +24,7 @@ spec:
         runAsUser: 1001
       containers:
         - name: frontend
-          image: lzetam/zeroed-frontend:latest
+          image: lzetam/zeroed-frontend:v1.0.1
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
@@ -32,6 +32,8 @@ spec:
           env:
             - name: NODE_ENV
               value: "production"
+            - name: NEXT_PUBLIC_BASE_URL
+              value: "https://zeroed.landryzetam.net"
             - name: NEXT_PUBLIC_API_URL
               value: "https://zeroed.landryzetam.net/api"
             - name: NEXT_PUBLIC_SUPABASE_URL
