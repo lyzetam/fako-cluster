@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zeroed-backend
+  labels:
+    app: zeroed
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zeroed
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: zeroed
+        component: backend
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: backend
+          image: lzetam/zeroed-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          env:
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: zeroed-secrets
+                  key: SUPABASE_URL
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zeroed-secrets
+                  key: SUPABASE_SERVICE_KEY
+            - name: METHOD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zeroed-secrets
+                  key: METHOD_API_KEY
+            - name: METHOD_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: zeroed-config
+                  key: METHOD_ENVIRONMENT
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: zeroed-config
+                  key: CORS_ORIGINS
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "8000"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      restartPolicy: Always
