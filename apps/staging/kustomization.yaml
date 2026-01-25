@@ -108,3 +108,6 @@ resources:
 
   # UniFi Clips Exporter
   - unifi-clients  # Daily export of UniFi Protect motion clips to S3
+
+  # Debt Management
+  - zeroed        # Zeroed - automated debt payoff optimization
