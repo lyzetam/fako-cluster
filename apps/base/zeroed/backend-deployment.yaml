@@ -50,11 +50,11 @@ spec:
                 configMapKeyRef:
                   name: zeroed-config
                   key: METHOD_ENVIRONMENT
-            - name: CORS_ORIGINS
+            - name: CORS_ORIGINS_STR
               valueFrom:
                 configMapKeyRef:
                   name: zeroed-config
-                  key: CORS_ORIGINS
+                  key: CORS_ORIGINS_STR
             - name: HOST
               value: "0.0.0.0"
             - name: PORT
