@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sermon-generator
+  namespace: sermon-engine
+  labels:
+    app: sermon-generator
+spec:
+  # Run every Sunday at 6 AM Eastern Time
+  schedule: "0 6 * * 0"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 4
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900  # 15 minute timeout
+      ttlSecondsAfterFinished: 604800  # 7 days
+      template:
+        metadata:
+          labels:
+            app: sermon-generator
+        spec:
+          imagePullSecrets:
+            - name: dockerhub-secret
+          restartPolicy: OnFailure
+          containers:
+            - name: sermon-generator
+              image: lzetam/sermon-engine:latest
+              imagePullPolicy: Always
+              command: ["python", "-m", "app.main", "generate"]
+              envFrom:
+                - configMapRef:
+                    name: sermon-engine-config
+                - secretRef:
+                    name: sermon-engine-secrets
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "200m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "500m"
