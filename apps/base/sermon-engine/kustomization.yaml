@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: sermon-engine
+
+resources:
+  - namespace.yaml
+  - secretstore.yaml
+  - external-secret.yaml
+  - external-secret-dockerhub.yaml
+  - configmap.yaml
+  - cronjob.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: sermon-engine
+      app.kubernetes.io/instance: production
+      app.kubernetes.io/component: cronjob
+      app.kubernetes.io/part-of: sermon-engine
