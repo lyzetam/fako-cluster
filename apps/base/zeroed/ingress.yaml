@@ -40,6 +40,13 @@ spec:
                 name: backend-service
                 port:
                   number: 8000
+          - path: /auth/callback
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
           - path: /auth
             pathType: Prefix
             backend:
