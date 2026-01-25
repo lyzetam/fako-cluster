@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sermon-engine-config
+  namespace: sermon-engine
+data:
+  # Supabase URL for bible-toolkit
+  SUPABASE_URL: "https://rehpmoxczibgkwcawelo.supabase.co"
+  # Ollama URL for embeddings (running in cluster)
+  OLLAMA_URL: "http://ollama.ai-services:11434"
+  # Claude model for sermon generation
+  CLAUDE_MODEL: "claude-sonnet-4-20250514"
+  # News settings
+  NEWS_QUERY: "major world news events this week"
+  NEWS_MAX_RESULTS: "5"
