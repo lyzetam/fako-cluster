@@ -101,6 +101,7 @@ resources:
 
   # Family Management
   - family-manager  # Family Manager webhook for Discord bot, Twilio voice, Nylas email
+  - sermon-engine   # Weekly sermon generator (Sunday 6am ET)
 
   # Agent Orchestration
   - autobots    # Claude Agent SDK orchestrator for AI workflows
