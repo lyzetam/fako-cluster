@@ -4,6 +4,6 @@ metadata:
   name: zeroed-config
   namespace: zeroed
 data:
-  CORS_ORIGINS: "https://zeroed.landryzetam.net,http://localhost:3000"
+  CORS_ORIGINS_STR: "https://zeroed.landryzetam.net,http://localhost:3000"
   METHOD_ENVIRONMENT: "production"
   LOG_LEVEL: "info"
