@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: family-manager-email-processor
+  namespace: family-manager
+  labels:
+    app: family-manager-email-processor
+spec:
+  # Run at 10 PM ET daily (3 AM UTC during EST, 2 AM UTC during EDT)
+  # Using 3 AM UTC to cover EST
+  schedule: "0 3 * * *"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600  # 10 minute timeout
+      template:
+        metadata:
+          labels:
+            app: family-manager-email-processor
+        spec:
+          imagePullSecrets:
+            - name: dockerhub-secret
+          restartPolicy: OnFailure
+          containers:
+            - name: email-processor
+              image: lzetam/family-manager-bot:latest
+              command: ["python", "batch_email.py", "--hours", "26"]
+              # 26 hours to ensure overlap and catch any missed emails
+              env:
+                - name: MEMORY_BACKEND
+                  value: "supabase"
+              envFrom:
+                - secretRef:
+                    name: family-manager-secrets
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "200m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
