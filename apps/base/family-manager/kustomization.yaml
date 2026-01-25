@@ -11,6 +11,7 @@ resources:
   - redis.yaml
   - deployment.yaml
   - deployment-bot.yaml
+  - cronjob-email.yaml
   - service.yaml
   - ingress.yaml
   - cloudflare.yaml
