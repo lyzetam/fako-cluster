@@ -6,12 +6,12 @@ metadata:
   labels:
     app: family-manager-email-processor
 spec:
-  # Run at 10 PM ET daily (3 AM UTC during EST, 2 AM UTC during EDT)
-  # Using 3 AM UTC to cover EST
-  schedule: "0 3 * * *"
+  # Run every 4 hours: 8 AM, 12 PM, 4 PM, 8 PM, 12 AM, 4 AM ET
+  # This ensures timely updates throughout the day, especially before bed
+  schedule: "0 8,12,16,20,0,4 * * *"
   timeZone: "America/New_York"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
@@ -28,8 +28,8 @@ spec:
           containers:
             - name: email-processor
               image: lzetam/family-manager-bot:latest
-              command: ["python", "batch_email.py", "--hours", "26"]
-              # 26 hours to ensure overlap and catch any missed emails
+              command: ["python", "batch_email.py", "--hours", "6"]
+              # 6 hours to catch emails since last run with buffer
               env:
                 - name: MEMORY_BACKEND
                   value: "supabase"
