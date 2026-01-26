@@ -73,7 +73,7 @@ resources:
   - lzt-ui          # LZ Technology corporate website
 
   # Manufacturing OEE Dashboard
-  # - n3xis           # Manufacturing OEE Platform
+  # - n3xis           # Manufacturing OEE Platform (commented - shopflor.n3xis.com not for public access)
 
   # MCP Gateway
   - mcp-gateway     # Docker MCP Gateway for remote MCP server access
