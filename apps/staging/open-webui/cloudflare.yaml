@@ -84,8 +84,9 @@ data:
     no-autoupdate: true
 
     ingress:
-    - hostname: ai.landryzetam.net
-      service: http://open-webui:8080
+    # - hostname: ai.landryzetam.net
+    #   service: http://open-webui:8080
+    # (Changed to local-only: ai.local - no internet exposure)
 
     # This rule sends traffic to the built-in hello-world HTTP server. This can help debug connectivity
     # issues. If hello.example.com resolves and tunnel.example.com does not, then the problem is
