@@ -6,23 +6,564 @@ metadata:
   labels:
     app: trading-coordinator
 data:
-  watchlist.json: |
-    ["NVDA", "AAPL", "TSLA", "AMD", "MSFT", "GOOGL", "META", "AMZN", "SPY", "QQQ"]
+  # Pre-Research Agent Configuration
+  pre_research_config.json: |
+    {
+      "market_cap_screener": {
+        "min_market_cap_billions": 0.5,
+        "max_market_cap_billions": 500,
+        "preferred_range": "1-50B"
+      },
+      "volume_screener": {
+        "min_avg_daily_volume": 500000,
+        "min_option_volume": 100,
+        "liquidity_threshold": 0.85
+      },
+      "sector_classifier": {
+        "sectors": ["Technology", "Healthcare", "Financials", "Energy", "Consumer", "Industrials", "Materials", "Real Estate", "Utilities", "Communications"],
+        "tickers_per_sector": 50
+      },
+      "liquidity_analyzer": {
+        "max_bid_ask_spread_percent": 2.0,
+        "min_option_open_interest": 50
+      },
+      "volatility_assessor": {
+        "min_atr_percent": 1.5,
+        "max_atr_percent": 20.0,
+        "ideal_range": "3-12%"
+      },
+      "technical_readiness": {
+        "min_trend_strength": 0.6,
+        "check_moving_averages": true
+      }
+    }
+
+  # Research Agent Configuration
+  research_config.json: |
+    {
+      "signal_strength_threshold": 65,
+      "per_ticker_thresholds": {
+        "NVDA": 70,
+        "TSLA": 65,
+        "AMD": 68,
+        "META": 66,
+        "AAPL": 70,
+        "MSFT": 70,
+        "AMZN": 65,
+        "default": 65
+      },
+      "20pct_viability_checks": {
+        "check_atm_premium_vs_20pct_target": true,
+        "check_time_decay_impact": true,
+        "check_volatility_environment": true,
+        "minimum_time_to_target_minutes": 30,
+        "maximum_time_to_target_minutes": 480
+      },
+      "output_per_sector": 5,
+      "max_total_candidates": 70,
+      "confidence_weighting": {
+        "entry_signal_strength": 0.4,
+        "exit_target_probability": 0.3,
+        "per_ticker_hit_rate": 0.2,
+        "market_conditions": 0.1
+      }
+    }
+
+  # Executor Agent Configuration
+  executor_config.json: |
+    {
+      "capital_checks": {
+        "min_available_capital": 50,
+        "max_single_position": 100,
+        "max_concurrent_positions": 3,
+        "max_deployed_capital": 300
+      },
+      "profit_targets": {
+        "quick_target_percent": 15,
+        "primary_target_percent": 30,
+        "secondary_targets": [50, 75],
+        "time_constraint_minutes": 240
+      },
+      "position_sizing": {
+        "base_risk_percent": 1,
+        "aggressive_risk_percent": 2,
+        "conservative_risk_percent": 0.5
+      },
+      "entry_validation": {
+        "require_rsi_confirmation": true,
+        "require_volume_confirmation": true,
+        "require_technical_alignment": true,
+        "require_market_regime_check": true,
+        "require_20pct_viability_check": true
+      }
+    }
+
+  # Risk Agent Configuration
+  risk_config.json: |
+    {
+      "daily_limits": {
+        "max_daily_loss_dollars": 50,
+        "alert_threshold_dollars": 40,
+        "position_loss_alert_percent": -30,
+        "position_loss_forced_close_percent": -50
+      },
+      "weekly_limits": {
+        "max_weekly_loss_dollars": 150,
+        "extended_halt_duration_days": 7
+      },
+      "circuit_breakers": {
+        "daily_loss_80_percent_action": "alert_and_reduce_position_size",
+        "daily_loss_100_percent_action": "halt_24_hours",
+        "three_losing_trades_action": "pause_2_hours",
+        "win_rate_below_30_percent_action": "strategy_review_pause"
+      },
+      "eod_enforcement": {
+        "alert_time_market_hours": "14:45",
+        "cancel_pending_orders_time": "14:50",
+        "begin_forced_closes_time": "15:45",
+        "mandatory_all_closed_time": "16:00"
+      }
+    }
+
+  # Exit Agent Configuration
+  exit_config.json: |
+    {
+      "quick_profit_targets": {
+        "quick_target_percent": 15,
+        "quick_target_close_percent": 100,
+        "rationale": "Take 15% wins fast - small gains add up"
+      },
+      "profit_targets": {
+        "first_target_percent": 30,
+        "first_target_close_percent": 50,
+        "second_target_percent": 50,
+        "second_target_close_percent": 25,
+        "third_target_percent": 75,
+        "third_target_close_percent": 25
+      },
+      "stop_losses": {
+        "hard_stop_percent": -50,
+        "soft_alert_percent": -30
+      },
+      "time_based_exits": {
+        "max_holding_hours": 4,
+        "rationale": "Exit to free capital for new opportunities"
+      },
+      "time_decay_exits": {
+        "exit_at_dte": 5,
+        "force_close_at_dte": 3
+      },
+      "technical_exits": {
+        "rsi_overbought_threshold": 80,
+        "rsi_oversold_threshold": 20,
+        "macd_crossover_enabled": true
+      },
+      "eod_mandate": {
+        "market_close_time": "16:00",
+        "force_close_buffer_minutes": 15,
+        "all_positions_must_close": true,
+        "no_overnight_holds_allowed": true
+      },
+      "exit_check_frequency_minutes": 2
+    }
+
+  # Learning Agent Configuration
+  learning_config.json: |
+    {
+      "learning_frequency": "after_every_trade_and_daily",
+      "pattern_discovery": {
+        "minimum_confirmations_for_adjustment": 10,
+        "minimum_confidence_level_percent": 80,
+        "focus_metric": "20pct_hitting_rate"
+      },
+      "per_ticker_tracking": {
+        "track_individual_performance": true,
+        "min_trades_for_pattern": 5,
+        "recency_weight": 0.7
+      },
+      "market_regime_detection": {
+        "vix_based": true,
+        "time_of_day_based": true,
+        "volatility_based": true
+      },
+      "parameter_update_rules": {
+        "signal_strength_adjustment_range": [60, 75],
+        "exit_target_adjustment_range": [15, 35],
+        "time_decay_adjustment_range": [3, 7]
+      }
+    }
+
+  # Decision Review Agent Configuration
+  decision_review_config.json: |
+    {
+      "review_frequency": "every_50_trades_and_daily",
+      "daytrading_criteria": {
+        "entry_signal_accuracy": true,
+        "exit_rule_effectiveness": true,
+        "false_negatives_analysis": true,
+        "time_based_issues": true,
+        "ticker_specific_issues": true,
+        "market_regime_issues": true,
+        "daily_20pct_rule_effectiveness": true
+      },
+      "confidence_threshold_for_change": 0.8,
+      "rule_adjustment_authority": {
+        "can_adjust_entry_score_thresholds": true,
+        "can_adjust_exit_targets": true,
+        "can_adjust_time_decay_points": true,
+        "can_adjust_per_ticker_parameters": true,
+        "cannot_touch_capital_limits": true,
+        "cannot_touch_daily_loss_limits": true
+      }
+    }
+
+  # Meta-Learner Configuration
+  meta_learner_config.json: |
+    {
+      "analysis_frequency": "every_60_minutes_and_daily",
+      "focus_areas": {
+        "learning_effectiveness_analysis": true,
+        "decision_review_effectiveness": true,
+        "pattern_discovery_gaps": true,
+        "optimization_suggestions": true
+      },
+      "optimization_checks": {
+        "is_learning_agent_discovering_useful_patterns": true,
+        "is_decision_review_suggesting_good_changes": true,
+        "are_suggested_changes_improving_outcomes": true,
+        "are_there_learning_blindspots": true
+      },
+      "system_improvement_areas": {
+        "learning_process_optimization": true,
+        "decision_making_process_optimization": true,
+        "20pct_hit_rate_improvement": true
+      }
+    }
+
+  # Market Condition Validation Agent Configuration
+  validation_config.json: |
+    {
+      "validation_phases": {
+        "aftermarket": {
+          "enabled": true,
+          "schedule": "16:15 ET",
+          "description": "Post-market analysis for overnight events and anomalies",
+          "timeout_minutes": 30,
+          "checks": [
+            "earnings_announcements",
+            "news_corporate_events",
+            "iv_level_analysis",
+            "aftermarket_volume_analysis",
+            "economic_calendar_check"
+          ]
+        },
+        "premarket_initial": {
+          "enabled": true,
+          "schedule": "08:00 ET",
+          "description": "Initial premarket check 90 minutes before market open",
+          "timeout_minutes": 30,
+          "checks": [
+            "premarket_move_analysis",
+            "option_iv_comparison",
+            "liquidity_spot_check",
+            "ticker_level_squeeze_detection",
+            "sector_rotation_check"
+          ]
+        },
+        "premarket_intensive": {
+          "enabled": true,
+          "schedule": "09:00 ET",
+          "description": "Critical final validation 30 minutes before market open",
+          "timeout_minutes": 15,
+          "checks": [
+            "final_iv_reality_check",
+            "liquidity_pre_flight",
+            "premarket_technical_squeeze_signals",
+            "green_yellow_red_status_decision"
+          ]
+        },
+        "during_market": {
+          "enabled": true,
+          "frequency_minutes": 15,
+          "description": "Continuous validation during trading hours",
+          "checks": [
+            "entry_time_validation",
+            "continuous_liquidity_monitoring",
+            "iv_monitoring_during_day",
+            "technical_squeeze_detection",
+            "volume_profile_changes"
+          ]
+        }
+      },
+      "squeeze_detection": {
+        "iv_crush_threshold_percent": 20,
+        "iv_spike_threshold_percent": 30,
+        "iv_crush_status": "YELLOW",
+        "iv_spike_status": "RED",
+        "spread_widening_threshold_percent": 50,
+        "spread_widening_status": "YELLOW",
+        "premarket_move_threshold_percent": 3,
+        "premarket_move_status": "YELLOW"
+      },
+      "earnings_detection": {
+        "check_earnings_calendar": true,
+        "earnings_day_buffer_hours_before": 0,
+        "earnings_day_buffer_hours_after": 24,
+        "premarket_earnings_status": "YELLOW",
+        "aftermarket_earnings_status": "YELLOW",
+        "earnings_iv_adjustment_percent": 15
+      },
+      "iv_analysis": {
+        "compare_iv_to_baseline": true,
+        "baseline_period_days": 30,
+        "baseline_percentile": 50,
+        "iv_crush_20pct_drops_to": "YELLOW",
+        "iv_crush_30pct_drops_to": "RED",
+        "iv_spike_30pct_rises_to": "YELLOW",
+        "iv_spike_50pct_rises_to": "RED",
+        "track_iv_percentile_rank": true
+      },
+      "liquidity_monitoring": {
+        "monitor_bid_ask_spreads": true,
+        "baseline_spread_percent": 1.0,
+        "spread_widening_50pct_status": "YELLOW",
+        "spread_widening_100pct_status": "RED",
+        "monitor_option_open_interest": true,
+        "min_acceptable_open_interest": 50,
+        "check_slippage_at_entry": true
+      },
+      "premarket_analysis": {
+        "monitor_premarket_movers": true,
+        "gap_up_threshold_percent": 3,
+        "gap_down_threshold_percent": 3,
+        "premarket_volume_threshold": "elevated",
+        "check_sector_leadership_changes": true,
+        "check_macro_events": true
+      },
+      "economic_calendar": {
+        "monitor_economic_events": true,
+        "data_sources": ["fred.stlouisfed.org", "trading-economics"],
+        "high_impact_events": [
+          "non_farm_payroll",
+          "unemployment_rate",
+          "cpi",
+          "pce",
+          "fed_meeting",
+          "treasury_yield_change",
+          "vix_spike"
+        ],
+        "high_impact_spreads_widen_by_percent": 25,
+        "high_impact_event_status": "YELLOW"
+      },
+      "status_decisions": {
+        "GREEN": {
+          "meaning": "All checks passed, market conditions favorable for execution",
+          "action": "Proceed with execution at 9:30 AM",
+          "threshold_adjustment": 0
+        },
+        "YELLOW": {
+          "meaning": "One or more concerns detected, market conditions slightly unfavorable",
+          "action": "Proceed with threshold adjustment",
+          "threshold_adjustment_percent": 10,
+          "example": "If MIN_SIGNAL=70, adjust to MIN_SIGNAL=77 (10% increase)"
+        },
+        "RED": {
+          "meaning": "Multiple concerns or major anomalies, skip candidate entirely",
+          "action": "Remove from research candidates, do not execute",
+          "threshold_adjustment": 0
+        }
+      },
+      "research_candidate_filtering": {
+        "input_candidates_from_research_agent": 70,
+        "expected_green_status_percent": 80,
+        "expected_yellow_status_percent": 15,
+        "expected_red_status_percent": 5,
+        "output_to_executor": "only GREEN and YELLOW status with threshold adjustments"
+      },
+      "output_locations": {
+        "aftermarket_validation_output": "/memories/aftermarket_validation_output.json",
+        "premarket_initial_output": "/memories/premarket_validation_output_0800.json",
+        "premarket_intensive_output": "/memories/premarket_validation_output_final.json",
+        "during_market_validation_log": "/memories/during_market_validation_log.json"
+      },
+      "per_ticker_adjustments": {
+        "NVDA": {
+          "iv_crush_threshold_percent": 18,
+          "spread_widening_threshold_percent": 40,
+          "premarket_move_threshold_percent": 2.5,
+          "reason": "High IV, tight spreads typically, sensitive to earnings"
+        },
+        "TSLA": {
+          "iv_crush_threshold_percent": 25,
+          "spread_widening_threshold_percent": 60,
+          "premarket_move_threshold_percent": 4,
+          "reason": "Volatile, wider spreads, news-driven premarket moves"
+        },
+        "AAPL": {
+          "iv_crush_threshold_percent": 20,
+          "spread_widening_threshold_percent": 45,
+          "premarket_move_threshold_percent": 2,
+          "reason": "Large cap, tight spreads, stable premarket"
+        }
+      }
+    }
+
+  # Strategy Parameters - used by trading-coordinator CronJob
   strategy_params.json: |
     {
-      "min_signal_strength": 70,
-      "max_position_size": 100,
-      "profit_target_1": 0.30,
-      "profit_target_2": 0.50,
-      "stop_loss": 0.50,
-      "max_dte_entry": 30,
-      "min_dte_exit": 5,
-      "allowed_strategies": ["LONG_CALL", "LONG_PUT"],
-      "max_trades_per_day": 2
+      "default_strategy": "momentum_breakout",
+      "strategies": {
+        "momentum_breakout": {
+          "entry_signal_threshold": 70,
+          "quick_profit_target_percent": 15,
+          "exit_profit_target_percent": 30,
+          "exit_stop_loss_percent": -50,
+          "max_hold_time_minutes": 240
+        },
+        "mean_reversion": {
+          "entry_signal_threshold": 75,
+          "quick_profit_target_percent": 10,
+          "exit_profit_target_percent": 20,
+          "exit_stop_loss_percent": -30,
+          "max_hold_time_minutes": 120
+        }
+      },
+      "position_sizing": {
+        "base_position_percent": 20,
+        "max_position_dollars": 100,
+        "scale_with_confidence": true
+      }
     }
+
+  # Risk Limits - used by trading-coordinator CronJob
   risk_limits.json: |
     {
-      "daily_loss_limit": 50,
-      "weekly_loss_limit": 150,
-      "max_position_loss": 50
+      "daily_limits": {
+        "max_loss_dollars": 50,
+        "max_trades": 10,
+        "halt_after_consecutive_losses": 3
+      },
+      "weekly_limits": {
+        "max_loss_dollars": 150,
+        "extended_halt_days": 7
+      },
+      "position_limits": {
+        "max_single_position_dollars": 100,
+        "max_concurrent_positions": 3,
+        "max_deployed_capital_dollars": 300
+      },
+      "circuit_breakers": {
+        "daily_loss_80pct_action": "reduce_position_size",
+        "daily_loss_100pct_action": "halt_24h",
+        "win_rate_below_30pct_action": "strategy_review"
+      }
+    }
+
+  # Watchlist - symbols to monitor for trading opportunities
+  watchlist.json: |
+    {
+      "active_symbols": [
+        "NVDA", "TSLA", "AMD", "META", "AAPL",
+        "MSFT", "AMZN", "GOOGL", "NFLX", "SPY",
+        "QQQ", "COIN", "PLTR", "SOFI", "ARM"
+      ],
+      "sector_allocation": {
+        "Technology": 8,
+        "Consumer": 3,
+        "ETFs": 2,
+        "Financials": 2
+      },
+      "excluded_symbols": [],
+      "earnings_blackout_days": 1,
+      "min_option_volume": 1000,
+      "min_market_cap_billions": 10
+    }
+
+  # Governance System Auditor Configuration
+  governance_config.json: |
+    {
+      "alignment_check_frequency_minutes": 10,
+      "end_of_day_audit_time": "16:05",
+      "agent_alignment_targets": {
+        "pre_research_agent": {
+          "output_quality_score": 0.85,
+          "ticker_filtering_efficiency": 0.95,
+          "sector_distribution": 0.9
+        },
+        "research_agent": {
+          "signal_accuracy": 0.85,
+          "20pct_viability_precision": 0.8,
+          "output_ranking_quality": 0.85
+        },
+        "executor_agent": {
+          "capital_protection": 1.0,
+          "position_sizing_accuracy": 0.95,
+          "entry_execution_speed": 0.9
+        },
+        "risk_agent": {
+          "daily_loss_limit_enforcement": 1.0,
+          "position_monitoring": 0.95,
+          "circuit_breaker_responsiveness": 0.95
+        },
+        "exit_agent": {
+          "eod_mandate_enforcement": 1.0,
+          "target_hit_tracking": 0.9,
+          "exit_logging_completeness": 0.95
+        },
+        "learning_agent": {
+          "pattern_discovery_quality": 0.8,
+          "per_ticker_accuracy": 0.85,
+          "confidence_level_assessment": 0.85
+        },
+        "decision_review_agent": {
+          "rule_effectiveness_assessment": 0.85,
+          "false_positive_detection": 0.8,
+          "change_recommendation_quality": 0.8
+        },
+        "meta_learner": {
+          "learning_process_optimization": 0.8,
+          "system_improvement_suggestions": 0.75
+        }
+      },
+      "daily_metrics": {
+        "minimum_20pct_hit_rate_target": 0.7,
+        "alert_if_below_target": true,
+        "pause_trading_if_below": 0.5
+      }
+    }
+  llm_fallback_config.json: |
+    {
+      "fallback_enabled": true,
+      "provider_order": ["anthropic", "openai", "google", "ollama"],
+      "provider_health_cache_ttl_seconds": 300,
+      "model_tiers": {
+        "flagship": {
+          "anthropic": "claude-opus-4-5-20251101",
+          "openai": "gpt-4-turbo-2024-04-09",
+          "google": "gemini-1.5-pro-002",
+          "ollama": "llama3.2:70b"
+        },
+        "fast": {
+          "anthropic": "claude-haiku-4-20250520",
+          "openai": "gpt-4o-mini",
+          "google": "gemini-1.5-flash-002",
+          "ollama": "llama3.2:8b"
+        }
+      },
+      "retryable_errors": [
+        "anthropic.RateLimitError",
+        "anthropic.APIStatusError(400)",
+        "anthropic.APIStatusError(503)",
+        "anthropic.APITimeoutError",
+        "httpx.ConnectError",
+        "httpx.ReadTimeout"
+      ],
+      "fast_fail_errors": [
+        "anthropic.AuthenticationError",
+        "anthropic.BadRequestError",
+        "ValueError"
+      ],
+      "fallback_logging": true,
+      "metrics_enabled": true,
+      "timeout_seconds": 30
     }
