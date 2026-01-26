@@ -195,12 +195,34 @@ spec:
           configMap:
             name: agents-config  # Shared with CronJob
             items:
+              - key: pre_research_config.json
+                path: pre_research_config.json
+              - key: research_config.json
+                path: research_config.json
+              - key: executor_config.json
+                path: executor_config.json
+              - key: risk_config.json
+                path: risk_config.json
+              - key: exit_config.json
+                path: exit_config.json
+              - key: learning_config.json
+                path: learning_config.json
+              - key: decision_review_config.json
+                path: decision_review_config.json
+              - key: meta_learner_config.json
+                path: meta_learner_config.json
+              - key: validation_config.json
+                path: validation_config.json
+              - key: governance_config.json
+                path: governance_config.json
               - key: strategy_params.json
                 path: strategy_params.json
               - key: risk_limits.json
                 path: risk_limits.json
               - key: watchlist.json
                 path: watchlist.json
+              - key: llm_fallback_config.json
+                path: llm_fallback_config.json
 
       # Pod Behavior
       restartPolicy: Always
