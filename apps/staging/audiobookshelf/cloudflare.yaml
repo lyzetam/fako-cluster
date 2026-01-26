@@ -84,8 +84,9 @@ data:
     no-autoupdate: true
 
     ingress:
-    - hostname: audiobooks.landryzetam.net
-      service: http://audiobookshelf:3005
+    # - hostname: audiobooks.landryzetam.net
+    #   service: http://audiobookshelf:3005
+    # (Decommissioned - audiobookshelf not in staging deployment)
 
     # This rule sends traffic to the built-in hello-world HTTP server. This can help debug connectivity
     # issues. If hello.example.com resolves and tunnel.example.com does not, then the problem is
