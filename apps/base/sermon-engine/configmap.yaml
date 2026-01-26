@@ -7,7 +7,7 @@ data:
   # Supabase URL for bible-toolkit
   SUPABASE_URL: "https://rehpmoxczibgkwcawelo.supabase.co"
   # Ollama URL for embeddings (running in cluster)
-  OLLAMA_URL: "http://ollama.ai-services:11434"
+  OLLAMA_URL: "http://ollama-gpu.ollama:11434"
   # Claude model for sermon generation
   CLAUDE_MODEL: "claude-sonnet-4-20250514"
   # News settings
