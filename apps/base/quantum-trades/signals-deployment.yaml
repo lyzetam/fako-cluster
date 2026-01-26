@@ -37,6 +37,26 @@ spec:
                 secretKeyRef:
                   name: quantum-trades-secrets
                   key: ANTHROPIC_API_KEY
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: OPENAI_API_KEY
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: GOOGLE_API_KEY
+            - name: LLM_PROVIDER_ORDER
+              value: "anthropic,openai,google,ollama"
+            - name: LLM_FALLBACK_ENABLED
+              value: "true"
+            - name: LLM_FALLBACK_CACHE_TTL_SECONDS
+              value: "300"
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /health
@@ -60,4 +80,11 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "800m"
+      volumes:
+        - name: config
+          configMap:
+            name: agents-config
+            items:
+              - key: llm_fallback_config.json
+                path: llm_fallback_config.json
       restartPolicy: Always
