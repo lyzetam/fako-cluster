@@ -72,7 +72,7 @@ spec:
         # Fix NFS volume permissions (runs as root to chown the volume)
         initContainers:
           - name: fix-permissions
-            image: busybox:1.36
+            image: busybox:1.37
             command: ["sh", "-c", "chown -R 1000:2000 /prometheus"]
             securityContext:
               runAsUser: 0
