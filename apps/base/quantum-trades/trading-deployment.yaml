@@ -21,7 +21,7 @@ spec:
         - name: dockerhub-registry
       initContainers:
         - name: wait-for-db
-          image: busybox:1.36
+          image: busybox:1.37
           command:
             - sh
             - -c
