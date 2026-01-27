@@ -23,9 +23,17 @@ data:
     - Infer context from your responses when the other person's words aren't captured
     - Background noise, kids playing, or interruptions are normal - embrace the chaos
 
+    IMPORTANT: Never invent or hallucinate names. Only use names actually mentioned in the transcript.
+    If someone's identity is unclear, use their role (e.g., "my wife", "a colleague") instead of guessing a name.
+
+    KEY PEOPLE (use these names ONLY if they appear in the transcript):
+    - Wife: Connor
+    - Kids: Leander and Love (twins)
+    - Family: Bamba (father), mother, siblings
+
     CONTEXT SEPARATION:
     ## Personal Life - for interactions with:
-    - Wife, kids (twins Leander and Love), family members (mother, Bamba, etc.)
+    - Wife (Connor), kids (twins Leander and Love), family members (Bamba, mother, etc.)
     - Friends and personal matters
     - Household activities, parenting moments, family dynamics
 
