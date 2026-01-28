@@ -1,0 +1,28 @@
+# Gitleaks configuration for fako-cluster
+# https://github.com/gitleaks/gitleaks#configuration
+
+[extend]
+# Extend the default gitleaks config
+useDefault = true
+
+# Allowlist for paths, commits, or specific patterns
+[allowlist]
+description = "Allowlist for non-sensitive patterns"
+
+# Allow email addresses in ConfigMap comments (moved to secrets)
+regexes = [
+  # Email pattern in YAML comments indicating migration to secrets
+  '''#.*PGADMIN_DEFAULT_EMAIL.*moved.*Secrets Manager''',
+  # Email pattern in YAML comments for diary prompt migration
+  '''#.*DIARY_PROMPT.*moved.*Secrets Manager''',
+]
+
+# Allow specific paths that contain non-sensitive config
+paths = [
+  # Gitleaks own config
+  '''.gitleaks.toml''',
+  # Documentation files
+  '''notes/docs/.*\.md''',
+  # Test fixtures
+  '''.*test.*fixture.*''',
+]

@@ -6,22 +6,9 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - storage.yaml
+  - aws-credentials-secret.yaml
+  - secret-store.yaml
+  - external-secret-config.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
-
-
-# # apps/base/pgadmin/kustomization.yaml
-# apiVersion: kustomize.config.k8s.io/v1beta1
-# kind: Kustomization
-# namespace: pgadmin
-# resources:
-#   - namespace.yaml
-#   - configmap.yaml
-#   - storage.yaml
-#   - aws-credentials-secret.yaml    # AWS credentials for External Secrets
-#   - secret-store.yaml              # SecretStore for AWS Secrets Manager
-#   - external-secret-pgpass.yaml    # External Secret for .pgpass
-#   - deployment.yaml
-#   - service.yaml
-#   - ingress.yaml
