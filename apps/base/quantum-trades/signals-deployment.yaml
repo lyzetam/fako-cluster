@@ -75,11 +75,11 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "250m"
             limits:
-              memory: "1Gi"
-              cpu: "800m"
+              memory: "2Gi"
+              cpu: "1000m"
       volumes:
         - name: config
           configMap:
