@@ -1,5 +1,5 @@
 # WhisperX with GPU support for speaker diarization
-FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
 
 # Install Python and system dependencies
 RUN apt-get update && apt-get install -y \
