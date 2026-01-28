@@ -329,6 +329,11 @@ spec:
           secretKeyRef:
             name: summarizer-credentials
             key: summarizer_model
+      - name: DIARY_PROMPT
+        valueFrom:
+          secretKeyRef:
+            name: diary-prompt
+            key: DIARY_PROMPT
       - name: USE_TIMESTAMP_FILTER
         value: "true"
       - name: WORKFLOW_START_TIME

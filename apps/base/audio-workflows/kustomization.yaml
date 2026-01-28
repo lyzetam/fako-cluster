@@ -10,6 +10,7 @@ resources:
   - external-secret-sftp.yaml
   - external-secret-obsidian.yaml
   - external-secret-summarizer.yaml
+  - external-secret-diary-prompt.yaml
   - external-secret-dockerhub.yaml
   - create-docker-registry-secret-job.yaml
 
