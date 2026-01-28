@@ -22,7 +22,7 @@ spec:
       - name: dockerhub-registry
       containers:
       - name: whisperx
-        image: nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+        image: nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
         command:
         - /bin/bash
         - -c
