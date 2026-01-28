@@ -16,9 +16,6 @@ spec:
       labels:
         app: quantum-trades
         component: signals
-      annotations:
-        # Force pod restart when image changes (update timestamp to trigger rollout)
-        signals.quantum-trades/image-updated: "2026-01-28T20:30:00Z"
     spec:
       imagePullSecrets:
         - name: dockerhub-registry
