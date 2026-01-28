@@ -5,7 +5,7 @@ metadata:
   name: pgadmin-config
   namespace: pgadmin
 data:
-  # PGADMIN_DEFAULT_EMAIL moved to AWS Secrets Manager: /fako/pgadmin/config
+  # PGADMIN_DEFAULT_EMAIL moved to AWS Secrets Manager: pgadmin/admin
   PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
   PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: "10"
   PGADMIN_CONFIG_SERVER_MODE: "False"
