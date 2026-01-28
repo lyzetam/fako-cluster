@@ -11,6 +11,8 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
+      imagePullSecrets:
+        - name: dockerhub-registry
       containers:
       - name: db-init
         image: postgres:16

@@ -26,6 +26,9 @@ spec:
           kind: PrometheusRule
   values:
     # Prometheus configuration
+    global:
+      imagePullSecrets:
+        - name: dockerhub-registry
     prometheus:
       prometheusSpec:
         # Enable all ServiceMonitors
