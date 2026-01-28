@@ -126,13 +126,17 @@ spec:
         - name: MEMORIES_DIR
           value: "/memories"
 
-        # Capital settings
+        # Capital settings - Paper trading uses higher limits
         - name: INITIAL_CAPITAL
-          value: "500"
-        - name: MAX_DAILY_LOSS
-          value: "50"
-        - name: MAX_WEEKLY_LOSS
-          value: "150"
+          value: "50000"
+        - name: MAX_DAILY_LOSS_DOLLARS
+          value: "2500"
+        - name: MAX_WEEKLY_LOSS_DOLLARS
+          value: "7500"
+        - name: MAX_POSITION_SIZE
+          value: "5000"
+        - name: MAX_CONCURRENT_POSITIONS
+          value: "10"
 
         resources:
           requests:
