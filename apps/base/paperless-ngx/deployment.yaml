@@ -17,6 +17,8 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+      imagePullSecrets:
+        - name: dockerhub-registry
       # Wait for SMB mount to be ready before starting main container
       initContainers:
         - name: wait-for-smb-mount
