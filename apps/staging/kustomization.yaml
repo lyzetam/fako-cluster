@@ -106,9 +106,9 @@ resources:
   - family-manager  # Family Manager webhook for Discord bot, Twilio voice, Nylas email
   - sermon-engine   # Weekly sermon generator (Sunday 6am ET)
 
-  # Agent Orchestration
-  - autobots    # Claude Agent SDK orchestrator for AI workflows
-  - zi          # zI (Zetam Intelligence) - AI interface layer on autobots
+  # zI - Zetam Intelligence (AI orchestration)
+  - autobots    # autobots workforce - 21 agents, 6 workflows (deploys to zi namespace)
+  - zi          # zI orchestrator - multi-channel AI interface
 
   # UniFi Clips Exporter
   - unifi-clients  # Daily export of UniFi Protect motion clips to S3

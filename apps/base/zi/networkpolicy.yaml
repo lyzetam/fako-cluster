@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: zi-network-policy
-  namespace: autobots
+  namespace: zi
 spec:
   podSelector:
     matchLabels:
@@ -11,7 +11,7 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow traffic from within autobots namespace
+    # Allow traffic from within zi namespace
     - from:
         - podSelector: {}
       ports:
@@ -26,7 +26,7 @@ spec:
         - protocol: TCP
           port: 8080
   egress:
-    # Allow autobots API (same namespace)
+    # Allow autobots workforce API (same namespace)
     - to:
         - podSelector:
             matchLabels:

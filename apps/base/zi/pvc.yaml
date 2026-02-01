@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: zi-brain-pvc
-  namespace: autobots
+  namespace: zi
   labels:
     app: zi
 spec:

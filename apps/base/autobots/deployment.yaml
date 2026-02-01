@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: autobots
-  namespace: autobots
+  namespace: zi
   labels:
     app: autobots
 spec:
