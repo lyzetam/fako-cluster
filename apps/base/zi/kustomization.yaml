@@ -4,15 +4,23 @@ kind: Kustomization
 namespace: zi
 
 resources:
+  # zI orchestrator
   - configmap.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - pvc.yaml
+  - networkpolicy.yaml
+  # Shared infrastructure
   - aws-secret-store.yaml
   - external-secret.yaml
   - external-secret-dockerhub.yaml
-  - pvc.yaml
-  - networkpolicy.yaml
+  # Autobots workforce (merged from autobots base)
+  - autobots-deployment.yaml
+  - autobots-service.yaml
+  - autobots-ingress.yaml
+  - autobots-external-secret.yaml
+  - autobots-networkpolicy.yaml
 
 # Use labels instead of commonLabels to avoid corrupting network policy selectors
 labels:
