@@ -8,10 +8,10 @@ resources:
   - aws-secret-store.yaml
   - deployment.yaml
   - service.yaml
+  - ingress.yaml
   - external-secret.yaml
   - external-secret-dockerhub.yaml
   - networkpolicy.yaml
-  - agent-prompts-configmap.yaml
 
 # Use labels instead of commonLabels to avoid corrupting network policy selectors
 labels:
