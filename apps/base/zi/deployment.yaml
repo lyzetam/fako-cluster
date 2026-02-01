@@ -38,7 +38,7 @@ spec:
               mountPath: /data/second-brain
       containers:
         - name: zi
-          image: lzetam/zi:latest
+          image: lzetam/zi:0.1.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -59,9 +59,9 @@ spec:
             # Brain path (mounted PVC)
             - name: ZI_BRAIN_PATH
               value: "/data/second-brain"
-            # autobots API (internal service)
+            # autobots API (internal service in same namespace)
             - name: ZI_AUTOBOTS_API_URL
-              value: "http://autobots.autobots.svc.cluster.local:8000"
+              value: "http://autobots.zi.svc.cluster.local:8000"
             - name: ZI_AUTOBOTS_API_KEY
               valueFrom:
                 secretKeyRef:

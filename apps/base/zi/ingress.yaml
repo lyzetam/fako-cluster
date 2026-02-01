@@ -6,9 +6,14 @@ metadata:
   labels:
     app: zi
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - zi.landryzetam.net
+      secretName: zi-tls-cert
   rules:
     - host: zi.landryzetam.net
       http:
