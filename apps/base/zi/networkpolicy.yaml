@@ -78,13 +78,22 @@ spec:
       ports:
         - protocol: TCP
           port: 443
-    # Allow K8s API service IP (10.43.0.1)
+    # Allow K8s API - ClusterIP and control plane (k8s-control.landryzetam.net)
+    # NetworkPolicy requires CIDR (K8s limitation) - IP managed via DNS record
+    # ClusterIP DNATs to control plane; CNI evaluates policy post-DNAT
     - to:
         - ipBlock:
             cidr: 10.43.0.0/16
       ports:
         - protocol: TCP
           port: 443
+    # k8s-control.landryzetam.net - resolve to get current IP for CIDR below
+    - to:
+        - ipBlock:
+            cidr: 10.85.30.214/32
+      ports:
+        - protocol: TCP
+          port: 6443
     # Allow DNS resolution
     - to:
         - namespaceSelector: {}
