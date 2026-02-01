@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: autobots
+  name: zi
   labels:
-    app.kubernetes.io/name: autobots
-    app.kubernetes.io/component: ai-agents
+    app.kubernetes.io/name: zi
+    app.kubernetes.io/component: ai-orchestrator
