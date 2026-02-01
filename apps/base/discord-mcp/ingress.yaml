@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: discord-mcp
+  namespace: discord-mcp
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+    traefik.ingress.kubernetes.io/router.middlewares: ""
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: discord-mcp.landryzetam.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: discord-mcp
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - discord-mcp.landryzetam.net
+      secretName: discord-mcp-tls-cert

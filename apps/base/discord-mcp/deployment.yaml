@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discord-mcp
+  namespace: discord-mcp
+  labels:
+    app: discord-mcp
+    app.kubernetes.io/name: discord-mcp
+    app.kubernetes.io/component: mcp-server
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: discord-mcp
+  template:
+    metadata:
+      labels:
+        app: discord-mcp
+        app.kubernetes.io/name: discord-mcp
+    spec:
+      serviceAccountName: external-secrets-sa
+      imagePullSecrets:
+        - name: dockerhub-credentials
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: mcp
+          image: lzetam/mcp-discord-management:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: discord-mcp-config
+          env:
+            - name: DISCORD_MANAGEMENT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: discord-mcp-secrets
+                  key: username
+            - name: DISCORD_MANAGEMENT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: discord-mcp-secrets
+                  key: password
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /sse
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /sse
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
