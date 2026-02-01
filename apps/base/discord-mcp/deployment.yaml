@@ -23,7 +23,6 @@ spec:
         app: discord-mcp
         app.kubernetes.io/name: discord-mcp
     spec:
-      serviceAccountName: external-secrets-sa
       imagePullSecrets:
         - name: dockerhub-credentials
       securityContext:
