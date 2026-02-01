@@ -69,6 +69,22 @@ spec:
       ports:
         - protocol: TCP
           port: 443
+    # Allow Kubernetes API for agent kubectl operations
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+          podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow K8s API service IP (10.43.0.1)
+    - to:
+        - ipBlock:
+            cidr: 10.43.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
     # Allow DNS resolution
     - to:
         - namespaceSelector: {}
