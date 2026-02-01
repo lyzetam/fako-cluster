@@ -15,6 +15,7 @@ spec:
       labels:
         app: zi
     spec:
+      serviceAccountName: zi
       imagePullSecrets:
         - name: dockerhub-registry
       initContainers:
