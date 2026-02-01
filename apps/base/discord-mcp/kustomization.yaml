@@ -5,7 +5,6 @@ namespace: discord-mcp
 
 resources:
   - namespace.yaml
-  - service-account.yaml
   - secret-store.yaml
   - external-secret.yaml
   - external-secret-dockerhub.yaml
