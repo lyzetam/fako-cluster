@@ -104,8 +104,8 @@ resources:
   - sermon-engine   # Weekly sermon generator (Sunday 6am ET)
 
   # zI - Zetam Intelligence (AI orchestration)
-  - autobots    # autobots workforce - 21 agents, 6 workflows
-  - zi          # zI orchestrator - multi-channel AI interface
+  # - autobots    # MERGED INTO zi - autobots resources now in apps/base/zi/
+  - zi          # zI orchestrator + autobots workforce (merged)
 
   # UniFi Clips Exporter
   - unifi-clients  # Daily export of UniFi Protect motion clips to S3
