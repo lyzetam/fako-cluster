@@ -8,7 +8,9 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - aws-secret-store.yaml
   - external-secret.yaml
+  - external-secret-dockerhub.yaml
   - pvc.yaml
   - networkpolicy.yaml
 
