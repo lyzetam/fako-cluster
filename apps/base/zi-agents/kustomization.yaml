@@ -60,6 +60,9 @@ resources:
   - services/ux-designer.yaml
   - services/verifier.yaml
 
-commonLabels:
-  app.kubernetes.io/part-of: zi
-  app.kubernetes.io/managed-by: kustomize
+# Use labels instead of commonLabels to avoid injecting labels into NetworkPolicy selectors
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: zi
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false
