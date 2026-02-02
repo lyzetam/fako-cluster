@@ -38,7 +38,7 @@ spec:
             - name: AGENT_DESCRIPTION
               value: "Pre-completion verification checks"
             - name: AGENT_TOOLS
-              value: "Read,Glob,Grep"
+              value: "Read,Glob,Grep,search_memory,remember,rebuild_index,memory_status"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
             - name: ZI_BRAIN_URL
