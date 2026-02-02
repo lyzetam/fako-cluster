@@ -42,6 +42,14 @@ spec:
       ports:
         - protocol: TCP
           port: 8000
+    # Allow Redis for conversation tracking (social tools)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
     # Allow Ollama for local AI (K8s namespace + internal network)
     - to:
         - namespaceSelector:
