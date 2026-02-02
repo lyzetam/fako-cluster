@@ -1,35 +1,41 @@
 #!/usr/bin/env python3
-"""Generate K8s deployment and service manifests for all zI agents."""
+"""Generate K8s deployment and service manifests for all zI agents.
+
+NOTE: AGENT_TOOLS is NOT defined here - it's defined in each agent's Dockerfile
+to maintain a single source of truth. Only AGENT_NAME, AGENT_DESCRIPTION, and
+AGENT_MAX_ITERATIONS are set in K8s manifests.
+"""
 
 from pathlib import Path
 
-# Agent configurations: slug -> (description, tools, max_iterations, resource_tier)
-# Resource tiers: "standard" (250m/512Mi), "complex" (500m/1Gi)
+# Agent configurations: slug -> (description, max_iterations, resource_tier)
+# Resource tiers: "standard" (100m/256Mi), "complex" (250m/512Mi)
+# AGENT_TOOLS is defined in Dockerfile, not here
 AGENTS = {
-    "ai-engineer": ("Builds MCP servers, AI integrations, and agent systems", "Read,Glob,Grep,Write", 15, "standard"),
-    "app-security": ("Secures application code, OWASP vulnerabilities", "Read,Glob,Grep", 15, "standard"),
-    "app-sre": ("Application reliability and performance", "Read,Glob,Grep,kubectl", 15, "standard"),
-    "backend-engineer": ("Builds APIs, services, and backend systems", "Read,Glob,Grep,Write", 15, "standard"),
-    "ceo-cto": ("Strategic decisions and executive leadership", "Read,Glob,Grep", 10, "standard"),
-    "cloud-engineer": ("AWS infrastructure and cloud services", "Read,Glob,Grep", 15, "standard"),
-    "code-reviewer": ("Reviews code for quality, correctness, and best practices", "Read,Glob,Grep", 15, "complex"),
-    "data-engineer": ("Data pipelines, schemas, and ETL", "Read,Glob,Grep", 15, "standard"),
-    "debugger": ("Root cause analysis and debugging", "Read,Glob,Grep", 20, "complex"),
-    "devops-engineer": ("CI/CD pipelines and deployment automation", "Read,Glob,Grep,Write", 15, "standard"),
-    "frontend-engineer": ("UI development and frontend systems", "Read,Glob,Grep,Write", 15, "standard"),
-    "hr-partner": ("Performance reviews and feedback", "Read,Glob,Grep", 10, "standard"),
-    "k8s-engineer": ("Kubernetes deployment and operations", "Read,Glob,Grep,kubectl", 15, "standard"),
-    "platform-security": ("K8s security, CIS benchmarks", "Read,Glob,Grep,kubectl", 15, "standard"),
-    "platform-sre": ("Infrastructure reliability and monitoring", "Read,Glob,Grep,kubectl", 15, "standard"),
-    "product-manager": ("Requirements, roadmap, and product strategy", "Read,Glob,Grep", 10, "standard"),
-    "qa-engineer": ("Test strategy and quality assurance", "Read,Glob,Grep", 15, "standard"),
-    "security-engineer": ("Organization-wide security policy", "Read,Glob,Grep", 15, "standard"),
-    "solutions-architect": ("Architecture design and scalability", "Read,Glob,Grep", 15, "complex"),
-    "tdd-engineer": ("Test-driven development", "Read,Glob,Grep,Write", 15, "standard"),
-    "tech-lead": ("Technical decisions and planning", "Read,Glob,Grep", 15, "complex"),
-    "tech-writer": ("Documentation and technical writing", "Read,Glob,Grep,Write", 12, "standard"),
-    "ux-designer": ("UI/UX design and user experience", "Read,Glob,Grep", 10, "standard"),
-    "verifier": ("Pre-completion verification checks", "Read,Glob,Grep", 15, "standard"),
+    "ai-engineer": ("Builds MCP servers, AI integrations, and agent systems", 15, "standard"),
+    "app-security": ("Secures application code, OWASP vulnerabilities", 15, "standard"),
+    "app-sre": ("Application reliability and performance", 15, "standard"),
+    "backend-engineer": ("Builds APIs, services, and backend systems", 15, "standard"),
+    "ceo-cto": ("Strategic decisions and executive leadership", 10, "standard"),
+    "cloud-engineer": ("AWS infrastructure and cloud services", 15, "standard"),
+    "code-reviewer": ("Reviews code for quality, correctness, and best practices", 15, "complex"),
+    "data-engineer": ("Data pipelines, schemas, and ETL", 15, "standard"),
+    "debugger": ("Root cause analysis and debugging", 20, "complex"),
+    "devops-engineer": ("CI/CD pipelines and deployment automation", 15, "standard"),
+    "frontend-engineer": ("UI development and frontend systems", 15, "standard"),
+    "hr-partner": ("Performance reviews and feedback", 10, "standard"),
+    "k8s-engineer": ("Kubernetes deployment and operations", 15, "standard"),
+    "platform-security": ("K8s security, CIS benchmarks", 15, "standard"),
+    "platform-sre": ("Infrastructure reliability and monitoring", 15, "standard"),
+    "product-manager": ("Requirements, roadmap, and product strategy", 10, "standard"),
+    "qa-engineer": ("Test strategy and quality assurance", 15, "standard"),
+    "security-engineer": ("Organization-wide security policy", 15, "standard"),
+    "solutions-architect": ("Architecture design and scalability", 15, "complex"),
+    "tdd-engineer": ("Test-driven development", 15, "standard"),
+    "tech-lead": ("Technical decisions and planning", 15, "complex"),
+    "tech-writer": ("Documentation and technical writing", 12, "standard"),
+    "ux-designer": ("UI/UX design and user experience", 10, "standard"),
+    "verifier": ("Pre-completion verification checks", 15, "standard"),
 }
 
 RESOURCE_TIERS = {
@@ -48,15 +54,19 @@ RESOURCE_TIERS = {
 }
 
 
-def generate_deployment(slug: str, description: str, tools: str, max_iter: int, tier: str) -> str:
-    """Generate deployment manifest for an agent."""
+def generate_deployment(slug: str, description: str, max_iter: int, tier: str) -> str:
+    """Generate deployment manifest for an agent.
+
+    NOTE: AGENT_TOOLS is NOT set here - it comes from the Dockerfile ENV.
+    This ensures Dockerfile is the single source of truth for agent tools.
+    """
     resources = RESOURCE_TIERS[tier]
 
     return f'''apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-{slug}
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-{slug}
     app.kubernetes.io/component: agent
@@ -73,6 +83,8 @@ spec:
         app.kubernetes.io/name: agent-{slug}
         app.kubernetes.io/component: agent
     spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -85,23 +97,29 @@ spec:
             - containerPort: 8000
               name: http
           env:
+            # AGENT_TOOLS is defined in Dockerfile - single source of truth
             - name: AGENT_NAME
               value: "{slug}"
             - name: AGENT_DESCRIPTION
               value: "{description}"
-            - name: AGENT_TOOLS
-              value: "{tools}"
             - name: AGENT_MAX_ITERATIONS
               value: "{max_iter}"
             - name: ZI_BRAIN_URL
-              value: "http://zi-brain.autobots.svc.cluster.local:8100"
+              value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL
-              value: "http://ollama.ollama.svc.cluster.local:11434"
+              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+            - name: ZI_KNOWLEDGE_REDIS_HOST
+              value: "redis.zi.svc.cluster.local"
+            - name: ZI_KNOWLEDGE_REDIS_PORT
+              value: "6379"
           envFrom:
             - secretRef:
                 name: zi-agents-ai-keys
             - secretRef:
                 name: zi-brain-api-key
+                optional: true
+            - secretRef:
+                name: zi-agents-discord
                 optional: true
           volumeMounts:
             - name: agent-memory
@@ -139,7 +157,7 @@ def generate_service(slug: str) -> str:
 kind: Service
 metadata:
   name: agent-{slug}
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-{slug}
     app.kubernetes.io/component: agent
@@ -163,10 +181,11 @@ def main():
     services_dir.mkdir(exist_ok=True)
 
     print("Generating K8s manifests for zi-agents...")
+    print("NOTE: AGENT_TOOLS comes from Dockerfile, not manifests\n")
 
-    for slug, (description, tools, max_iter, tier) in AGENTS.items():
+    for slug, (description, max_iter, tier) in AGENTS.items():
         # Generate deployment
-        deployment = generate_deployment(slug, description, tools, max_iter, tier)
+        deployment = generate_deployment(slug, description, max_iter, tier)
         (deployments_dir / f"{slug}.yaml").write_text(deployment)
 
         # Generate service
