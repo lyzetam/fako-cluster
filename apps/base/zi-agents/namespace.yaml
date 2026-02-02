@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zi-agents
+  labels:
+    app.kubernetes.io/name: zi-agents
+    app.kubernetes.io/part-of: zi

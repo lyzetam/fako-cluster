@@ -38,7 +38,7 @@ spec:
               mountPath: /data/second-brain
       containers:
         - name: zi
-          image: lzetam/zi:0.1.0
+          image: lzetam/zi:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zi-agents-memory
+  namespace: zi-agents
+  labels:
+    app.kubernetes.io/name: zi-agents
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Directory structure for all agent memory:
+# /nfs/zi-agents-memory/
+# ├── code-reviewer/
+# │   ├── MEMORY.md
+# │   ├── HEARTBEAT.md
+# │   ├── memory/
+# │   │   └── YYYY-MM-DD.md
+# │   └── learned/
+# │       └── facts.md
+# ├── devops-engineer/
+# │   └── ...
+# └── ... (24 agent directories)
