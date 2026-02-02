@@ -38,7 +38,7 @@ spec:
             - name: AGENT_DESCRIPTION
               value: "Documentation and technical writing"
             - name: AGENT_TOOLS
-              value: "Read,Glob,Grep,Write"
+              value: "Read,Glob,Grep,Write,search_memory,remember,rebuild_index,memory_status"
             - name: AGENT_MAX_ITERATIONS
               value: "12"
             - name: ZI_BRAIN_URL
