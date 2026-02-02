@@ -111,6 +111,11 @@ spec:
                 secretKeyRef:
                   name: zi-secrets
                   key: obsidian-api-key
+            # Redis for conversation tracking (social tools)
+            - name: ZI_REDIS_HOST
+              value: "redis.zi.svc.cluster.local"
+            - name: ZI_REDIS_PORT
+              value: "6379"
           volumeMounts:
             - name: config
               mountPath: /config
