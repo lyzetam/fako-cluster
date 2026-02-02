@@ -48,6 +48,8 @@ spec:
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
               value: "6379"
+            - name: ZI_API_URL
+              value: "http://zi.zi.svc.cluster.local:8080"
           envFrom:
             - secretRef:
                 name: zi-agents-ai-keys
