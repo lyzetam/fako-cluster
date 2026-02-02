@@ -1,16 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: zi-agents
+namespace: zi
 
 resources:
-  - namespace.yaml
-  # Shared resources
-  - shared/aws-credentials-secret.yaml
-  - shared/aws-secret-store.yaml
+  # Note: namespace.yaml removed - zi-agents now deploys to existing 'zi' namespace
+  # Shared resources (using zi namespace's existing aws-credentials and dockerhub-registry)
   - shared/pvc-memory.yaml
   - shared/external-secret.yaml
-  - shared/external-secret-dockerhub.yaml
   - shared/networkpolicy.yaml
   # Agent deployments (24 agents)
   - deployments/ai-engineer.yaml

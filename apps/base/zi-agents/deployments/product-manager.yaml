@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-product-manager
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-product-manager
     app.kubernetes.io/component: agent

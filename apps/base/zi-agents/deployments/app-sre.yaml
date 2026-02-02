@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-app-sre
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-app-sre
     app.kubernetes.io/component: agent

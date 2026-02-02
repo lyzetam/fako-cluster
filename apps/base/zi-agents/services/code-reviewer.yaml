@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: agent-code-reviewer
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-code-reviewer
     app.kubernetes.io/component: agent

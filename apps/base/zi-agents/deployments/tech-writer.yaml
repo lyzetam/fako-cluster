@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-tech-writer
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-tech-writer
     app.kubernetes.io/component: agent
