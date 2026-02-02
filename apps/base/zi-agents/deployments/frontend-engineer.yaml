@@ -44,7 +44,7 @@ spec:
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL
-              value: "http://ollama.ollama.svc.cluster.local:11434"
+              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
           envFrom:
             - secretRef:
                 name: zi-agents-ai-keys
