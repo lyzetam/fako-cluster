@@ -1,7 +1,2 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: zi-agents
-  labels:
-    app.kubernetes.io/name: zi-agents
-    app.kubernetes.io/part-of: zi
+# zi-agents now deploys to the 'zi' namespace (merged with orchestrator)
+# This file is kept for documentation but namespace is created by apps/base/zi/

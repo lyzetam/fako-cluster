@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-security-engineer
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-security-engineer
     app.kubernetes.io/component: agent

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-frontend-engineer
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-frontend-engineer
     app.kubernetes.io/component: agent

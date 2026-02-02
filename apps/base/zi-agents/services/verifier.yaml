@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: agent-verifier
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-verifier
     app.kubernetes.io/component: agent

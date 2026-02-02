@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-ceo-cto
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-ceo-cto
     app.kubernetes.io/component: agent

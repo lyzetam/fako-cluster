@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-hr-partner
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-hr-partner
     app.kubernetes.io/component: agent

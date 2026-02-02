@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-ux-designer
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-ux-designer
     app.kubernetes.io/component: agent

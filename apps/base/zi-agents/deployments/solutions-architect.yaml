@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: agent-solutions-architect
-  namespace: zi-agents
+  namespace: zi
   labels:
     app.kubernetes.io/name: agent-solutions-architect
     app.kubernetes.io/component: agent
