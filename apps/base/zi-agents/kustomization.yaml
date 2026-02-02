@@ -1,0 +1,67 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: zi-agents
+
+resources:
+  - namespace.yaml
+  # Shared resources
+  - shared/aws-credentials-secret.yaml
+  - shared/aws-secret-store.yaml
+  - shared/pvc-memory.yaml
+  - shared/external-secret.yaml
+  - shared/networkpolicy.yaml
+  # Agent deployments (24 agents)
+  - deployments/ai-engineer.yaml
+  - deployments/app-security.yaml
+  - deployments/app-sre.yaml
+  - deployments/backend-engineer.yaml
+  - deployments/ceo-cto.yaml
+  - deployments/cloud-engineer.yaml
+  - deployments/code-reviewer.yaml
+  - deployments/data-engineer.yaml
+  - deployments/debugger.yaml
+  - deployments/devops-engineer.yaml
+  - deployments/frontend-engineer.yaml
+  - deployments/hr-partner.yaml
+  - deployments/k8s-engineer.yaml
+  - deployments/platform-security.yaml
+  - deployments/platform-sre.yaml
+  - deployments/product-manager.yaml
+  - deployments/qa-engineer.yaml
+  - deployments/security-engineer.yaml
+  - deployments/solutions-architect.yaml
+  - deployments/tdd-engineer.yaml
+  - deployments/tech-lead.yaml
+  - deployments/tech-writer.yaml
+  - deployments/ux-designer.yaml
+  - deployments/verifier.yaml
+  # Agent services (24 services)
+  - services/ai-engineer.yaml
+  - services/app-security.yaml
+  - services/app-sre.yaml
+  - services/backend-engineer.yaml
+  - services/ceo-cto.yaml
+  - services/cloud-engineer.yaml
+  - services/code-reviewer.yaml
+  - services/data-engineer.yaml
+  - services/debugger.yaml
+  - services/devops-engineer.yaml
+  - services/frontend-engineer.yaml
+  - services/hr-partner.yaml
+  - services/k8s-engineer.yaml
+  - services/platform-security.yaml
+  - services/platform-sre.yaml
+  - services/product-manager.yaml
+  - services/qa-engineer.yaml
+  - services/security-engineer.yaml
+  - services/solutions-architect.yaml
+  - services/tdd-engineer.yaml
+  - services/tech-lead.yaml
+  - services/tech-writer.yaml
+  - services/ux-designer.yaml
+  - services/verifier.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: zi
+  app.kubernetes.io/managed-by: kustomize

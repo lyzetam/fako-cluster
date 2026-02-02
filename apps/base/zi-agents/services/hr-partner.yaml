@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-hr-partner
+  namespace: zi-agents
+  labels:
+    app.kubernetes.io/name: agent-hr-partner
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/part-of: zi-agents
+spec:
+  selector:
+    app: agent-hr-partner
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http

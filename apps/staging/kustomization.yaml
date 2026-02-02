@@ -106,6 +106,7 @@ resources:
   # zI - Zetam Intelligence (AI orchestration)
   # - autobots    # MERGED INTO zi - autobots resources now in apps/base/zi/
   - zi          # zI orchestrator + autobots workforce (merged)
+  - zi-agents   # 24 specialized agent microservices
 
   # UniFi Clips Exporter
   - unifi-clients  # Daily export of UniFi Protect motion clips to S3

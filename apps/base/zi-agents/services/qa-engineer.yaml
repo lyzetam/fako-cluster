@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-qa-engineer
+  namespace: zi-agents
+  labels:
+    app.kubernetes.io/name: agent-qa-engineer
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/part-of: zi-agents
+spec:
+  selector:
+    app: agent-qa-engineer
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http
