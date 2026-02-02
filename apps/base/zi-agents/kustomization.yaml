@@ -10,6 +10,7 @@ resources:
   - shared/aws-secret-store.yaml
   - shared/pvc-memory.yaml
   - shared/external-secret.yaml
+  - shared/external-secret-dockerhub.yaml
   - shared/networkpolicy.yaml
   # Agent deployments (24 agents)
   - deployments/ai-engineer.yaml

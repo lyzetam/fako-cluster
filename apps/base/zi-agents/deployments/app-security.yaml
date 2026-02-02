@@ -19,6 +19,8 @@ spec:
         app.kubernetes.io/name: agent-app-security
         app.kubernetes.io/component: agent
     spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
