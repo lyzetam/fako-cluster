@@ -33,18 +33,21 @@ spec:
             - containerPort: 8000
               name: http
           env:
+            # AGENT_TOOLS is defined in Dockerfile - single source of truth
             - name: AGENT_NAME
               value: "app-security"
             - name: AGENT_DESCRIPTION
               value: "Secures application code, OWASP vulnerabilities"
-            - name: AGENT_TOOLS
-              value: "Read,Glob,Grep,search_memory,remember,rebuild_index,memory_status"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL
               value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+            - name: ZI_KNOWLEDGE_REDIS_HOST
+              value: "redis.zi.svc.cluster.local"
+            - name: ZI_KNOWLEDGE_REDIS_PORT
+              value: "6379"
           envFrom:
             - secretRef:
                 name: zi-agents-ai-keys
