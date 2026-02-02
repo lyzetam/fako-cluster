@@ -51,6 +51,9 @@ spec:
             - secretRef:
                 name: zi-brain-api-key
                 optional: true
+            - secretRef:
+                name: zi-agents-discord
+                optional: true
           volumeMounts:
             - name: agent-memory
               mountPath: /data
