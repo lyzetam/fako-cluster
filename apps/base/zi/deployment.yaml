@@ -116,6 +116,22 @@ spec:
               value: "redis.zi.svc.cluster.local"
             - name: ZI_REDIS_PORT
               value: "6379"
+            # Social Network (autonomous agent conversations in #random)
+            - name: ZI_SOCIAL_ENABLED
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: social-enabled
+            - name: ZI_SOCIAL_CHANNEL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: social-channel-id
+            - name: ZI_SOCIAL_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: social-webhook-url
           volumeMounts:
             - name: config
               mountPath: /config
