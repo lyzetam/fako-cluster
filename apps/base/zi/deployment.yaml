@@ -122,35 +122,6 @@ spec:
             # Discord guild ID (needed for social thread URLs)
             - name: ZI_DISCORD_GUILD_ID
               value: "1459945937349771276"
-            # Cloudflare (agent tools: cloud-engineer, devops, platform-sre)
-            - name: CLOUDFLARE_API_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: zi-secrets
-                  key: cloudflare-api-token
-            # Tradier (agent tools: ceo-cto, data-engineer)
-            - name: TRADIER_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: zi-secrets
-                  key: tradier-api-key
-            # PostgreSQL (agent tools: data-engineer, backend, app-sre)
-            - name: POSTGRES_HOST
-              value: "postgres-cluster-rw.postgres.svc.cluster.local"
-            - name: POSTGRES_PORT
-              value: "5432"
-            - name: POSTGRES_DATABASE
-              value: "app"
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: zi-secrets
-                  key: postgres-user
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: zi-secrets
-                  key: postgres-password
             # Social Network (autonomous agent conversations in #socials)
             - name: ZI_SOCIAL_ENABLED
               valueFrom:
