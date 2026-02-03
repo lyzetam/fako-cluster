@@ -116,7 +116,13 @@ spec:
               value: "redis.zi.svc.cluster.local"
             - name: ZI_REDIS_PORT
               value: "6379"
-            # Social Network (autonomous agent conversations in #random)
+            # Proactive engine (schedules social pulse, briefings, stale checks)
+            - name: ZI_PROACTIVE_ENABLED
+              value: "true"
+            # Discord guild ID (needed for social thread URLs)
+            - name: ZI_DISCORD_GUILD_ID
+              value: "1459945937349771276"
+            # Social Network (autonomous agent conversations in #socials)
             - name: ZI_SOCIAL_ENABLED
               valueFrom:
                 secretKeyRef:
