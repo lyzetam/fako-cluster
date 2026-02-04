@@ -138,6 +138,41 @@ spec:
                 secretKeyRef:
                   name: zi-secrets
                   key: social-webhook-url
+            # Agent tools: Cloudflare
+            - name: CLOUDFLARE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: cloudflare-api-token
+            # Agent tools: Tradier
+            - name: TRADIER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: tradier-api-key
+            # Agent tools: PostgreSQL
+            - name: POSTGRES_HOST
+              value: "postgres-cluster-rw.postgres.svc.cluster.local"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DATABASE
+              value: "app"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: postgres-password
+            # Agent tools: Composio
+            - name: COMPOSIO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zi-secrets
+                  key: composio-api-key
           volumeMounts:
             - name: config
               mountPath: /config
