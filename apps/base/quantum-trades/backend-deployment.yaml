@@ -105,21 +105,30 @@ spec:
                 secretKeyRef:
                   name: quantum-trades-secrets
                   key: SUPABASE_JWT_SECRET
-          livenessProbe:
-            httpGet:
-              path: /api/health
-              port: 8000
-            initialDelaySeconds: 10
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
+          # Startup probe - generous budget for initial startup
+          startupProbe:
             httpGet:
               path: /api/health
               port: 8000
             initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 10
+            failureThreshold: 30  # 155s max startup time
+          # Liveness probe - only runs after startup succeeds
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            periodSeconds: 30
+            timeoutSeconds: 10  # Increased from 5s for busy event loop
+            failureThreshold: 3
+          # Readiness probe - controls traffic routing
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
             periodSeconds: 10
-            timeoutSeconds: 3
+            timeoutSeconds: 5  # Increased from 3s
             failureThreshold: 3
           resources:
             requests:
