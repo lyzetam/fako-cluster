@@ -24,7 +24,8 @@ spec:
       retries: 3
   values:
     # K3s specific configuration
-    k8sServiceHost: "127.0.0.1"
+    # Use control plane IP (k8s-control.landryzetam.net resolves to this)
+    k8sServiceHost: "10.85.30.214"
     k8sServicePort: "6443"
 
     # CNI Configuration for K3s migration from Flannel
