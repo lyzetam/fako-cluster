@@ -9,7 +9,7 @@ spec:
   chart:
     spec:
       chart: cilium
-      version: "1.16.5"  # Pin to stable version for K3s compatibility
+      version: "1.19.0"  # Latest stable - works with K3s when properly configured
       sourceRef:
         kind: HelmRepository
         name: cilium
