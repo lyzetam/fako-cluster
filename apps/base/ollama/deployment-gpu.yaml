@@ -60,13 +60,13 @@ spec:
 
         resources:
           requests:
-            memory: "12Gi"
-            cpu: "4000m"
-            nvidia.com/gpu: 1  # Request 1 GPU (RTX 5060 via NVIDIA_VISIBLE_DEVICES)
+            memory: "8Gi"   # Reduced from 12Gi - GPU handles model memory
+            cpu: "2000m"    # Reduced from 4000m
+            nvidia.com/gpu: 1
           limits:
-            memory: "36Gi"
-            cpu: "8000m"
-            nvidia.com/gpu: 1  # Limit to 1 GPU
+            memory: "24Gi"  # Reduced from 36Gi
+            cpu: "6000m"    # Reduced from 8000m
+            nvidia.com/gpu: 1
         
         livenessProbe:
           httpGet:
