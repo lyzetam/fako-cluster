@@ -43,7 +43,8 @@ spec:
     # CNI Configuration for K3s migration from Flannel
     cni:
       exclusive: false  # Don't remove other CNI configs during migration
-      chainingMode: generic-veth  # Chain with existing Flannel CNI
+      # Note: chainingMode removed - generic-veth deprecated in 1.19.0
+      # Cilium will write its own CNI config without chaining
 
     # IPAM Configuration - use K3s default CIDR
     ipam:
