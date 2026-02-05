@@ -10,3 +10,4 @@ resources:
   - ingress.yaml
   - nodeport-service.yaml
   - promtail-config.yaml
+  - cilium-network-policy.yaml

@@ -5,13 +5,14 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - secret-store.yaml
-  - external-secret-admin.yaml    
+  - external-secret-admin.yaml
   - external-secret-app.yaml
   - aws-credentials-secret.yaml
   - postgres-cluster.yaml
   - database-init-job.yaml
   - backup-pvc.yaml
   - backup-schedule.yaml
+  - cilium-network-policy.yaml
 
   # - service.yaml
   # - pooler.yaml  # Uncomment if using PgBouncer

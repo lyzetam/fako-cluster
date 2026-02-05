@@ -1,0 +1,176 @@
+---
+# PostgreSQL Hub Network Policy
+# Allows ingress from all authorized database consumers
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: postgres-cluster-policy
+  namespace: postgres
+spec:
+  description: "PostgreSQL cluster network policy - allow authorized consumers"
+  endpointSelector:
+    matchLabels:
+      cnpg.io/cluster: postgres-cluster
+
+  ingress:
+    # Core Infrastructure
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: keycloak
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Workflow Automation
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: n8n
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # AI/Agent Platform
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: zi
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Trading Platform
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: quantum-trades
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Health Monitoring
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: oura-collector
+        - matchLabels:
+            io.kubernetes.pod.namespace: oura-agent
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Document Management
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: paperless-ngx
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Analytics
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: umami
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Task Management
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: task-tracker
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Debt Optimization
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: zeroed
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Family Management
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: family-manager
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Database Admin
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: pgadmin
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Postgres Recovery
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: postgres-recovery
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # CloudNative-PG Operator
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: cnpg-system
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+            - port: "8000"
+              protocol: TCP
+
+    # Prometheus metrics scraping
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "9187"
+              protocol: TCP
+
+  egress:
+    # Allow DNS resolution
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+
+    # Allow PostgreSQL replication between cluster instances
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: postgres-cluster
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+
+    # Allow NFS storage (UGREEN NAS - ugnas.landryzetam.net)
+    - toCIDR:
+        - 10.85.30.127/32
+      toPorts:
+        - ports:
+            - port: "2049"
+              protocol: TCP
+            - port: "2049"
+              protocol: UDP
