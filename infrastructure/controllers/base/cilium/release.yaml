@@ -9,7 +9,7 @@ spec:
   chart:
     spec:
       chart: cilium
-      version: "^1.16.0"
+      version: "1.16.5"  # Pin to stable version for K3s compatibility
       sourceRef:
         kind: HelmRepository
         name: cilium
@@ -24,13 +24,22 @@ spec:
       retries: 3
   values:
     # K3s specific configuration
-    # Use control plane IP (k8s-control.landryzetam.net resolves to this)
+    # Use control plane IP explicitly (required for K3s worker nodes)
     k8sServiceHost: "10.85.30.214"
     k8sServicePort: "6443"
+
+    # K3s compatibility: keep kube-proxy (don't replace it during migration)
+    kubeProxyReplacement: false
+
+    # K3s client rate limits (prevents API server throttling)
+    k8sClientRateLimit:
+      qps: 50
+      burst: 200
 
     # CNI Configuration for K3s migration from Flannel
     cni:
       exclusive: false  # Don't remove other CNI configs during migration
+      chainingMode: generic-veth  # Chain with existing Flannel CNI
 
     # IPAM Configuration - use K3s default CIDR
     ipam:
@@ -44,9 +53,10 @@ spec:
     policyEnforcementMode: "never"
     policyAuditMode: true
 
-    # Tunnel Configuration
+    # Tunnel Configuration - use VXLAN to avoid conflicts with Flannel
     routingMode: tunnel
     tunnelProtocol: vxlan
+    tunnelPort: 8473  # Different port from Flannel's 8472
 
     # BPF Configuration
     bpf:
