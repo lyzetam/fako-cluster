@@ -8,7 +8,8 @@ resources:
   # Shared resources (using zi namespace's existing aws-credentials and dockerhub-registry)
   - shared/pvc-memory.yaml
   - shared/external-secret.yaml
-  - shared/networkpolicy.yaml
+  # NetworkPolicy removed - Flannel (K3s CNI) doesn't enforce NetworkPolicy
+  # Re-add when Cilium is properly deployed
   - shared/rbac-k8s-operator.yaml
   # Agent deployments (24 agents)
   - deployments/ai-engineer.yaml
