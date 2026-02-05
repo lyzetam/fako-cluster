@@ -12,5 +12,5 @@ resources:
   - cloudnative-pg
   - unifi-data
   - argo-workflows
-  - cilium
+  # - cilium  # Disabled - K3s doesn't support CNI migration on running clusters
   # - newrelic
