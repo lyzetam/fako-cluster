@@ -19,6 +19,7 @@ spec:
         app.kubernetes.io/name: agent-k8s-engineer
         app.kubernetes.io/component: agent
     spec:
+      serviceAccountName: k8s-operator
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:

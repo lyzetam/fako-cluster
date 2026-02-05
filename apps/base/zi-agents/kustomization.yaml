@@ -9,6 +9,7 @@ resources:
   - shared/pvc-memory.yaml
   - shared/external-secret.yaml
   - shared/networkpolicy.yaml
+  - shared/rbac-k8s-operator.yaml
   # Agent deployments (24 agents)
   - deployments/ai-engineer.yaml
   - deployments/app-security.yaml
