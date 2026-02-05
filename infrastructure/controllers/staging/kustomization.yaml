@@ -12,4 +12,5 @@ resources:
   - cloudnative-pg
   - unifi-data
   - argo-workflows
+  - cilium
   # - newrelic
