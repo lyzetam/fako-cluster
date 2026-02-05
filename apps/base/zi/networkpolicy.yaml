@@ -25,6 +25,14 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+    # Allow traffic from monitoring namespace (AlertManager webhooks)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
   egress:
     # Allow autobots workforce API (same namespace)
     - to:
