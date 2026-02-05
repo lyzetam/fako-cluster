@@ -1,0 +1,86 @@
+---
+# Allow Traefik ingress controller to reach all services
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-traefik-ingress
+spec:
+  description: "Allow Traefik ingress controller to reach services in all namespaces"
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            app.kubernetes.io/name: traefik
+---
+# Allow Prometheus to scrape metrics from all namespaces
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-prometheus-scraping
+spec:
+  description: "Allow Prometheus to scrape metrics endpoints"
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: prometheus
+      toPorts:
+        - ports:
+            - port: "9090"
+              protocol: TCP
+            - port: "9100"
+              protocol: TCP
+            - port: "8080"
+              protocol: TCP
+            - port: "8081"
+              protocol: TCP
+            - port: "9187"
+              protocol: TCP
+---
+# Allow all pods to reach Kubernetes API server
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-kube-apiserver
+spec:
+  description: "Allow pods to reach Kubernetes API server"
+  endpointSelector: {}
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "6443"
+              protocol: TCP
+---
+# Allow External Secrets Operator to sync secrets
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-external-secrets
+spec:
+  description: "Allow External Secrets to reach AWS and sync secrets"
+  endpointSelector:
+    matchLabels:
+      io.kubernetes.pod.namespace: external-secrets-system
+  egress:
+    # Allow AWS Secrets Manager (HTTPS)
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # Allow DNS
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP

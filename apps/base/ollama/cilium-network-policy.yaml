@@ -1,0 +1,153 @@
+---
+# Ollama GPU Hub Network Policy
+# Central LLM inference endpoint for all AI services
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ollama-gpu-policy
+  namespace: ollama
+spec:
+  description: "Ollama GPU inference - allow authorized AI consumers"
+  endpointSelector:
+    matchLabels:
+      app: ollama-gpu
+
+  ingress:
+    # zI Brain and Orchestrator
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: zi
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Autobots Autonomous Executor
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: autobots
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Oura Health Agent
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: oura-agent
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Audio Processing Workflows
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: audio-workflows
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Voice Ingest Pipeline
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: voice-ingest
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Open WebUI (LLM Chat Interface)
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: open-webui
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Ollama WebUI
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: ollama-webui
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Family Manager Bot
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: family-manager
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Claude Code (n8n orchestration)
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: claude-code
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Traefik Ingress (external API access)
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            app.kubernetes.io/name: traefik
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Prometheus metrics scraping
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+    # Allow from 10.0.0.0/8 for legacy compatibility (internal network)
+    - fromCIDR:
+        - 10.0.0.0/8
+      toPorts:
+        - ports:
+            - port: "11434"
+              protocol: TCP
+
+  egress:
+    # Allow DNS resolution
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+
+    # Allow NFS storage (UGREEN NAS for model storage)
+    - toCIDR:
+        - 10.85.30.127/32
+      toPorts:
+        - ports:
+            - port: "2049"
+              protocol: TCP
+            - port: "2049"
+              protocol: UDP
+
+    # Allow HTTPS for model downloads (ollama.com, huggingface.co)
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

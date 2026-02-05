@@ -1,0 +1,47 @@
+---
+# Default deny policy for all namespaces except system namespaces
+# This policy blocks all ingress/egress except DNS resolution
+# Deploy AFTER Cilium is in enforcement mode (Phase 3)
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: default-deny-with-dns
+spec:
+  description: "Default deny all traffic except DNS for non-system namespaces"
+  endpointSelector:
+    matchExpressions:
+      # Exclude system namespaces from default-deny
+      - key: io.kubernetes.pod.namespace
+        operator: NotIn
+        values:
+          - kube-system
+          - kube-public
+          - kube-node-lease
+          - cilium
+          - flux-system
+          - cert-manager
+          - external-secrets-system
+          - cnpg-system
+          - monitoring
+          - loki-stack
+
+  # Default deny all ingress
+  ingress:
+    - {}
+
+  # Allow only DNS egress by default
+  egress:
+    # Allow DNS to CoreDNS
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"

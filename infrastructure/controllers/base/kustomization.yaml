@@ -11,3 +11,4 @@ resources:
   - system-tuning
   - cloudnative-pg
   - unifi-data
+  - cilium
