@@ -65,10 +65,9 @@ spec:
     tunnelPort: 6081  # Geneve default port
 
     # BPF Configuration
-    # Note: masquerade requires NodePort when kubeProxyReplacement=false
-    # Disable during migration phase - kube-proxy handles masquerading
+    # Enable masquerading for pod egress to external networks
     bpf:
-      masquerade: false
+      masquerade: true
 
     # Operator Configuration
     operator:
