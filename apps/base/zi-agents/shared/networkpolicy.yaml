@@ -31,6 +31,13 @@ spec:
         - protocol: TCP
           port: 8000
   egress:
+    # Allow to Kubernetes API server (for kubectl tools - k8s-engineer agent)
+    - to:
+        - ipBlock:
+            cidr: 10.43.0.0/16  # K3s service CIDR (API server at 10.43.0.1)
+      ports:
+        - protocol: TCP
+          port: 443
     # Allow to Anthropic/OpenAI APIs (HTTPS)
     - to:
         - ipBlock:
