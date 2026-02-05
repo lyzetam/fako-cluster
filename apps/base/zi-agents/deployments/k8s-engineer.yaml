@@ -51,6 +51,11 @@ spec:
               value: "6379"
             - name: ZI_API_URL
               value: "http://zi.zi.svc.cluster.local:8080"
+            # Observability endpoints for metrics and logs
+            - name: PROMETHEUS_URL
+              value: "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
+            - name: LOKI_URL
+              value: "http://loki-gateway.loki-stack.svc.cluster.local:80"
           envFrom:
             - secretRef:
                 name: zi-agents-ai-keys
