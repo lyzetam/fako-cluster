@@ -59,8 +59,10 @@ spec:
     tunnelPort: 8473  # Different port from Flannel's 8472
 
     # BPF Configuration
+    # Note: masquerade requires NodePort when kubeProxyReplacement=false
+    # Disable during migration phase - kube-proxy handles masquerading
     bpf:
-      masquerade: true
+      masquerade: false
 
     # Operator Configuration
     operator:
