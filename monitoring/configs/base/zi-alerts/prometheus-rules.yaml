@@ -1,0 +1,165 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: zi-pod-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: zi
+    prometheus.io/rule: "true"
+spec:
+  groups:
+    - name: zi.pod.alerts
+      interval: 30s
+      rules:
+        # OOMKilled detection - triggers k8s-engineer for memory analysis
+        - alert: PodOOMKilled
+          expr: |
+            kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} > 0
+          for: 0m
+          labels:
+            severity: warning
+            agent: k8s-engineer
+            action: investigate
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} was OOMKilled"
+            description: "Container {{ $labels.container }} in pod {{ $labels.pod }} was terminated due to OOMKilled. Memory limit may need to be increased."
+            runbook_url: "https://runbooks.landryzetam.net/k8s/oomkilled"
+
+        # CrashLoopBackOff detection
+        - alert: PodCrashLoopBackOff
+          expr: |
+            sum by (namespace, pod, container) (
+              increase(kube_pod_container_status_restarts_total[5m])
+            ) > 3
+            and
+            kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"} > 0
+          for: 2m
+          labels:
+            severity: warning
+            agent: k8s-engineer
+            action: investigate
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
+            description: "Container {{ $labels.container }} has restarted {{ $value }} times in 5 minutes and is in CrashLoopBackOff."
+            runbook_url: "https://runbooks.landryzetam.net/k8s/crashloopbackoff"
+
+        # High restart count - something is chronically failing
+        - alert: PodHighRestartCount
+          expr: |
+            kube_pod_container_status_restarts_total > 50
+          for: 5m
+          labels:
+            severity: warning
+            agent: k8s-engineer
+            action: investigate
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has high restart count"
+            description: "Container {{ $labels.container }} has restarted {{ $value }} times. Investigate root cause."
+            runbook_url: "https://runbooks.landryzetam.net/k8s/high-restarts"
+
+        # Pod not ready for extended period
+        - alert: PodNotReady
+          expr: |
+            sum by (namespace, pod) (
+              kube_pod_status_phase{phase!~"Running|Succeeded"}
+            ) > 0
+          for: 10m
+          labels:
+            severity: warning
+            agent: k8s-engineer
+            action: investigate
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is not ready"
+            description: "Pod has been in non-running state for more than 10 minutes."
+            runbook_url: "https://runbooks.landryzetam.net/k8s/pod-not-ready"
+
+        # Container waiting (ImagePullBackOff, ErrImagePull, etc.)
+        - alert: ContainerWaiting
+          expr: |
+            kube_pod_container_status_waiting_reason{reason=~"ImagePullBackOff|ErrImagePull|CreateContainerError"} > 0
+          for: 5m
+          labels:
+            severity: warning
+            agent: k8s-engineer
+            action: investigate
+          annotations:
+            summary: "Container {{ $labels.container }} in {{ $labels.namespace }}/{{ $labels.pod }} is waiting"
+            description: "Container is stuck in {{ $labels.reason }} state for more than 5 minutes."
+            runbook_url: "https://runbooks.landryzetam.net/k8s/container-waiting"
+
+        # Deployment unavailable replicas
+        - alert: DeploymentReplicasUnavailable
+          expr: |
+            kube_deployment_status_replicas_unavailable > 0
+          for: 10m
+          labels:
+            severity: warning
+            agent: k8s-engineer
+            action: investigate
+          annotations:
+            summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has unavailable replicas"
+            description: "{{ $value }} replicas are unavailable for more than 10 minutes."
+            runbook_url: "https://runbooks.landryzetam.net/k8s/deployment-unavailable"
+
+        # Critical: All replicas down
+        - alert: DeploymentAllReplicasDown
+          expr: |
+            kube_deployment_status_replicas_available == 0
+            and
+            kube_deployment_spec_replicas > 0
+          for: 2m
+          labels:
+            severity: critical
+            agent: k8s-engineer
+            action: immediate
+          annotations:
+            summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has zero available replicas"
+            description: "All replicas are down for deployment {{ $labels.deployment }}. Service is likely unavailable."
+            runbook_url: "https://runbooks.landryzetam.net/k8s/deployment-down"
+
+    - name: zi.node.alerts
+      interval: 30s
+      rules:
+        # Node not ready
+        - alert: NodeNotReady
+          expr: |
+            kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            agent: k8s-engineer
+            action: immediate
+          annotations:
+            summary: "Node {{ $labels.node }} is not ready"
+            description: "Node has been in NotReady state for more than 5 minutes."
+            runbook_url: "https://runbooks.landryzetam.net/k8s/node-not-ready"
+
+        # Node disk pressure
+        - alert: NodeDiskPressure
+          expr: |
+            kube_node_status_condition{condition="DiskPressure",status="true"} > 0
+          for: 5m
+          labels:
+            severity: warning
+            agent: k8s-engineer
+            action: investigate
+          annotations:
+            summary: "Node {{ $labels.node }} has disk pressure"
+            description: "Node is experiencing disk pressure. Pod evictions may occur."
+            runbook_url: "https://runbooks.landryzetam.net/k8s/disk-pressure"
+
+        # Node memory pressure
+        - alert: NodeMemoryPressure
+          expr: |
+            kube_node_status_condition{condition="MemoryPressure",status="true"} > 0
+          for: 5m
+          labels:
+            severity: warning
+            agent: k8s-engineer
+            action: investigate
+          annotations:
+            summary: "Node {{ $labels.node }} has memory pressure"
+            description: "Node is experiencing memory pressure. Pod evictions may occur."
+            runbook_url: "https://runbooks.landryzetam.net/k8s/memory-pressure"

@@ -118,6 +118,68 @@ spec:
     prometheusOperator:
       enabled: true
     
+    # AlertManager configuration - webhook to zI for event-driven monitoring
+    alertmanager:
+      enabled: true
+      config:
+        global:
+          resolve_timeout: 5m
+
+        # Inhibit rules - suppress less severe alerts when critical fires
+        inhibit_rules:
+          - source_matchers:
+              - severity="critical"
+            target_matchers:
+              - severity=~"warning|info"
+            equal:
+              - namespace
+              - alertname
+
+        # Route tree - direct pod/node alerts to zI
+        route:
+          group_by: ['namespace', 'alertname', 'severity']
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 4h
+          receiver: 'default'
+          routes:
+            # Pod alerts with agent label go to zI for investigation
+            - matchers:
+                - agent=~"k8s-engineer|platform-sre"
+              receiver: 'zi-webhook'
+              group_wait: 10s
+              group_interval: 1m
+              repeat_interval: 1h
+              continue: true  # Also send to default for visibility
+
+            # Critical alerts always go to zI immediately
+            - matchers:
+                - severity="critical"
+              receiver: 'zi-webhook'
+              group_wait: 0s
+              group_interval: 1m
+              repeat_interval: 30m
+              continue: true
+
+        receivers:
+          - name: 'default'
+            # Default receiver - just logs (no external notification)
+
+          - name: 'zi-webhook'
+            webhook_configs:
+              - url: 'http://zi.zi.svc.cluster.local:8080/webhooks/prometheus'
+                send_resolved: true
+                max_alerts: 10
+
+      alertmanagerSpec:
+        resources:
+          requests:
+            memory: 64Mi
+            cpu: 50m
+          limits:
+            memory: 256Mi
+            cpu: 200m
+
     # Grafana configuration
     grafana:
       adminPassword: "admin"
