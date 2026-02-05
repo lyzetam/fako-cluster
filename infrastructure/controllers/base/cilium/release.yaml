@@ -57,10 +57,11 @@ spec:
     policyEnforcementMode: "never"
     policyAuditMode: true
 
-    # Tunnel Configuration - use VXLAN to avoid conflicts with Flannel
+    # Tunnel Configuration - use Geneve to avoid VXLAN device conflict
+    # Flannel uses vxlan, so we use geneve to avoid 'address already in use' error
     routingMode: tunnel
-    tunnelProtocol: vxlan
-    tunnelPort: 8473  # Different port from Flannel's 8472
+    tunnelProtocol: geneve
+    tunnelPort: 6081  # Geneve default port
 
     # BPF Configuration
     # Note: masquerade requires NodePort when kubeProxyReplacement=false
