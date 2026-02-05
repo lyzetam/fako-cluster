@@ -23,6 +23,10 @@ spec:
     remediation:
       retries: 3
   values:
+    # Clean up leftover Cilium state from previous installation attempts
+    # TODO: Set to false after all nodes are healthy
+    cleanState: true
+
     # K3s specific configuration
     # Use control plane IP explicitly (required for K3s worker nodes)
     k8sServiceHost: "10.85.30.214"
