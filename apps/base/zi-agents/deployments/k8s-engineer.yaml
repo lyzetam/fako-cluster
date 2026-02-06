@@ -44,6 +44,9 @@ spec:
             # Use local AI with tool calling support
             - name: AGENT_MODEL
               value: "ollama:glm-4.7-flash"
+            # Lighter model for agent-to-agent social conversations
+            - name: SOCIAL_MODEL
+              value: "ollama:mistral:7b"
             - name: ZI_OLLAMA_URL
               value: "http://ms2.landryzetam.net:11434"
             - name: OLLAMA_HOST
