@@ -41,10 +41,13 @@ spec:
               value: "Kubernetes deployment and operations"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
+            # Use local AI on ms2 for faster/cheaper inference
+            - name: AGENT_MODEL
+              value: "ollama:gemma3:27b"
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL
-              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_KNOWLEDGE_REDIS_HOST
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
