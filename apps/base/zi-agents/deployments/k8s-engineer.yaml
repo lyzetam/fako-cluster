@@ -48,6 +48,9 @@ spec:
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL
               value: "http://ms2.landryzetam.net:11434"
+            # OLLAMA_HOST for deepagents/langchain compatibility
+            - name: OLLAMA_HOST
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_KNOWLEDGE_REDIS_HOST
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
