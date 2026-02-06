@@ -40,10 +40,17 @@ spec:
               value: "K8s security, CIS benchmarks"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
+            # Use local AI with tool calling support
+            - name: AGENT_MODEL
+              value: "ollama:glm-4.7-flash"
+            - name: SOCIAL_MODEL
+              value: "ollama:mistral:7b"
+            - name: ZI_OLLAMA_URL
+              value: "http://ms2.landryzetam.net:11434"
+            - name: OLLAMA_HOST
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
-            - name: ZI_OLLAMA_URL
-              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
             - name: ZI_KNOWLEDGE_REDIS_HOST
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
