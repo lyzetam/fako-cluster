@@ -41,9 +41,13 @@ spec:
               value: "Kubernetes deployment and operations"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
-            # Use Claude for reliable tool calling (critical ops agent)
+            # Use local AI with tool calling support
             - name: AGENT_MODEL
-              value: "anthropic:claude-sonnet-4-20250514"
+              value: "ollama:glm-4.7-flash"
+            - name: ZI_OLLAMA_URL
+              value: "http://ms2.landryzetam.net:11434"
+            - name: OLLAMA_HOST
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_KNOWLEDGE_REDIS_HOST
