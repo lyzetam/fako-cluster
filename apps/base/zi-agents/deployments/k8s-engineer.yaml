@@ -41,16 +41,11 @@ spec:
               value: "Kubernetes deployment and operations"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
-            # Use local AI on ms2 for faster/cheaper inference
+            # Use Claude for reliable tool calling (critical ops agent)
             - name: AGENT_MODEL
-              value: "ollama:mistral:7b"
+              value: "anthropic:claude-sonnet-4-20250514"
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
-            - name: ZI_OLLAMA_URL
-              value: "http://ms2.landryzetam.net:11434"
-            # OLLAMA_HOST for deepagents/langchain compatibility
-            - name: OLLAMA_HOST
-              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_KNOWLEDGE_REDIS_HOST
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
