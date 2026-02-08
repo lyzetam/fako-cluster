@@ -20,11 +20,18 @@ spec:
           port: 8811
         - protocol: TCP
           port: 8812
-    # Allow Ollama for embeddings (agent memory)
+    # Allow Ollama for embeddings (agent memory) - in-cluster
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    # Allow Ollama on Mac Studio ms3 (10.85.30.185)
+    - to:
+        - ipBlock:
+            cidr: 10.85.30.185/32
       ports:
         - protocol: TCP
           port: 11434
