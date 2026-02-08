@@ -57,8 +57,9 @@ resources:
   # MCP Servers for Kagent
   # - mcp-servers    # Model Context Protocol servers
   
-  # GPUStack Proxy
-  # - gpustack-proxy  # REPLACED by exo (exolabs) - direct DNS access
+  # Exolabs (replaced GPUStack)
+  - exo               # Service proxy to exolabs Mac Studio cluster
+  # - gpustack-proxy  # REPLACED by exo
   
   # Workflow Automation
   - n8n             # Workflow automation platform
