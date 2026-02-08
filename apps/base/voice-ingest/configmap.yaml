@@ -4,5 +4,5 @@ metadata:
   name: voice-ingest-config
   namespace: voice-ingest
 data:
-  ollama_model: "qwen3:8b"
+  ollama_model: "llama3.2:3b"
   obsidian_folder: "Voice-Journals"
