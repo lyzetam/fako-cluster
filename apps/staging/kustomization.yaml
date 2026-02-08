@@ -58,7 +58,7 @@ resources:
   # - mcp-servers    # Model Context Protocol servers
   
   # GPUStack Proxy
-  - gpustack-proxy  # Proxy to GPUStack endpoint
+  # - gpustack-proxy  # REPLACED by exo (exolabs) - direct DNS access
   
   # Workflow Automation
   - n8n             # Workflow automation platform

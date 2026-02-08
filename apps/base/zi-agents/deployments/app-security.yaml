@@ -46,9 +46,9 @@ spec:
             - name: SOCIAL_MODEL
               value: "ollama:mistral:7b"
             - name: ZI_OLLAMA_URL
-              value: "http://ms2.landryzetam.net:11434"
+              value: "http://exo.landryzetam.net:52415"
             - name: OLLAMA_HOST
-              value: "http://ms2.landryzetam.net:11434"
+              value: "http://exo.landryzetam.net:52415"
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_KNOWLEDGE_REDIS_HOST
