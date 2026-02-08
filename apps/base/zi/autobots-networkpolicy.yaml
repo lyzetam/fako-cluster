@@ -28,10 +28,10 @@ spec:
       ports:
         - protocol: TCP
           port: 11434
-    # Allow Ollama on Mac Studio ms3 (10.85.30.185)
+    # Allow Ollama on internal network (Mac Studio ms3)
     - to:
         - ipBlock:
-            cidr: 10.85.30.185/32
+            cidr: 10.0.0.0/8
       ports:
         - protocol: TCP
           port: 11434
