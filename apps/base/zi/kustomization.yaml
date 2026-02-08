@@ -20,7 +20,6 @@ resources:
   - autobots-service.yaml
   - autobots-ingress.yaml
   - autobots-external-secret.yaml
-  - autobots-networkpolicy.yaml
 
 # Use labels instead of commonLabels to avoid corrupting network policy selectors
 labels:
