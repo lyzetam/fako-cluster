@@ -93,7 +93,7 @@ spec:
                   name: autobots-secrets
                   key: supabase-service-role-key
             - name: OLLAMA_BASE_URL
-              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+              value: "http://ms3.landryzetam.net:11434"
             - name: MEMORY_SIMILARITY_THRESHOLD
               value: "0.7"
             - name: MEMORY_MAX_RESULTS

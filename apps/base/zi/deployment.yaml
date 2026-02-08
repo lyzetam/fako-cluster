@@ -67,9 +67,9 @@ spec:
                 secretKeyRef:
                   name: zi-secrets
                   key: autobots-api-key
-            # AI Provider URLs (exolabs cluster on Mac Studios)
+            # AI Provider URLs (Ollama on Mac Studio ms3)
             - name: ZI_OLLAMA_URL
-              value: "http://exo.exo.svc.cluster.local"
+              value: "http://ms3.landryzetam.net:11434"
             # MCP Gateway
             - name: ZI_MCP_GATEWAY_URL
               value: "http://mcp-gateway.mcp-gateway.svc.cluster.local:8811"
