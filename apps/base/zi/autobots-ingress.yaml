@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/component: orchestrator
     app.kubernetes.io/name: autobots
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
+    cert-manager.io/cluster-issuer: "letsencrypt-dns01"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
   ingressClassName: traefik
