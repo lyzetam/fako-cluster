@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: meal-tracker-config
+  namespace: meal-tracker
+data:
+  DISCORD_CHANNEL_ID: "1464232388711284844"  # #nutrition channel
+  DISCORD_GUILD_ID: "1459945937349771276"    # TheZetams server
+  POSTGRES_HOST: "postgres-cluster-rw.postgres.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: "postgres"
+  POSTGRES_DATABASE: "meals"
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
+  AWS_REGION: "us-east-1"

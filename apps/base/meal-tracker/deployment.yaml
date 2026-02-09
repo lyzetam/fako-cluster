@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meal-tracker
+  namespace: meal-tracker
+  labels:
+    app.kubernetes.io/name: meal-tracker
+    app.kubernetes.io/component: bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: meal-tracker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: meal-tracker
+        app.kubernetes.io/component: bot
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      serviceAccountName: meal-tracker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: meal-tracker
+          image: lzetam/meal-tracker:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: meal-tracker-config
+            - secretRef:
+                name: meal-tracker-credentials
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: meal-tracker
+  namespace: meal-tracker
