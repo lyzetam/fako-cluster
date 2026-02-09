@@ -3,6 +3,10 @@ kind: Kustomization
 
 namespace: meal-tracker
 
+commonLabels:
+  app.kubernetes.io/part-of: meal-tracker
+  app.kubernetes.io/managed-by: kustomize
+
 resources:
   - namespace.yaml
   - configmap.yaml
