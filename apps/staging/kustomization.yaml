@@ -84,6 +84,7 @@ resources:
 
   # Trading Platform
   - quantum-trades  # Quantum Trades trading platform
+  - market-replay   # Market replay system (recorder, replay, gateway)
 
   # Analytics
   - umami           # Privacy-focused website analytics

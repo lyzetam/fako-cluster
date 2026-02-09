@@ -1,0 +1,221 @@
+---
+# ConfigMap for backfill configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backfill-config
+  namespace: market-replay
+  labels:
+    app: market-replay-backfill
+data:
+  # Symbols to backfill (comma-separated)
+  BACKFILL_SYMBOLS: "TQQQ,SLV,GDX,AMZN,NVDA,CNC,OSCR,AMD,INTC,SPY,QQQ,AAPL"
+
+  # Number of days to backfill (730 = 2 years)
+  BACKFILL_DAYS: "730"
+
+  # Use daily bars (faster) or minute bars (more granular)
+  # Set to "true" for minute bars, "false" for daily
+  USE_MINUTE_BARS: "false"
+
+  # Rate limiting
+  RATE_LIMIT_CALLS_PER_MINUTE: "100"
+
+---
+# CronJob for daily incremental backfill
+# Runs every day at 5 AM UTC (after US market close)
+# Backfills the previous 7 days to catch any gaps
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backfill-daily
+  namespace: market-replay
+  labels:
+    app: market-replay-backfill
+    type: daily
+spec:
+  schedule: "0 5 * * *"  # 5 AM UTC daily (midnight EST)
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400  # Clean up after 24 hours
+      backoffLimit: 3
+      template:
+        metadata:
+          labels:
+            app: market-replay-backfill
+            type: daily
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: market-replay-sa
+          imagePullSecrets:
+            - name: dockerhub-pull-secret
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          containers:
+            - name: backfill
+              image: lzetam/market-replay-recorder:latest
+              imagePullPolicy: Always
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              command:
+                - python
+                - /app/scripts/backfill_historical.py
+              args:
+                - --symbols
+                - $(BACKFILL_SYMBOLS)
+                - --days
+                - "7"  # Last 7 days to catch gaps
+              env:
+                # Backfill configuration
+                - name: BACKFILL_SYMBOLS
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backfill-config
+                      key: BACKFILL_SYMBOLS
+                - name: RATE_LIMIT_CALLS_PER_MINUTE
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backfill-config
+                      key: RATE_LIMIT_CALLS_PER_MINUTE
+                # Massive API key
+                - name: MASSIVE_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: market-replay-secrets
+                      key: massive-api-key
+                # Database configuration
+                - name: DATABASE_HOST
+                  value: "postgres-cluster-rw.postgres.svc.cluster.local"
+                - name: DATABASE_PORT
+                  value: "5432"
+                - name: DATABASE_NAME
+                  value: "market_replay"
+                - name: DATABASE_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: market-replay-db-credentials
+                      key: username
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: market-replay-db-credentials
+                      key: password
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 512Mi
+
+---
+# CronJob for weekly full backfill (weekends only)
+# Runs every Saturday at 2 AM UTC
+# Backfills the full 2-year history to ensure completeness
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backfill-weekly
+  namespace: market-replay
+  labels:
+    app: market-replay-backfill
+    type: weekly
+spec:
+  schedule: "0 2 * * 6"  # 2 AM UTC on Saturdays
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  suspend: true  # Suspended by default - enable manually if needed
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 172800  # Clean up after 48 hours
+      backoffLimit: 3
+      activeDeadlineSeconds: 21600  # 6 hour timeout
+      template:
+        metadata:
+          labels:
+            app: market-replay-backfill
+            type: weekly
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: market-replay-sa
+          imagePullSecrets:
+            - name: dockerhub-pull-secret
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          containers:
+            - name: backfill
+              image: lzetam/market-replay-recorder:latest
+              imagePullPolicy: Always
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              command:
+                - python
+                - /app/scripts/backfill_historical.py
+              args:
+                - --symbols
+                - $(BACKFILL_SYMBOLS)
+                - --days
+                - $(BACKFILL_DAYS)
+              env:
+                # Backfill configuration
+                - name: BACKFILL_SYMBOLS
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backfill-config
+                      key: BACKFILL_SYMBOLS
+                - name: BACKFILL_DAYS
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backfill-config
+                      key: BACKFILL_DAYS
+                - name: RATE_LIMIT_CALLS_PER_MINUTE
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backfill-config
+                      key: RATE_LIMIT_CALLS_PER_MINUTE
+                # Massive API key
+                - name: MASSIVE_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: market-replay-secrets
+                      key: massive-api-key
+                # Database configuration
+                - name: DATABASE_HOST
+                  value: "postgres-cluster-rw.postgres.svc.cluster.local"
+                - name: DATABASE_PORT
+                  value: "5432"
+                - name: DATABASE_NAME
+                  value: "market_replay"
+                - name: DATABASE_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: market-replay-db-credentials
+                      key: username
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: market-replay-db-credentials
+                      key: password
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+                limits:
+                  cpu: 2000m
+                  memory: 1Gi
