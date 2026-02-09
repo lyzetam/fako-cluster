@@ -29,6 +29,12 @@ spec:
         app: market-replay-gateway
     spec:
       serviceAccountName: market-replay-sa
+      imagePullSecrets:
+        - name: dockerhub-pull-secret
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: gateway
           image: lzetam/market-replay-gateway:latest
