@@ -1,0 +1,155 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-replay-recorder
+  namespace: market-replay
+  labels:
+    app: market-replay-recorder
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: market-replay-recorder
+  template:
+    metadata:
+      labels:
+        app: market-replay-recorder
+    spec:
+      serviceAccountName: market-replay-sa
+      containers:
+        - name: recorder
+          image: lzetam/market-replay-recorder:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8001
+              name: http
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "8001"
+            - name: MASSIVE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: market-replay-secrets
+                  key: massive-api-key
+            - name: RECORDING_ENABLED
+              value: "true"
+            - name: DEFAULT_INTERVAL_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: DEFAULT_INTERVAL_SECONDS
+            - name: WATCHLIST_SYMBOLS
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: WATCHLIST_SYMBOLS
+            - name: RATE_LIMIT_CALLS_PER_MINUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: RATE_LIMIT_CALLS_PER_MINUTE
+            - name: FETCH_OPTIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: FETCH_OPTIONS
+            - name: FETCH_TECHNICALS
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: FETCH_TECHNICALS
+            - name: MAX_OPTION_EXPIRATIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: MAX_OPTION_EXPIRATIONS
+            - name: STORAGE_PATH
+              value: "/data/replay_data"
+            - name: STORAGE_COMPRESSION
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: STORAGE_COMPRESSION
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: LOG_LEVEL
+            - name: AWS_SECRETS_MANAGER_ENABLED
+              value: "false"
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_SECRETS_PATH
+              value: "market-replay/recorder"
+            # Database configuration
+            - name: DATABASE_ENABLED
+              value: "true"
+            - name: DATABASE_HOST
+              value: "postgres-cluster-rw.postgres.svc.cluster.local"
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_NAME
+              value: "market_replay"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: market-replay-db-credentials
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: market-replay-db-credentials
+                  key: password
+          volumeMounts:
+            - name: replay-data
+              mountPath: /data/replay_data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8001
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
+      volumes:
+        - name: replay-data
+          persistentVolumeClaim:
+            claimName: market-replay-data-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: market-replay-recorder
+  namespace: market-replay
+  labels:
+    app: market-replay-recorder
+spec:
+  type: ClusterIP
+  selector:
+    app: market-replay-recorder
+  ports:
+    - name: http
+      port: 8001
+      targetPort: 8001
+      protocol: TCP

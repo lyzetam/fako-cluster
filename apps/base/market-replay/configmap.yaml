@@ -1,0 +1,53 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: market-replay-config
+  namespace: market-replay
+data:
+  # Default recording interval (seconds)
+  DEFAULT_INTERVAL_SECONDS: "60"
+
+  # Storage compression
+  STORAGE_COMPRESSION: "gzip"
+
+  # Log level
+  LOG_LEVEL: "INFO"
+
+  # CORS allowed origins (JSON array) - gateway only
+  # No wildcards for security
+  CORS_ORIGINS: '["http://localhost:3000","http://localhost:3001","https://quantum-trades.landryzetam.net"]'
+
+  # Max concurrent replay sessions
+  MAX_CONCURRENT_SESSIONS: "10"
+
+  # Max tick buffer size
+  MAX_TICK_BUFFER_SIZE: "1000"
+
+  # Massive API rate limiting
+  RATE_LIMIT_CALLS_PER_MINUTE: "100"
+
+  # Data fetching options
+  FETCH_OPTIONS: "true"
+  FETCH_TECHNICALS: "true"
+  MAX_OPTION_EXPIRATIONS: "4"
+
+  # Default watchlist symbols (comma-separated)
+  WATCHLIST_SYMBOLS: "TQQQ,SLV,GDX,AMZN,NVDA,CNC,OSCR,AMD,INTC,SPY,QQQ,AAPL"
+
+  # Default watchlist (JSON array) - for structured watchlist
+  DEFAULT_WATCHLIST: |
+    [
+      {"symbol": "TQQQ", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "SLV", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "GDX", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "AMZN", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "NVDA", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "CNC", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "OSCR", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "AMD", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "INTC", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "SPY", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "QQQ", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60},
+      {"symbol": "AAPL", "data_types": ["stocks", "options", "technicals"], "interval_seconds": 60}
+    ]

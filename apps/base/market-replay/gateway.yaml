@@ -1,0 +1,95 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: market-replay-sa
+  namespace: market-replay
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-replay-gateway
+  namespace: market-replay
+  labels:
+    app: market-replay-gateway
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: market-replay-gateway
+  template:
+    metadata:
+      labels:
+        app: market-replay-gateway
+    spec:
+      serviceAccountName: market-replay-sa
+      containers:
+        - name: gateway
+          image: lzetam/market-replay-gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "8000"
+            - name: RECORDER_URL
+              value: "http://market-replay-recorder:8001"
+            - name: REPLAY_URL
+              value: "http://market-replay-replay:8002"
+            - name: REQUEST_TIMEOUT
+              value: "30.0"
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: LOG_LEVEL
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: market-replay-gateway
+  namespace: market-replay
+  labels:
+    app: market-replay-gateway
+spec:
+  type: ClusterIP
+  selector:
+    app: market-replay-gateway
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP

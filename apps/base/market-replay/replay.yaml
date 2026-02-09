@@ -1,0 +1,125 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-replay-replay
+  namespace: market-replay
+  labels:
+    app: market-replay-replay
+spec:
+  replicas: 2  # Multi-replica enabled with Redis session persistence
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: market-replay-replay
+  template:
+    metadata:
+      labels:
+        app: market-replay-replay
+    spec:
+      serviceAccountName: market-replay-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: replay
+          image: lzetam/market-replay-replay:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8002
+              name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "8002"
+            - name: STORAGE_PATH
+              value: "/data/replay_data"
+            - name: MAX_CONCURRENT_SESSIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: MAX_CONCURRENT_SESSIONS
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: market-replay-config
+                  key: LOG_LEVEL
+            # Redis Sentinel configuration for HA distributed sessions
+            - name: REDIS_SENTINEL_ENABLED
+              value: "true"
+            - name: REDIS_SENTINEL_HOSTS
+              value: "redis-sentinel:26379"
+            - name: REDIS_SENTINEL_MASTER
+              value: "mymaster"
+            - name: REDIS_DB
+              value: "0"
+            # Database configuration
+            - name: DATABASE_HOST
+              value: "postgres-cluster-rw.postgres.svc.cluster.local"
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_NAME
+              value: "market_replay"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: market-replay-db-credentials
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: market-replay-db-credentials
+                  key: password
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: market-replay-replay
+  namespace: market-replay
+  labels:
+    app: market-replay-replay
+spec:
+  type: ClusterIP
+  selector:
+    app: market-replay-replay
+  ports:
+    - name: http
+      port: 8002
+      targetPort: 8002
+      protocol: TCP
