@@ -44,22 +44,31 @@ spec:
               value: "http://localhost:3000,https://nick-brothers-demo.pages.dev,https://nnb.landryzetam.net,https://nnb-site.landryzetam.net"
             - name: LOG_LEVEL
               value: "INFO"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            failureThreshold: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 15
             periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
           resources:
             requests:
-              cpu: 25m
-              memory: 64Mi
-            limits:
-              cpu: 250m
+              cpu: 100m
               memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
