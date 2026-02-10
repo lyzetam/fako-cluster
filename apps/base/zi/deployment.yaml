@@ -18,6 +18,8 @@ spec:
         app.kubernetes.io/component: orchestrator
     spec:
       serviceAccountName: zi
+      imagePullSecrets:
+        - name: dockerhub-registry
       containers:
         - name: zi
           image: lzetam/zi:latest
