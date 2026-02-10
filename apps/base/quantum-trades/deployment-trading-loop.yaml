@@ -26,7 +26,19 @@ spec:
       imagePullSecrets:
         - name: dockerhub-registry
 
+      # Pod-level security context - fsGroup ensures NFS volume files are group-accessible
+      securityContext:
+        fsGroup: 1000
+
       initContainers:
+        # Fix NFS volume permissions before app starts
+        - name: fix-permissions
+          image: busybox:1.37
+          command: ['sh', '-c', 'chown -R 1000:1000 /memories && chmod -R 775 /memories']
+          volumeMounts:
+            - name: memories
+              mountPath: /memories
+
         - name: check-dependencies
           image: busybox:1.37
           command:
@@ -140,11 +152,11 @@ spec:
 
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "100m"
+            memory: "192Mi"
+            cpu: "50m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "384Mi"
+            cpu: "300m"
 
         volumeMounts:
         - name: memories
