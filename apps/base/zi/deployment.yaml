@@ -27,7 +27,7 @@ spec:
             - sh
             - -c
             - |
-              mkdir -p /data/brain/zi/journal
+              mkdir -p /data/brain/zi/journal /data/brain/skills
               chmod -R 777 /data/brain
           volumeMounts:
             - name: brain-storage
@@ -61,6 +61,8 @@ spec:
               value: "/data/brain"
             - name: ZI_AUDIT_ENABLED
               value: "true"
+            - name: ZI_SKILLS_DIR
+              value: "/data/brain/skills"
           envFrom:
             - secretRef:
                 name: zi-secrets
