@@ -26,22 +26,22 @@ ENGINEERING_AGENTS = {
 
 RESOURCE_TIERS = {
     "standard": {
-        "requests_cpu": "100m",
-        "requests_memory": "256Mi",
-        "limits_cpu": "500m",
-        "limits_memory": "1Gi",
+        "requests_cpu": "5m",
+        "requests_memory": "64Mi",
+        "limits_cpu": "50m",
+        "limits_memory": "192Mi",
     },
     "complex": {
-        "requests_cpu": "250m",
-        "requests_memory": "512Mi",
-        "limits_cpu": "1",
-        "limits_memory": "2Gi",
+        "requests_cpu": "5m",
+        "requests_memory": "64Mi",
+        "limits_cpu": "50m",
+        "limits_memory": "192Mi",
     },
     "executive": {
-        "requests_cpu": "200m",
-        "requests_memory": "512Mi",
-        "limits_cpu": "750m",
-        "limits_memory": "1.5Gi",
+        "requests_cpu": "5m",
+        "requests_memory": "64Mi",
+        "limits_cpu": "50m",
+        "limits_memory": "192Mi",
     },
 }
 
