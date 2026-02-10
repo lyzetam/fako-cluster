@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-recruiter
+  namespace: zi
+  labels:
+    app.kubernetes.io/name: agent-recruiter
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/part-of: zi-agents
+spec:
+  selector:
+    app: agent-recruiter
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http

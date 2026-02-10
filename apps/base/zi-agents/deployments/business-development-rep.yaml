@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-business-development-rep
+  namespace: zi
+  labels:
+    app.kubernetes.io/name: agent-business-development-rep
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/part-of: zi-agents
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-business-development-rep
+  template:
+    metadata:
+      labels:
+        app: agent-business-development-rep
+        app.kubernetes.io/name: agent-business-development-rep
+        app.kubernetes.io/component: agent
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: agent
+          image: lzetam/zi-agent-business-development-rep:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: AGENT_NAME
+              value: "business-development-rep"
+            - name: AGENT_DESCRIPTION
+              value: "Outbound prospecting, cold calling, and new business generation"
+            - name: AGENT_MAX_ITERATIONS
+              value: "15"
+            - name: ZI_BRAIN_URL
+              value: "http://zi-brain.zi.svc.cluster.local:8100"
+            - name: ZI_OLLAMA_URL
+              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
+            - name: ZI_KNOWLEDGE_REDIS_HOST
+              value: "redis.zi.svc.cluster.local"
+            - name: ZI_KNOWLEDGE_REDIS_PORT
+              value: "6379"
+            - name: ZI_API_URL
+              value: "http://zi.zi.svc.cluster.local:8080"
+          envFrom:
+            - secretRef:
+                name: zi-agents-ai-keys
+            - secretRef:
+                name: zi-brain-api-key
+                optional: true
+            - secretRef:
+                name: zi-agents-discord
+                optional: true
+          volumeMounts:
+            - name: agent-memory
+              mountPath: /data
+              subPath: business-development-rep
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: agent-memory
+          persistentVolumeClaim:
+            claimName: zi-agents-memory

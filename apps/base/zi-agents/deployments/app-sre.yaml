@@ -33,11 +33,10 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            # AGENT_TOOLS is defined in Dockerfile - single source of truth
             - name: AGENT_NAME
               value: "app-sre"
             - name: AGENT_DESCRIPTION
-              value: "Application reliability and performance"
+              value: "Application reliability, monitoring, incident response, and performance optimization"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
             - name: ZI_BRAIN_URL

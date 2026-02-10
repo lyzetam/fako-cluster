@@ -19,7 +19,6 @@ spec:
         app.kubernetes.io/name: agent-platform-sre
         app.kubernetes.io/component: agent
     spec:
-      serviceAccountName: k8s-operator
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -34,11 +33,10 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            # AGENT_TOOLS is defined in Dockerfile - single source of truth
             - name: AGENT_NAME
               value: "platform-sre"
             - name: AGENT_DESCRIPTION
-              value: "Infrastructure reliability and monitoring"
+              value: "Platform reliability, infrastructure operations, and SRE practices"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
             - name: ZI_BRAIN_URL

@@ -33,11 +33,10 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            # AGENT_TOOLS is defined in Dockerfile - single source of truth
             - name: AGENT_NAME
               value: "security-engineer"
             - name: AGENT_DESCRIPTION
-              value: "Organization-wide security policy"
+              value: "Org-wide security, threat detection, security architecture, and security operations"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
             - name: ZI_BRAIN_URL
