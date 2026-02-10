@@ -45,6 +45,10 @@ spec:
               value: "/data/agents"
             - name: ZI_AGENT_CONFIG_PATH
               value: "/config/agents.yaml"
+            - name: ZI_BRAIN_PATH
+              value: "/data/brain"
+            - name: ZI_AUDIT_ENABLED
+              value: "true"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -70,6 +74,9 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
           volumeMounts:
+            # Brain storage for journal and second-brain data
+            - name: brain-storage
+              mountPath: /data/brain
             # Agent config
             - name: agent-config
               mountPath: /config
@@ -238,6 +245,10 @@ spec:
             - name: vp-sales-operations-memory
               mountPath: /data/agents/vp_sales_operations/memory
       volumes:
+        # Brain storage for journal and data
+        - name: brain-storage
+          persistentVolumeClaim:
+            claimName: zi-brain-storage
         # Agent config from ConfigMap
         - name: agent-config
           configMap:
