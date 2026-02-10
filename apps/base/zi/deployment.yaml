@@ -34,7 +34,7 @@ spec:
               mountPath: /data/brain
       containers:
         - name: zi
-          image: lzetam/zi:v2
+          image: lzetam/zi:v3
           imagePullPolicy: Always
           ports:
             - name: http
