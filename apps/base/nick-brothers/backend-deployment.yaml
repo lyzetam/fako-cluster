@@ -21,7 +21,7 @@ spec:
       labels:
         app: backend
       annotations:
-        rollout/timestamp: "2026-02-10T12:31:49Z"
+        rollout/timestamp: "2026-02-10T14:47:49Z"
     spec:
       imagePullSecrets:
         - name: dockerhub-secret
