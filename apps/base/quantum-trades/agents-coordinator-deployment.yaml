@@ -34,8 +34,21 @@ spec:
       imagePullSecrets:
         - name: dockerhub-registry
 
-      # Init container to verify service dependencies
+      # Pod-level security context - fsGroup ensures NFS volume files are group-accessible
+      securityContext:
+        fsGroup: 1000
+
+      # Init containers
       initContainers:
+        # Fix NFS volume permissions before app starts
+        - name: fix-permissions
+          image: busybox:1.37
+          command: ['sh', '-c', 'chown -R 1000:1000 /memories && chmod -R 775 /memories']
+          volumeMounts:
+            - name: memories
+              mountPath: /memories
+
+        # Verify service dependencies
         - name: check-dependencies
           image: busybox:1.37
           command:
