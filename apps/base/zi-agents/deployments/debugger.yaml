@@ -65,11 +65,11 @@ spec:
               subPath: debugger
           resources:
             requests:
-              cpu: 250m
-              memory: 512Mi
+              cpu: 50m
+              memory: 256Mi
             limits:
               cpu: 1
-              memory: 2Gi
+              memory: 1Gi
           livenessProbe:
             httpGet:
               path: /health
