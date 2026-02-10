@@ -67,11 +67,11 @@ spec:
     kubevuln:
       resources:
         requests:
-          memory: "1Gi"
-          cpu: "200m"
+          memory: "512Mi"
+          cpu: "100m"
           ephemeral-storage: "5Gi"
         limits:
-          memory: "2.5Gi"
+          memory: "2Gi"
           cpu: "1"
           ephemeral-storage: "15Gi"  # Significantly increased to prevent eviction
           
