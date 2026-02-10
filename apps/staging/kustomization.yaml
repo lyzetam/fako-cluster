@@ -116,3 +116,6 @@ resources:
 
   # Debt Management
   - zeroed        # Zeroed - automated debt payoff optimization
+
+  # Nick & Brothers Demo (AI receptionist + marketing agents)
+  - nick-brothers

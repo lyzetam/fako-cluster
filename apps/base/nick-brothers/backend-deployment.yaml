@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: nick-brothers
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        rollout/timestamp: "2026-02-10T06:00:00Z"
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: backend
+          image: lzetam/nick-brothers-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: nick-brothers-secrets
+          env:
+            - name: TENANT_ID
+              value: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            - name: CORS_ORIGINS
+              value: "http://localhost:3000,https://nick-brothers-demo.pages.dev,https://nnb.landryzetam.net,https://nnb-site.landryzetam.net"
+            - name: LOG_LEVEL
+              value: "INFO"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

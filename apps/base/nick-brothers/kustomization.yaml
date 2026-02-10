@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nick-brothers
+
+resources:
+  - namespace.yaml
+  - secretstore.yaml
+  - external-secret.yaml
+  - external-secret-dockerhub.yaml
+  - external-secret-tunnel.yaml
+  - backend-deployment.yaml
+  - dashboard-deployment.yaml
+  - website-deployment.yaml
+  - cloudflared.yaml
+  - services.yaml
+  - ingress.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: nick-brothers
+      app.kubernetes.io/instance: production
+      app.kubernetes.io/part-of: nick-brothers

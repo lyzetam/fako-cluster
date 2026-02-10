@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: nick-brothers
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard
+  namespace: nick-brothers
+spec:
+  selector:
+    app: dashboard
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: website
+  namespace: nick-brothers
+spec:
+  selector:
+    app: website
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP
