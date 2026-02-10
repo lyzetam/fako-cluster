@@ -4,9 +4,10 @@ kind: Kustomization
 namespace: zi
 
 resources:
-  # zI orchestrator
+  # Core zI resources
+  - namespace.yaml
   - configmap.yaml
-  - deployment.yaml
+  - deployment-new.yaml
   - service.yaml
   - ingress.yaml
   - pvc.yaml
@@ -20,6 +21,88 @@ resources:
   - autobots-service.yaml
   - autobots-ingress.yaml
   - autobots-external-secret.yaml
+  # Agent Memory PVCs (81 agents)
+  - account-executive-memory.yaml
+  - ai-engineer-memory.yaml
+  - ap-specialist-memory.yaml
+  - app-security-memory.yaml
+  - app-sre-memory.yaml
+  - ar-manager-memory.yaml
+  - backend-engineer-memory.yaml
+  - business-development-rep-memory.yaml
+  - business-operations-manager-memory.yaml
+  - chief-customer-officer-memory.yaml
+  - chief-executive-officer-memory.yaml
+  - chief-financial-officer-memory.yaml
+  - chief-marketing-officer-memory.yaml
+  - chief-operating-officer-memory.yaml
+  - chief-product-officer-memory.yaml
+  - chief-sales-officer-memory.yaml
+  - chief-technology-officer-memory.yaml
+  - cloud-engineer-memory.yaml
+  - code-reviewer-memory.yaml
+  - communications-director-memory.yaml
+  - content-manager-memory.yaml
+  - controller-memory.yaml
+  - creative-director-memory.yaml
+  - cs-director-memory.yaml
+  - cs-operations-analyst-memory.yaml
+  - customer-education-manager-memory.yaml
+  - customer-success-manager-memory.yaml
+  - data-engineer-memory.yaml
+  - demo-specialist-memory.yaml
+  - devops-engineer-memory.yaml
+  - devops-lead-memory.yaml
+  - digital-marketing-manager-memory.yaml
+  - enterprise-account-executive-memory.yaml
+  - enterprise-csm-memory.yaml
+  - financial-analyst-memory.yaml
+  - fpa-manager-memory.yaml
+  - frontend-engineer-memory.yaml
+  - head-of-design-memory.yaml
+  - hr-manager-memory.yaml
+  - implementation-specialist-memory.yaml
+  - k8s-engineer-memory.yaml
+  - legal-counsel-memory.yaml
+  - marketing-operations-manager-memory.yaml
+  - onboarding-manager-memory.yaml
+  - platform-security-memory.yaml
+  - platform-sre-memory.yaml
+  - pr-manager-memory.yaml
+  - procurement-manager-memory.yaml
+  - product-manager-memory.yaml
+  - product-marketing-manager-memory.yaml
+  - product-operations-manager-memory.yaml
+  - project-manager-memory.yaml
+  - qa-engineer-memory.yaml
+  - recruiter-memory.yaml
+  - revenue-operations-manager-memory.yaml
+  - risk-compliance-manager-memory.yaml
+  - sales-development-rep-memory.yaml
+  - sales-enablement-manager-memory.yaml
+  - sales-manager-memory.yaml
+  - sales-operations-analyst-memory.yaml
+  - sdr-manager-memory.yaml
+  - security-engineer-memory.yaml
+  - senior-product-manager-memory.yaml
+  - social-media-manager-memory.yaml
+  - solutions-architect-memory.yaml
+  - staff-eng-memory.yaml
+  - support-manager-memory.yaml
+  - support-representative-memory.yaml
+  - tech-lead-memory.yaml
+  - tech-writer-memory.yaml
+  - technical-product-manager-memory.yaml
+  - technical-support-specialist-memory.yaml
+  - training-specialist-memory.yaml
+  - ux-designer-memory.yaml
+  - ux-researcher-memory.yaml
+  - vp-business-development-memory.yaml
+  - vp-demand-generation-memory.yaml
+  - vp-engineering-memory.yaml
+  - vp-product-memory.yaml
+  - vp-product-marketing-memory.yaml
+  - vp-sales-operations-memory.yaml
 
 # Use labels instead of commonLabels to avoid corrupting network policy selectors
 labels:

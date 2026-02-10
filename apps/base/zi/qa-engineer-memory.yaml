@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qa-engineer-memory
+  namespace: zi
+  labels:
+    app.kubernetes.io/name: zi
+    app.kubernetes.io/component: agent-memory
+    zi.agent: qa-engineer
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 100Mi

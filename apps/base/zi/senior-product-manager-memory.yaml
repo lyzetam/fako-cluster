@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: senior-product-manager-memory
+  namespace: zi
+  labels:
+    app.kubernetes.io/name: zi
+    app.kubernetes.io/component: agent-memory
+    zi.agent: senior-product-manager
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 100Mi

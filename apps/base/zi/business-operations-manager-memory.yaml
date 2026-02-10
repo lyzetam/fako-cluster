@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: business-operations-manager-memory
+  namespace: zi
+  labels:
+    app.kubernetes.io/name: zi
+    app.kubernetes.io/component: agent-memory
+    zi.agent: business-operations-manager
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 100Mi
