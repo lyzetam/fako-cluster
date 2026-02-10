@@ -20,6 +20,18 @@ spec:
       serviceAccountName: zi
       imagePullSecrets:
         - name: dockerhub-registry
+      initContainers:
+        - name: setup-brain-storage
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /data/brain/zi/journal
+              chmod -R 777 /data/brain
+          volumeMounts:
+            - name: brain-storage
+              mountPath: /data/brain
       containers:
         - name: zi
           image: lzetam/zi:latest
