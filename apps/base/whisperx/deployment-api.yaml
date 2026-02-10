@@ -58,8 +58,8 @@ spec:
             nvidia.com/gpu: 1
             memory: "12Gi"
           requests:
-            memory: "4Gi"
-            cpu: "1"
+            memory: "2Gi"
+            cpu: "500m"
         volumeMounts:
         - name: models-cache
           mountPath: /app/models

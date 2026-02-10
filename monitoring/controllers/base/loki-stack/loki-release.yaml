@@ -73,18 +73,18 @@ spec:
     # Single Binary specific configuration
     singleBinary:
       replicas: 1
-      
+
       # Persistence configuration
       persistence:
         enabled: true
         storageClass: nfs-csi-v2
         size: 100Gi
-      
+
       # Resources
       resources:
         requests:
-          cpu: 500m
-          memory: 1Gi
+          cpu: 200m
+          memory: 512Mi
         limits:
           cpu: 1000m
           memory: 2Gi
@@ -102,24 +102,24 @@ spec:
     # Reduce chunks cache memory (default 9.6Gi is too much for homelab)
     chunksCache:
       enabled: true
-      allocatedMemory: 4096  # 4Gi instead of 9.6Gi
+      allocatedMemory: 1024  # 1Gi - right-sized for homelab
       resources:
         requests:
-          cpu: 250m
-          memory: 4Gi
+          cpu: 50m
+          memory: 1Gi
         limits:
-          memory: 4Gi
+          memory: 1536Mi
 
     # Reduce results cache memory
     resultsCache:
       enabled: true
-      allocatedMemory: 1024  # 1Gi
+      allocatedMemory: 512  # 512Mi
       resources:
         requests:
-          cpu: 100m
-          memory: 1Gi
+          cpu: 25m
+          memory: 512Mi
         limits:
-          memory: 1Gi
+          memory: 768Mi
     
 #     # Gateway configuration
 #     gateway:
