@@ -64,11 +64,11 @@ spec:
               subPath: chief-product-officer
           resources:
             requests:
-              cpu: 50m
-              memory: 256Mi
+              cpu: 5m
+              memory: 32Mi
             limits:
-              cpu: 300m
-              memory: 768Mi
+              cpu: 100m
+              memory: 192Mi
           livenessProbe:
             httpGet:
               path: /health
