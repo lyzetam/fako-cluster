@@ -18,6 +18,8 @@ spec:
         app: agent-ceo-cto
         app.kubernetes.io/name: agent-ceo-cto
         app.kubernetes.io/component: agent
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2026-02-10T05:33:00Z"
     spec:
       imagePullSecrets:
         - name: dockerhub-registry
