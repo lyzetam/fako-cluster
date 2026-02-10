@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: agent-content-manager
