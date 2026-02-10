@@ -33,13 +33,12 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            # AGENT_TOOLS is defined in Dockerfile - single source of truth
             - name: AGENT_NAME
               value: "tech-writer"
             - name: AGENT_DESCRIPTION
-              value: "Documentation and technical writing"
+              value: "Technical documentation, API docs, developer guides, and knowledge base management"
             - name: AGENT_MAX_ITERATIONS
-              value: "12"
+              value: "15"
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL

@@ -33,11 +33,10 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            # AGENT_TOOLS is defined in Dockerfile - single source of truth
             - name: AGENT_NAME
               value: "solutions-architect"
             - name: AGENT_DESCRIPTION
-              value: "Architecture design and scalability"
+              value: "Architecture design, scalability planning, and technical leadership"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
             - name: ZI_BRAIN_URL
@@ -65,11 +64,11 @@ spec:
               subPath: solutions-architect
           resources:
             requests:
-              cpu: 250m
-              memory: 512Mi
+              cpu: 100m
+              memory: 256Mi
             limits:
-              cpu: 1
-              memory: 2Gi
+              cpu: 500m
+              memory: 1Gi
           livenessProbe:
             httpGet:
               path: /health

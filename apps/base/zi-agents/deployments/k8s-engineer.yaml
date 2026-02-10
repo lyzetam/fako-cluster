@@ -19,7 +19,6 @@ spec:
         app.kubernetes.io/name: agent-k8s-engineer
         app.kubernetes.io/component: agent
     spec:
-      serviceAccountName: k8s-operator
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -34,36 +33,22 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            # AGENT_TOOLS is defined in Dockerfile - single source of truth
             - name: AGENT_NAME
               value: "k8s-engineer"
             - name: AGENT_DESCRIPTION
-              value: "Kubernetes deployment and operations"
+              value: "Kubernetes deployment, cluster management, container orchestration, and cloud native architecture"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
-            # Use local AI with tool calling support
-            - name: AGENT_MODEL
-              value: "ollama:glm-4.7-flash"
-            # Lighter model for agent-to-agent social conversations
-            - name: SOCIAL_MODEL
-              value: "ollama:mistral:7b"
-            - name: ZI_OLLAMA_URL
-              value: "http://exo.exo.svc.cluster.local"
-            - name: OLLAMA_HOST
-              value: "http://exo.exo.svc.cluster.local"
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
+            - name: ZI_OLLAMA_URL
+              value: "http://ollama-gpu.ollama.svc.cluster.local:11434"
             - name: ZI_KNOWLEDGE_REDIS_HOST
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
               value: "6379"
             - name: ZI_API_URL
               value: "http://zi.zi.svc.cluster.local:8080"
-            # Observability endpoints for metrics and logs
-            - name: PROMETHEUS_URL
-              value: "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
-            - name: LOKI_URL
-              value: "http://loki-gateway.loki-stack.svc.cluster.local:80"
           envFrom:
             - secretRef:
                 name: zi-agents-ai-keys

@@ -33,11 +33,10 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            # AGENT_TOOLS is defined in Dockerfile - single source of truth
             - name: AGENT_NAME
               value: "backend-engineer"
             - name: AGENT_DESCRIPTION
-              value: "Builds APIs, services, and backend systems"
+              value: "Backend development, API design, database optimization, and service implementation"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
             - name: ZI_BRAIN_URL

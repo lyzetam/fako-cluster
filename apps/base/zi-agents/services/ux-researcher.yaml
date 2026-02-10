@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-ux-researcher
+  namespace: zi
+  labels:
+    app.kubernetes.io/name: agent-ux-researcher
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/part-of: zi-agents
+spec:
+  selector:
+    app: agent-ux-researcher
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http

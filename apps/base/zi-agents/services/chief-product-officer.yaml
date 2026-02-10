@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-chief-product-officer
+  namespace: zi
+  labels:
+    app.kubernetes.io/name: agent-chief-product-officer
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/part-of: zi-agents
+spec:
+  selector:
+    app: agent-chief-product-officer
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http
