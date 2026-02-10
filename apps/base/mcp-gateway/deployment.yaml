@@ -39,11 +39,11 @@ spec:
                   key: GITHUB_PERSONAL_ACCESS_TOKEN
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: "384Mi"
+              cpu: "100m"
             limits:
-              memory: "2Gi"
-              cpu: "2000m"
+              memory: "1Gi"
+              cpu: "1000m"
           securityContext:
             privileged: true  # Required for Docker-in-Docker
           volumeMounts:
@@ -82,11 +82,11 @@ spec:
                   key: GITHUB_PERSONAL_ACCESS_TOKEN
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: "384Mi"
+              cpu: "100m"
             limits:
-              memory: "2Gi"
-              cpu: "2000m"
+              memory: "1Gi"
+              cpu: "1000m"
           securityContext:
             privileged: true  # Required for Docker-in-Docker
           volumeMounts:

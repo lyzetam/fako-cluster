@@ -39,11 +39,11 @@ spec:
               name: webui-data
           resources:
             requests:
-              memory: "3Gi"
-              cpu: "1500m"
+              memory: "768Mi"
+              cpu: "200m"
             limits:
-              memory: "6Gi"
-              cpu: "3000m"
+              memory: "2Gi"
+              cpu: "1000m"
           livenessProbe:
             httpGet:
               path: /

@@ -5,7 +5,7 @@ metadata:
   name: whisper-cpu
   namespace: whisper-cpu
 spec:
-  replicas: 8  # Increased for parallel processing
+  replicas: 4
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -54,11 +54,11 @@ spec:
           name: whisper-models
         resources:
           requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
             memory: "1Gi"
             cpu: "500m"
-          limits:
-            memory: "2Gi"
-            cpu: "1000m"
 
       containers:
       - name: whisper
@@ -83,11 +83,11 @@ spec:
 
         resources:
           requests:
-            memory: "2Gi"    # Actual usage: 150Mi-1.5Gi
-            cpu: "1000m"     # Actual usage: ~5m idle, spikes during inference
+            memory: "256Mi"
+            cpu: "100m"
           limits:
-            memory: "4Gi"
-            cpu: "4000m"
+            memory: "2Gi"
+            cpu: "2000m"
 
         livenessProbe:
           httpGet:
