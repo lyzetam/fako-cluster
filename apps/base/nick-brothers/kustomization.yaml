@@ -15,6 +15,7 @@ resources:
   - cloudflared.yaml
   - services.yaml
   - ingress.yaml
+  - agent-scheduler-cronjob.yaml
 
 labels:
   - pairs:
