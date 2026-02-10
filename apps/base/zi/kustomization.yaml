@@ -7,7 +7,7 @@ resources:
   # Core zI resources
   - namespace.yaml
   - configmap.yaml
-  - deployment-new.yaml
+  - deployment.yaml
   - service.yaml
   - ingress.yaml
   - pvc.yaml
