@@ -10,6 +10,7 @@ resources:
   - external-secret-dockerhub.yaml
   - external-secret-tunnel.yaml
   - backend-deployment.yaml
+  - backend-pdb.yaml
   - dashboard-deployment.yaml
   - website-deployment.yaml
   - cloudflared.yaml
