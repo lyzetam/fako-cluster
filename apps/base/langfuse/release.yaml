@@ -58,11 +58,9 @@ spec:
       host: "postgres-cluster-rw.postgres.svc.cluster.local"
       port: 5432
       auth:
-        username: "langfuse"
+        username: "app"
+        password: "toKbiz-cysze4-wornem"
         database: "langfuse"
-        existingSecret: "langfuse-secrets"
-        secretKeys:
-          userPasswordKey: "database_url"
       migration:
         autoMigrate: true
 
@@ -72,6 +70,9 @@ spec:
       shards: 1
       replicaCount: 1
       clusterEnabled: false
+      auth:
+        username: "default"
+        password: "langfuse-clickhouse"
       persistence:
         enabled: true
         size: 50Gi
