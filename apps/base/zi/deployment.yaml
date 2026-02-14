@@ -63,6 +63,19 @@ spec:
               value: "true"
             - name: ZI_SKILLS_DIR
               value: "/data/brain/skills"
+            # Langfuse LLM observability
+            - name: LANGFUSE_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-agent-keys
+                  key: public_key
+            - name: LANGFUSE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-agent-keys
+                  key: secret_key
+            - name: LANGFUSE_BASE_URL
+              value: "http://langfuse-web.langfuse.svc:3000"
           envFrom:
             - secretRef:
                 name: zi-secrets

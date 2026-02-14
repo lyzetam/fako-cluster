@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: langfuse
+  namespace: langfuse
+  labels:
+    app.kubernetes.io/name: langfuse
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-dns01"
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - langfuse.fako.landryzetam.net
+      secretName: langfuse-tls-cert
+  rules:
+    - host: langfuse.fako.landryzetam.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: langfuse-web
+                port:
+                  number: 3000

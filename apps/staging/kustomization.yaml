@@ -34,6 +34,7 @@ resources:
   # - backstage  # Disabled - waiting for AWS secret /fako/backstage/keycloak-oidc (see apps/base/backstage/STATUS.md)
 
   # Observability
+  - langfuse      # LLM observability (Langfuse self-hosted)
   # - pixie     # Now deployed via New Relic in monitoring/controllers
   
   # AI/ML stack with GPU support

@@ -1,0 +1,98 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: langfuse
+  namespace: langfuse
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: langfuse
+      version: "1.x"
+      sourceRef:
+        kind: HelmRepository
+        name: langfuse
+        namespace: langfuse
+  values:
+    langfuse:
+      salt:
+        secretKeyRef:
+          name: langfuse-secrets
+          key: salt
+
+      encryptionKey:
+        secretKeyRef:
+          name: langfuse-secrets
+          key: encryption_key
+
+      nextauth:
+        url: "https://langfuse.fako.landryzetam.net"
+        secret:
+          secretKeyRef:
+            name: langfuse-secrets
+            key: nextauth_secret
+
+      web:
+        replicas: 1
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+
+      worker:
+        replicas: 1
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+
+    # External Postgres (CloudNativePG postgres-cluster)
+    postgresql:
+      deploy: false
+      host: "postgres-cluster-rw.postgres.svc.cluster.local"
+      port: 5432
+      auth:
+        username: "langfuse"
+        database: "langfuse"
+        existingSecret: "langfuse-secrets"
+        secretKeys:
+          userPasswordKey: "database_url"
+      migration:
+        autoMigrate: true
+
+    # ClickHouse — single node for self-hosted
+    clickhouse:
+      deploy: true
+      shards: 1
+      replicaCount: 1
+      clusterEnabled: false
+      persistence:
+        enabled: true
+        size: 50Gi
+      migration:
+        autoMigrate: true
+
+    # Redis — standalone mode
+    redis:
+      deploy: true
+      architecture: standalone
+      cluster:
+        enabled: false
+
+    # MinIO — local S3-compatible object store
+    s3:
+      deploy: true
+      forcePathStyle: true
+      persistence:
+        enabled: true
+        size: 20Gi
+
+    # Ingress handled separately
+    ingress:
+      enabled: false

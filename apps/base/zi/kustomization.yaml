@@ -20,6 +20,7 @@ resources:
   - aws-secret-store.yaml
   - external-secret.yaml
   - external-secret-dockerhub.yaml
+  - external-secret-langfuse.yaml
   # Autobots workforce (merged from autobots base)
   - autobots-deployment.yaml
   - autobots-service.yaml
