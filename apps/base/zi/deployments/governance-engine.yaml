@@ -1,25 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: agent-chief-sales-officer
+  name: agent-governance-engine
   namespace: zi
   labels:
-    app.kubernetes.io/name: agent-chief-sales-officer
+    app.kubernetes.io/name: agent-governance-engine
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
-      app: agent-chief-sales-officer
+      app: agent-governance-engine
   template:
     metadata:
       labels:
-        app: agent-chief-sales-officer
-        app.kubernetes.io/name: agent-chief-sales-officer
+        app: agent-governance-engine
+        app.kubernetes.io/name: agent-governance-engine
         app.kubernetes.io/component: agent
-      annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-02-10T05:33:00Z"
     spec:
       imagePullSecrets:
         - name: dockerhub-registry
@@ -29,16 +27,16 @@ spec:
         fsGroup: 1000
       containers:
         - name: agent
-          image: lzetam/zi-agent-chief-sales-officer:latest
+          image: lzetam/zi-agent-governance-engine:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
               name: http
           env:
             - name: AGENT_NAME
-              value: "chief-sales-officer"
+              value: "governance-engine"
             - name: AGENT_DESCRIPTION
-              value: "Revenue leadership, sales strategy, pipeline management, and go-to-market execution"
+              value: "Spending policy enforcement, budget management, and approval workflows"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
             - name: ZI_BRAIN_URL
@@ -57,7 +55,7 @@ spec:
           volumeMounts:
             - name: agent-memory
               mountPath: /data
-              subPath: chief-sales-officer
+              subPath: governance-engine
           resources:
             requests:
               cpu: 5m

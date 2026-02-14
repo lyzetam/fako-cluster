@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: chief-product-officer-memory
+  name: governance-engine-memory
   namespace: zi
   labels:
     app.kubernetes.io/name: zi
     app.kubernetes.io/component: agent-memory
-    zi.agent: chief-product-officer
+    zi.agent: governance-engine
 spec:
   accessModes:
     - ReadWriteOnce

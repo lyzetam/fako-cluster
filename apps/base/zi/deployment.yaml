@@ -108,7 +108,7 @@ spec:
             - name: agent-config
               mountPath: /config
               readOnly: true
-            # Agent memory PVCs (81 agents)
+            # Agent memory PVCs (61 agents)
             - name: account-executive-memory
               mountPath: /data/agents/account_executive/memory
             - name: ai-engineer-memory
@@ -127,22 +127,8 @@ spec:
               mountPath: /data/agents/business_development_rep/memory
             - name: business-operations-manager-memory
               mountPath: /data/agents/business_operations_manager/memory
-            - name: chief-customer-officer-memory
-              mountPath: /data/agents/chief_customer_officer/memory
-            - name: chief-executive-officer-memory
-              mountPath: /data/agents/chief_executive_officer/memory
-            - name: chief-financial-officer-memory
-              mountPath: /data/agents/chief_financial_officer/memory
-            - name: chief-marketing-officer-memory
-              mountPath: /data/agents/chief_marketing_officer/memory
-            - name: chief-operating-officer-memory
-              mountPath: /data/agents/chief_operating_officer/memory
-            - name: chief-product-officer-memory
-              mountPath: /data/agents/chief_product_officer/memory
-            - name: chief-sales-officer-memory
-              mountPath: /data/agents/chief_sales_officer/memory
-            - name: chief-technology-officer-memory
-              mountPath: /data/agents/chief_technology_officer/memory
+            - name: competitive-analyst-memory
+              mountPath: /data/agents/competitive_analyst/memory
             - name: cloud-engineer-memory
               mountPath: /data/agents/cloud_engineer/memory
             - name: code-reviewer-memory
@@ -165,18 +151,10 @@ spec:
               mountPath: /data/agents/customer_success_manager/memory
             - name: data-engineer-memory
               mountPath: /data/agents/data_engineer/memory
-            - name: demo-specialist-memory
-              mountPath: /data/agents/demo_specialist/memory
             - name: devops-engineer-memory
               mountPath: /data/agents/devops_engineer/memory
-            - name: devops-lead-memory
-              mountPath: /data/agents/devops_lead/memory
             - name: digital-marketing-manager-memory
               mountPath: /data/agents/digital_marketing_manager/memory
-            - name: enterprise-account-executive-memory
-              mountPath: /data/agents/enterprise_account_executive/memory
-            - name: enterprise-csm-memory
-              mountPath: /data/agents/enterprise_csm/memory
             - name: financial-analyst-memory
               mountPath: /data/agents/financial_analyst/memory
             - name: fpa-manager-memory
@@ -185,14 +163,16 @@ spec:
               mountPath: /data/agents/frontend_engineer/memory
             - name: head-of-design-memory
               mountPath: /data/agents/head_of_design/memory
+            - name: governance-engine-memory
+              mountPath: /data/agents/governance_engine/memory
             - name: hr-manager-memory
               mountPath: /data/agents/hr_manager/memory
-            - name: implementation-specialist-memory
-              mountPath: /data/agents/implementation_specialist/memory
             - name: k8s-engineer-memory
               mountPath: /data/agents/k8s_engineer/memory
             - name: legal-counsel-memory
               mountPath: /data/agents/legal_counsel/memory
+            - name: market-researcher-memory
+              mountPath: /data/agents/market_researcher/memory
             - name: marketing-operations-manager-memory
               mountPath: /data/agents/marketing_operations_manager/memory
             - name: onboarding-manager-memory
@@ -217,10 +197,6 @@ spec:
               mountPath: /data/agents/qa_engineer/memory
             - name: recruiter-memory
               mountPath: /data/agents/recruiter/memory
-            - name: revenue-operations-manager-memory
-              mountPath: /data/agents/revenue_operations_manager/memory
-            - name: risk-compliance-manager-memory
-              mountPath: /data/agents/risk_compliance_manager/memory
             - name: sales-development-rep-memory
               mountPath: /data/agents/sales_development_rep/memory
             - name: sales-enablement-manager-memory
@@ -239,8 +215,6 @@ spec:
               mountPath: /data/agents/social_media_manager/memory
             - name: solutions-architect-memory
               mountPath: /data/agents/solutions_architect/memory
-            - name: staff-eng-memory
-              mountPath: /data/agents/staff_eng/memory
             - name: support-manager-memory
               mountPath: /data/agents/support_manager/memory
             - name: support-representative-memory
@@ -253,24 +227,10 @@ spec:
               mountPath: /data/agents/technical_product_manager/memory
             - name: technical-support-specialist-memory
               mountPath: /data/agents/technical_support_specialist/memory
-            - name: training-specialist-memory
-              mountPath: /data/agents/training_specialist/memory
             - name: ux-designer-memory
               mountPath: /data/agents/ux_designer/memory
             - name: ux-researcher-memory
               mountPath: /data/agents/ux_researcher/memory
-            - name: vp-business-development-memory
-              mountPath: /data/agents/vp_business_development/memory
-            - name: vp-demand-generation-memory
-              mountPath: /data/agents/vp_demand_generation/memory
-            - name: vp-engineering-memory
-              mountPath: /data/agents/vp_engineering/memory
-            - name: vp-product-memory
-              mountPath: /data/agents/vp_product/memory
-            - name: vp-product-marketing-memory
-              mountPath: /data/agents/vp_product_marketing/memory
-            - name: vp-sales-operations-memory
-              mountPath: /data/agents/vp_sales_operations/memory
       volumes:
         # Brain storage for journal and data
         - name: brain-storage
@@ -279,8 +239,8 @@ spec:
         # Agent config from ConfigMap
         - name: agent-config
           configMap:
-            name: zi-agent-config
-        # Agent memory PVCs (81 agents)
+            name: zi-config
+        # Agent memory PVCs (61 agents)
         - name: account-executive-memory
           persistentVolumeClaim:
             claimName: account-executive-memory
@@ -308,30 +268,9 @@ spec:
         - name: business-operations-manager-memory
           persistentVolumeClaim:
             claimName: business-operations-manager-memory
-        - name: chief-customer-officer-memory
+        - name: competitive-analyst-memory
           persistentVolumeClaim:
-            claimName: chief-customer-officer-memory
-        - name: chief-executive-officer-memory
-          persistentVolumeClaim:
-            claimName: chief-executive-officer-memory
-        - name: chief-financial-officer-memory
-          persistentVolumeClaim:
-            claimName: chief-financial-officer-memory
-        - name: chief-marketing-officer-memory
-          persistentVolumeClaim:
-            claimName: chief-marketing-officer-memory
-        - name: chief-operating-officer-memory
-          persistentVolumeClaim:
-            claimName: chief-operating-officer-memory
-        - name: chief-product-officer-memory
-          persistentVolumeClaim:
-            claimName: chief-product-officer-memory
-        - name: chief-sales-officer-memory
-          persistentVolumeClaim:
-            claimName: chief-sales-officer-memory
-        - name: chief-technology-officer-memory
-          persistentVolumeClaim:
-            claimName: chief-technology-officer-memory
+            claimName: competitive-analyst-memory
         - name: cloud-engineer-memory
           persistentVolumeClaim:
             claimName: cloud-engineer-memory
@@ -365,24 +304,12 @@ spec:
         - name: data-engineer-memory
           persistentVolumeClaim:
             claimName: data-engineer-memory
-        - name: demo-specialist-memory
-          persistentVolumeClaim:
-            claimName: demo-specialist-memory
         - name: devops-engineer-memory
           persistentVolumeClaim:
             claimName: devops-engineer-memory
-        - name: devops-lead-memory
-          persistentVolumeClaim:
-            claimName: devops-lead-memory
         - name: digital-marketing-manager-memory
           persistentVolumeClaim:
             claimName: digital-marketing-manager-memory
-        - name: enterprise-account-executive-memory
-          persistentVolumeClaim:
-            claimName: enterprise-account-executive-memory
-        - name: enterprise-csm-memory
-          persistentVolumeClaim:
-            claimName: enterprise-csm-memory
         - name: financial-analyst-memory
           persistentVolumeClaim:
             claimName: financial-analyst-memory
@@ -395,18 +322,21 @@ spec:
         - name: head-of-design-memory
           persistentVolumeClaim:
             claimName: head-of-design-memory
+        - name: governance-engine-memory
+          persistentVolumeClaim:
+            claimName: governance-engine-memory
         - name: hr-manager-memory
           persistentVolumeClaim:
             claimName: hr-manager-memory
-        - name: implementation-specialist-memory
-          persistentVolumeClaim:
-            claimName: implementation-specialist-memory
         - name: k8s-engineer-memory
           persistentVolumeClaim:
             claimName: k8s-engineer-memory
         - name: legal-counsel-memory
           persistentVolumeClaim:
             claimName: legal-counsel-memory
+        - name: market-researcher-memory
+          persistentVolumeClaim:
+            claimName: market-researcher-memory
         - name: marketing-operations-manager-memory
           persistentVolumeClaim:
             claimName: marketing-operations-manager-memory
@@ -443,12 +373,6 @@ spec:
         - name: recruiter-memory
           persistentVolumeClaim:
             claimName: recruiter-memory
-        - name: revenue-operations-manager-memory
-          persistentVolumeClaim:
-            claimName: revenue-operations-manager-memory
-        - name: risk-compliance-manager-memory
-          persistentVolumeClaim:
-            claimName: risk-compliance-manager-memory
         - name: sales-development-rep-memory
           persistentVolumeClaim:
             claimName: sales-development-rep-memory
@@ -476,9 +400,6 @@ spec:
         - name: solutions-architect-memory
           persistentVolumeClaim:
             claimName: solutions-architect-memory
-        - name: staff-eng-memory
-          persistentVolumeClaim:
-            claimName: staff-eng-memory
         - name: support-manager-memory
           persistentVolumeClaim:
             claimName: support-manager-memory
@@ -497,30 +418,9 @@ spec:
         - name: technical-support-specialist-memory
           persistentVolumeClaim:
             claimName: technical-support-specialist-memory
-        - name: training-specialist-memory
-          persistentVolumeClaim:
-            claimName: training-specialist-memory
         - name: ux-designer-memory
           persistentVolumeClaim:
             claimName: ux-designer-memory
         - name: ux-researcher-memory
           persistentVolumeClaim:
             claimName: ux-researcher-memory
-        - name: vp-business-development-memory
-          persistentVolumeClaim:
-            claimName: vp-business-development-memory
-        - name: vp-demand-generation-memory
-          persistentVolumeClaim:
-            claimName: vp-demand-generation-memory
-        - name: vp-engineering-memory
-          persistentVolumeClaim:
-            claimName: vp-engineering-memory
-        - name: vp-product-memory
-          persistentVolumeClaim:
-            claimName: vp-product-memory
-        - name: vp-product-marketing-memory
-          persistentVolumeClaim:
-            claimName: vp-product-marketing-memory
-        - name: vp-sales-operations-memory
-          persistentVolumeClaim:
-            claimName: vp-sales-operations-memory

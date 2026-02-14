@@ -1,25 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: agent-chief-technology-officer
+  name: agent-market-researcher
   namespace: zi
   labels:
-    app.kubernetes.io/name: agent-chief-technology-officer
+    app.kubernetes.io/name: agent-market-researcher
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
-      app: agent-chief-technology-officer
+      app: agent-market-researcher
   template:
     metadata:
       labels:
-        app: agent-chief-technology-officer
-        app.kubernetes.io/name: agent-chief-technology-officer
+        app: agent-market-researcher
+        app.kubernetes.io/name: agent-market-researcher
         app.kubernetes.io/component: agent
-      annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-02-10T05:33:00Z"
     spec:
       imagePullSecrets:
         - name: dockerhub-registry
@@ -29,16 +27,16 @@ spec:
         fsGroup: 1000
       containers:
         - name: agent
-          image: lzetam/zi-agent-chief-technology-officer:latest
+          image: lzetam/zi-agent-market-researcher:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
               name: http
           env:
             - name: AGENT_NAME
-              value: "chief-technology-officer"
+              value: "market-researcher"
             - name: AGENT_DESCRIPTION
-              value: "Technology vision, architecture strategy, engineering culture, and technical leadership"
+              value: "Market intelligence, industry trends, emerging tech, startup scouting, and partnership/regulatory opportunity identification"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
             - name: ZI_BRAIN_URL
@@ -57,7 +55,7 @@ spec:
           volumeMounts:
             - name: agent-memory
               mountPath: /data
-              subPath: chief-technology-officer
+              subPath: market-researcher
           resources:
             requests:
               cpu: 5m

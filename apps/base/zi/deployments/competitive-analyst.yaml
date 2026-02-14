@@ -1,25 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: agent-chief-customer-officer
+  name: agent-competitive-analyst
   namespace: zi
   labels:
-    app.kubernetes.io/name: agent-chief-customer-officer
+    app.kubernetes.io/name: agent-competitive-analyst
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
-      app: agent-chief-customer-officer
+      app: agent-competitive-analyst
   template:
     metadata:
       labels:
-        app: agent-chief-customer-officer
-        app.kubernetes.io/name: agent-chief-customer-officer
+        app: agent-competitive-analyst
+        app.kubernetes.io/name: agent-competitive-analyst
         app.kubernetes.io/component: agent
-      annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-02-10T05:33:00Z"
     spec:
       imagePullSecrets:
         - name: dockerhub-registry
@@ -29,16 +27,16 @@ spec:
         fsGroup: 1000
       containers:
         - name: agent
-          image: lzetam/zi-agent-chief-customer-officer:latest
+          image: lzetam/zi-agent-competitive-analyst:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
               name: http
           env:
             - name: AGENT_NAME
-              value: "chief-customer-officer"
+              value: "competitive-analyst"
             - name: AGENT_DESCRIPTION
-              value: "Customer retention, expansion strategy, NRR optimization, and customer success leadership"
+              value: "Competitive intelligence, feature tracking, pricing analysis, win/loss patterns, and market threat assessment"
             - name: AGENT_MAX_ITERATIONS
               value: "15"
             - name: ZI_BRAIN_URL
@@ -57,7 +55,7 @@ spec:
           volumeMounts:
             - name: agent-memory
               mountPath: /data
-              subPath: chief-customer-officer
+              subPath: competitive-analyst
           resources:
             requests:
               cpu: 5m

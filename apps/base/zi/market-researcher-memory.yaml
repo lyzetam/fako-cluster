@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: chief-customer-officer-memory
+  name: market-researcher-memory
   namespace: zi
   labels:
     app.kubernetes.io/name: zi
     app.kubernetes.io/component: agent-memory
-    zi.agent: chief-customer-officer
+    zi.agent: market-researcher
 spec:
   accessModes:
     - ReadWriteOnce
