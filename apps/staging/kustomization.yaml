@@ -107,7 +107,6 @@ resources:
   - sermon-engine   # Weekly sermon generator (Sunday 6am ET)
 
   # zI - Zetam Intelligence (AI orchestration)
-  # - autobots    # MERGED INTO zi - autobots resources now in apps/base/zi/
   - zi          # zI orchestrator + autobots workforce (merged)
   - zi-agents   # 24 specialized agent microservices
 
