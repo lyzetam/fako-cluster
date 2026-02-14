@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zi-dashboard
+  namespace: zi
+  labels:
+    app: zi-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zi-dashboard
+  template:
+    metadata:
+      labels:
+        app: zi-dashboard
+    spec:
+      containers:
+        - name: zi-dashboard
+          image: lzetam/zi-dashboard:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          env:
+            - name: INTERNAL_API_URL
+              value: "http://zi:8080"
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      imagePullSecrets:
+        - name: dockerhub-credentials

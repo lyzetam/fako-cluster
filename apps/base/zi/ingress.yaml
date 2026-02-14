@@ -18,10 +18,34 @@ spec:
     - host: zi.landryzetam.net
       http:
         paths:
-          - path: /
+          # FastAPI backend — all API endpoints
+          - path: /api
             pathType: Prefix
             backend:
               service:
                 name: zi
                 port:
                   number: 8080
+          # K8s probes at root level
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: zi
+                port:
+                  number: 8080
+          - path: /ready
+            pathType: Exact
+            backend:
+              service:
+                name: zi
+                port:
+                  number: 8080
+          # Next.js dashboard — everything else
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zi-dashboard
+                port:
+                  number: 3000
