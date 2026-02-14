@@ -13,6 +13,9 @@ resources:
   - pvc.yaml
   - zi-brain-storage.yaml
   - rbac.yaml
+  # Dashboard (Next.js)
+  - zi-dashboard-deployment.yaml
+  - zi-dashboard-service.yaml
   # Shared infrastructure
   - aws-secret-store.yaml
   - external-secret.yaml
