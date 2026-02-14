@@ -107,9 +107,8 @@ resources:
   - meal-tracker    # Meal tracker Discord bot + dashboard
   - sermon-engine   # Weekly sermon generator (Sunday 6am ET)
 
-  # zI - Zetam Intelligence (AI orchestration)
-  - zi          # zI orchestrator + autobots workforce (merged)
-  - zi-agents   # 24 specialized agent microservices
+  # zI - Zetam Intelligence (AI orchestration + agents, single source of truth)
+  - zi
 
   # UniFi Clips Exporter
   - unifi-clients  # Daily export of UniFi Protect motion clips to S3
