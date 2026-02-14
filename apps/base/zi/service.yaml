@@ -13,4 +13,5 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app: zi
+    app.kubernetes.io/name: zi
+    app.kubernetes.io/component: orchestrator
