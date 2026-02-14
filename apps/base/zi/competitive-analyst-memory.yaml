@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: devops-lead-memory
+  name: competitive-analyst-memory
   namespace: zi
   labels:
     app.kubernetes.io/name: zi
     app.kubernetes.io/component: agent-memory
-    zi.agent: devops-lead
+    zi.agent: competitive-analyst
 spec:
   accessModes:
     - ReadWriteOnce

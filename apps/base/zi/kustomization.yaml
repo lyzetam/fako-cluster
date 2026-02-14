@@ -21,12 +21,15 @@ resources:
   - external-secret.yaml
   - external-secret-dockerhub.yaml
   - external-secret-langfuse.yaml
+  # Redis (cache for agent knowledge sharing)
+  - redis-deployment.yaml
+  - redis-service.yaml
   # Autobots workforce (merged from autobots base)
   - autobots-deployment.yaml
   - autobots-service.yaml
   - autobots-ingress.yaml
   - autobots-external-secret.yaml
-  # Agent Memory PVCs (81 agents)
+  # Agent Memory PVCs (61 agents)
   - account-executive-memory.yaml
   - ai-engineer-memory.yaml
   - ap-specialist-memory.yaml
@@ -36,17 +39,10 @@ resources:
   - backend-engineer-memory.yaml
   - business-development-rep-memory.yaml
   - business-operations-manager-memory.yaml
-  - chief-customer-officer-memory.yaml
-  - chief-executive-officer-memory.yaml
-  - chief-financial-officer-memory.yaml
-  - chief-marketing-officer-memory.yaml
-  - chief-operating-officer-memory.yaml
-  - chief-product-officer-memory.yaml
-  - chief-sales-officer-memory.yaml
-  - chief-technology-officer-memory.yaml
   - cloud-engineer-memory.yaml
   - code-reviewer-memory.yaml
   - communications-director-memory.yaml
+  - competitive-analyst-memory.yaml
   - content-manager-memory.yaml
   - controller-memory.yaml
   - creative-director-memory.yaml
@@ -55,20 +51,17 @@ resources:
   - customer-education-manager-memory.yaml
   - customer-success-manager-memory.yaml
   - data-engineer-memory.yaml
-  - demo-specialist-memory.yaml
   - devops-engineer-memory.yaml
-  - devops-lead-memory.yaml
   - digital-marketing-manager-memory.yaml
-  - enterprise-account-executive-memory.yaml
-  - enterprise-csm-memory.yaml
   - financial-analyst-memory.yaml
   - fpa-manager-memory.yaml
   - frontend-engineer-memory.yaml
+  - governance-engine-memory.yaml
   - head-of-design-memory.yaml
   - hr-manager-memory.yaml
-  - implementation-specialist-memory.yaml
   - k8s-engineer-memory.yaml
   - legal-counsel-memory.yaml
+  - market-researcher-memory.yaml
   - marketing-operations-manager-memory.yaml
   - onboarding-manager-memory.yaml
   - platform-security-memory.yaml
@@ -81,8 +74,6 @@ resources:
   - project-manager-memory.yaml
   - qa-engineer-memory.yaml
   - recruiter-memory.yaml
-  - revenue-operations-manager-memory.yaml
-  - risk-compliance-manager-memory.yaml
   - sales-development-rep-memory.yaml
   - sales-enablement-manager-memory.yaml
   - sales-manager-memory.yaml
@@ -92,29 +83,21 @@ resources:
   - senior-product-manager-memory.yaml
   - social-media-manager-memory.yaml
   - solutions-architect-memory.yaml
-  - staff-eng-memory.yaml
   - support-manager-memory.yaml
   - support-representative-memory.yaml
   - tech-lead-memory.yaml
   - tech-writer-memory.yaml
   - technical-product-manager-memory.yaml
   - technical-support-specialist-memory.yaml
-  - training-specialist-memory.yaml
   - ux-designer-memory.yaml
   - ux-researcher-memory.yaml
-  - vp-business-development-memory.yaml
-  - vp-demand-generation-memory.yaml
-  - vp-engineering-memory.yaml
-  - vp-product-memory.yaml
-  - vp-product-marketing-memory.yaml
-  - vp-sales-operations-memory.yaml
 
   # Agent shared resources (merged from zi-agents)
   - zi-agents-memory-pvc.yaml
   - rbac-k8s-operator.yaml
   - configmap-generators.yaml
 
-  # Agent deployments (83)
+  # Agent deployments (63)
   - deployments/account-executive.yaml
   - deployments/ai-engineer.yaml
   - deployments/ap-specialist.yaml
@@ -124,18 +107,10 @@ resources:
   - deployments/backend-engineer.yaml
   - deployments/business-development-rep.yaml
   - deployments/business-operations-manager.yaml
-  - deployments/ceo-cto.yaml
-  - deployments/chief-customer-officer.yaml
-  - deployments/chief-executive-officer.yaml
-  - deployments/chief-financial-officer.yaml
-  - deployments/chief-marketing-officer.yaml
-  - deployments/chief-operating-officer.yaml
-  - deployments/chief-product-officer.yaml
-  - deployments/chief-sales-officer.yaml
-  - deployments/chief-technology-officer.yaml
   - deployments/cloud-engineer.yaml
   - deployments/code-reviewer.yaml
   - deployments/communications-director.yaml
+  - deployments/competitive-analyst.yaml
   - deployments/content-manager.yaml
   - deployments/controller.yaml
   - deployments/creative-director.yaml
@@ -145,20 +120,17 @@ resources:
   - deployments/customer-success-manager.yaml
   - deployments/data-engineer.yaml
   - deployments/debugger.yaml
-  - deployments/demo-specialist.yaml
   - deployments/devops-engineer.yaml
   - deployments/digital-marketing-manager.yaml
-  - deployments/enterprise-account-executive.yaml
-  - deployments/enterprise-csm.yaml
   - deployments/financial-analyst.yaml
   - deployments/fpa-manager.yaml
   - deployments/frontend-engineer.yaml
+  - deployments/governance-engine.yaml
   - deployments/head-of-design.yaml
   - deployments/hr-manager.yaml
-  - deployments/hr-partner.yaml
-  - deployments/implementation-specialist.yaml
   - deployments/k8s-engineer.yaml
   - deployments/legal-counsel.yaml
+  - deployments/market-researcher.yaml
   - deployments/marketing-operations-manager.yaml
   - deployments/onboarding-manager.yaml
   - deployments/platform-security.yaml
@@ -171,8 +143,6 @@ resources:
   - deployments/project-manager.yaml
   - deployments/qa-engineer.yaml
   - deployments/recruiter.yaml
-  - deployments/revenue-operations-manager.yaml
-  - deployments/risk-compliance-manager.yaml
   - deployments/sales-development-rep.yaml
   - deployments/sales-enablement-manager.yaml
   - deployments/sales-manager.yaml
@@ -189,17 +159,10 @@ resources:
   - deployments/tech-writer.yaml
   - deployments/technical-product-manager.yaml
   - deployments/technical-support-specialist.yaml
-  - deployments/training-specialist.yaml
   - deployments/ux-designer.yaml
   - deployments/ux-researcher.yaml
-  - deployments/verifier.yaml
-  - deployments/vp-business-development.yaml
-  - deployments/vp-demand-generation.yaml
-  - deployments/vp-product-marketing.yaml
-  - deployments/vp-product.yaml
-  - deployments/vp-sales-operations.yaml
 
-  # Agent services (83)
+  # Agent services (63)
   - services/account-executive.yaml
   - services/ai-engineer.yaml
   - services/ap-specialist.yaml
@@ -209,18 +172,10 @@ resources:
   - services/backend-engineer.yaml
   - services/business-development-rep.yaml
   - services/business-operations-manager.yaml
-  - services/ceo-cto.yaml
-  - services/chief-customer-officer.yaml
-  - services/chief-executive-officer.yaml
-  - services/chief-financial-officer.yaml
-  - services/chief-marketing-officer.yaml
-  - services/chief-operating-officer.yaml
-  - services/chief-product-officer.yaml
-  - services/chief-sales-officer.yaml
-  - services/chief-technology-officer.yaml
   - services/cloud-engineer.yaml
   - services/code-reviewer.yaml
   - services/communications-director.yaml
+  - services/competitive-analyst.yaml
   - services/content-manager.yaml
   - services/controller.yaml
   - services/creative-director.yaml
@@ -230,20 +185,17 @@ resources:
   - services/customer-success-manager.yaml
   - services/data-engineer.yaml
   - services/debugger.yaml
-  - services/demo-specialist.yaml
   - services/devops-engineer.yaml
   - services/digital-marketing-manager.yaml
-  - services/enterprise-account-executive.yaml
-  - services/enterprise-csm.yaml
   - services/financial-analyst.yaml
   - services/fpa-manager.yaml
   - services/frontend-engineer.yaml
+  - services/governance-engine.yaml
   - services/head-of-design.yaml
   - services/hr-manager.yaml
-  - services/hr-partner.yaml
-  - services/implementation-specialist.yaml
   - services/k8s-engineer.yaml
   - services/legal-counsel.yaml
+  - services/market-researcher.yaml
   - services/marketing-operations-manager.yaml
   - services/onboarding-manager.yaml
   - services/platform-security.yaml
@@ -256,8 +208,6 @@ resources:
   - services/project-manager.yaml
   - services/qa-engineer.yaml
   - services/recruiter.yaml
-  - services/revenue-operations-manager.yaml
-  - services/risk-compliance-manager.yaml
   - services/sales-development-rep.yaml
   - services/sales-enablement-manager.yaml
   - services/sales-manager.yaml
@@ -274,15 +224,8 @@ resources:
   - services/tech-writer.yaml
   - services/technical-product-manager.yaml
   - services/technical-support-specialist.yaml
-  - services/training-specialist.yaml
   - services/ux-designer.yaml
   - services/ux-researcher.yaml
-  - services/verifier.yaml
-  - services/vp-business-development.yaml
-  - services/vp-demand-generation.yaml
-  - services/vp-product-marketing.yaml
-  - services/vp-product.yaml
-  - services/vp-sales-operations.yaml
 
 # Use labels instead of commonLabels to avoid corrupting network policy selectors
 labels:
