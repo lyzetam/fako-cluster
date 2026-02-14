@@ -45,4 +45,4 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
       imagePullSecrets:
-        - name: dockerhub-credentials
+        - name: dockerhub-registry
