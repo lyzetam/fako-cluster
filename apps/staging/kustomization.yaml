@@ -116,5 +116,5 @@ resources:
   # Debt Management
   - zeroed        # Zeroed - automated debt payoff optimization
 
-  # Nick & Brothers Demo (AI receptionist + marketing agents)
-  - nick-brothers
+  # Nick & Brothers — DEACTIVATED 2026-02-15 (moved to Hostinger VPS)
+  # - nick-brothers
