@@ -123,17 +123,17 @@ spec:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 10
-            failureThreshold: 30
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 15
+            failureThreshold: 18
           # Liveness probe - restart if unhealthy
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
             periodSeconds: 30
-            timeoutSeconds: 10
+            timeoutSeconds: 15
             failureThreshold: 3
           # Readiness probe - controls traffic routing
           readinessProbe:
@@ -141,12 +141,12 @@ spec:
               path: /ready
               port: 8000
             periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
+            timeoutSeconds: 10
+            failureThreshold: 5
           resources:
             requests:
               memory: "256Mi"
-              cpu: "50m"
+              cpu: "100m"
             limits:
               memory: "512Mi"
               cpu: "500m"
