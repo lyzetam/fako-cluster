@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: thornus-backend-service
+  labels:
+    app: thornus
+    component: backend
+spec:
+  selector:
+    app: thornus
+    component: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thornus-frontend-service
+  labels:
+    app: thornus
+    component: frontend
+spec:
+  selector:
+    app: thornus
+    component: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP
+  type: ClusterIP

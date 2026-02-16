@@ -118,3 +118,6 @@ resources:
 
   # Nick & Brothers — DEACTIVATED 2026-02-15 (moved to Hostinger VPS)
   # - nick-brothers
+
+  # Thornus Platform - AI Workflow-as-a-Service (Thor composer + API)
+  - thornus
