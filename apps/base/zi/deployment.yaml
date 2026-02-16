@@ -61,6 +61,8 @@ spec:
               value: "/data/brain"
             - name: ZI_AUDIT_ENABLED
               value: "true"
+            - name: ZI_PROACTIVE_ENABLED
+              value: "true"
             - name: ZI_SKILLS_DIR
               value: "/data/brain/skills"
             # Langfuse LLM observability
