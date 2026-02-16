@@ -12,3 +12,5 @@ resources:
   - frontend-deployment.yaml
   - services.yaml
   - ingress.yaml
+  - cloudflared-configmap.yaml
+  - cloudflared-deployment.yaml
