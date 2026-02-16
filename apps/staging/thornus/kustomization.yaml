@@ -3,6 +3,8 @@ kind: Kustomization
 namespace: thornus
 resources:
   - ../../base/thornus
-  - aws-credentials-secret.yaml
-  - dockerhub-secret.yaml
-  - create-docker-registry-secret-job.yaml
+  # SOPS secrets disabled - credentials managed manually via kubectl
+  # until SOPS age key is configured locally for re-encryption
+  # - aws-credentials-secret.yaml
+  # - dockerhub-secret.yaml
+  # - create-docker-registry-secret-job.yaml

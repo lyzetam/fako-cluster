@@ -4,8 +4,10 @@ namespace: thornus
 resources:
   - namespace.yaml
   - configmap.yaml
-  - secret-store.yaml
-  - external-secret.yaml
+  # ExternalSecret disabled - thornus-secrets managed manually
+  # Re-enable when SOPS key is available for proper secret encryption
+  # - secret-store.yaml
+  # - external-secret.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - services.yaml
