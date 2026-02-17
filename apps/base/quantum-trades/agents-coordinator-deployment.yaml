@@ -132,15 +132,17 @@ spec:
 
             # Capital settings
             - name: INITIAL_CAPITAL
-              value: "500"
-            - name: MAX_DAILY_LOSS
+              value: "5000"
+            - name: MAX_DAILY_LOSS_DOLLARS
               value: "50"
-            - name: MAX_WEEKLY_LOSS
+            - name: MAX_WEEKLY_LOSS_DOLLARS
               value: "150"
             - name: MAX_POSITION_SIZE
               value: "100"
+            - name: MAX_CONCURRENT_POSITIONS
+              value: "3"
             - name: TARGET_DAILY_GAIN_PERCENT
-              value: "20"
+              value: "10"
 
             # AWS Configuration (for Secrets Manager if needed)
             - name: AWS_REGION
