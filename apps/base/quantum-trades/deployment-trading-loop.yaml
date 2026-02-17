@@ -11,6 +11,8 @@ metadata:
     component: autonomous-trading
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: trading-loop
@@ -133,22 +135,26 @@ spec:
         # Redis for state
         - name: REDIS_URL
           value: "redis://agent-redis:6379/0"
+        - name: REDIS_MEMORY_ENABLED
+          value: "true"
+        - name: REDIS_PRIMARY
+          value: "false"
 
         # Memory paths
         - name: MEMORIES_DIR
           value: "/memories"
 
-        # Capital settings - Paper trading uses higher limits
+        # Capital settings - Conservative limits for paper trading
         - name: INITIAL_CAPITAL
-          value: "50000"
-        - name: MAX_DAILY_LOSS_DOLLARS
-          value: "2500"
-        - name: MAX_WEEKLY_LOSS_DOLLARS
-          value: "7500"
-        - name: MAX_POSITION_SIZE
           value: "5000"
+        - name: MAX_DAILY_LOSS_DOLLARS
+          value: "50"
+        - name: MAX_WEEKLY_LOSS_DOLLARS
+          value: "150"
+        - name: MAX_POSITION_SIZE
+          value: "100"
         - name: MAX_CONCURRENT_POSITIONS
-          value: "10"
+          value: "3"
 
         resources:
           requests:
