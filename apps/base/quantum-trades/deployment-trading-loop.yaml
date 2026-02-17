@@ -11,9 +11,6 @@ metadata:
     component: autonomous-trading
 spec:
   replicas: 1
-  strategy:
-    type: Recreate
-    rollingUpdate: null
   selector:
     matchLabels:
       app: trading-loop
