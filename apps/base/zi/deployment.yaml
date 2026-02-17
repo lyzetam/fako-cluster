@@ -86,22 +86,22 @@ spec:
               memory: "256Mi"
               cpu: "100m"
             limits:
-              memory: "1Gi"
+              memory: "2Gi"
               cpu: "500m"
           livenessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: http
             initialDelaySeconds: 15
             periodSeconds: 10
-            timeoutSeconds: 10
+            timeoutSeconds: 5
           volumeMounts:
             # Brain storage for journal and second-brain data
             - name: brain-storage
