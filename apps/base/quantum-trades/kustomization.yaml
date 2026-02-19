@@ -28,5 +28,6 @@ resources:
   # Trading Coordinator - Autonomous trading system with 8 LangChain Deep Agents
   - redis-agents.yaml
   - configmap-agents.yaml
+  - external-secret-agents.yaml
   - deployment-trading-loop.yaml
   - agents-coordinator-deployment.yaml

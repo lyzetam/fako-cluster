@@ -9,10 +9,7 @@ metadata:
 spec:
   replicas: 1  # CRITICAL: Only 1 replica to avoid concurrent autonomous loops
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1      # Allow 1 extra pod during rolling update
-      maxUnavailable: 0  # Always have 1 running (for zero-downtime deployments)
+    type: Recreate  # Prevent leader lock deadlocks during deploys
   selector:
     matchLabels:
       app: trading-coordinator
@@ -112,6 +109,26 @@ spec:
                   name: agents-secrets
                   key: TRADIER_API_KEY
 
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agents-secrets
+                  key: OPENAI_API_KEY
+
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agents-secrets
+                  key: GOOGLE_API_KEY
+
+            # LLM Fallback Configuration
+            - name: LLM_PROVIDER_ORDER
+              value: "anthropic,google,openai,ollama"
+            - name: OLLAMA_BASE_URL
+              value: "http://ms3.landryzetam.net:11434"
+            - name: LLM_FALLBACK_ENABLED
+              value: "true"
+
             # Service URLs
             - name: TECHNICALS_SERVICE_URL
               value: "http://technicals-service:8001"
@@ -154,6 +171,11 @@ spec:
             - name: MAX_TOKENS
               value: "4096"
 
+          # Secrets from ExternalSecret (all API keys)
+          envFrom:
+            - secretRef:
+                name: agents-secrets
+
           # Volume Mounts
           volumeMounts:
             - name: memories
@@ -171,25 +193,32 @@ spec:
               cpu: "500m"
               memory: "512Mi"
 
-          # Liveness Probe - is the service running?
+          # Startup Probe - slow-starting container tolerance
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30  # 10 + 30*10 = 310s max startup time
+
+          # Liveness Probe - relaxed for LLM fallback chains (~70s grace)
           livenessProbe:
             httpGet:
               path: /health/live
               port: http
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 4
 
-          # Readiness Probe - is it ready to accept requests?
+          # Readiness Probe - relaxed (~35s grace)
           readinessProbe:
             httpGet:
               path: /health/ready
               port: http
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            timeoutSeconds: 3
-            failureThreshold: 2
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
 
           # Security Context
           securityContext:
