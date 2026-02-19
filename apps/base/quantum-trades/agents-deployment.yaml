@@ -1,0 +1,397 @@
+# Consolidated Agents Deployment
+# Replaces: agents-coordinator-deployment.yaml + deployment-trading-loop.yaml
+# Source: quantum-trades/k8s/agents-deployment.yaml with conservative capital limits
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agents
+  namespace: quantum-trades
+  labels:
+    app: agents
+    component: autonomous-agents
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: agents
+      component: autonomous-agents
+  template:
+    metadata:
+      labels:
+        app: agents
+        component: autonomous-agents
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8086"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: agents-service-account
+      automountServiceAccountToken: true
+      imagePullSecrets:
+        - name: dockerhub-registry
+
+      # Pod-level security context - fsGroup ensures NFS volume files are group-accessible
+      securityContext:
+        fsGroup: 1000
+
+      # Init containers
+      initContainers:
+        # Fix NFS volume permissions before app starts
+        - name: fix-permissions
+          image: busybox:1.37
+          command: ['sh', '-c', 'chown -R 1000:1000 /app/memories && chmod -R 775 /app/memories']
+          volumeMounts:
+            - name: memory-store
+              mountPath: /app/memories
+
+        # Verify service dependencies
+        - name: check-dependencies
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Checking service dependencies..."
+              wget -q --spider http://technicals-service:8001/health || exit 1
+              wget -q --spider http://signals-service:8002/health || exit 1
+              wget -q --spider http://trading-service:8005/health || exit 1
+              echo "All dependencies healthy!"
+
+      # Containers
+      containers:
+        - name: agents-service
+          image: lzetam/quantum-trades-agents:latest
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 8006
+              protocol: TCP
+            - name: metrics
+              containerPort: 8086
+              protocol: TCP
+
+          # Environment Variables
+          env:
+            # Service URLs
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "8006"
+            - name: TECHNICALS_SERVICE_URL
+              value: "http://technicals-service:8001"
+            - name: SIGNALS_SERVICE_URL
+              value: "http://signals-service:8002"
+            - name: TRADING_SERVICE_URL
+              value: "http://trading-service:8005"
+            - name: BACKEND_SERVICE_URL
+              value: "http://backend-service:8000"
+
+            # LLM Configuration - externalized model IDs for easy updates
+            # See: https://platform.claude.com/docs/en/docs/about-claude/models/overview
+            - name: AGENT_MODEL_ID
+              value: "claude-sonnet-4-5-20250929"
+            - name: AGENT_HAIKU_MODEL_ID
+              value: "claude-haiku-4-5-20251001"
+            - name: AGENT_OPUS_MODEL_ID
+              value: "claude-opus-4-5-20251101"
+            - name: MAX_TOKENS
+              value: "4096"
+
+            # Trading Configuration - Conservative paper trading limits
+            - name: TRADING_MODE
+              value: "paper"
+            - name: INITIAL_CAPITAL
+              value: "5000"
+            - name: MAX_DAILY_LOSS_DOLLARS
+              value: "50"
+            - name: MAX_WEEKLY_LOSS_DOLLARS
+              value: "150"
+            - name: MAX_POSITION_SIZE
+              value: "100"
+            - name: MAX_CONCURRENT_POSITIONS
+              value: "3"
+            - name: TARGET_DAILY_GAIN_PERCENT
+              value: "10"
+
+            # Autonomous Trading Loop
+            - name: AUTONOMOUS_LOOP_ENABLED
+              value: "true"
+            - name: LOOP_INTERVAL_SECONDS
+              value: "60"
+
+            # Pre-Execution Critique Gate (3 LLM agents review before trade)
+            - name: CRITIQUE_GATE_ENABLED
+              value: "true"
+
+            # Multi-Broker Configuration
+            # Live trading via Tradier, Paper trading via Alpaca
+            - name: LIVE_BROKER
+              value: "tradier"
+            - name: ALPACA_ENABLED
+              value: "true"
+            - name: PAPER_SIMULATION_ENABLED
+              value: "true"
+
+            # AWS Configuration
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_SECRETS_PATH
+              value: "quantum-trades/agents"
+
+            # Obsidian Integration
+            - name: OBSIDIAN_ENABLED
+              value: "true"
+            - name: OBSIDIAN_JOURNAL_FOLDER
+              value: "trading/Agents/Trading Journal"
+
+            # Telegram Notifications
+            - name: TELEGRAM_NOTIFICATIONS_ENABLED
+              value: "true"
+
+            # Logging
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: LOG_FORMAT
+              value: "json"
+
+            # Database Configuration (for simulation persistence)
+            - name: TRADING_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: TRADING_DB_PASSWORD
+            - name: DATABASE_URL
+              value: "postgresql://trading:$(TRADING_DB_PASSWORD)@postgres-cluster-rw.postgres.svc.cluster.local:5432/trading"
+
+            # Market Replay Service
+            - name: MARKET_REPLAY_URL
+              value: "http://market-replay-gateway.market-replay.svc.cluster.local:8000"
+
+            # Redis Configuration - for state management and horizontal scaling
+            - name: REDIS_URL
+              value: "redis://agent-redis:6379"
+            - name: REDIS_MEMORY_ENABLED
+              value: "true"  # Enable Redis-backed memory for multi-pod scaling
+            - name: REDIS_PRIMARY
+              value: "false"  # Set to "true" after burn-in period to read from Redis first
+
+            # LLM Fallback Configuration - multi-provider redundancy
+            - name: LLM_PROVIDER_ORDER
+              value: "anthropic,google,openai,ollama"
+            - name: OLLAMA_BASE_URL
+              value: "http://ms3.landryzetam.net:11434"
+            - name: LLM_FALLBACK_ENABLED
+              value: "true"
+            - name: LLM_FALLBACK_CACHE_TTL_SECONDS
+              value: "300"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: OPENAI_API_KEY
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: GOOGLE_API_KEY
+
+          # Secrets from k8s Secret and AWS Secrets Manager
+          envFrom:
+            - secretRef:
+                name: agents-secrets
+
+          # Volume Mounts
+          volumeMounts:
+            - name: memory-store
+              mountPath: /app/memories
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+
+          # Resource Limits and Requests
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+
+          # Probes
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30  # 10 + 30*10 = 310s max startup time
+
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 4
+
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Security Context
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+
+      # Volumes - Use shared PVC with CronJob for consistent state
+      volumes:
+        - name: memory-store
+          persistentVolumeClaim:
+            claimName: trading-memories-pvc
+        - name: config
+          configMap:
+            name: agents-config
+            items:
+              - key: pre_research_config.json
+                path: pre_research_config.json
+              - key: research_config.json
+                path: research_config.json
+              - key: executor_config.json
+                path: executor_config.json
+              - key: risk_config.json
+                path: risk_config.json
+              - key: exit_config.json
+                path: exit_config.json
+              - key: learning_config.json
+                path: learning_config.json
+              - key: decision_review_config.json
+                path: decision_review_config.json
+              - key: meta_learner_config.json
+                path: meta_learner_config.json
+              - key: validation_config.json
+                path: validation_config.json
+              - key: governance_config.json
+                path: governance_config.json
+              - key: strategy_params.json
+                path: strategy_params.json
+              - key: risk_limits.json
+                path: risk_limits.json
+              - key: watchlist.json
+                path: watchlist.json
+              - key: llm_fallback_config.json
+                path: llm_fallback_config.json
+
+      # Pod Disruption Budget
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - agents
+                topologyKey: kubernetes.io/hostname
+
+      # Restart Policy
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 120
+
+---
+# Service for agents deployment
+apiVersion: v1
+kind: Service
+metadata:
+  name: agents
+  namespace: quantum-trades
+  labels:
+    app: agents
+spec:
+  type: ClusterIP
+  selector:
+    app: agents
+  ports:
+    - name: http
+      port: 8006
+      targetPort: 8006
+      protocol: TCP
+    - name: metrics
+      port: 8086
+      targetPort: 8086
+      protocol: TCP
+  sessionAffinity: None
+
+---
+# ServiceAccount for pod authentication
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agents-service-account
+  namespace: quantum-trades
+
+---
+# ClusterRole for pod permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agents-role
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["batch"]
+    resources: ["cronjobs", "jobs"]
+    verbs: ["get", "list", "watch"]
+
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agents-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agents-role
+subjects:
+  - kind: ServiceAccount
+    name: agents-service-account
+    namespace: quantum-trades
+
+---
+# PVC for persistent agent memory (moved from deployment-trading-loop.yaml)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: trading-memories-pvc
+  namespace: quantum-trades
+  labels:
+    app: agents
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 10Gi
