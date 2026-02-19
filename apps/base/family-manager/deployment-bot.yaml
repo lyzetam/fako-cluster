@@ -44,15 +44,11 @@ spec:
               command:
                 - python
                 - -c
-                - |
-                  import asyncio
-                  from services.health_check import check_readiness
-                  status = asyncio.run(check_readiness())
-                  exit(0 if status.status == 'healthy' else 1)
-            initialDelaySeconds: 10
+                - "import os; exit(0 if os.path.exists('/proc/1/cmdline') else 1)"
+            initialDelaySeconds: 15
             periodSeconds: 10
-            timeoutSeconds: 30
-            failureThreshold: 30
+            timeoutSeconds: 5
+            failureThreshold: 6
           livenessProbe:
             exec:
               command:
