@@ -29,5 +29,4 @@ resources:
   - redis-agents.yaml
   - configmap-agents.yaml
   - external-secret-agents.yaml
-  - deployment-trading-loop.yaml
-  - agents-coordinator-deployment.yaml
+  - agents-deployment.yaml
