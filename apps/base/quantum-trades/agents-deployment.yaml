@@ -181,7 +181,7 @@ spec:
 
             # LLM Fallback Configuration - multi-provider redundancy
             - name: LLM_PROVIDER_ORDER
-              value: "anthropic,google,openai,ollama"
+              value: "anthropic"
             - name: OLLAMA_BASE_URL
               value: "http://ms3.landryzetam.net:11434"
             - name: LLM_FALLBACK_ENABLED
