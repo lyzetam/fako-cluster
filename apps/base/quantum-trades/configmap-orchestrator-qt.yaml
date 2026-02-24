@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: agents-config
+  name: orchestrator-qt-config
   namespace: quantum-trades
   labels:
-    app: trading-coordinator
+    app: orchestrator-qt
 data:
   # Pre-Research Agent Configuration
   pre_research_config.json: |

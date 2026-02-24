@@ -1,14 +1,14 @@
-# Consolidated Agents Deployment
+# Orchestrator-QT Deployment (LangGraph Trading Coordinator)
 # Replaces: agents-coordinator-deployment.yaml + deployment-trading-loop.yaml
-# Source: quantum-trades/k8s/agents-deployment.yaml with conservative capital limits
+# Source: quantum-trades/orchestrator-qt with conservative capital limits
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: agents
+  name: orchestrator-qt
   namespace: quantum-trades
   labels:
-    app: agents
+    app: orchestrator-qt
     component: autonomous-agents
 spec:
   replicas: 1
@@ -16,19 +16,19 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app: agents
+      app: orchestrator-qt
       component: autonomous-agents
   template:
     metadata:
       labels:
-        app: agents
+        app: orchestrator-qt
         component: autonomous-agents
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
     spec:
-      serviceAccountName: agents-service-account
+      serviceAccountName: orchestrator-qt-service-account
       automountServiceAccountToken: true
       imagePullSecrets:
         - name: dockerhub-registry
@@ -62,8 +62,8 @@ spec:
 
       # Containers
       containers:
-        - name: agents-service
-          image: lzetam/quantum-trades-agents:latest
+        - name: orchestrator-qt-service
+          image: lzetam/quantum-trades-orchestrator-qt:latest
           imagePullPolicy: Always
 
           ports:
@@ -190,7 +190,7 @@ spec:
           # Secrets from k8s Secret and AWS Secrets Manager
           envFrom:
             - secretRef:
-                name: agents-secrets
+                name: orchestrator-qt-secrets
 
           # Volume Mounts
           volumeMounts:
@@ -251,7 +251,7 @@ spec:
             claimName: trading-memories-pvc
         - name: config
           configMap:
-            name: agents-config
+            name: orchestrator-qt-config
             items:
               - key: pre_research_config.json
                 path: pre_research_config.json
@@ -293,7 +293,7 @@ spec:
                     - key: app
                       operator: In
                       values:
-                        - agents
+                        - orchestrator-qt
                 topologyKey: kubernetes.io/hostname
 
       # Restart Policy
@@ -301,18 +301,18 @@ spec:
       terminationGracePeriodSeconds: 120
 
 ---
-# Service for agents deployment
+# Service for orchestrator-qt deployment
 apiVersion: v1
 kind: Service
 metadata:
-  name: agents
+  name: orchestrator-qt
   namespace: quantum-trades
   labels:
-    app: agents
+    app: orchestrator-qt
 spec:
   type: ClusterIP
   selector:
-    app: agents
+    app: orchestrator-qt
   ports:
     - name: http
       port: 8006
@@ -329,7 +329,7 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: agents-service-account
+  name: orchestrator-qt-service-account
   namespace: quantum-trades
 
 ---
@@ -337,7 +337,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: agents-role
+  name: orchestrator-qt-role
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -357,14 +357,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: agents-role-binding
+  name: orchestrator-qt-role-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: agents-role
+  name: orchestrator-qt-role
 subjects:
   - kind: ServiceAccount
-    name: agents-service-account
+    name: orchestrator-qt-service-account
     namespace: quantum-trades
 
 ---
@@ -375,7 +375,7 @@ metadata:
   name: trading-memories-pvc
   namespace: quantum-trades
   labels:
-    app: agents
+    app: orchestrator-qt
 spec:
   accessModes:
     - ReadWriteMany

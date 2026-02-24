@@ -83,7 +83,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: agents-config
+            name: orchestrator-qt-config
             items:
               - key: llm_fallback_config.json
                 path: llm_fallback_config.json
