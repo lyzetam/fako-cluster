@@ -171,13 +171,9 @@ spec:
             - name: MARKET_REPLAY_URL
               value: "http://market-replay-gateway.market-replay.svc.cluster.local:8000"
 
-            # Redis Configuration - for state management and horizontal scaling
+            # Redis Configuration - for distributed leader lock only
             - name: REDIS_URL
               value: "redis://agent-redis:6379"
-            - name: REDIS_MEMORY_ENABLED
-              value: "true"  # Enable Redis-backed memory for multi-pod scaling
-            - name: REDIS_PRIMARY
-              value: "false"  # Set to "true" after burn-in period to read from Redis first
 
             # LLM Fallback Configuration - multi-provider redundancy
             - name: LLM_PROVIDER_ORDER
