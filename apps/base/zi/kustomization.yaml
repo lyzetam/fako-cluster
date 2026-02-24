@@ -35,19 +35,8 @@ resources:
   - rbac-k8s-operator.yaml
   - configmap-generators.yaml
 
-  # Agent deployments (5 active agents)
-  - deployments/backend-engineer.yaml
-  - deployments/code-reviewer.yaml
-  - deployments/devops-engineer.yaml
-  - deployments/k8s-engineer.yaml
-  - deployments/platform-sre.yaml
-
-  # Agent services (5 active agents)
-  - services/backend-engineer.yaml
-  - services/code-reviewer.yaml
-  - services/devops-engineer.yaml
-  - services/k8s-engineer.yaml
-  - services/platform-sre.yaml
+  # Agent deployments + services (5 active agents)
+  - agents.yaml
 
 # Use labels instead of commonLabels to avoid corrupting network policy selectors
 labels:
