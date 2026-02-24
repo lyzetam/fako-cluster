@@ -26,7 +26,7 @@ resources:
   # Trade Journal Sync CronJob (hourly)
   - cronjob-journal-sync.yaml
   # Orchestrator-QT - LangGraph Trading Coordinator
-  - redis-agents.yaml
+  - redis-orchestrator-qt.yaml
   - configmap-orchestrator-qt.yaml
   - external-secret-orchestrator-qt.yaml
   - orchestrator-qt-deployment.yaml
