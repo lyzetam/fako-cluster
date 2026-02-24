@@ -30,13 +30,6 @@ resources:
   - autobots-ingress.yaml
   - autobots-external-secret.yaml
 
-  # Agent Memory PVCs (5 active agents)
-  - backend-engineer-memory.yaml
-  - code-reviewer-memory.yaml
-  - devops-engineer-memory.yaml
-  - k8s-engineer-memory.yaml
-  - platform-sre-memory.yaml
-
   # Agent shared resources
   - zi-agents-memory-pvc.yaml
   - rbac-k8s-operator.yaml
