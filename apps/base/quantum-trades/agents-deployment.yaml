@@ -76,6 +76,10 @@ spec:
 
           # Environment Variables
           env:
+            # Python must flush stdout immediately for kubectl logs
+            - name: PYTHONUNBUFFERED
+              value: "1"
+
             # Service URLs
             - name: HOST
               value: "0.0.0.0"
@@ -94,12 +98,6 @@ spec:
             # See: https://platform.claude.com/docs/en/docs/about-claude/models/overview
             - name: AGENT_MODEL_ID
               value: "claude-sonnet-4-5-20250929"
-            - name: AGENT_HAIKU_MODEL_ID
-              value: "claude-haiku-4-5-20251001"
-            - name: AGENT_OPUS_MODEL_ID
-              value: "claude-opus-4-5-20251101"
-            - name: MAX_TOKENS
-              value: "4096"
 
             # Trading Configuration - Conservative paper trading limits
             - name: TRADING_MODE
@@ -135,12 +133,6 @@ spec:
               value: "true"
             - name: PAPER_SIMULATION_ENABLED
               value: "true"
-
-            # AWS Configuration
-            - name: AWS_REGION
-              value: "us-east-1"
-            - name: AWS_SECRETS_PATH
-              value: "quantum-trades/agents"
 
             # Obsidian Integration
             - name: OBSIDIAN_ENABLED
