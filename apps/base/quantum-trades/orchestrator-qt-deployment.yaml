@@ -125,6 +125,10 @@ spec:
             - name: CRITIQUE_GATE_ENABLED
               value: "true"
 
+            # Tradier Direct Broker Access (orchestrator-qt talks to Tradier API directly)
+            - name: TRADIER_BASE_URL
+              value: "https://api.tradier.com/v1"
+
             # Multi-Broker Configuration
             # Live trading via Tradier, Paper trading via Alpaca
             - name: LIVE_BROKER
