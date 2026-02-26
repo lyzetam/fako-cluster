@@ -126,8 +126,9 @@ spec:
               value: "true"
 
             # Tradier Direct Broker Access (orchestrator-qt talks to Tradier API directly)
+            # Using sandbox for paper trading; switch to https://api.tradier.com/v1 for live
             - name: TRADIER_BASE_URL
-              value: "https://api.tradier.com/v1"
+              value: "https://sandbox.tradier.com/v1"
 
             # Multi-Broker Configuration
             # Live trading via Tradier, Paper trading via Alpaca
