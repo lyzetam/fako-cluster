@@ -105,6 +105,11 @@ spec:
                 secretKeyRef:
                   name: quantum-trades-secrets
                   key: SUPABASE_JWT_SECRET
+            - name: AGENTS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: orchestrator-qt-secrets
+                  key: AGENTS_API_KEY
           # Startup probe - generous budget for initial startup
           startupProbe:
             httpGet:
