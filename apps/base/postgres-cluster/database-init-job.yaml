@@ -27,6 +27,11 @@ spec:
             secretKeyRef:
               name: postgres-admin-secret
               key: password
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-user-secret
+              key: password
         command:
         - /bin/bash
         - -c
@@ -34,14 +39,9 @@ spec:
           set -e
           echo "Initializing databases and permissions..."
 
-          # Create admin user if it doesn't exist
-          psql -c "DO \$\$
-          BEGIN
-            IF NOT EXISTS (SELECT FROM pg_user WHERE usename = 'admin') THEN
-              CREATE USER admin WITH PASSWORD '***REDACTED_PG_PASSWORD***';
-            END IF;
-          END
-          \$\$;" || true
+          # Create admin user if it doesn't exist, always sync password
+          psql -c "CREATE USER admin" 2>/dev/null || echo "User admin already exists"
+          psql -c "ALTER USER admin WITH PASSWORD '${ADMIN_PASSWORD}'"
 
           # Create databases if they don't exist
           psql -c "CREATE DATABASE oura OWNER app" 2>/dev/null || echo "Database oura already exists"
