@@ -24,12 +24,6 @@ resources:
   # Redis (cache for agent knowledge sharing)
   - redis-deployment.yaml
   - redis-service.yaml
-  # Autobots workforce (merged from autobots base)
-  - autobots-deployment.yaml
-  - autobots-service.yaml
-  - autobots-ingress.yaml
-  - autobots-external-secret.yaml
-
   # Agent shared resources
   - zi-agents-memory-pvc.yaml
   - rbac-k8s-operator.yaml
