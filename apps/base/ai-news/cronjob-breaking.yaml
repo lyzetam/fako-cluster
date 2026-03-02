@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ai-news-breaking
+  namespace: ai-news
+spec:
+  schedule: "*/30 * * * *"  # Every 30 minutes
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 300
+      ttlSecondsAfterFinished: 3600
+      template:
+        spec:
+          serviceAccountName: ai-news-sa
+          imagePullSecrets:
+            - name: dockerhub-registry
+          restartPolicy: Never
+          containers:
+            - name: ai-news
+              image: lzetam/ai-news-pipeline:latest
+              imagePullPolicy: Always
+              command: ["ai-news", "run", "--limit", "1", "--hours", "1", "--min-confidence", "0.8", "--sources", "rss"]
+              env:
+                - name: LOG_LEVEL
+                  value: "INFO"
+                - name: LLM_PROVIDER
+                  value: "anthropic"
+                - name: LLM_MODEL
+                  value: "claude-sonnet-4-5-20250929"
+              envFrom:
+                - secretRef:
+                    name: ai-news-api-keys
+                - secretRef:
+                    name: ai-news-discord
+                - secretRef:
+                    name: ai-news-supabase
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"

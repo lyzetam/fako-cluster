@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ai-news-morning
+  namespace: ai-news
+spec:
+  schedule: "0 8 * * *"  # 8:00 AM ET
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          serviceAccountName: ai-news-sa
+          imagePullSecrets:
+            - name: dockerhub-registry
+          restartPolicy: Never
+          containers:
+            - name: ai-news
+              image: lzetam/ai-news-pipeline:latest
+              imagePullPolicy: Always
+              command: ["ai-news", "run", "--limit", "5", "--hours", "12"]
+              env:
+                - name: LOG_LEVEL
+                  value: "INFO"
+                - name: LLM_PROVIDER
+                  value: "anthropic"
+                - name: LLM_MODEL
+                  value: "claude-sonnet-4-5-20250929"
+                - name: MIN_CONFIDENCE_SCORE
+                  value: "0.6"
+              envFrom:
+                - secretRef:
+                    name: ai-news-api-keys
+                - secretRef:
+                    name: ai-news-discord
+                - secretRef:
+                    name: ai-news-supabase
+                - secretRef:
+                    name: ai-news-storage
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"

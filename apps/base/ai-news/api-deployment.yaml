@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-news-api
+  namespace: ai-news
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-news-api
+  template:
+    metadata:
+      labels:
+        app: ai-news-api
+    spec:
+      serviceAccountName: ai-news-sa
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: api
+          image: lzetam/ai-news-pipeline:latest
+          imagePullPolicy: Always
+          command: ["ai-news", "serve", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: LOG_LEVEL
+              value: "INFO"
+          envFrom:
+            - secretRef:
+                name: ai-news-api-keys
+            - secretRef:
+                name: ai-news-supabase
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10

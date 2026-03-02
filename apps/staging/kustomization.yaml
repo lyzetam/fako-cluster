@@ -121,3 +121,6 @@ resources:
 
   # Thornus Platform - AI Workflow-as-a-Service (Thor composer + API)
   - thornus
+
+  # AI News Pipeline - RSS ingestion, LLM analysis, Discord posting
+  - ai-news

@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai-news
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - aws-secret-store.yaml
+  - external-secret-api-keys.yaml
+  - external-secret-discord.yaml
+  - external-secret-supabase.yaml
+  - external-secret-storage.yaml
+  - external-secret-dockerhub.yaml
+  - create-docker-registry-secret-job.yaml
+  - cronjob-morning.yaml
+  - cronjob-afternoon.yaml
+  - cronjob-evening.yaml
+  - cronjob-breaking.yaml
+  - api-deployment.yaml
+  - api-service.yaml
