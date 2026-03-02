@@ -28,9 +28,11 @@ spec:
                 - name: LOG_LEVEL
                   value: "INFO"
                 - name: LLM_PROVIDER
-                  value: "anthropic"
+                  value: "ollama"
                 - name: LLM_MODEL
-                  value: "claude-sonnet-4-5-20250929"
+                  value: "gemma3:27b"
+                - name: OLLAMA_URL
+                  value: "http://ms3.landryzetam.net:11434"
               envFrom:
                 - secretRef:
                     name: ai-news-api-keys
