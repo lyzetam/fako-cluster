@@ -65,6 +65,9 @@ spec:
               value: "true"
             - name: ZI_SKILLS_DIR
               value: "/data/brain/skills"
+            # MCP Gateway (tool integration via SSE)
+            - name: ZI_MCP_GATEWAY_URL
+              value: "http://mcp-gateway.mcp-gateway.svc.cluster.local:8811"
             # Langfuse LLM observability
             - name: LANGFUSE_PUBLIC_KEY
               valueFrom:
