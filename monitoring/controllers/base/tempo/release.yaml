@@ -52,6 +52,12 @@ spec:
       http_listen_port: 3100
       grpc_listen_port: 9095
     
+    # Security context — Tempo runs as UID 10001, NFS needs fsGroup
+    securityContext:
+      fsGroup: 10001
+      runAsUser: 10001
+      runAsNonRoot: true
+
     # Persistence
     persistence:
       enabled: true

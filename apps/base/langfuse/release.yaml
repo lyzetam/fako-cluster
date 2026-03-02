@@ -79,11 +79,13 @@ spec:
       migration:
         autoMigrate: true
 
-    # Redis — standalone mode
+    # Redis — standalone mode (auth disabled, cluster-internal only)
     redis:
       deploy: true
       architecture: standalone
       cluster:
+        enabled: false
+      auth:
         enabled: false
 
     # MinIO — local S3-compatible object store
