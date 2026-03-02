@@ -59,7 +59,9 @@ spec:
       port: 5432
       auth:
         username: "app"
-        password: "***REDACTED_PG_PASSWORD***"
+        existingSecret: "langfuse-secrets"
+        secretKeys:
+          userPasswordKey: postgres_password
         database: "langfuse"
       migration:
         autoMigrate: true
@@ -72,7 +74,8 @@ spec:
       clusterEnabled: false
       auth:
         username: "default"
-        password: "***REDACTED_CH_PASSWORD***"
+        existingSecret: "langfuse-secrets"
+        existingSecretKey: clickhouse_password
       persistence:
         enabled: true
         size: 50Gi
