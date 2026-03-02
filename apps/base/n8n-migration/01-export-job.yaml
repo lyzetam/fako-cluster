@@ -36,7 +36,7 @@ spec:
               echo "n8n scaled down successfully"
       containers:
         - name: exporter
-          image: n8nio/n8n:1.115.3
+          image: n8nio/n8n:1.123.23
           command: ["/bin/bash", "-c"]
           args:
             - |
