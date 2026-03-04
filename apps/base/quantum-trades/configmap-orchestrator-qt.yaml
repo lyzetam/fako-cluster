@@ -538,7 +538,7 @@ data:
       "provider_health_cache_ttl_seconds": 300,
       "model_tiers": {
         "flagship": {
-          "anthropic": "claude-opus-4-5-20251101",
+          "anthropic": "claude-sonnet-4-5-20250929",
           "openai": "gpt-4-turbo-2024-04-09",
           "google": "gemini-1.5-pro-002",
           "ollama": "llama3.2:70b"
