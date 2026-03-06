@@ -99,54 +99,11 @@ spec:
             - name: AGENT_MODEL_ID
               value: "claude-sonnet-4-5-20250929"
 
-            # Trading Configuration - Conservative paper trading limits
-            - name: TRADING_MODE
-              value: "paper"
-            - name: INITIAL_CAPITAL
-              value: "5000"
-            - name: MAX_DAILY_LOSS_DOLLARS
-              value: "50"
-            - name: MAX_WEEKLY_LOSS_DOLLARS
-              value: "150"
-            - name: MAX_POSITION_SIZE
-              value: "2000"
-            - name: MAX_CONCURRENT_POSITIONS
-              value: "3"
-            - name: TARGET_DAILY_GAIN_PERCENT
-              value: "10"
-
-            # Autonomous Trading Loop
+            # Autonomous Trading Loop - deployment-level toggle only
+            # All trading parameters (capital, limits, position sizing) are in
+            # config.py defaults. Do NOT override them here — config.py is the
+            # single source of truth for trading logic.
             - name: AUTONOMOUS_LOOP_ENABLED
-              value: "true"
-            - name: LOOP_INTERVAL_SECONDS
-              value: "60"
-
-            # Pre-Execution Critique Gate (3 LLM agents review before trade)
-            - name: CRITIQUE_GATE_ENABLED
-              value: "true"
-
-            # Tradier Direct Broker Access (orchestrator-qt talks to Tradier API directly)
-            # Using sandbox for paper trading; switch to https://api.tradier.com/v1 for live
-            - name: TRADIER_BASE_URL
-              value: "https://sandbox.tradier.com/v1"
-
-            # Multi-Broker Configuration
-            # Live trading via Tradier, Paper trading via Alpaca
-            - name: LIVE_BROKER
-              value: "tradier"
-            - name: ALPACA_ENABLED
-              value: "true"
-            - name: PAPER_SIMULATION_ENABLED
-              value: "true"
-
-            # Obsidian Integration
-            - name: OBSIDIAN_ENABLED
-              value: "true"
-            - name: OBSIDIAN_JOURNAL_FOLDER
-              value: "trading/Agents/Trading Journal"
-
-            # Telegram Notifications
-            - name: TELEGRAM_NOTIFICATIONS_ENABLED
               value: "true"
 
             # Logging
