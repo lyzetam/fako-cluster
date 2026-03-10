@@ -87,9 +87,41 @@ data:
             return True
         return True
 
+    def format_diarized_transcript(segments):
+        """Format segments with speaker labels into readable text."""
+        if not segments:
+            return ""
+
+        lines = []
+        current_speaker = None
+        current_text = []
+
+        for seg in segments:
+            speaker = seg.get('speaker', 'UNKNOWN')
+            text = seg.get('text', '').strip()
+            if not text:
+                continue
+
+            if speaker != current_speaker:
+                # Flush previous speaker's text
+                if current_text and current_speaker is not None:
+                    lines.append(f"**{current_speaker}:** {''.join(current_text).strip()}")
+                    lines.append("")
+                current_speaker = speaker
+                current_text = [text]
+            else:
+                current_text.append(text)
+
+        # Flush last speaker
+        if current_text and current_speaker is not None:
+            lines.append(f"**{current_speaker}:** {''.join(current_text).strip()}")
+
+        return '\n'.join(lines)
+
     def json_to_markdown(data, filename):
-        """Convert Whisper JSON transcript to readable Markdown."""
+        """Convert Whisper JSON transcript to readable Markdown with diarization."""
         text = data.get('text', '')
+        segments = data.get('segments', [])
         duration = data.get('duration', 0)
         language = data.get('language', 'unknown')
 
@@ -98,18 +130,29 @@ data:
         hours, mins = divmod(mins, 60)
         duration_str = f"{hours}h {mins}m {secs}s" if hours else f"{mins}m {secs}s"
 
+        # Check if diarization is available
+        has_diarization = any(seg.get('speaker') for seg in segments)
+        speakers = set(seg.get('speaker') for seg in segments if seg.get('speaker'))
+
+        if has_diarization and len(speakers) > 0:
+            transcript_body = format_diarized_transcript(segments)
+            speaker_info = f"**Speakers**: {len(speakers)}\n"
+        else:
+            transcript_body = text
+            speaker_info = ""
+
         md = textwrap.dedent(f"""\
             # {FILE_PREFIX}: {filename}
 
             **Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M')}
             **Duration**: {duration_str}
             **Language**: {language}
-
+            {speaker_info}
             ---
 
-            ## Full Transcript
+            ## Transcript
 
-            {text}
+            {transcript_body}
 
             ---
 

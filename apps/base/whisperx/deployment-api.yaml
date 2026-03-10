@@ -37,7 +37,7 @@ spec:
           name: http
         env:
         - name: WHISPER_MODEL
-          value: "medium"
+          value: "large-v3"
         - name: COMPUTE_TYPE
           value: "float16"
         - name: BATCH_SIZE
