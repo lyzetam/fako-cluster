@@ -39,9 +39,9 @@ spec:
         - name: WHISPER_MODEL
           value: "large-v3"
         - name: COMPUTE_TYPE
-          value: "float16"
+          value: "int8"
         - name: BATCH_SIZE
-          value: "8"
+          value: "4"
         - name: DEVICE
           value: "cuda"
         - name: PRELOAD_MODEL
