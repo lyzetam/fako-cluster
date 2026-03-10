@@ -37,9 +37,9 @@ spec:
           name: http
         env:
         - name: WHISPER_MODEL
-          value: "large-v3"
+          value: "distil-large-v3"
         - name: COMPUTE_TYPE
-          value: "int8"
+          value: "float16"
         - name: BATCH_SIZE
           value: "4"
         - name: DEVICE
