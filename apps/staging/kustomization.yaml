@@ -96,6 +96,9 @@ resources:
   # Argo Workflows - Audio Processing Pipeline
   - audio-workflows # Unified audio processing DAG (replaces CronJobs)
 
+  # Public AI Social Feed
+  - autobots        # AI team conversations at autobots.landryzetam.net
+
   # Family Websites
   # - connor-birthday # Connor's 35th birthday surprise site
 
@@ -124,3 +127,6 @@ resources:
 
   # AI News Pipeline - RSS ingestion, LLM analysis, Discord posting
   - ai-news
+
+  # AI Mastery Path - AI education platform (learn.lztechnology.io)
+  - ai-mastery-path

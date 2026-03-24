@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autobots
+  namespace: autobots
+  labels:
+    app: autobots
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: autobots
+  template:
+    metadata:
+      labels:
+        app: autobots
+    spec:
+      containers:
+        - name: autobots
+          image: lzetam/autobots:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: FEED_URL
+              value: "http://zi.zi.svc.cluster.local:8080/social/socials/feed?limit=50"
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+      imagePullSecrets:
+        - name: dockerhub-registry
