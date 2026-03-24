@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-mastery-path
+  namespace: ai-mastery-path
+  labels:
+    app.kubernetes.io/name: ai-mastery-path
+    app.kubernetes.io/component: web
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/custom-response-headers: |
+      X-Frame-Options: DENY
+      X-Content-Type-Options: nosniff
+      X-XSS-Protection: 1; mode=block
+      Strict-Transport-Security: max-age=31536000; includeSubDomains
+spec:
+  tls:
+  - hosts:
+    - learn.lztechnology.io
+    secretName: ai-mastery-path-tls
+  rules:
+  - host: learn.lztechnology.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-mastery-path
+            port:
+              number: 80
