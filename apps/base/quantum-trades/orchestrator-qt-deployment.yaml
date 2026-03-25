@@ -130,9 +130,9 @@ spec:
             - name: REDIS_URL
               value: "redis://agent-redis:6379"
 
-            # LLM Configuration - 100% local via Ollama on ms3
+            # LLM Configuration - local-first, cloud fallback for exit safety
             - name: LLM_PROVIDER_ORDER
-              value: "ollama"
+              value: "ollama,anthropic"
             - name: OLLAMA_BASE_URL
               value: "http://ms3.landryzetam.net:11434"
             - name: LLM_FALLBACK_ENABLED
