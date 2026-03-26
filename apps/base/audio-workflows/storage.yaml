@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: compressed-audio
+  name: audio-raw
   namespace: audio-workflows
 spec:
   accessModes:
@@ -10,7 +10,7 @@ spec:
   storageClassName: nfs-csi-v2
   resources:
     requests:
-      storage: 100Gi
+      storage: 50Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

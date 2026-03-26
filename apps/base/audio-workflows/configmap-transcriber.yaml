@@ -6,10 +6,10 @@ metadata:
 data:
   WHISPER_MODEL: "Systran/faster-distil-whisper-large-v3"
   WHISPER_LANGUAGE: "auto"
-  INPUT_DIR: "/data/compressed"  # Compressor saves to /data, transcriber reads from /data/compressed mount
+  INPUT_DIR: "/data/audio"  # Raw .m4a files downloaded from SFTP
   OUTPUT_DIR: "/data/transcriptions"
   OUTPUT_FORMAT: "json"
-  AUDIO_EXTENSIONS: ".mp3"
+  AUDIO_EXTENSIONS: ".m4a"
   SKIP_PROCESSED: "true"  # Skip already transcribed files
   MAX_FILE_SIZE_MB: "10000"
   BATCH_SIZE: "0"  # 0 = no limit, process all files

@@ -16,9 +16,9 @@ spec:
 
   # Shared storage via NFS CSI PVCs
   volumes:
-  - name: compressed-audio
+  - name: audio-raw
     persistentVolumeClaim:
-      claimName: compressed-audio
+      claimName: audio-raw
   - name: transcriptions
     persistentVolumeClaim:
       claimName: transcriptions
@@ -37,12 +37,12 @@ spec:
   - name: audio-pipeline
     dag:
       tasks:
-      - name: compress
-        template: audio-compressor
+      - name: download
+        template: sftp-downloader
 
       - name: transcribe
         template: audio-transcriber
-        dependencies: [compress]
+        dependencies: [download]
 
       # Fan-out: these 3 run in parallel after transcription
       - name: publish
@@ -57,8 +57,8 @@ spec:
         template: daily-diary
         dependencies: [transcribe]
 
-  # Step 1: Audio Compression (SFTP download + WAV->MP3)
-  - name: audio-compressor
+  # Step 1: SFTP Download (fetch raw .m4a files)
+  - name: sftp-downloader
     retryStrategy:
       limit: 3
       backoff:
@@ -66,11 +66,64 @@ spec:
         factor: 2
         maxDuration: "10m"
     container:
-      image: lzetam/audio-compressor:latest
-      imagePullPolicy: Always
-      command: ["python", "-u", "-m", "src.main"]
+      image: python:3.11-slim
+      command:
+      - python
+      - -u
+      - -c
+      - |
+        import json, os, sys, subprocess
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "paramiko"])
+        import paramiko
+
+        host = os.environ["SFTP_HOST"]
+        port = int(os.environ["SFTP_PORT"])
+        user = os.environ["SFTP_USERNAME"]
+        password = os.environ["SFTP_PASSWORD"]
+        remote_path = os.environ["SFTP_REMOTE_PATH"]
+        output_dir = os.environ["OUTPUT_DIR"]
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Load manifest of already-downloaded files
+        manifest_path = os.path.join(output_dir, "manifest.json")
+        downloaded = set()
+        if os.path.exists(manifest_path):
+            with open(manifest_path) as f:
+                manifest = json.load(f)
+                downloaded = set(manifest.get("files", []))
+
+        # Also check what's already on disk
+        existing = {f for f in os.listdir(output_dir) if f.endswith(".m4a")}
+
+        transport = paramiko.Transport((host, port))
+        transport.connect(username=user, password=password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+
+        files = [f for f in sftp.listdir(remote_path) if f.endswith(".m4a") and not f.startswith("._")]
+        print(f"Found {len(files)} .m4a files on SFTP")
+
+        new_count = 0
+        for fname in sorted(files):
+            if fname in downloaded or fname in existing:
+                continue
+            remote_file = f"{remote_path}/{fname}"
+            local_file = os.path.join(output_dir, fname)
+            size_mb = sftp.stat(remote_file).st_size / (1024 * 1024)
+            print(f"Downloading {fname} ({size_mb:.1f} MB)...")
+            sftp.get(remote_file, local_file)
+            downloaded.add(fname)
+            existing.add(fname)
+            new_count += 1
+
+        sftp.close()
+        transport.close()
+
+        # Save manifest
+        with open(manifest_path, "w") as f:
+            json.dump({"files": sorted(downloaded | existing), "last_run": __import__("datetime").datetime.utcnow().isoformat() + "Z", "total_files": len(downloaded | existing)}, f, indent=2)
+
+        print(f"Done: {new_count} new files downloaded, {len(files) - new_count} skipped")
       env:
-      # SFTP Configuration
       - name: SFTP_HOST
         value: "sftp-server.sftp-server.svc.cluster.local"
       - name: SFTP_PORT
@@ -87,71 +140,18 @@ spec:
           secretKeyRef:
             name: sftp-credentials
             key: password
-      # Storage Backend Configuration
-      - name: STORAGE_BACKEND
-        value: "local"  # Use local NFS volume for workflow steps
-      # SFTP upload not needed in workflow - files go to shared NFS volume
-      # - name: SFTP_DEST_PATH
-      #   value: "compressed"
-      # - name: UPLOAD_RETRY_ATTEMPTS
-      #   value: "3"
-      # - name: UPLOAD_RETRY_DELAY
-      #   value: "5"
-      # AWS Configuration
-      - name: AWS_DEFAULT_REGION
-        value: "us-east-1"
-      - name: SFTP_SECRETS_NAME
-        value: "sftp-server/credentials"
-      # Storage Configuration
       - name: OUTPUT_DIR
-        value: "/data"  # Volume mounted at /data, save to root
-      - name: KEEP_ORIGINALS
-        value: "false"
-      # Compression Configuration (high quality for diarization)
-      - name: SAMPLE_RATE
-        value: "44100"
-      - name: CHANNELS
-        value: "2"
-      - name: BITRATE
-        value: "128k"
-      - name: AUDIO_FORMAT
-        value: "mp3"
-      # Processing Configuration
-      - name: PROCESSING_MODE
-        value: "flat"  # Flat file mode for .m4a files
-      - name: FILE_EXTENSION
-        value: ".m4a"  # File extension to process
-      # Directory mode variables (not used in flat mode)
-      # - name: AUDIO_FILENAME
-      #   value: "StereoMix.wav"
-      # - name: DIR_PATTERN
-      #   value: "^\\d{2}-\\d{2}-\\d{2}(-\\d{2})?$"
-      - name: METADATA_FILENAME
-        value: "Meta.xml"
-      - name: COPY_METADATA
-        value: "false"  # No metadata files in flat mode
-      - name: SKIP_PROCESSED
-        value: "true"  # Skip already processed files (don't reprocess 2025 files)
-      - name: MAX_FILE_SIZE_MB
-        value: "100000"
-      - name: MAX_RETRIES
-        value: "3"
-      - name: RETRY_DELAY
-        value: "5"
-      - name: LOG_LEVEL
-        value: "INFO"
-      - name: TEMP_DIR
-        value: "/tmp/audio-processing"
+        value: "/data"
       volumeMounts:
-      - name: compressed-audio
+      - name: audio-raw
         mountPath: /data
       resources:
         requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
           memory: "512Mi"
           cpu: "500m"
-        limits:
-          memory: "2Gi"
-          cpu: "2000m"
 
   # Step 2: Audio Transcription (Whisper)
   - name: audio-transcriber
@@ -182,8 +182,8 @@ spec:
       - name: WHISPERX_MIN_SPEAKERS
         value: "2"
       volumeMounts:
-      - name: compressed-audio
-        mountPath: /data/compressed
+      - name: audio-raw
+        mountPath: /data/audio
         readOnly: true
       - name: transcriptions
         mountPath: /data/transcriptions
