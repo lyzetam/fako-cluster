@@ -42,6 +42,8 @@ spec:
 
       - name: transcribe
         template: audio-transcriber
+        continueOn:
+          failed: true  # Partial transcription still produces files — let downstream steps run
         dependencies: [download]
 
       # Fan-out: these 3 run in parallel after transcription
