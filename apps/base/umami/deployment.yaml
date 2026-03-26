@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: umami
-          image: ghcr.io/umami-software/umami:v3.0.3
+          image: ghcr.io/umami-software/umami:3.0.3
           ports:
             - containerPort: 3000
               protocol: TCP
