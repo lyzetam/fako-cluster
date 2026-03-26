@@ -74,9 +74,22 @@ spec:
       - -u
       - -c
       - |
-        import json, os, sys, subprocess
+        import json, os, re, sys, subprocess
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "paramiko"])
         import paramiko
+
+        def sanitize(name):
+            """Convert 'YYYY MM DD HH MM SS .m4a' to 'YYYY-MM-DD_HH-MM-SS.m4a'"""
+            stem, ext = os.path.splitext(name)
+            # Replace multiple spaces with single, strip, then convert
+            stem = re.sub(r'\s+', ' ', stem).strip()
+            parts = stem.split(' ')
+            if len(parts) >= 6:
+                # Date parts + time parts
+                date = '-'.join(parts[0:3])
+                time = '-'.join(parts[3:6])
+                return f"{date}_{time}{ext}"
+            return name.replace(' ', '_')
 
         host = os.environ["SFTP_HOST"]
         port = int(os.environ["SFTP_PORT"])
@@ -86,15 +99,17 @@ spec:
         output_dir = os.environ["OUTPUT_DIR"]
         os.makedirs(output_dir, exist_ok=True)
 
-        # Load manifest of already-downloaded files
-        manifest_path = os.path.join(output_dir, "manifest.json")
-        downloaded = set()
-        if os.path.exists(manifest_path):
-            with open(manifest_path) as f:
-                manifest = json.load(f)
-                downloaded = set(manifest.get("files", []))
+        # Rename any existing files with spaces (one-time migration)
+        for f in os.listdir(output_dir):
+            if ' ' in f and f.endswith('.m4a'):
+                new_name = sanitize(f)
+                old_path = os.path.join(output_dir, f)
+                new_path = os.path.join(output_dir, new_name)
+                if not os.path.exists(new_path):
+                    os.rename(old_path, new_path)
+                    print(f"Renamed: {f} -> {new_name}")
 
-        # Also check what's already on disk
+        # Check what's already on disk (after rename)
         existing = {f for f in os.listdir(output_dir) if f.endswith(".m4a")}
 
         transport = paramiko.Transport((host, port))
@@ -106,23 +121,24 @@ spec:
 
         new_count = 0
         for fname in sorted(files):
-            if fname in downloaded or fname in existing:
+            local_name = sanitize(fname)
+            if local_name in existing:
                 continue
             remote_file = f"{remote_path}/{fname}"
-            local_file = os.path.join(output_dir, fname)
+            local_file = os.path.join(output_dir, local_name)
             size_mb = sftp.stat(remote_file).st_size / (1024 * 1024)
-            print(f"Downloading {fname} ({size_mb:.1f} MB)...")
+            print(f"Downloading {fname} -> {local_name} ({size_mb:.1f} MB)...")
             sftp.get(remote_file, local_file)
-            downloaded.add(fname)
-            existing.add(fname)
+            existing.add(local_name)
             new_count += 1
 
         sftp.close()
         transport.close()
 
         # Save manifest
+        manifest_path = os.path.join(output_dir, "manifest.json")
         with open(manifest_path, "w") as f:
-            json.dump({"files": sorted(downloaded | existing), "last_run": __import__("datetime").datetime.utcnow().isoformat() + "Z", "total_files": len(downloaded | existing)}, f, indent=2)
+            json.dump({"files": sorted(existing), "last_run": __import__("datetime").datetime.utcnow().isoformat() + "Z", "total_files": len(existing)}, f, indent=2)
 
         print(f"Done: {new_count} new files downloaded, {len(files) - new_count} skipped")
       env:
