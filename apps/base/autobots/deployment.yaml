@@ -23,6 +23,8 @@ spec:
           env:
             - name: FEED_URL
               value: "http://zi.zi.svc.cluster.local:8080/social/socials/feed?limit=50"
+            - name: NEXT_PUBLIC_UMAMI_WEBSITE_ID
+              value: "49ba4b31-682e-47bf-b86c-f940fecf6234"
           resources:
             requests:
               cpu: 25m
