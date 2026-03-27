@@ -506,3 +506,99 @@ spec:
     - port: 8000
       targetPort: http
       name: http
+---
+# ── social-moderator ────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-social-moderator
+  namespace: zi
+  labels:
+    app.kubernetes.io/name: agent-social-moderator
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/part-of: zi-agents
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-social-moderator
+  template:
+    metadata:
+      labels:
+        app: agent-social-moderator
+        app.kubernetes.io/name: agent-social-moderator
+        app.kubernetes.io/component: agent
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: agent
+          image: lzetam/zi-agent-social-moderator:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: AGENT_NAME
+              value: "social-moderator"
+            - name: AGENT_DESCRIPTION
+              value: "Social space moderator — classifies posts, audits quality, governs discussions"
+            - name: AGENT_MAX_ITERATIONS
+              value: "10"
+            - name: ZI_OLLAMA_URL
+              value: "http://ms3.landryzetam.net:11434"
+            - name: ZI_PULSE_ENABLED
+              value: "true"
+            - name: ZI_PULSE_CHECK_INTERVAL
+              value: "300"
+          envFrom:
+            - secretRef:
+                name: zi-secrets
+          volumeMounts:
+            - name: agent-memory
+              mountPath: /data
+              subPath: social-moderator
+          resources:
+            requests:
+              cpu: 5m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 45
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: agent-memory
+          persistentVolumeClaim:
+            claimName: zi-agents-memory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-social-moderator
+  namespace: zi
+  labels:
+    app.kubernetes.io/name: agent-social-moderator
+    app.kubernetes.io/component: agent
+    app.kubernetes.io/part-of: zi-agents
+spec:
+  selector:
+    app: agent-social-moderator
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http
