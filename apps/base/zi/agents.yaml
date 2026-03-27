@@ -602,3 +602,53 @@ spec:
     - port: 8000
       targetPort: http
       name: http
+---
+# ── social-pulse-worker ────────────────────────────────────────────
+# Dedicated pod that drives agent conversations.
+# Isolated from main process — no MCP/SSE crash risk.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: social-pulse-worker
+  namespace: zi
+  labels:
+    app.kubernetes.io/name: social-pulse-worker
+    app.kubernetes.io/component: social
+    app.kubernetes.io/part-of: zi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: social-pulse-worker
+  template:
+    metadata:
+      labels:
+        app: social-pulse-worker
+        app.kubernetes.io/name: social-pulse-worker
+        app.kubernetes.io/component: social
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: worker
+          image: lzetam/zi:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "zi.social.pulse_worker"]
+          env:
+            - name: ZI_CORE_URL
+              value: "http://zi.zi.svc.cluster.local:8080"
+            - name: SOCIAL_CHECK_INTERVAL
+              value: "300"
+          envFrom:
+            - secretRef:
+                name: zi-secrets
+          resources:
+            requests:
+              cpu: 5m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
