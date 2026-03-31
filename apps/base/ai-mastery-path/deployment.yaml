@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: lzetam/ai-mastery-path:sha-fc393db
+        image: lzetam/ai-mastery-path:sha-23fc515
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
