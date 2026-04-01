@@ -34,6 +34,11 @@ spec:
           value: "production"
         - name: HOSTNAME
           value: "0.0.0.0"
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: stripe-secrets
+              key: secret_key
         resources:
           requests:
             cpu: "50m"

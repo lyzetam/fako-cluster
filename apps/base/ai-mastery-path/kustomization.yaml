@@ -8,6 +8,7 @@ resources:
   - ingress.yaml
   - aws-secret-store.yaml
   - external-secret-dockerhub.yaml
+  - external-secret-stripe.yaml
   - create-docker-registry-secret-job.yaml
 labels:
   - pairs:
