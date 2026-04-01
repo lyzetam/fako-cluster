@@ -28,6 +28,8 @@ spec:
             env:
             - name: UNIFI_VERIFY_SSL
               value: "false"
+            - name: EXCLUDED_CAMERAS
+              value: "kids,bedroom"
             resources:
               requests:
                 memory: "128Mi"
