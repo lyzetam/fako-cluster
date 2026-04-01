@@ -52,7 +52,7 @@ spec:
             - name: ZI_REDIS_PORT
               value: "6379"
             - name: ZI_OLLAMA_URL
-              value: "http://ms3.landryzetam.net:11434"
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_AGENT_MEMORY_PATH
               value: "/data/agents"
             - name: ZI_AGENT_CONFIG_PATH

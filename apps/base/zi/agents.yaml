@@ -48,7 +48,7 @@ spec:
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL
-              value: "http://ms3.landryzetam.net:11434"
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_KNOWLEDGE_REDIS_HOST
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
@@ -149,7 +149,7 @@ spec:
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL
-              value: "http://ms3.landryzetam.net:11434"
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_KNOWLEDGE_REDIS_HOST
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
@@ -243,6 +243,8 @@ spec:
           env:
             - name: AGENT_NAME
               value: "devops-engineer"
+            - name: AGENT_MODEL
+              value: "nemotron-cascade-2:latest"
             - name: AGENT_DESCRIPTION
               value: "CI/CD, infrastructure automation, deployment pipelines, and operational excellence"
             - name: AGENT_MAX_ITERATIONS
@@ -250,7 +252,7 @@ spec:
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL
-              value: "http://ms3.landryzetam.net:11434"
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_KNOWLEDGE_REDIS_HOST
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
@@ -344,6 +346,8 @@ spec:
           env:
             - name: AGENT_NAME
               value: "k8s-engineer"
+            - name: AGENT_MODEL
+              value: "nemotron-cascade-2:latest"
             - name: AGENT_DESCRIPTION
               value: "Kubernetes deployment, cluster management, container orchestration, and cloud native architecture"
             - name: AGENT_MAX_ITERATIONS
@@ -351,7 +355,7 @@ spec:
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL
-              value: "http://ms3.landryzetam.net:11434"
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_KNOWLEDGE_REDIS_HOST
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
@@ -445,6 +449,8 @@ spec:
           env:
             - name: AGENT_NAME
               value: "platform-sre"
+            - name: AGENT_MODEL
+              value: "nemotron-cascade-2:latest"
             - name: AGENT_DESCRIPTION
               value: "Platform reliability, infrastructure operations, and SRE practices"
             - name: AGENT_MAX_ITERATIONS
@@ -452,7 +458,7 @@ spec:
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             - name: ZI_OLLAMA_URL
-              value: "http://ms3.landryzetam.net:11434"
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_KNOWLEDGE_REDIS_HOST
               value: "redis.zi.svc.cluster.local"
             - name: ZI_KNOWLEDGE_REDIS_PORT
@@ -550,7 +556,7 @@ spec:
             - name: AGENT_MAX_ITERATIONS
               value: "10"
             - name: ZI_OLLAMA_URL
-              value: "http://ms3.landryzetam.net:11434"
+              value: "http://ms2.landryzetam.net:11434"
             - name: ZI_PULSE_ENABLED
               value: "true"
             - name: ZI_PULSE_CHECK_INTERVAL
