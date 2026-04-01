@@ -9,6 +9,7 @@ resources:
   - aws-secret-store.yaml
   - external-secret-dockerhub.yaml
   - external-secret-stripe.yaml
+  - external-secret-supabase.yaml
   - create-docker-registry-secret-job.yaml
 labels:
   - pairs:
