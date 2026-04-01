@@ -18,6 +18,13 @@ spec:
             app: unifi-clips-exporter
         spec:
           restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+          volumes:
+          - name: tmp
+            emptyDir: {}
           containers:
           - name: unifi-clips-exporter
             image: lzetam/unifi-clients:latest
@@ -28,6 +35,14 @@ spec:
             env:
             - name: UNIFI_VERIFY_SSL
               value: "false"
+            - name: TMPDIR
+              value: /tmp
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
             resources:
               requests:
                 memory: "128Mi"
