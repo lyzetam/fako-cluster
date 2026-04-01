@@ -29,7 +29,7 @@ spec:
             - name: UNIFI_VERIFY_SSL
               value: "false"
             - name: EXCLUDED_CAMERAS
-              value: "kids,bedroom"
+              value: "Liran_Room"
             resources:
               requests:
                 memory: "128Mi"
