@@ -39,6 +39,16 @@ spec:
             secretKeyRef:
               name: stripe-secrets
               key: secret_key
+        - name: STRIPE_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: stripe-secrets
+              key: webhook_secret
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: supabase-secrets
+              key: service_role_key
         resources:
           requests:
             cpu: "50m"
