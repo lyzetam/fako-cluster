@@ -244,7 +244,7 @@ spec:
             - name: AGENT_NAME
               value: "devops-engineer"
             - name: AGENT_MODEL
-              value: "nemotron-cascade-2:latest"
+              value: "glm-4.7-flash:latest"
             - name: AGENT_DESCRIPTION
               value: "CI/CD, infrastructure automation, deployment pipelines, and operational excellence"
             - name: AGENT_MAX_ITERATIONS
@@ -347,7 +347,7 @@ spec:
             - name: AGENT_NAME
               value: "k8s-engineer"
             - name: AGENT_MODEL
-              value: "nemotron-cascade-2:latest"
+              value: "glm-4.7-flash:latest"
             - name: AGENT_DESCRIPTION
               value: "Kubernetes deployment, cluster management, container orchestration, and cloud native architecture"
             - name: AGENT_MAX_ITERATIONS
@@ -450,7 +450,7 @@ spec:
             - name: AGENT_NAME
               value: "platform-sre"
             - name: AGENT_MODEL
-              value: "nemotron-cascade-2:latest"
+              value: "glm-4.7-flash:latest"
             - name: AGENT_DESCRIPTION
               value: "Platform reliability, infrastructure operations, and SRE practices"
             - name: AGENT_MAX_ITERATIONS
