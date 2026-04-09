@@ -84,10 +84,8 @@ data:
     no-autoupdate: true
 
     ingress:
-    # - hostname: ai.landryzetam.net
-    #   service: http://open-webui:8080
-    # (Changed to local-only: ai.local - no internet exposure)
-
+    - hostname: ai.lztechnology.io
+      service: http://open-webui.open-webui.svc.cluster.local:8080
     # This rule sends traffic to the built-in hello-world HTTP server. This can help debug connectivity
     # issues. If hello.example.com resolves and tunnel.example.com does not, then the problem is
     # in the connection from cloudflared to your local service, not from the internet to cloudflared.
