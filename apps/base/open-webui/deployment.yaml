@@ -36,6 +36,9 @@ spec:
             - secretRef:
                 name: webui-secret           # WebUI secret key for session security
                 optional: true               # Make it optional for environments that don't have it
+            - secretRef:
+                name: ollama-cloud-credentials  # Ollama cloud API key
+                optional: true
           # REMOVED the hardcoded env section that was overriding the configmap!
           volumeMounts:
             - mountPath: /app/backend/data

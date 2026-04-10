@@ -4,10 +4,9 @@ metadata:
   name: open-webui-configmap
   namespace: open-webui
 data:
-  # Disable Ollama API completely
-  ENABLE_OLLAMA_API: "false"
-  OLLAMA_BASE_URL: ""
-  OLLAMA_API_BASE_URL: ""
+  # Ollama API - Ollama cloud only
+  ENABLE_OLLAMA_API: "true"
+  OLLAMA_BASE_URL: "https://api.ollama.com"
   
   # Enable OpenAI API mode - using GPUStack service
   ENABLE_OPENAI_API: "true"
@@ -36,8 +35,8 @@ data:
   
   # Authentication settings
   WEBUI_AUTH: "true"
-  ENABLE_SIGNUP: "false"  # Disabled since we copied production user data
-  DEFAULT_USER_ROLE: "user"
+  ENABLE_SIGNUP: "true"
+  DEFAULT_USER_ROLE: "pending"  # Require admin approval for new signups
   WEBUI_SESSION_LIFETIME: "2592000"
   
   # User permissions
