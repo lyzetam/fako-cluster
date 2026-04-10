@@ -68,7 +68,7 @@ spec:
         factor: 2
         maxDuration: "10m"
     container:
-      image: python:3.11-slim
+      image: python:3.14-slim
       command:
       - python
       - -u
@@ -221,7 +221,7 @@ spec:
         duration: "30s"
         factor: 2
     container:
-      image: python:3.11-slim
+      image: python:3.14-slim
       command: ["python", "/scripts/publisher.py"]
       envFrom:
       - configMapRef:
@@ -261,7 +261,7 @@ spec:
         duration: "30s"
         factor: 2
     container:
-      image: python:3.11-slim
+      image: python:3.14-slim
       command: ["python", "/scripts/summarizer.py"]
       envFrom:
       - configMapRef:
@@ -318,7 +318,7 @@ spec:
         duration: "30s"
         factor: 2
     container:
-      image: python:3.11-slim
+      image: python:3.14-slim
       command: ["python", "/scripts/daily-diary.py"]
       envFrom:
       - configMapRef:
