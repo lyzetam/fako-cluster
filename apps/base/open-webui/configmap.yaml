@@ -7,50 +7,42 @@ data:
   # Ollama API - Ollama cloud only
   ENABLE_OLLAMA_API: "true"
   OLLAMA_BASE_URL: "https://api.ollama.com"
-  
-  # Enable OpenAI API mode - using GPUStack service
-  ENABLE_OPENAI_API: "true"
-  # API base URLs are now loaded from AWS Secrets Manager via external-secret-endpoints.yaml
-  # API keys are now loaded from AWS Secrets Manager via external-secret-gpustack.yaml
-  
+
+  # Disable OpenAI API - using Ollama cloud instead
+  ENABLE_OPENAI_API: "false"
+
   # WebUI configuration
   WEBUI_NAME: "aiwithlandry"
-  WEBUI_URL: ""
-  
+  WEBUI_URL: "https://ai.lztechnology.io"
+
   # Database configuration
   DATABASE_URL: "sqlite:////app/backend/data/webui.db"
   DATA_DIR: "/app/backend/data"
-  
-  # Model configuration - Update with your GPUStack models
-  DEFAULT_MODELS: "gemma-3-27b-it,glm4-0414"
-  MODEL_FILTER_ENABLED: "false"
-  ENABLE_MODEL_FILTER: "false"
-  
-  # FIX: Add model access control bypass to make all models visible to all users
+
+  # Model configuration
+  DEFAULT_MODELS: "deepseek-v3.2"
   BYPASS_MODEL_ACCESS_CONTROL: "true"
-  
-  # Alternative: Configure granular workspace permissions (use instead of BYPASS if you want more control)
-  # USER_PERMISSIONS_WORKSPACE_MODELS_ACCESS: "true"
-  # USER_PERMISSIONS_WORKSPACE_MODELS_CREATE: "false"  # Prevent users from creating custom models
-  
+
   # Authentication settings
   WEBUI_AUTH: "true"
   ENABLE_SIGNUP: "true"
-  DEFAULT_USER_ROLE: "pending"  # Require admin approval for new signups
-  WEBUI_SESSION_LIFETIME: "2592000"
-  
-  # User permissions
+  DEFAULT_USER_ROLE: "pending"
+  DEFAULT_GROUP_ID: "d14072f6-fa5e-438c-a047-1b22926788eb"  # Students group
+  WEBUI_SESSION_LIFETIME: "7776000"  # 90 days (semester length)
+  ENABLE_PASSWORD_VALIDATION: "true"
+
+  # User permissions — lock down for classroom safety
   USER_PERMISSIONS_CHAT_DELETION: "true"
+  USER_PERMISSIONS_CHAT_EXPORT: "true"
   ENABLE_COMMUNITY_SHARING: "false"
-  
-  # Disable features that don't work with OpenAI API
+  SHOW_ADMIN_DETAILS: "false"
+
+  # Disable features students don't need
   ENABLE_IMAGE_GENERATION: "false"
   ENABLE_RAG_WEB_SEARCH: "false"
-  
-  # Logging - Consider DEBUG for troubleshooting
+
+  # Logging
   WEBUI_LOG_LEVEL: "INFO"
-  # WEBUI_LOG_LEVEL: "DEBUG"  # Uncomment for detailed troubleshooting
-  
-  # Additional settings for better GPUStack integration
-  ENABLE_OPENAI_COMPATIBLE_TITLE_GENERATION: "true"
-  OPENAI_REQUEST_TIMEOUT: "600"  # 10 minutes for large model responses
+
+  # Request timeout for large model responses
+  OPENAI_REQUEST_TIMEOUT: "600"
