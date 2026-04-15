@@ -9,4 +9,6 @@ resources:
   - backend-deployment.yaml
   - web-deployment.yaml
   - services.yaml
-  - ingress.yaml
+  # External access via dedicated Cloudflare tunnel (no ingress / cert-manager
+  # needed — TLS terminated at Cloudflare edge).
+  - cloudflared.yaml
