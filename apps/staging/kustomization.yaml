@@ -129,3 +129,6 @@ resources:
 
   # AI Mastery Path - AI education platform (learn.lztechnology.io)
   - ai-mastery-path
+
+  # AMIG GROUP ERP — demo for client (amig-erp.lztechnology.io)
+  - amig-erp
