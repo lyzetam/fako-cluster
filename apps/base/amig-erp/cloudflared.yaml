@@ -1,0 +1,104 @@
+# Dedicated cloudflare tunnel for amig-erp.lztechnology.io.
+# Tunnel credentials come from AWS Secrets Manager via ExternalSecret.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: amig-erp
+  labels:
+    app: cloudflared
+    app.kubernetes.io/part-of: amig-erp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+        app.kubernetes.io/part-of: amig-erp
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2025.11.1
+          args:
+            - tunnel
+            - --config
+            - /etc/cloudflared/config/config.yaml
+            - run
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            failureThreshold: 1
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared/config
+              readOnly: true
+            - name: creds
+              mountPath: /etc/cloudflared/creds
+              readOnly: true
+      volumes:
+        - name: creds
+          secret:
+            secretName: amig-erp-tunnel-credentials
+        - name: config
+          configMap:
+            name: cloudflared
+            items:
+              - key: config.yaml
+                path: config.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared
+  namespace: amig-erp
+data:
+  config.yaml: |
+    tunnel: amig-erp-tunnel
+    credentials-file: /etc/cloudflared/creds/credentials.json
+
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+
+    ingress:
+      - hostname: amig-erp.lztechnology.io
+        service: http://amig-erp-web.amig-erp.svc.cluster.local:80
+        originRequest:
+          connectTimeout: 30s
+          keepAliveTimeout: 90s
+          httpHostHeader: amig-erp.lztechnology.io
+      # Catch-all returns 404 for unmatched requests
+      - service: http_status:404
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: amig-erp-tunnel-credentials
+  namespace: amig-erp
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    kind: SecretStore
+    name: aws-secrets-store
+  target:
+    name: amig-erp-tunnel-credentials
+    creationPolicy: Owner
+    template:
+      data:
+        credentials.json: "{{ .credentials | toString }}"
+  data:
+    - secretKey: credentials
+      remoteRef:
+        key: amig-erp/cloudflare-tunnel
