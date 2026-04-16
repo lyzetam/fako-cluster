@@ -1,0 +1,158 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: erpnext
+  namespace: amig-erp
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: erpnext
+      version: "8.0.43"
+      sourceRef:
+        kind: HelmRepository
+        name: frappe
+        namespace: amig-erp
+  install:
+    crds: CreateReplace
+    timeout: 20m
+  upgrade:
+    crds: CreateReplace
+    timeout: 20m
+  values:
+    image:
+      repository: frappe/erpnext
+      tag: v16.14.0
+      pullPolicy: IfNotPresent
+
+    persistence:
+      worker:
+        enabled: true
+        size: 10Gi
+        storageClass: nfs-csi-v2
+        accessModes:
+          - ReadWriteMany
+      logs:
+        enabled: false
+
+    # Bundled MariaDB StatefulSet — quickest path for a demo. Switch to managed DB later.
+    mariadb-sts:
+      enabled: true
+      rootPassword: "REPLACED_BY_SECRET"   # overwritten by extraEnvVars below at runtime
+      persistence:
+        storageClass: nfs-postgres-v2
+        size: 8Gi
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: 100m
+        limits:
+          memory: 1Gi
+          cpu: 1000m
+
+    # Frappe needs to know the DB root password to create sites. The chart
+    # plumbs `dbHost` from the mariadb-sts subchart automatically; we pass the
+    # root password via extraEnvVars (sourced from our ExternalSecret).
+    dbHost: ""    # falls back to mariadb-sts service
+    dbPort: 3306
+    dbRootUser: root
+    dbRootPassword: ""     # consumed only by the createSite job
+    dbExistingSecret: erpnext-secrets
+    dbExistingSecretPasswordKey: MARIADB_ROOT_PASSWORD
+
+    valkey-cache:
+      enabled: true
+    valkey-queue:
+      enabled: true
+
+    nginx:
+      replicaCount: 1
+      service:
+        type: ClusterIP
+        port: 8080
+      resources:
+        requests:
+          memory: 128Mi
+          cpu: 50m
+        limits:
+          memory: 256Mi
+          cpu: 500m
+
+    worker:
+      gunicorn:
+        replicaCount: 1
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 100m
+          limits:
+            memory: 1Gi
+            cpu: 1000m
+      default:
+        replicaCount: 1
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 50m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+      short:
+        replicaCount: 1
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 50m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+      long:
+        replicaCount: 1
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 50m
+          limits:
+            memory: 512Mi
+            cpu: 500m
+
+    socketio:
+      replicaCount: 1
+      resources:
+        requests:
+          memory: 96Mi
+          cpu: 25m
+        limits:
+          memory: 192Mi
+          cpu: 250m
+
+    scheduler:
+      resources:
+        requests:
+          memory: 128Mi
+          cpu: 25m
+        limits:
+          memory: 256Mi
+          cpu: 250m
+
+    # Ingress disabled — Cloudflare tunnel routes amig-erp.lztechnology.io
+    # directly to the nginx service.
+    ingress:
+      enabled: false
+
+    jobs:
+      volumePermissions:
+        enabled: true
+      configure:
+        enabled: true
+      createSite:
+        enabled: true
+        forceCreate: false
+        siteName: amig-erp.lztechnology.io
+        adminExistingSecret: erpnext-secrets
+        adminExistingSecretKey: ADMIN_PASSWORD
+        installApps:
+          - erpnext
+        dbType: mariadb
+      migrate:
+        enabled: true
