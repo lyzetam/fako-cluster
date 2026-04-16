@@ -81,4 +81,6 @@ spec:
             capabilities:
               drop:
                 - ALL
+      imagePullSecrets:
+        - name: dockerhub-registry
       restartPolicy: Always
