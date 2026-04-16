@@ -29,9 +29,12 @@ spec:
       worker:
         enabled: true
         size: 10Gi
+        # NFS for the shared sites volume — multiple workers need RWX.
         storageClass: nfs-csi-v2
         accessModes:
           - ReadWriteMany
+        # Frappe images run as uid 1000; cm-acme et al need it writable
+        # without explicit chown. nfs-csi-v2 honours the fsGroup we set.
       logs:
         enabled: false
 
@@ -40,7 +43,10 @@ spec:
       enabled: true
       rootPassword: "REPLACED_BY_SECRET"   # overwritten by extraEnvVars below at runtime
       persistence:
-        storageClass: nfs-postgres-v2
+        # local-path is single-node but works around NFS uid/gid perm issues
+        # for the bundled mariadb container. Demo-only — switch to managed
+        # MariaDB or RDS for production.
+        storageClass: local-path
         size: 8Gi
       resources:
         requests:

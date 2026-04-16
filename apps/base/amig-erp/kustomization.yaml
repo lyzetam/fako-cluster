@@ -6,6 +6,8 @@ resources:
   - namespace.yaml
   - secret-store.yaml
   - external-secret.yaml
+  - external-secret-dockerhub.yaml
+  - default-sa-pullsecret.yaml
   - helm-repository.yaml
   - helm-release.yaml
   - cloudflared.yaml
