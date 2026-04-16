@@ -74,7 +74,7 @@ data:
 
     ingress:
       - hostname: amig-erp.lztechnology.io
-        service: http://amig-erp-web.amig-erp.svc.cluster.local:80
+        service: http://erpnext.amig-erp.svc.cluster.local:8080
         originRequest:
           connectTimeout: 30s
           keepAliveTimeout: 90s

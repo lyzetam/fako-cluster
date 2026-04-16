@@ -1,4 +1,4 @@
-# apps/base/amig-erp/kustomization.yaml
+# apps/base/amig-erp/kustomization.yaml — ERPNext deployment
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: amig-erp
@@ -6,10 +6,6 @@ resources:
   - namespace.yaml
   - secret-store.yaml
   - external-secret.yaml
-  - external-secret-dockerhub.yaml
-  - backend-deployment.yaml
-  - web-deployment.yaml
-  - services.yaml
-  # External access via dedicated Cloudflare tunnel (no ingress / cert-manager
-  # needed — TLS terminated at Cloudflare edge).
+  - helm-repository.yaml
+  - helm-release.yaml
   - cloudflared.yaml
