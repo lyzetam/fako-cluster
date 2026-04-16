@@ -162,3 +162,5 @@ spec:
         dbType: mariadb
       migrate:
         enabled: true
+        siteName: amig-erp.lztechnology.io
+        skipFailing: false
