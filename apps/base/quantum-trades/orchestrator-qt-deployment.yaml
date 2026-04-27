@@ -118,12 +118,6 @@ spec:
             - name: TRADING_MODE
               value: "live"
 
-            # Kill-switch floor lowered to $5 (0.001 × $5000 INITIAL_CAPITAL)
-            # for the small live account ($257.64). Restore to default 0.10
-            # ($500 floor) once account balance comfortably exceeds $500.
-            - name: KILL_SWITCH_REMAINING_PCT
-              value: "0.001"
-
             # Logging
             - name: LOG_LEVEL
               value: "INFO"
