@@ -107,6 +107,17 @@ spec:
             - name: AUTONOMOUS_LOOP_ENABLED
               value: "true"
 
+            # === Paper / Live trading toggle ===
+            # Single source of truth for which Tradier environment to use.
+            #   "paper" → sandbox.tradier.com + TRADIER_SANDBOX_* credentials
+            #   "live"  → api.tradier.com     + TRADIER_LIVE_*    credentials
+            # Both credential sets are pulled into the K8s Secret by the
+            # ExternalSecret manifest; the orchestrator-qt code (config.py
+            # `resolved_tradier_credentials`) picks the active set based on
+            # this env var. Switching is a one-line edit + flux reconcile.
+            - name: TRADING_MODE
+              value: "paper"
+
             # Logging
             - name: LOG_LEVEL
               value: "INFO"
