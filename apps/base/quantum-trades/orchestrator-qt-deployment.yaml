@@ -110,13 +110,8 @@ spec:
             # Tradier - LIVE TRADING (api.tradier.com)
             # Sandbox endpoint was the previous default via config.py.
             # ExternalSecret pulls TRADIER_LIVE_API_KEY/TRADIER_LIVE_ACCOUNT_ID.
-            # TRADING_MODE=live is required by the safety guard in main.py:59
-            # which refuses to start if base_url is live but mode != live.
-            # To switch back to paper: revert this commit (`git revert HEAD`).
             - name: TRADIER_BASE_URL
               value: "https://api.tradier.com/v1"
-            - name: TRADING_MODE
-              value: "live"
 
             # Logging
             - name: LOG_LEVEL
