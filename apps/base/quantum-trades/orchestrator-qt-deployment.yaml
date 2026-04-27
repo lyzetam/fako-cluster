@@ -24,7 +24,7 @@ spec:
         app: orchestrator-qt
         component: autonomous-agents
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-04-27T11:10:00Z"
+        kubectl.kubernetes.io/restartedAt: "2026-04-27T11:30:00Z"
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
@@ -106,6 +106,12 @@ spec:
             # single source of truth for trading logic.
             - name: AUTONOMOUS_LOOP_ENABLED
               value: "true"
+
+            # Tradier - LIVE TRADING (api.tradier.com)
+            # Sandbox endpoint was the previous default via config.py.
+            # ExternalSecret pulls TRADIER_LIVE_API_KEY/TRADIER_LIVE_ACCOUNT_ID.
+            - name: TRADIER_BASE_URL
+              value: "https://api.tradier.com/v1"
 
             # Logging
             - name: LOG_LEVEL
