@@ -11,12 +11,9 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Public traffic enters via the shared cloudflared tunnel running in mcp-gateway.
+    # Public traffic enters via the dedicated cloudflared tunnel running in this namespace.
     - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: mcp-gateway
-          podSelector:
+        - podSelector:
             matchLabels:
               app: cloudflared
       ports:
@@ -33,14 +30,11 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Reply traffic to the shared cloudflared tunnel (TCP responses to ingressing
-    # requests). k3s' CNI enforces NetworkPolicy statelessly, so egress must be
-    # allowed explicitly even for established connections.
+    # Reply traffic to the dedicated cloudflared. k3s' CNI enforces NetworkPolicy
+    # statelessly, so egress must be allowed explicitly even for established
+    # connections.
     - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: mcp-gateway
-          podSelector:
+        - podSelector:
             matchLabels:
               app: cloudflared
     # Obsidian REST API (single host on a private network) on its custom port.
@@ -50,3 +44,52 @@ spec:
       ports:
         - protocol: TCP
           port: 27124
+---
+# cloudflared needs unrestricted egress to Cloudflare's edge (UDP/443 QUIC, TCP/443 fallback)
+# and to the fieldy-webhook service.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cloudflared
+  namespace: fieldy-webhook
+spec:
+  podSelector:
+    matchLabels:
+      app: cloudflared
+  policyTypes:
+    - Egress
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # In-namespace fieldy-webhook
+    - to:
+        - podSelector:
+            matchLabels:
+              app: fieldy-webhook
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Cloudflare edge (QUIC + fallback HTTPS).
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: UDP
+          port: 7844
+        - protocol: TCP
+          port: 7844
+        - protocol: TCP
+          port: 443

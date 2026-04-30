@@ -98,12 +98,5 @@ data:
         connectTimeout: 30s
         keepAliveTimeout: 90s
 
-    # Fieldy webhook - Compass wearable AI notetaker → Obsidian vault
-    - hostname: fieldy-webhook.landryzetam.net
-      service: http://fieldy-webhook.fieldy-webhook.svc.cluster.local:80
-      originRequest:
-        connectTimeout: 30s
-        keepAliveTimeout: 90s
-
     # Catch-all rule
     - service: http_status:404

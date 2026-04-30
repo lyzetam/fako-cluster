@@ -10,8 +10,10 @@ resources:
   - external-secret-obsidian.yaml
   - external-secret-webhook.yaml
   - external-secret-dockerhub.yaml
+  - external-secret-tunnel.yaml
   - deployment.yaml
   - service.yaml
+  - cloudflare.yaml
   - networkpolicy.yaml
 
 labels:
