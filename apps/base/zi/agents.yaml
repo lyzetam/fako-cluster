@@ -65,22 +65,24 @@ spec:
           resources:
             requests:
               cpu: 5m
-              memory: 32Mi
+              memory: 256Mi
             limits:
               cpu: 100m
-              memory: 256Mi
+              memory: 512Mi
           livenessProbe:
             httpGet:
               path: /health
               port: http
             initialDelaySeconds: 45
             periodSeconds: 30
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /ready
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
       volumes:
         - name: agent-memory
           persistentVolumeClaim:
@@ -166,22 +168,24 @@ spec:
           resources:
             requests:
               cpu: 5m
-              memory: 32Mi
+              memory: 256Mi
             limits:
               cpu: 100m
-              memory: 256Mi
+              memory: 512Mi
           livenessProbe:
             httpGet:
               path: /health
               port: http
             initialDelaySeconds: 45
             periodSeconds: 30
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /ready
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
       volumes:
         - name: agent-memory
           persistentVolumeClaim:
@@ -269,22 +273,24 @@ spec:
           resources:
             requests:
               cpu: 5m
-              memory: 32Mi
+              memory: 256Mi
             limits:
               cpu: 100m
-              memory: 256Mi
+              memory: 512Mi
           livenessProbe:
             httpGet:
               path: /health
               port: http
             initialDelaySeconds: 45
             periodSeconds: 30
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /ready
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
       volumes:
         - name: agent-memory
           persistentVolumeClaim:
@@ -372,22 +378,24 @@ spec:
           resources:
             requests:
               cpu: 5m
-              memory: 32Mi
+              memory: 256Mi
             limits:
               cpu: 100m
-              memory: 256Mi
+              memory: 512Mi
           livenessProbe:
             httpGet:
               path: /health
               port: http
             initialDelaySeconds: 45
             periodSeconds: 30
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /ready
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
       volumes:
         - name: agent-memory
           persistentVolumeClaim:
@@ -475,22 +483,24 @@ spec:
           resources:
             requests:
               cpu: 5m
-              memory: 32Mi
+              memory: 256Mi
             limits:
               cpu: 100m
-              memory: 256Mi
+              memory: 512Mi
           livenessProbe:
             httpGet:
               path: /health
               port: http
             initialDelaySeconds: 45
             periodSeconds: 30
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /ready
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
       volumes:
         - name: agent-memory
           persistentVolumeClaim:
@@ -558,7 +568,7 @@ spec:
           resources:
             requests:
               cpu: 5m
-              memory: 32Mi
+              memory: 256Mi
             limits:
               cpu: 50m
-              memory: 256Mi
+              memory: 512Mi
