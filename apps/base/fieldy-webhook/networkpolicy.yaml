@@ -33,6 +33,16 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+    # Reply traffic to the shared cloudflared tunnel (TCP responses to ingressing
+    # requests). k3s' CNI enforces NetworkPolicy statelessly, so egress must be
+    # allowed explicitly even for established connections.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: mcp-gateway
+          podSelector:
+            matchLabels:
+              app: cloudflared
     # Obsidian REST API (single host on a private network) on its custom port.
     - to:
         - ipBlock:
