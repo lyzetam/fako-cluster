@@ -11,10 +11,12 @@ resources:
   - external-secret-webhook.yaml
   - external-secret-dockerhub.yaml
   - external-secret-tunnel.yaml
+  - external-secret-fieldy-api.yaml
   - deployment.yaml
   - service.yaml
   - cloudflare.yaml
   - networkpolicy.yaml
+  - cronjob-puller.yaml
 
 labels:
   - pairs:
