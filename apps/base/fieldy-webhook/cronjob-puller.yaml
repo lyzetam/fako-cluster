@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fieldy-puller-state
+  namespace: fieldy-webhook
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 64Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fieldy-puller
+  namespace: fieldy-webhook
+  labels:
+    app: fieldy-puller
+spec:
+  # Daily at 03:00 UTC. Cluster pulls the previous 24h delta from Fieldy and
+  # persists everything to the Obsidian vault via the same REST API the webhook uses.
+  # See lyzetam/fieldy scripts/backfill.py --target daily-delta for the run logic.
+  schedule: "0 3 * * *"
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app: fieldy-puller
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: dockerhub-secret
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: puller
+              image: lzetam/fieldy-webhook:v0.3.0
+              command:
+                - python
+                - /app/scripts/backfill.py
+                - "--target"
+                - "daily-delta"
+                - "--vault-mode"
+                - "obsidian-api"
+              env:
+                - name: FIELDY_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: fieldy-api-key
+                      key: api_key
+                - name: OBSIDIAN_API_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: obsidian-api
+                      key: api_url
+                - name: OBSIDIAN_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: obsidian-api
+                      key: api_key
+                - name: OBSIDIAN_VERIFY_TLS
+                  value: "false"
+                - name: FIELDY_VAULT_REL_ROOT
+                  value: "fieldy"
+                - name: FIELDY_STATE_DIR
+                  value: "/state"
+                - name: FIELDY_MAX_TRANSCRIPT_PAGES
+                  value: "7"
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 96Mi
+                limits:
+                  cpu: 250m
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: state
+                  mountPath: /state
+          volumes:
+            - name: state
+              persistentVolumeClaim:
+                claimName: fieldy-puller-state

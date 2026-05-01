@@ -45,6 +45,48 @@ spec:
         - protocol: TCP
           port: 27124
 ---
+# fieldy-puller CronJob: needs DNS, public HTTPS to api.fieldy.ai, and Obsidian REST.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fieldy-puller
+  namespace: fieldy-webhook
+spec:
+  podSelector:
+    matchLabels:
+      app: fieldy-puller
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Obsidian REST API (private host).
+    - to:
+        - ipBlock:
+            cidr: 10.85.10.195/32
+      ports:
+        - protocol: TCP
+          port: 27124
+    # api.fieldy.ai (public). No documented IP range; allow all public TCP/443.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+---
 # cloudflared needs unrestricted egress to Cloudflare's edge (UDP/443 QUIC, TCP/443 fallback)
 # and to the fieldy-webhook service.
 apiVersion: networking.k8s.io/v1
