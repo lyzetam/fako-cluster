@@ -50,11 +50,8 @@ spec:
                   key: api_key
             - name: OBSIDIAN_VAULT_FOLDER
               value: "fieldy/json-files"
-            # Obsidian-rest in this cluster uses a self-signed cert. Egress is restricted
-            # to the single private host via NetworkPolicy, so verify=false is acceptable.
-            # When the upstream gets a valid cert, flip this to "true" and remove the comment.
             - name: OBSIDIAN_VERIFY_TLS
-              value: "false"
+              value: "false"  # see CLAUDE.md
             - name: WEBHOOK_TOKEN
               valueFrom:
                 secretKeyRef:
