@@ -75,7 +75,7 @@ spec:
                       name: obsidian-api
                       key: api_key
                 - name: OBSIDIAN_VERIFY_TLS
-                  value: "false"
+                  value: "false"  # see CLAUDE.md
                 - name: FIELDY_VAULT_REL_ROOT
                   value: "fieldy"
                 - name: FIELDY_STATE_DIR
