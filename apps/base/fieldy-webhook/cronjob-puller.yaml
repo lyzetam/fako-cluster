@@ -81,7 +81,7 @@ spec:
                 - name: FIELDY_STATE_DIR
                   value: "/state"
                 - name: FIELDY_MAX_TRANSCRIPT_PAGES
-                  value: "7"
+                  value: "10000"
               resources:
                 requests:
                   cpu: 25m
