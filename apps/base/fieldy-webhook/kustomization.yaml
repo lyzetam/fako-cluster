@@ -8,13 +8,8 @@ resources:
   - aws-credentials-secret.yaml
   - secretstore.yaml
   - external-secret-obsidian.yaml
-  - external-secret-webhook.yaml
   - external-secret-dockerhub.yaml
-  - external-secret-tunnel.yaml
   - external-secret-fieldy-api.yaml
-  - deployment.yaml
-  - service.yaml
-  - cloudflare.yaml
   - networkpolicy.yaml
   - cronjob-puller.yaml
 
@@ -22,5 +17,5 @@ labels:
   - pairs:
       app.kubernetes.io/name: fieldy-webhook
       app.kubernetes.io/instance: production
-      app.kubernetes.io/component: webhook
+      app.kubernetes.io/component: puller
       app.kubernetes.io/part-of: fieldy
