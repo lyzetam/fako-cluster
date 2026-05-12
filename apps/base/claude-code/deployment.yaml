@@ -15,6 +15,9 @@ spec:
       labels:
         app: claude-code
     spec:
+      # Pod does not call the K8s API. Don't auto-mount a SA token —
+      # reduces blast radius if the SSH endpoint is compromised.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       containers:
