@@ -1,3 +1,5 @@
+# Cluster-wide: read-only everywhere. The MCP server discovers and inspects
+# resources cluster-wide but MUST NOT write outside its own namespace.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -7,80 +9,36 @@ metadata:
     app.kubernetes.io/component: mcp-server
     app.kubernetes.io/part-of: kagent
 rules:
-# Core resources - read operations
 - apiGroups: [""]
-  resources: 
-  - pods
-  - services
-  - endpoints
-  - persistentvolumeclaims
-  - configmaps
-  - secrets
-  - namespaces
-  - nodes
-  - events
+  resources:
+    - pods
+    - services
+    - endpoints
+    - persistentvolumeclaims
+    - configmaps
+    - namespaces
+    - nodes
+    - events
+    - pods/log
+    - pods/status
+    - services/status
+    - namespaces/status
   verbs: ["get", "list", "watch"]
-# Core resources - write operations (for manifest generation)
-- apiGroups: [""]
-  resources:
-  - pods
-  - services
-  - configmaps
-  - secrets
-  verbs: ["create", "update", "patch"]
-# Pod operations
-- apiGroups: [""]
-  resources:
-  - pods/log
-  - pods/exec
-  - pods/portforward
-  verbs: ["get", "list", "create"]
-# Apps resources - read operations
 - apiGroups: ["apps"]
-  resources:
-  - deployments
-  - daemonsets
-  - replicasets
-  - statefulsets
+  resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
   verbs: ["get", "list", "watch"]
-# Apps resources - write operations
-- apiGroups: ["apps"]
-  resources:
-  - deployments
-  - statefulsets
-  verbs: ["create", "update", "patch"]
-# Batch resources
 - apiGroups: ["batch"]
-  resources:
-  - jobs
-  - cronjobs
-  verbs: ["get", "list", "watch", "create", "update", "patch"]
-# Networking resources
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: ["networking.k8s.io"]
-  resources:
-  - ingresses
-  - networkpolicies
-  verbs: ["get", "list", "watch", "create", "update", "patch"]
-# RBAC resources (read-only)
+  resources: ["ingresses", "networkpolicies"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: ["rbac.authorization.k8s.io"]
-  resources:
-  - roles
-  - rolebindings
-  - clusterroles
-  - clusterrolebindings
+  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
   verbs: ["get", "list", "watch"]
-# Storage resources
 - apiGroups: ["storage.k8s.io"]
-  resources:
-  - storageclasses
+  resources: ["storageclasses"]
   verbs: ["get", "list", "watch"]
-# API discovery
-- apiGroups: [""]
-  resources:
-  - namespaces/status
-  - pods/status
-  - services/status
-  verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -94,6 +52,50 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: kubernetes-mcp-server
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-mcp-server
+  namespace: mcp-servers
+---
+# Write access ONLY within the mcp-servers namespace.
+# Includes pods/exec (used by the bridge), workload/config writes, NOT secrets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubernetes-mcp-server-writer
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: kubernetes-mcp-server
+    app.kubernetes.io/component: mcp-server
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods/exec", "pods/portforward"]
+  verbs: ["create"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses", "networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubernetes-mcp-server-writer
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: kubernetes-mcp-server
+    app.kubernetes.io/component: mcp-server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubernetes-mcp-server-writer
 subjects:
 - kind: ServiceAccount
   name: kubernetes-mcp-server
