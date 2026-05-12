@@ -1,11 +1,15 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: headlamp
+# NOTE: do NOT set a top-level `namespace:` here — admin-rolebindings.yaml
+# declares 40 RoleBindings in different namespaces. A top-level transformer
+# would rewrite them all to `headlamp` and cause ID conflicts. Every other
+# resource in this kustomization explicitly declares its own namespace.
 
 resources:
   - namespace.yaml
   - rbac.yaml
   - admin-serviceaccount.yaml
+  - admin-rolebindings.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
