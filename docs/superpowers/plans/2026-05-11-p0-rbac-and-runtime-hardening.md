@@ -31,7 +31,7 @@
 - `apps/base/headlamp/external-secret-oauth2.yaml`
 - `apps/base/headlamp/external-secret-aws.yaml` (or reuse existing pattern — see Task 6)
 - `apps/base/mcp-servers/kubernetes-mcp/rbac-mcp-namespace.yaml` (new RoleBinding scoped to `mcp-servers` ns for pods/exec)
-- `notes/docs/operations/headlamp-keycloak-client.md` — manual Keycloak client setup runbook
+- `docs/operations/headlamp-keycloak-client.md` — manual Keycloak client setup runbook
 
 **Out of scope (separate plans):**
 - Image pinning across all `:latest` tags → `2026-05-11-p1-image-pinning.md`
@@ -62,11 +62,11 @@ For deployments: after merging and Flux reconciles, confirm the pod becomes Read
 **This is a manual step the user performs ONCE before Task 6. It is not automatable here because Keycloak is not operator-managed.**
 
 **Files:**
-- Create: `notes/docs/operations/headlamp-keycloak-client.md`
+- Create: `docs/operations/headlamp-keycloak-client.md`
 
 - [ ] **Step 1: Write the runbook**
 
-Write `notes/docs/operations/headlamp-keycloak-client.md` with content:
+Write `docs/operations/headlamp-keycloak-client.md` with content:
 
 ````markdown
 # Headlamp Keycloak Client Setup
@@ -127,7 +127,7 @@ You should see all three keys non-empty. Now Task 6 can proceed.
 - [ ] **Step 2: Commit the runbook**
 
 ```bash
-git add notes/docs/operations/headlamp-keycloak-client.md
+git add docs/operations/headlamp-keycloak-client.md
 git commit -m "$(cat <<'EOF'
 docs(headlamp): add Keycloak client + AWS secret setup runbook
 
@@ -1232,7 +1232,7 @@ only the in-app token field as auth. Now Keycloak (master realm,
 backend. Pattern matches oura-dashboard oauth2-proxy.
 
 Requires AWS secret /headlamp/oauth2-proxy with client-id, client-secret,
-cookie-secret. See notes/docs/operations/headlamp-keycloak-client.md.
+cookie-secret. See docs/operations/headlamp-keycloak-client.md.
 
 P0 finding from 2026-05-11 platform-security audit.
 
