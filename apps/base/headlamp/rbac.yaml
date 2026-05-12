@@ -9,49 +9,84 @@ kind: ClusterRole
 metadata:
   name: headlamp
 rules:
+# Read-only across all standard resources.
+# NOTE: `secrets` is intentionally omitted — the dashboard's no-token
+# (default) view must not expose secret values. Users who need to view
+# secrets must paste the headlamp-admin token (which also excludes secrets
+# per admin-serviceaccount.yaml) or use kubectl.
 - apiGroups: [""]
-  resources: ["*"]
-  verbs: ["*"]
+  resources:
+    - pods
+    - services
+    - endpoints
+    - persistentvolumeclaims
+    - persistentvolumes
+    - configmaps
+    - namespaces
+    - nodes
+    - events
+    - serviceaccounts
+    - replicationcontrollers
+    - resourcequotas
+    - limitranges
+  verbs: ["get", "list", "watch"]
+# Logs (subresource — only "get" is a valid verb on pods/log)
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+# Status subresources
+- apiGroups: [""]
+  resources:
+    - pods/status
+    - services/status
+    - namespaces/status
+  verbs: ["get"]
+# Apps
 - apiGroups: ["apps"]
-  resources: ["*"]
-  verbs: ["*"]
+  resources: ["deployments", "daemonsets", "replicasets", "statefulsets", "controllerrevisions"]
+  verbs: ["get", "list", "watch"]
+# Batch
 - apiGroups: ["batch"]
-  resources: ["*"]
-  verbs: ["*"]
-- apiGroups: ["extensions"]
-  resources: ["*"]
-  verbs: ["*"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch"]
+# Networking
 - apiGroups: ["networking.k8s.io"]
-  resources: ["*"]
-  verbs: ["*"]
+  resources: ["ingresses", "networkpolicies", "ingressclasses"]
+  verbs: ["get", "list", "watch"]
+# Storage
 - apiGroups: ["storage.k8s.io"]
-  resources: ["*"]
-  verbs: ["*"]
+  resources: ["storageclasses", "volumeattachments", "csidrivers", "csinodes"]
+  verbs: ["get", "list", "watch"]
+# RBAC (read-only — viewing roles is fine; mutation requires admin token)
 - apiGroups: ["rbac.authorization.k8s.io"]
-  resources: ["*"]
-  verbs: ["*"]
+  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  verbs: ["get", "list", "watch"]
+# Policy
 - apiGroups: ["policy"]
-  resources: ["*"]
-  verbs: ["*"]
-- apiGroups: ["apiregistration.k8s.io"]
-  resources: ["*"]
-  verbs: ["*"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["get", "list", "watch"]
+# Autoscaling
 - apiGroups: ["autoscaling"]
-  resources: ["*"]
-  verbs: ["*"]
-- apiGroups: ["metrics.k8s.io"]
-  resources: ["*"]
-  verbs: ["*"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch"]
+# API registration / admission (read-only)
+- apiGroups: ["apiregistration.k8s.io"]
+  resources: ["apiservices"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: ["admissionregistration.k8s.io"]
-  resources: ["*"]
-  verbs: ["*"]
-# Kubescape CRDs access
+  resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
+  verbs: ["get", "list", "watch"]
+# Metrics
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+# Kubescape CRDs (read-only)
 - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
   resources: ["*"]
-  verbs: ["*"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: ["core.kubescape.io"]
   resources: ["*"]
-  verbs: ["*"]
+  verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
