@@ -1,4 +1,94 @@
 # apps/base/mcp-servers/filesystem-mcp/bridge-deployment.yaml
+# Bridges HTTP/WebSocket traffic to the filesystem-mcp-server via `kubectl exec`.
+#
+# This is a stop-gap deployment. The bridge's long-term fix is to bake a
+# proper container image with deps and kubectl already installed. Until
+# then: deps live in a ConfigMap, kubectl is staged via an initContainer,
+# and the bridge container itself runs non-root + readOnlyRootFilesystem.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filesystem-mcp-bridge-script
+  namespace: mcp-servers
+  labels:
+    app.kubernetes.io/name: filesystem-mcp-bridge
+    app.kubernetes.io/component: mcp-bridge
+    app.kubernetes.io/part-of: mcp-servers
+data:
+  server.js: |
+    const express = require('express');
+    const WebSocket = require('ws');
+    const http = require('http');
+    const { spawn, exec } = require('child_process');
+
+    const app = express();
+    const server = http.createServer(app);
+    const wss = new WebSocket.Server({ server });
+    app.use(express.json());
+
+    app.get('/health', (req, res) => {
+      res.json({
+        status: 'healthy',
+        service: 'filesystem-mcp-bridge',
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    app.get('/test', (req, res) => {
+      const testCmd = 'kubectl exec -n mcp-servers deployment/filesystem-mcp-server -c mcp-filesystem-server -- ps aux | grep "node.*index.js"';
+      exec(testCmd, (error, stdout) => {
+        if (error) return res.status(500).json({ status: 'error', error: error.message });
+        res.json({ status: 'connected', process: stdout.trim() });
+      });
+    });
+
+    app.post('/mcp', (req, res) => {
+      // Pipe the JSON body to `tee` via stdin — no shell, no interpolation.
+      // The previous `sh -c "echo '${mcpRequest}' > /tmp/mcp_stdin"` form was
+      // a command-injection sink: a single-quote in the body broke out of the
+      // sh argument and ran arbitrary commands inside the MCP server pod.
+      const mcpRequest = JSON.stringify(req.body);
+      const proc = spawn('kubectl', [
+        'exec', '-i', '-n', 'mcp-servers',
+        'deployment/filesystem-mcp-server',
+        '-c', 'mcp-filesystem-server',
+        '--', 'tee', '/tmp/mcp_stdin'
+      ], { stdio: ['pipe', 'ignore', 'pipe'] });
+      let errorData = '';
+      const t = setTimeout(() => {
+        proc.kill();
+        res.status(504).json({ jsonrpc: '2.0', error: { code: -32000, message: 'MCP timeout' }, id: req.body.id || null });
+      }, 5000);
+      proc.stderr.on('data', d => { errorData += d.toString(); });
+      proc.on('close', code => {
+        clearTimeout(t);
+        if (code !== 0) {
+          return res.status(500).json({ jsonrpc: '2.0', error: { code: -32000, message: 'MCP error', data: errorData }, id: req.body.id || null });
+        }
+        res.json({ jsonrpc: '2.0', result: { protocolVersion: '1.0.0', capabilities: {}, serverInfo: { name: 'filesystem-mcp', version: '1.0.0' } }, id: req.body.id || null });
+      });
+      proc.on('error', (err) => {
+        clearTimeout(t);
+        res.status(500).json({ jsonrpc: '2.0', error: { code: -32000, message: 'MCP spawn failed', data: err.message }, id: req.body.id || null });
+      });
+      proc.stdin.end(mcpRequest);
+    });
+
+    const PORT = 8080;
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`Filesystem MCP HTTP Bridge listening on ${PORT}`);
+    });
+  package.json: |
+    {
+      "name": "mcp-bridge",
+      "version": "1.0.0",
+      "main": "server.js",
+      "dependencies": {
+        "express": "4.21.2",
+        "ws": "8.18.0"
+      }
+    }
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,324 +116,95 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-      containers:
-        # HTTP/WebSocket bridge to connect to filesystem MCP server
-        - name: mcp-http-bridge
-          image: node:18-alpine
-          command: ["/bin/sh", "-c"]
+        seccompProfile:
+          type: RuntimeDefault
+      # Init containers run in order: prep stages kubectl + package.json;
+      # install-deps populates node_modules in the bridge's working emptyDir.
+      initContainers:
+        - name: prep
+          image: bitnami/kubectl:1.32.3
+          command: ["sh", "-c"]
           args:
             - |
-              echo "Installing kubectl and dependencies for MCP HTTP bridge..."
-              
-              # First, we need to be root to install packages
-              if [ "$(id -u)" != "0" ]; then
-                echo "Running as non-root user, using existing tools..."
-              else
-                # Install kubectl
-                apk add --no-cache curl
-              fi
-              
-              # Check if curl is available, if not, use wget
-              if command -v curl >/dev/null 2>&1; then
-                DOWNLOAD_CMD="curl -LO"
-              elif command -v wget >/dev/null 2>&1; then
-                DOWNLOAD_CMD="wget"
-              else
-                echo "Neither curl nor wget available. Using node to download kubectl..."
-                cat > /tmp/download-kubectl.js << 'EOFJS'
-              const https = require('https');
-              const fs = require('fs');
-              const url = 'https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl';
-              const file = fs.createWriteStream('/tmp/kubectl');
-              https.get(url, (response) => {
-                response.pipe(file);
-                file.on('finish', () => {
-                  file.close();
-                  console.log('kubectl downloaded');
-                });
-              }).on('error', (err) => {
-                fs.unlink('/tmp/kubectl');
-                console.error('Download failed:', err.message);
-              });
-              EOFJS
-                node /tmp/download-kubectl.js
-                sleep 5  # Wait for download
-                mv /tmp/kubectl /usr/local/bin/kubectl
-                chmod +x /usr/local/bin/kubectl
-              fi
-              
-              # Download kubectl if curl/wget available
-              if [ -n "$DOWNLOAD_CMD" ]; then
-                cd /tmp
-                $DOWNLOAD_CMD "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl"
-                chmod +x kubectl
-                mv kubectl /usr/local/bin/
-              fi
-              
-              # Install Node.js dependencies
-              cat > /tmp/package.json << 'EOF'
-              {
-                "name": "mcp-bridge",
-                "version": "1.0.0",
-                "main": "server.js",
-                "dependencies": {
-                  "express": "^4.18.0",
-                  "ws": "^8.14.0"
-                }
-              }
-              EOF
-              
-              cd /tmp
-              npm install
-              
-              echo "Creating MCP HTTP bridge..."
-              
-              # Create bridge that routes HTTP traffic to the MCP server container
-              cat > /tmp/server.js << 'EOF'
-              const express = require('express');
-              const WebSocket = require('ws');
-              const http = require('http');
-              const { spawn, exec } = require('child_process');
-              
-              const app = express();
-              const server = http.createServer(app);
-              const wss = new WebSocket.Server({ server });
-              
-              app.use(express.json());
-              
-              // Health endpoint
-              app.get('/health', (req, res) => {
-                res.json({ 
-                  status: 'healthy', 
-                  service: 'filesystem-mcp-bridge',
-                  timestamp: new Date().toISOString()
-                });
-              });
-              
-              // Simple endpoint to test connectivity to MCP server
-              app.get('/test', async (req, res) => {
-                try {
-                  // Test connection by checking if the MCP server process is running
-                  const testCmd = 'kubectl exec -n mcp-servers deployment/filesystem-mcp-server -c mcp-filesystem-server -- ps aux | grep "node.*index.js"';
-                  
-                  exec(testCmd, (error, stdout, stderr) => {
-                    if (error) {
-                      return res.status(500).json({
-                        status: 'error',
-                        message: 'Cannot connect to MCP server',
-                        error: error.message
-                      });
-                    }
-                    
-                    res.json({
-                      status: 'connected',
-                      message: 'MCP server is running',
-                      process: stdout.trim()
-                    });
-                  });
-                } catch (error) {
-                  res.status(500).json({
-                    status: 'error', 
-                    message: error.message
-                  });
-                }
-              });
-              
-              // MCP HTTP endpoint - routes traffic to MCP server container
-              app.post('/mcp', (req, res) => {
-                console.log('HTTP -> MCP Bridge routing request:', req.body);
-                
-                // Send request to MCP server via kubectl exec
-                const mcpRequest = JSON.stringify(req.body);
-                
-                // Connect directly to the MCP server process stdin/stdout
-                const mcpProcess = spawn('kubectl', [
-                  'exec', '-i', '-n', 'mcp-servers',
-                  'deployment/filesystem-mcp-server',
-                  '-c', 'mcp-filesystem-server',
-                  '--', 'sh', '-c',
-                  `echo '${mcpRequest}' > /tmp/mcp_stdin`
-                ]);
-                
-                let responseData = '';
-                let errorData = '';
-                
-                const responseTimeout = setTimeout(() => {
-                  mcpProcess.kill();
-                  res.status(500).json({
-                    jsonrpc: '2.0',
-                    error: { 
-                      code: -32000, 
-                      message: 'MCP server timeout',
-                      data: 'No response from MCP server'
-                    },
-                    id: req.body.id || null
-                  });
-                }, 5000);
-                
-                mcpProcess.stdout.on('data', (data) => {
-                  responseData += data.toString();
-                });
-                
-                mcpProcess.stderr.on('data', (data) => {
-                  errorData += data.toString();
-                });
-                
-                mcpProcess.on('close', (code) => {
-                  clearTimeout(responseTimeout);
-                  
-                  if (code !== 0) {
-                    console.error('MCP Server Error:', errorData);
-                    return res.status(500).json({
-                      jsonrpc: '2.0',
-                      error: { 
-                        code: -32000, 
-                        message: 'MCP server error',
-                        data: errorData || `Exit code: ${code}`
-                      },
-                      id: req.body.id || null
-                    });
-                  }
-                  
-                  // For now, since the MCP server doesn't output to stdout in this setup,
-                  // we'll return a mock successful response
-                  console.log('MCP request sent successfully');
-                  res.json({
-                    jsonrpc: '2.0',
-                    result: {
-                      protocolVersion: '1.0.0',
-                      capabilities: {},
-                      serverInfo: {
-                        name: 'filesystem-mcp',
-                        version: '1.0.0'
-                      }
-                    },
-                    id: req.body.id || null
-                  });
-                });
-              });
-              
-              // WebSocket handler for persistent MCP communication
-              wss.on('connection', (ws) => {
-                console.log('WebSocket connection established - bridging to MCP server');
-                
-                // For WebSocket, we need a different approach since the MCP server 
-                // is designed to work with stdin/stdout streams
-                // For now, we'll use a simple echo approach
-                const mcpConnection = spawn('kubectl', [
-                  'exec', '-i', '-n', 'mcp-servers',
-                  'deployment/filesystem-mcp-server',
-                  '-c', 'mcp-filesystem-server',
-                  '--', 'sh', '-c', 
-                  'while true; do read line; echo "$line" > /tmp/mcp_stdin; echo "{\\"jsonrpc\\":\\"2.0\\",\\"result\\":{\\"ack\\":true}}"; done'
-                ], {
-                  stdio: ['pipe', 'pipe', 'pipe']
-                });
-                
-                // Forward WebSocket messages to MCP server
-                ws.on('message', (data) => {
-                  try {
-                    const message = data.toString();
-                    console.log('WS -> MCP Bridge:', message);
-                    mcpConnection.stdin.write(message + '\\n');
-                  } catch (error) {
-                    console.error('WebSocket message error:', error);
-                  }
-                });
-                
-                // Forward MCP server responses to WebSocket
-                mcpConnection.stdout.on('data', (data) => {
-                  const response = data.toString().trim();
-                  if (response) {
-                    console.log('MCP -> WS Bridge:', response);
-                    ws.send(response);
-                  }
-                });
-                
-                mcpConnection.stderr.on('data', (data) => {
-                  console.error('MCP Connection Error:', data.toString());
-                });
-                
-                // Clean up on WebSocket close
-                ws.on('close', () => {
-                  console.log('WebSocket closed - terminating MCP connection');
-                  mcpConnection.kill();
-                });
-                
-                mcpConnection.on('exit', (code) => {
-                  console.log(`MCP connection exited with code ${code}`);
-                  ws.close();
-                });
-              });
-              
-              const PORT = 8080;
-              server.listen(PORT, '0.0.0.0', () => {
-                console.log(`Filesystem MCP HTTP Bridge listening on port ${PORT}`);
-                console.log('Ready to route HTTP/WebSocket traffic to filesystem-mcp-server');
-              });
-              EOF
-              
-              echo "Starting bridge server..."
-              node /tmp/server.js
-          ports:
-            - name: http
-              containerPort: 8080
-              protocol: TCP
-          env:
-            - name: NODE_ENV
-              value: "production"
-          securityContext:
-            allowPrivilegeEscalation: true
-            readOnlyRootFilesystem: false
-            runAsNonRoot: false
-            runAsUser: 0
-            capabilities:
-              drop:
-                - ALL
-              add:
-                - NET_ADMIN
+              set -e
+              cp /opt/bitnami/kubectl/bin/kubectl /kubectl/kubectl
+              chmod +x /kubectl/kubectl
+              cp /config/package.json /work/
           volumeMounts:
-            - mountPath: /projects/data
-              name: shared-data
-            - mountPath: /projects/logs
-              name: log-storage
-            - mountPath: /projects/config
-              name: config-storage
-            - mountPath: /projects/workspace
-              name: shared-workspace
+            - { name: kubectl-bin, mountPath: /kubectl }
+            - { name: bridge-work, mountPath: /work }
+            - { name: bridge-script, mountPath: /config }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities: { drop: ["ALL"] }
+        - name: install-deps
+          image: node:22.11-alpine
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              cd /work
+              # --ignore-scripts: postinstall scripts can write outside /work
+              # and would otherwise fail under readOnlyRootFilesystem on
+              # the main container; deps used here (express, ws) don't need them.
+              npm install --omit=dev --no-audit --no-fund --ignore-scripts
+          volumeMounts:
+            - { name: bridge-work, mountPath: /work }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities: { drop: ["ALL"] }
+      containers:
+        - name: mcp-http-bridge
+          image: node:22.11-alpine
+          command: ["node", "/work/server.js"]
+          workingDir: /work
+          ports:
+            - { name: http, containerPort: 8080, protocol: TCP }
+          env:
+            - { name: NODE_ENV, value: "production" }
+            - { name: PATH, value: "/kubectl:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: bridge-work, mountPath: /work }
+            - { name: bridge-script, mountPath: /work/server.js, subPath: server.js }
+            - { name: kubectl-bin, mountPath: /kubectl }
+            - { name: tmp, mountPath: /tmp }
+            - { name: shared-data, mountPath: /projects/data }
+            - { name: log-storage, mountPath: /projects/logs }
+            - { name: config-storage, mountPath: /projects/config }
+            - { name: shared-workspace, mountPath: /projects/workspace }
           resources:
-            requests:
-              memory: "128Mi"
-              cpu: "50m"
-            limits:
-              memory: "256Mi"
-              cpu: "200m"
+            requests: { memory: "128Mi", cpu: "50m" }
+            limits:   { memory: "256Mi", cpu: "200m" }
           livenessProbe:
-            httpGet:
-              path: /health
-              port: 8080
+            httpGet: { path: /health, port: 8080 }
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3
           readinessProbe:
-            httpGet:
-              path: /health
-              port: 8080
+            httpGet: { path: /health, port: 8080 }
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
       volumes:
+        - { name: bridge-work, emptyDir: {} }
+        - { name: bridge-script, configMap: { name: filesystem-mcp-bridge-script } }
+        - { name: kubectl-bin, emptyDir: {} }
+        - { name: tmp, emptyDir: {} }
         - name: shared-data
-          persistentVolumeClaim:
-            claimName: filesystem-mcp-data
+          persistentVolumeClaim: { claimName: filesystem-mcp-data }
         - name: log-storage
-          persistentVolumeClaim:
-            claimName: filesystem-mcp-logs
+          persistentVolumeClaim: { claimName: filesystem-mcp-logs }
         - name: config-storage
-          persistentVolumeClaim:
-            claimName: filesystem-mcp-config
+          persistentVolumeClaim: { claimName: filesystem-mcp-config }
         - name: shared-workspace
-          persistentVolumeClaim:
-            claimName: mcp-shared-workspace
+          persistentVolumeClaim: { claimName: mcp-shared-workspace }
