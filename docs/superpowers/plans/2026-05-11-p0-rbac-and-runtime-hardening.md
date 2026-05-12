@@ -706,14 +706,17 @@ data:
     });
 
     app.post('/mcp', (req, res) => {
+      // Pipe the JSON body to `tee` via stdin — no shell, no interpolation.
+      // The previous `sh -c "echo '${mcpRequest}' > /tmp/mcp_stdin"` form was
+      // a command-injection sink: a single-quote in the body broke out of the
+      // sh argument and ran arbitrary commands inside the MCP server pod.
       const mcpRequest = JSON.stringify(req.body);
       const proc = spawn('kubectl', [
         'exec', '-i', '-n', 'mcp-servers',
         'deployment/filesystem-mcp-server',
         '-c', 'mcp-filesystem-server',
-        '--', 'sh', '-c',
-        `echo '${mcpRequest}' > /tmp/mcp_stdin`
-      ]);
+        '--', 'tee', '/tmp/mcp_stdin'
+      ], { stdio: ['pipe', 'ignore', 'pipe'] });
       let errorData = '';
       const t = setTimeout(() => {
         proc.kill();
@@ -727,6 +730,11 @@ data:
         }
         res.json({ jsonrpc: '2.0', result: { protocolVersion: '1.0.0', capabilities: {}, serverInfo: { name: 'filesystem-mcp', version: '1.0.0' } }, id: req.body.id || null });
       });
+      proc.on('error', (err) => {
+        clearTimeout(t);
+        res.status(500).json({ jsonrpc: '2.0', error: { code: -32000, message: 'MCP spawn failed', data: err.message }, id: req.body.id || null });
+      });
+      proc.stdin.end(mcpRequest);
     });
 
     const PORT = 8080;
