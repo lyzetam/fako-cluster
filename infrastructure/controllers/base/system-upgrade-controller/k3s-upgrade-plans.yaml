@@ -77,7 +77,7 @@ spec:
     ignoreDaemonSets: true
     deleteEmptydirData: true   # NB: lowercase 'd' in 'dir' to match the CRD schema (upstream typo)
     disableEviction: false                # use eviction API (respects PDBs)
-    timeout: 600                          # max 10 min to drain
+    timeout: 600s                        # max 10 min to drain
   cordon: true
   upgrade:
     # SUC injects `version` as the image tag at job-creation time, e.g.
@@ -115,7 +115,7 @@ spec:
     ignoreDaemonSets: true
     deleteEmptydirData: true   # NB: lowercase 'd' in 'dir' to match the CRD schema (upstream typo)
     disableEviction: false
-    timeout: 600
+    timeout: 600s
   cordon: true
   upgrade:
     image: rancher/k3s-upgrade
