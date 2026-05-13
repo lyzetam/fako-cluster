@@ -7,7 +7,7 @@ spec:
   agent:
     # Supported: dotnet, java, nodejs, python, ruby, php
     language: java
-    image: newrelic/newrelic-java-init:latest
+    image: newrelic/newrelic-java-init:9.2.0
     
   # Select namespaces to instrument (example: default namespace)
   namespaceLabelSelector:

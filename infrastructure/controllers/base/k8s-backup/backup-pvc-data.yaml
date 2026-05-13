@@ -13,7 +13,7 @@ spec:
         spec:
           containers:
           - name: rsync
-            image: instrumentisto/rsync-ssh:latest
+            image: instrumentisto/rsync-ssh:alpine3.23-r3
             command:
             - /bin/sh
             - -c
