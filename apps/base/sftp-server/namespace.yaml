@@ -4,3 +4,5 @@ metadata:
   name: sftp-server
   labels:
     name: sftp-server
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

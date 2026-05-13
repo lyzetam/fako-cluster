@@ -5,3 +5,5 @@ metadata:
   labels:
     name: amig-erp
     app.kubernetes.io/part-of: amig-erp
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

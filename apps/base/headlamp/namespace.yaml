@@ -5,3 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/name: headlamp
     app.kubernetes.io/part-of: dashboard
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

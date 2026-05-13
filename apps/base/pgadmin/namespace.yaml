@@ -1,5 +1,7 @@
-# apps/base/pgadmin/namespace.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
   name: pgadmin
+  labels:
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

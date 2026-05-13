@@ -4,3 +4,5 @@ metadata:
   name: n8n
   labels:
     name: n8n
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

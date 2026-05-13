@@ -5,3 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/name: kube-bench
     app.kubernetes.io/part-of: security
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

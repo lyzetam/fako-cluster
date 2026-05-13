@@ -4,3 +4,5 @@ metadata:
   name: claude-code
   labels:
     app.kubernetes.io/name: claude-code
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

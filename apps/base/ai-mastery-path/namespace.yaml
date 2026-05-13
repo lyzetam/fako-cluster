@@ -5,3 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/name: ai-mastery-path
     app.kubernetes.io/part-of: lztechnology
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

@@ -1,5 +1,7 @@
-# apps/base/gitleaks/namespace.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
   name: security-scanning
+  labels:
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

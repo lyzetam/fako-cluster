@@ -5,3 +5,5 @@ metadata:
   name: market-replay
   labels:
     name: market-replay
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline
