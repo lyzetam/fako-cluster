@@ -9,7 +9,9 @@ spec:
   chart:
     spec:
       chart: gpu-operator
-      version: "*"  # Use latest version
+      # Pin to current major. v26.x is what's installed; allow patch + minor
+      # bumps within the 26 series, block surprise v27 jumps. Renovate can track.
+      version: ">=26.0.0 <27.0.0"
       sourceRef:
         kind: HelmRepository
         name: nvidia
