@@ -17,7 +17,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: scheduler-tick
-              image: curlimages/curl:latest
+              image: curlimages/curl:8.20.0
               command:
                 - curl
                 - -s

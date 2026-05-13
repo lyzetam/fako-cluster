@@ -34,7 +34,7 @@ spec:
         fsGroup: 26
       containers:
       - name: fix-permissions
-        image: busybox:latest
+        image: busybox:1.37.0
         command:
         - /bin/sh
         - -c
