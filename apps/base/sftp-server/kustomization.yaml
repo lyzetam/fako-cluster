@@ -12,3 +12,4 @@ resources:
   - host-keys-pvc.yaml
   - deployment.yaml
   - service.yaml
+  - external-secret-dockerhub.yaml

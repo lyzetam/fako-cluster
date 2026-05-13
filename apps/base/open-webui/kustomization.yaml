@@ -13,3 +13,4 @@ resources:
   - external-secret-endpoints.yaml
   - external-secret-gpustack.yaml
   - external-secret-ollama-cloud.yaml
+  - external-secret-dockerhub.yaml

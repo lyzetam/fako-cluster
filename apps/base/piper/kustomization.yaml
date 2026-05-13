@@ -4,6 +4,8 @@ kind: Kustomization
 namespace: piper
 resources:
   - namespace.yaml
+  - secret-store.yaml
+  - external-secret-dockerhub.yaml
   - configmap.yaml
   - storage.yaml
   - deployment.yaml

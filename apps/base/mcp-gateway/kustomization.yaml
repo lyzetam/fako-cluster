@@ -13,6 +13,7 @@ resources:
   - cloudflare.yaml
   - cloudflare-secret.yaml
 
+  - external-secret-dockerhub.yaml
 labels:
 - pairs:
     app.kubernetes.io/part-of: mcp-gateway
