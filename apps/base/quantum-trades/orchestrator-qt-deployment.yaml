@@ -24,7 +24,7 @@ spec:
         app: orchestrator-qt
         component: autonomous-agents
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-05-11T13:48:00Z"
+        kubectl.kubernetes.io/restartedAt: "2026-05-13T11:22:00Z"
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
