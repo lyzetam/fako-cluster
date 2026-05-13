@@ -97,12 +97,14 @@ spec:
   version: v1.33.11+k3s1
   concurrency: 0   # 0 = paused. Set to 1 ONLY after the server Plan completes.
   # =================================================
-  # Only agents; exclude aitower (NotReady, would block the rolling upgrade).
-  # When aitower returns to Ready, remove the hostname matchExpression.
+  # Only agents; exclude aitower + pglenovo01 (both NotReady; would block the
+  # rolling upgrade — SUC would attempt to drain them, hang on drain timeout,
+  # and stop the upgrade). When either node returns to Ready, remove it from
+  # the hostname matchExpression.
   nodeSelector:
     matchExpressions:
       - { key: node-role.kubernetes.io/control-plane, operator: DoesNotExist }
-      - { key: kubernetes.io/hostname, operator: NotIn, values: ["aitower"] }
+      - { key: kubernetes.io/hostname, operator: NotIn, values: ["aitower", "pglenovo01"] }
   serviceAccountName: system-upgrade
   # Gate: wait for the k3s-server Plan to complete before agents start.
   prepare:
