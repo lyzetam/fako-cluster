@@ -134,4 +134,5 @@ resources:
   - ai-mastery-path
 
   # AMIG GROUP ERP — demo for client (amig-erp.lztechnology.io)
-  - amig-erp
+  # Paused 2026-05-13: not in active use. Re-enable by uncommenting.
+  # - amig-erp
