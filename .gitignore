@@ -17,6 +17,7 @@ CLAUDE.md
 GEMINI.md
 SECURITY*.md
 .claude/settings.local.json
+docs/
 
 # Terraform (IaC directory only - not Flux managed)
 iac/.terraform/
