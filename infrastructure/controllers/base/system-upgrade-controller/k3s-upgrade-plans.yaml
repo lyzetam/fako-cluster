@@ -75,7 +75,7 @@ spec:
     force: true
     skipWaitForDeleteTimeout: 60          # seconds; bail on pods stuck terminating
     ignoreDaemonSets: true
-    deleteEmptyDirData: true
+    deleteEmptydirData: true   # NB: lowercase 'd' in 'dir' to match the CRD schema (upstream typo)
     disableEviction: false                # use eviction API (respects PDBs)
     timeout: 600                          # max 10 min to drain
   cordon: true
@@ -112,7 +112,7 @@ spec:
     force: true
     skipWaitForDeleteTimeout: 60
     ignoreDaemonSets: true
-    deleteEmptyDirData: true
+    deleteEmptydirData: true   # NB: lowercase 'd' in 'dir' to match the CRD schema (upstream typo)
     disableEviction: false
     timeout: 600
   cordon: true
