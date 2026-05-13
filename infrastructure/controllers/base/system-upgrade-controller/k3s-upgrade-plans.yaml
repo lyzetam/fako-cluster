@@ -95,7 +95,7 @@ metadata:
 spec:
   # === Edit these two fields to drive an upgrade ===
   version: v1.34.7+k3s1
-  concurrency: 1   # 2026-05-13: aitower recovery upgrade (v1.33.4 -> v1.34.7).
+  concurrency: 0   # All nodes on v1.34.7+k3s1 as of 2026-05-13. Set to 1 to start a future upgrade (bump version first).
   # =================================================
   # All agents in scope. aitower recovered 2026-05-13 (ufw disabled + Cilium
   # iptables cleaned, same pattern as the other workers).
