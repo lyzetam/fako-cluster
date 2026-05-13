@@ -22,7 +22,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: openwakeword
-          image: rhasspy/wyoming-openwakeword:latest
+          image: rhasspy/wyoming-openwakeword:2.1.0
           ports:
             - containerPort: 10400
               protocol: TCP
