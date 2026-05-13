@@ -57,8 +57,8 @@ metadata:
     k3s-upgrade: server
 spec:
   # === Edit these two fields to drive an upgrade ===
-  version: v1.33.11+k3s1
-  concurrency: 0   # Pass 1 complete 2026-05-13. Set to 1 to start pass 2 (after bumping version).
+  version: v1.34.7+k3s1
+  concurrency: 1   # PASS 2 server upgrade — 2026-05-13.
   # =================================================
   # Apply only to control-plane nodes.
   nodeSelector:
@@ -94,8 +94,8 @@ metadata:
     k3s-upgrade: agent
 spec:
   # === Edit these two fields to drive an upgrade ===
-  version: v1.33.11+k3s1
-  concurrency: 0   # Pass 1 complete 2026-05-13. Set to 1 to start pass 2 (after bumping version).
+  version: v1.34.7+k3s1
+  concurrency: 0   # Updated for pass 2.
   # =================================================
   # Only agents; exclude aitower (NotReady since 2026-05-02 — pending physical
   # recovery). pglenovo01 recovered after the 2026-05-13 reboot + ufw disable
