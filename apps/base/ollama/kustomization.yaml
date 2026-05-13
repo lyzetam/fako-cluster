@@ -3,6 +3,8 @@ kind: Kustomization
 namespace: ollama
 resources:
   - namespace.yaml
+  - secret-store.yaml
+  - external-secret-dockerhub.yaml
   - configmap.yaml
   - storage.yaml
   - deployment-gpu.yaml

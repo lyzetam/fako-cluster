@@ -4,6 +4,8 @@ namespace: housekeeping
 
 resources:
   - namespace.yaml
+  - secret-store.yaml
+  - external-secret-dockerhub.yaml
   - serviceaccount.yaml
   - clusterrole.yaml
   - clusterrolebinding.yaml
