@@ -114,7 +114,12 @@ spec:
     skipWaitForDeleteTimeout: 60
     ignoreDaemonSets: true
     deleteEmptydirData: true   # NB: lowercase 'd' in 'dir' to match the CRD schema (upstream typo)
-    disableEviction: false
+    # Bypass PDBs. Single-replica apps (langfuse-web etc.) have minAvailable:1
+    # PDBs that block eviction forever. Homelab-appropriate trade-off: brief
+    # outage on those apps during their node's upgrade rather than blocking
+    # the whole rollout. Use eviction API (disableEviction: false) once the
+    # cluster has proper multi-replica deployments.
+    disableEviction: true
     timeout: 600s
   cordon: true
   upgrade:
