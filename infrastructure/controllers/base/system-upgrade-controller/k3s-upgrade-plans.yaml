@@ -58,7 +58,7 @@ metadata:
 spec:
   # === Edit these two fields to drive an upgrade ===
   version: v1.33.11+k3s1
-  concurrency: 0   # 0 = paused. Set to 1 to start.
+  concurrency: 1   # PASS 1 IN PROGRESS — set 2026-05-13 by Claude on user request.
   # =================================================
   # Apply only to control-plane nodes.
   nodeSelector:
