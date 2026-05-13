@@ -26,7 +26,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: n8n-mcp-server
-          image: ghcr.io/czlonkowski/n8n-mcp:latest
+          image: ghcr.io/czlonkowski/n8n-mcp:v2.51.3
           ports:
             - containerPort: 3000
               protocol: TCP

@@ -45,7 +45,7 @@ spec:
           mountPath: /build/plugins
       initContainers:
       - name: kubescape-plugin
-        image: ghcr.io/kubebeam/kubescape-headlamp-plugin:latest
+        image: ghcr.io/kubebeam/kubescape-headlamp-plugin:v0.6.0
         command:
         - /bin/sh
         - -c

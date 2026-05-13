@@ -55,7 +55,7 @@ spec:
       containers:
         # Main Piper container
         - name: piper
-          image: rhasspy/wyoming-piper:latest
+          image: rhasspy/wyoming-piper:2.2.2
           ports:
             - containerPort: 10200
               protocol: TCP

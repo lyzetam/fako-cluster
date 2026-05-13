@@ -30,7 +30,7 @@ spec:
       # Init container to download models before main container starts
       initContainers:
       - name: model-downloader
-        image: ghcr.io/speaches-ai/speaches:latest-cpu
+        image: ghcr.io/speaches-ai/speaches@sha256:21e3df06d842fb7802ab470dd77c25f0e8c0d22950e8d8c6ae886e851af53ef8
         command:
         - /bin/sh
         - -c
@@ -62,7 +62,7 @@ spec:
 
       containers:
       - name: whisper
-        image: ghcr.io/speaches-ai/speaches:latest-cpu
+        image: ghcr.io/speaches-ai/speaches@sha256:21e3df06d842fb7802ab470dd77c25f0e8c0d22950e8d8c6ae886e851af53ef8
         ports:
         - containerPort: 8000
           protocol: TCP

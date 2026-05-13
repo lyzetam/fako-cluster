@@ -11,7 +11,7 @@ metadata:
     kagent.dev/tool.type: "mcp"
     kagent.dev/tool.description: "Kubernetes cluster operations including listing resources, getting logs, running commands in pods"
     kagent.dev/tool.transport: "stdio"
-    kagent.dev/tool.image: "mcpk8s/server:latest"
+    kagent.dev/tool.image: "mcpk8s/server:v0.6.1"
 spec:
   type: ClusterIP
   selector:
