@@ -11,3 +11,4 @@ resources:
   - system-tuning
   - cloudnative-pg
   - unifi-data
+  - system-upgrade-controller   # K3s upgrades via Plan CRDs — see system-upgrade-controller/k3s-upgrade-plans.yaml
