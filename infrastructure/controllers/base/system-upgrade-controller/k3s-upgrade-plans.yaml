@@ -95,15 +95,13 @@ metadata:
 spec:
   # === Edit these two fields to drive an upgrade ===
   version: v1.34.7+k3s1
-  concurrency: 0   # Pass 2 complete 2026-05-13. Set to 1 to start a future upgrade (bump version first).
+  concurrency: 1   # 2026-05-13: aitower recovery upgrade (v1.33.4 -> v1.34.7).
   # =================================================
-  # Only agents; exclude aitower (NotReady since 2026-05-02 — pending physical
-  # recovery). pglenovo01 recovered after the 2026-05-13 reboot + ufw disable
-  # + Cilium iptables cleanup, so it's back in the upgrade pool.
+  # All agents in scope. aitower recovered 2026-05-13 (ufw disabled + Cilium
+  # iptables cleaned, same pattern as the other workers).
   nodeSelector:
     matchExpressions:
       - { key: node-role.kubernetes.io/control-plane, operator: DoesNotExist }
-      - { key: kubernetes.io/hostname, operator: NotIn, values: ["aitower"] }
   serviceAccountName: system-upgrade
   # Gate: wait for the k3s-server Plan to complete before agents start.
   prepare:
