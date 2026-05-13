@@ -25,7 +25,7 @@ spec:
       initContainers:
         # Scale down n8n to release PVC lock
         - name: scale-down-n8n
-          image: bitnami/kubectl:latest
+          image: bitnamilegacy/kubectl:1.33.4
           command: ["/bin/bash", "-c"]
           args:
             - |

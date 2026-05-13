@@ -33,7 +33,7 @@ spec:
       containers:
       - name: ollama
         # Use latest ollama image which has better Jetson support
-        image: ollama/ollama:latest
+        image: ollama/ollama:0.23.3
         ports:
         - containerPort: 11434
           protocol: TCP
@@ -83,7 +83,7 @@ spec:
       
       # Model manager sidecar - simplified to use environment configurations
       - name: model-manager
-        image: ollama/ollama:latest
+        image: ollama/ollama:0.23.3
         command: ["/bin/sh"]
         args:
         - -c

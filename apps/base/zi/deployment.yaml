@@ -22,7 +22,7 @@ spec:
         - name: dockerhub-registry
       initContainers:
         - name: setup-brain-storage
-          image: busybox:latest
+          image: busybox:1.37.0
           command:
             - sh
             - -c
