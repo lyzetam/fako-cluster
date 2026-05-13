@@ -1,0 +1,120 @@
+# K3s upgrade Plans managed by system-upgrade-controller.
+#
+# Strategy: two-pass, server-then-agent, paused-by-default.
+#
+# Why two passes:
+#   Kubernetes only supports n→n+1 minor upgrades. Cluster is currently
+#   mixed 1.32.x with one node already on 1.33.4. Going straight to 1.34
+#   would violate the kubelet/kube-apiserver skew policy. Path:
+#     pass 1: everything → v1.33.11+k3s1 (latest 1.33)
+#     pass 2: everything → v1.34.7+k3s1  (latest 1.34)
+#   Edit `version:` below, set `concurrency: 1`, push. SUC takes over.
+#
+# Why paused-by-default (concurrency: 0):
+#   This file lands via Flux. concurrency: 0 means the Plans are
+#   declared but inert — no upgrade jobs are scheduled. To begin an
+#   upgrade pass, change concurrency to 1 (server first), commit, push.
+#   After the server completes, do the same for the agent Plan.
+#
+# Current version inventory (2026-05-13):
+#   zz-macbookpro  v1.32.4+k3s1   control-plane,master   Ready
+#   pglenovo01     v1.32.4+k3s1   worker                 Ready
+#   pglenovo02     v1.32.4+k3s1   worker                 Ready
+#   pgmac01        v1.32.4+k3s1   worker                 Ready
+#   thinkpad01     v1.32.5+k3s1   storage,worker         Ready
+#   aitower        v1.33.4+k3s1   GPU worker             NotReady (excluded)
+#
+# Aitower is excluded from the agent Plan until it returns to Ready. To
+# include it, remove the hostname matchExpression on the agent Plan.
+#
+# Step-by-step execution:
+#   PRE: aitower Ready, Velero backup verified, no Flux errors.
+#
+#   Pass 1 (1.32/1.33.4 -> 1.33.11):
+#     1. Verify version field below is v1.33.11+k3s1 on both Plans.
+#     2. Change server Plan concurrency 0 -> 1; commit; push.
+#     3. Watch `kubectl get plan -n system-upgrade` and the upgrade Jobs.
+#     4. After server reports applied, change agent Plan concurrency 0
+#        -> 1; commit; push.
+#     5. Wait for all agents to roll. Verify `kubectl get nodes`.
+#     6. Set BOTH back to concurrency: 0; commit; push.
+#
+#   Pass 2 (1.33.11 -> 1.34.7):
+#     7. Update both Plan `version:` to v1.34.7+k3s1.
+#     8. Repeat steps 2-6.
+#
+# Rollback: change version back to the previous tag, set concurrency
+# to 1 again. SUC downgrades the same way. Don't skip minors.
+#
+# See: https://docs.k3s.io/upgrades/automated
+---
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: k3s-server
+  namespace: system-upgrade
+  labels:
+    k3s-upgrade: server
+spec:
+  # === Edit these two fields to drive an upgrade ===
+  version: v1.33.11+k3s1
+  concurrency: 0   # 0 = paused. Set to 1 to start.
+  # =================================================
+  # Apply only to control-plane nodes.
+  nodeSelector:
+    matchExpressions:
+      - { key: node-role.kubernetes.io/control-plane, operator: Exists }
+  serviceAccountName: system-upgrade
+  # Tolerations let the upgrade Job schedule onto control-plane nodes
+  # (which are normally tainted).
+  tolerations:
+    - { key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule }
+    - { key: CriticalAddonsOnly, operator: Exists }
+  # Drain the node before upgrading.
+  drain:
+    force: true
+    skipWaitForDeleteTimeout: 60          # seconds; bail on pods stuck terminating
+    ignoreDaemonSets: true
+    deleteEmptyDirData: true
+    disableEviction: false                # use eviction API (respects PDBs)
+    timeout: 600                          # max 10 min to drain
+  cordon: true
+  upgrade:
+    # SUC injects `version` as the image tag at job-creation time, e.g.
+    # rancher/k3s-upgrade:v1.33.11-k3s1 (note: `+` becomes `-`). Renovate
+    # cannot track an implicit tag — bump `version:` above when upgrading.
+    image: rancher/k3s-upgrade
+---
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: k3s-agent
+  namespace: system-upgrade
+  labels:
+    k3s-upgrade: agent
+spec:
+  # === Edit these two fields to drive an upgrade ===
+  version: v1.33.11+k3s1
+  concurrency: 0   # 0 = paused. Set to 1 ONLY after the server Plan completes.
+  # =================================================
+  # Only agents; exclude aitower (NotReady, would block the rolling upgrade).
+  # When aitower returns to Ready, remove the hostname matchExpression.
+  nodeSelector:
+    matchExpressions:
+      - { key: node-role.kubernetes.io/control-plane, operator: DoesNotExist }
+      - { key: kubernetes.io/hostname, operator: NotIn, values: ["aitower"] }
+  serviceAccountName: system-upgrade
+  # Gate: wait for the k3s-server Plan to complete before agents start.
+  prepare:
+    args: ["prepare", "k3s-server"]
+    image: rancher/k3s-upgrade
+  drain:
+    force: true
+    skipWaitForDeleteTimeout: 60
+    ignoreDaemonSets: true
+    deleteEmptyDirData: true
+    disableEviction: false
+    timeout: 600
+  cordon: true
+  upgrade:
+    image: rancher/k3s-upgrade
