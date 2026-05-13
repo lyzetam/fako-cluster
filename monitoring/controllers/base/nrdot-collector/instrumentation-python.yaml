@@ -6,7 +6,7 @@ metadata:
 spec:
   agent:
     language: python
-    image: newrelic/newrelic-python-init:latest
+    image: newrelic/newrelic-python-init:13.0.0
   
   # Target namespaces with Python applications (MCP servers + voice pipeline)
   namespaceLabelSelector:

@@ -6,7 +6,7 @@ metadata:
 spec:
   agent:
     language: nodejs
-    image: newrelic/newrelic-node-init:latest
+    image: newrelic/newrelic-node-init:13.20.0
   
   # Target namespaces with Node.js applications
   namespaceLabelSelector:
