@@ -58,7 +58,7 @@ metadata:
 spec:
   # === Edit these two fields to drive an upgrade ===
   version: v1.33.11+k3s1
-  concurrency: 1   # PASS 1 IN PROGRESS — set 2026-05-13 by Claude on user request.
+  concurrency: 0   # Pass 1 complete 2026-05-13. Set to 1 to start pass 2 (after bumping version).
   # =================================================
   # Apply only to control-plane nodes.
   nodeSelector:
@@ -95,7 +95,7 @@ metadata:
 spec:
   # === Edit these two fields to drive an upgrade ===
   version: v1.33.11+k3s1
-  concurrency: 1   # PASS 1 agent rollout — set 2026-05-13 after server completed.
+  concurrency: 0   # Pass 1 complete 2026-05-13. Set to 1 to start pass 2 (after bumping version).
   # =================================================
   # Only agents; exclude aitower (NotReady since 2026-05-02 — pending physical
   # recovery). pglenovo01 recovered after the 2026-05-13 reboot + ufw disable
