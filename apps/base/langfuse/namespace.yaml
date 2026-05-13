@@ -4,3 +4,5 @@ metadata:
   name: langfuse
   labels:
     app.kubernetes.io/name: langfuse
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

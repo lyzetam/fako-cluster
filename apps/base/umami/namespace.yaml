@@ -5,3 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/name: umami
     app.kubernetes.io/component: analytics
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

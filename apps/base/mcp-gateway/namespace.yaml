@@ -6,3 +6,5 @@ metadata:
     app.kubernetes.io/name: mcp-gateway
     app.kubernetes.io/component: ai-tools
     app.kubernetes.io/part-of: ai-stack
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

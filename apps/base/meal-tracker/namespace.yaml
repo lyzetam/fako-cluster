@@ -5,3 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/name: meal-tracker
     app.kubernetes.io/component: namespace
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

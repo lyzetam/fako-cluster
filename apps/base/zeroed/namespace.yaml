@@ -4,3 +4,5 @@ metadata:
   name: zeroed
   labels:
     app: zeroed
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

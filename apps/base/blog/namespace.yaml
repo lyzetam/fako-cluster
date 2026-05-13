@@ -5,3 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/name: blog
     app.kubernetes.io/part-of: documentation
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

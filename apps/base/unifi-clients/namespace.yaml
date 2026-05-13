@@ -4,3 +4,5 @@ metadata:
   name: unifi-clients
   labels:
     name: unifi-clients
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline

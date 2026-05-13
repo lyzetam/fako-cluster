@@ -5,3 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/name: zi
     app.kubernetes.io/part-of: zi
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline
