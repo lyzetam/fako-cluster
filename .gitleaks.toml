@@ -21,8 +21,21 @@ regexes = [
 paths = [
   # Gitleaks own config
   '''.gitleaks.toml''',
-  # Documentation files
-  '''notes/docs/.*\.md''',
+  # Documentation files (markdown — frequently contain placeholder tokens in curl examples)
+  '''.*\.md''',
   # Test fixtures
   '''.*test.*fixture.*''',
+  # ExternalSecret manifests reference AWS Secrets Manager paths (not credentials)
+  '''.*external-secret.*\.yaml''',
+]
+
+# Placeholder tokens in documentation curl examples
+stopwords = [
+  '''YOUR_TOKEN''',
+  '''YOUR_API_KEY''',
+  '''YOUR_AUTH_TOKEN_HERE''',
+  '''YOUR_PASSWORD''',
+  '''REPLACE_ME''',
+  '''<your-token>''',
+  '''<api-key>''',
 ]
