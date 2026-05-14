@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: renovate-host-rules
+    namespace: renovate
+type: Opaque
+stringData:
+    RENOVATE_HOST_RULES: ENC[AES256_GCM,data:ISET75D3Gu8JTjXBSfMe4VMFqPbdV4xcGO2D+rAp8zejLloqE6pitVNV8DAc5vrl3/WIOPTkWLlKzN2jFTnXzN1sr2zHQWDBo4fondwZJ9fA0s7e+fHYaIJ5+d1crYzkizHkg53opQZkQvLC3WsgR+5gAbcBouQHOyX/BH3Zfa4=,iv:OP1Ed+7N+JiqMchCNX+vqZeVTrQsAnCwOP+GCVAmhRU=,tag:krZH90rjKmvB01uOye2qYg==,type:str]
+sops:
+    age:
+        - recipient: age1wz30c9m30hshgx9tg5lylctp646hgu3p0v0sxjuy8xxz34exh4hstn9utd
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBzYlJKZ3dOMGJGSGU4aUUr
+            dlpubnZWbllDVzJFb1ZnNCtDVlNubFB6NFFJCk01OWtYOFUzbklEL3g5MmFnbVNZ
+            ZjNPaWs2MXRiWXhwcDFnWUR5SVJBZlEKLS0tIHZZK2ZkNUhPUVBGKzVHOXdnT2Fh
+            emVCeFdmQkxJY2l0LzVPdVhJVjIxM0UKU54rplHF3O5FJvNkPyuHyxrXH6Sr+h76
+            5SkM5rgDexVSXTWe2flm+xbG7EqAOqYfyX4RpO5YjmVg7t/kkUx6sg==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2026-05-14T10:20:33Z"
+    mac: ENC[AES256_GCM,data:hdxN5+4kr+1JGBJ/JRNo1WQ9vj0GyA+OBqlIRe+DtsPFG11BhLYlC1d34ucvhlkxc9wKEMegYpI8fCQU0tXEmNV7gRBlJQMO9UszX/srtuXNyuPap2ypbOjtGRx6fv/J9VWs14gKNU7ovTAmfYtgBdKXiPs2JEbRv+KM28LlmEU=,iv:eXzfylfcF6Q6k1GyZ2cNVKlpGx4UphzFnabARa12xxw=,tag:KL1lbRJ4MqxkZTEDl3HgJQ==,type:str]
+    encrypted_regex: ^(data|stringData)$
+    version: 3.10.2

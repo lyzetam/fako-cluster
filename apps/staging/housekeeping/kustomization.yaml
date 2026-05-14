@@ -4,3 +4,4 @@ namespace: housekeeping
 
 resources:
   - ../../base/housekeeping
+  - aws-credentials-secret.yaml
