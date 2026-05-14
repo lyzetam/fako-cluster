@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - renovate-container-env.yaml
+  - renovate-host-rules.yaml
   - configmap.yaml
   - dockerhub-secret.yaml
   - create-docker-registry-secret-job.yaml

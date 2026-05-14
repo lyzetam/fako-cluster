@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: piper
 resources:
   - ../../base/piper/
+  - aws-credentials-secret.yaml
