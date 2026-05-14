@@ -1,0 +1,30 @@
+# Aggregated APIService that exposes kubescape's CRD-like resources
+# (applicationprofiles, applicationactivities, vulnerabilitymanifests, ...)
+# served by the `storage` Deployment in this namespace.
+#
+# The kubescape helm chart does NOT include this APIService — the kubescape
+# operator was supposed to create it dynamically at runtime, but lost its
+# state during the 2026-05-13 cluster recovery (we deleted the stale
+# APIService to unblock cluster-wide namespace deletion when storage was
+# Pending on aitower).
+#
+# Pinning it in Git so it survives cluster restarts. Without it, the
+# `node-agent` DaemonSet pods loop on startup probe waiting for the
+# applicationprofiles resource type to be discoverable.
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta1.spdx.softwarecomposition.kubescape.io
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: kubescape-operator
+spec:
+  group: spdx.softwarecomposition.kubescape.io
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  version: v1beta1
+  service:
+    name: storage
+    namespace: kubescape
+    port: 443
+  insecureSkipTLSVerify: true

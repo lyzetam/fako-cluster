@@ -6,6 +6,7 @@ resources:
   - namespace.yaml
   - repository.yaml
   - release.yaml
+  - apiservice-spdx.yaml
   # Docker Hub credentials
   - create-docker-registry-secret-job.yaml
   # Obsidian reporting
