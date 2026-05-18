@@ -1,0 +1,97 @@
+# One-off historical backfill Job for Fieldy.
+#
+# How to run a backfill (GitOps workflow):
+#   1. Edit BACKFILL_START and BACKFILL_END below to your desired window.
+#   2. Bump `metadata.name` (e.g., from `fieldy-backfill-001` to `fieldy-backfill-002`)
+#      so K8s treats it as a new Job, not a duplicate of an existing one.
+#   3. git add + commit + push. Flux reconciles within ~10m (or run
+#      `flux reconcile kustomization apps --with-source`).
+#   4. Watch: `kubectl logs -f -n fieldy-webhook -l job-name=fieldy-backfill-<n>`
+#   5. After it succeeds (ttl: 24h auto-cleans), you can leave or remove the
+#      manifest from kustomization.yaml — it does no harm sitting completed.
+#
+# Why not a CronJob? Backfills run on demand, not on schedule. A Job is the
+# right K8s primitive for "run once and stop".
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fieldy-backfill-001  # bump on each new run
+  namespace: fieldy-webhook
+  labels:
+    app: fieldy-backfill
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: fieldy-backfill
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: dockerhub-secret
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backfill
+          image: lzetam/fieldy-webhook:v0.5.0
+          command:
+            - python
+            - /app/scripts/backfill.py
+          env:
+            # --- date window — EDIT THESE ---
+            - name: BACKFILL_START
+              value: "2026-01-01"
+            - name: BACKFILL_END
+              value: "2026-04-30"
+            # --- vault + API config ---
+            - name: FIELDY_VAULT_MODE
+              value: "obsidian-api"
+            - name: FIELDY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fieldy-api-key
+                  key: api_key
+            - name: OBSIDIAN_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_url
+            - name: OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_key
+            - name: OBSIDIAN_VERIFY_TLS
+              value: "false"
+            - name: FIELDY_VAULT_REL_ROOT
+              value: "fieldy"
+            - name: FIELDY_STATE_DIR
+              value: "/state"
+          resources:
+            requests:
+              cpu: 25m
+              memory: 96Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: state
+              mountPath: /state
+      volumes:
+        - name: state
+          # Reuses the puller's PVC so cursor files survive 401s and resume.
+          persistentVolumeClaim:
+            claimName: fieldy-puller-state

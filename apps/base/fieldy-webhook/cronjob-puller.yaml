@@ -19,9 +19,9 @@ metadata:
   labels:
     app: fieldy-puller
 spec:
-  # Daily at 03:00 UTC. Cluster pulls the previous 24h delta from Fieldy and
-  # persists everything to the Obsidian vault via the same REST API the webhook uses.
-  # See lyzetam/fieldy scripts/backfill.py --target daily-delta for the run logic.
+  # Daily at 03:00 UTC. Pulls the previous 24h delta (conversations + new tasks +
+  # transcripts) from Fieldy and persists to the Obsidian vault via REST.
+  # See lyzetam/fieldy scripts/daily.py.
   schedule: "0 3 * * *"
   timeZone: "UTC"
   concurrencyPolicy: Forbid
@@ -50,15 +50,13 @@ spec:
               type: RuntimeDefault
           containers:
             - name: puller
-              image: lzetam/fieldy-webhook:v0.4.0
+              image: lzetam/fieldy-webhook:v0.5.0
               command:
                 - python
-                - /app/scripts/backfill.py
-                - "--target"
-                - "daily-delta"
-                - "--vault-mode"
-                - "obsidian-api"
+                - /app/scripts/daily.py
               env:
+                - name: FIELDY_VAULT_MODE
+                  value: "obsidian-api"
                 - name: FIELDY_API_KEY
                   valueFrom:
                     secretKeyRef:
@@ -81,7 +79,7 @@ spec:
                 - name: FIELDY_STATE_DIR
                   value: "/state"
                 - name: FIELDY_MAX_TRANSCRIPT_PAGES
-                  value: "10000"
+                  value: "50"  # daily 24h window typically needs <30 pages
               resources:
                 requests:
                   cpu: 25m
