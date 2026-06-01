@@ -36,11 +36,19 @@ spec:
         replicas: 1
         resources:
           requests:
-            memory: "512Mi"
+            memory: "768Mi"
             cpu: "200m"
           limits:
-            memory: "1Gi"
+            memory: "2Gi"
             cpu: "1"
+        pod:
+          # V8 default heap (~512MB) was OOMing on langfuse 3.175.0 init
+          # (Next.js + Prisma + MCP). Raise the heap with explicit
+          # --max-old-space-size; the container limit above leaves ~500MB
+          # of headroom for non-heap (V8 base, native modules, buffers).
+          additionalEnv:
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=1536"
 
       worker:
         replicas: 1
