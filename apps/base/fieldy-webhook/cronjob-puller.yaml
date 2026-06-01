@@ -19,10 +19,14 @@ metadata:
   labels:
     app: fieldy-puller
 spec:
-  # Daily at 03:00 UTC. Pulls the previous 24h delta (conversations + new tasks +
-  # transcripts) from Fieldy and persists to the Obsidian vault via REST.
+  # Daily at 16:00 UTC (11:00 CT in CDT, 10:00 CT in CST). The puller writes to
+  # the Obsidian Local REST API on a LAN host, so the schedule must land when
+  # that host is reliably awake — overnight (03:00 UTC = 22:00 CT) was failing
+  # repeatedly with "All connection attempts failed".
+  # Pulls the previous 24h delta (conversations + new tasks + transcripts) from
+  # Fieldy and persists to the Obsidian vault via REST.
   # See lyzetam/fieldy scripts/daily.py.
-  schedule: "0 3 * * *"
+  schedule: "0 16 * * *"
   timeZone: "UTC"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
