@@ -15,7 +15,7 @@ resources:
   # Uncomment + bump metadata.name + set BACKFILL_START/END in backfill-job.yaml
   # to trigger a one-off historical backfill via GitOps. Re-comment after it
   # completes (or leave it — the Job's ttlSecondsAfterFinished auto-cleans).
-  - backfill-job.yaml
+  # - backfill-job.yaml
 
 labels:
   - pairs:
