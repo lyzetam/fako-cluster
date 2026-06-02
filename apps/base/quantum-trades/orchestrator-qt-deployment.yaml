@@ -24,7 +24,7 @@ spec:
         app: orchestrator-qt
         component: autonomous-agents
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-06-02T17:25:00Z"  # drawdown_baseline split (PR #115)
+        kubectl.kubernetes.io/restartedAt: "2026-06-02T17:55:00Z"  # cleanups bundle: supervisor risk plumbing + capital_guard None guard (PR #116)
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
