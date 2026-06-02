@@ -16,6 +16,8 @@ spec:
       labels:
         app: quantum-trades
         component: signals
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2026-06-02T13:46:00Z"  # symmetry audit: ATR neutral + SI bearish dampener (PR #114)
     spec:
       imagePullSecrets:
         - name: dockerhub-registry
