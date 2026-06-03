@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fieldy-enrich-state
+  namespace: fieldy-webhook
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 64Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fieldy-enrich
+  namespace: fieldy-webhook
+  labels:
+    app: fieldy-enrich
+spec:
+  # Daily at 16:30 UTC — 30 min after the puller (16:00 UTC) so the day's
+  # conversations + transcripts are already on disk via the Obsidian REST API.
+  # Reads those sidecars and writes LLM enrichment back via the same REST API.
+  # LangGraph SQLite checkpointer lives on its own PVC under FIELDY_STATE_DIR.
+  # See lyzetam/fieldy scripts/enrich.py.
+  schedule: "30 16 * * *"
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
+      activeDeadlineSeconds: 21600  # 6h cap so a long run can't hang forever
+      template:
+        metadata:
+          labels:
+            app: fieldy-enrich
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: dockerhub-secret
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: enrich
+              image: lzetam/fieldy-webhook:v0.9.0
+              # --limit 200 is a per-run cost/time safety rail so the first runs
+              # chip through the ~3,500-conversation backlog gradually instead of
+              # all at once. Raise or remove it once the backlog is cleared.
+              command:
+                - python
+                - /app/scripts/enrich.py
+                - --limit
+                - "200"
+              env:
+                - name: FIELDY_VAULT_MODE
+                  value: "obsidian-api"
+                - name: OBSIDIAN_API_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: obsidian-api
+                      key: api_url
+                - name: OBSIDIAN_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: obsidian-api
+                      key: api_key
+                - name: OBSIDIAN_VERIFY_TLS
+                  value: "false"  # see CLAUDE.md
+                - name: FIELDY_VAULT_REL_ROOT
+                  value: "fieldy"
+                - name: FIELDY_STATE_DIR
+                  value: "/state"
+                - name: FIELDY_ENRICH_BACKEND
+                  value: "claude"
+                - name: ANTHROPIC_MODEL
+                  value: "claude-haiku-4-5-20251001"
+                - name: FIELDY_ENRICH_CONCURRENCY
+                  value: "4"
+                - name: ANTHROPIC_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: fieldy-anthropic
+                      key: api_key
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: state
+                  mountPath: /state
+          volumes:
+            - name: state
+              persistentVolumeClaim:
+                claimName: fieldy-enrich-state

@@ -10,12 +10,18 @@ resources:
   - external-secret-obsidian.yaml
   - external-secret-dockerhub.yaml
   - external-secret-fieldy-api.yaml
+  - external-secret-anthropic.yaml
   - networkpolicy.yaml
+  - networkpolicy-enrich.yaml
   - cronjob-puller.yaml
+  - cronjob-enrich.yaml
   # Uncomment + bump metadata.name + set BACKFILL_START/END in backfill-job.yaml
   # to trigger a one-off historical backfill via GitOps. Re-comment after it
   # completes (or leave it — the Job's ttlSecondsAfterFinished auto-cleans).
   # - backfill-job.yaml
+  # Uncomment + bump metadata.name in enrich-backfill-job.yaml to run the full
+  # one-time enrichment backlog sweep via GitOps. Re-comment after it completes.
+  # - enrich-backfill-job.yaml
 
 labels:
   - pairs:

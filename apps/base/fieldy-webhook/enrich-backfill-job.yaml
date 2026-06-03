@@ -1,0 +1,103 @@
+# One-off FULL enrichment backlog sweep for Fieldy.
+#
+# Unlike the fieldy-enrich CronJob (which caps each run at --limit 200), this
+# Job runs scripts/enrich.py with NO --limit, so it processes the entire
+# historical backlog in one shot. The script is idempotent + resumable
+# (LangGraph SQLite checkpointer on the shared fieldy-enrich-state PVC), so a
+# crash/timeout can be re-run safely.
+#
+# How to run the deliberate one-time historical backlog clear (GitOps):
+#   1. Uncomment this file in kustomization.yaml.
+#   2. Bump `metadata.name` (e.g., fieldy-enrich-backfill-001 -> -002) so K8s
+#      treats it as a new Job, not a duplicate.
+#   3. git add + commit + push. Flux reconciles within ~10m (or run
+#      `flux reconcile kustomization apps --with-source`).
+#   4. Watch: `kubectl logs -f -n fieldy-webhook -l job-name=fieldy-enrich-backfill-<n>`
+#   5. After it succeeds, re-comment this file in kustomization.yaml.
+#      (ttlSecondsAfterFinished auto-cleans the completed Job either way.)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fieldy-enrich-backfill-001  # bump on each new run
+  namespace: fieldy-webhook
+  labels:
+    app: fieldy-enrich
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 86400  # 24h cap for the full sweep
+  template:
+    metadata:
+      labels:
+        app: fieldy-enrich
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: dockerhub-secret
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: enrich
+          image: lzetam/fieldy-webhook:v0.9.0
+          # No --limit: process the entire backlog. Idempotent + resumable.
+          command:
+            - python
+            - /app/scripts/enrich.py
+          env:
+            - name: FIELDY_VAULT_MODE
+              value: "obsidian-api"
+            - name: OBSIDIAN_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_url
+            - name: OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_key
+            - name: OBSIDIAN_VERIFY_TLS
+              value: "false"
+            - name: FIELDY_VAULT_REL_ROOT
+              value: "fieldy"
+            - name: FIELDY_STATE_DIR
+              value: "/state"
+            - name: FIELDY_ENRICH_BACKEND
+              value: "claude"
+            - name: ANTHROPIC_MODEL
+              value: "claude-haiku-4-5-20251001"
+            - name: FIELDY_ENRICH_CONCURRENCY
+              value: "4"
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fieldy-anthropic
+                  key: api_key
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: state
+              mountPath: /state
+      volumes:
+        - name: state
+          # Reuses the enrich CronJob's PVC so the LangGraph checkpointer state
+          # survives crashes and the sweep resumes where it left off.
+          persistentVolumeClaim:
+            claimName: fieldy-enrich-state
