@@ -102,18 +102,20 @@ spec:
     s3:
       deploy: true
       forcePathStyle: true
-      # Bundled MinIO stores its random root password in the langfuse-s3 secret,
-      # but the chart leaves s3.auth empty so langfuse's blob client can't
-      # authenticate (OTEL event uploads 500 "Could not load credentials from
-      # any providers"). Point s3.auth at that secret — wires creds for all
-      # upload types (event/media/batch) via the s3.deploy fallback.
-      auth:
-        existingSecret: langfuse-s3
-        rootUserSecretKey: root-user
-        rootPasswordSecretKey: root-password
       persistence:
         enabled: true
         size: 20Gi
+      eventUpload:
+        bucket: "langfuse"
+        region: "auto"
+        endpoint: "http://langfuse-s3:9000"
+        forcePathStyle: true
+        accessKeyId:
+          value: "minio"
+        secretAccessKey:
+          secretKeyRef:
+            name: langfuse-s3
+            key: root-password
 
     # Ingress handled separately
     ingress:
