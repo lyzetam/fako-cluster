@@ -59,24 +59,6 @@ spec:
           limits:
             memory: "1Gi"
             cpu: "1"
-
-      # Blob storage (bundled MinIO). The chart auto-fills eventUpload.accessKeyId
-      # but leaves secretAccessKey empty, so OTEL trace ingestion 500s with
-      # "Could not load credentials". Fully specify eventUpload and wire the
-      # secret key to the MinIO root password (per-type overrides the base).
-      s3:
-        eventUpload:
-          bucket: "langfuse"
-          region: "auto"
-          endpoint: "http://langfuse-s3:9000"
-          forcePathStyle: true
-          accessKeyId:
-            value: "minio"
-          secretAccessKey:
-            secretKeyRef:
-              name: langfuse-s3
-              key: root-password
-
     # External Postgres (CloudNativePG postgres-cluster)
     postgresql:
       deploy: false
@@ -123,6 +105,17 @@ spec:
       persistence:
         enabled: true
         size: 20Gi
+      eventUpload:
+        bucket: "langfuse"
+        region: "auto"
+        endpoint: "http://langfuse-s3:9000"
+        forcePathStyle: true
+        accessKeyId:
+          value: "minio"
+        secretAccessKey:
+          secretKeyRef:
+            name: langfuse-s3
+            key: root-password
 
     # Ingress handled separately
     ingress:
