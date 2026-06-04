@@ -11,6 +11,7 @@ resources:
   - external-secret-dockerhub.yaml
   - external-secret-fieldy-api.yaml
   - external-secret-anthropic.yaml
+  - external-secret-langfuse.yaml
   - networkpolicy.yaml
   - networkpolicy-enrich.yaml
   - cronjob-puller.yaml

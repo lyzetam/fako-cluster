@@ -39,3 +39,11 @@ spec:
       ports:
         - protocol: TCP
           port: 443
+    # Langfuse (in-cluster, langfuse namespace) for token-usage tracing.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: langfuse
+      ports:
+        - protocol: TCP
+          port: 3000

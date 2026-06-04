@@ -53,7 +53,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: enrich
-              image: lzetam/fieldy-webhook:v0.9.0
+              image: lzetam/fieldy-webhook:v0.11.0
               # --limit 200 is a per-run cost/time safety rail so the first runs
               # chip through the ~3,500-conversation backlog gradually instead of
               # all at once. Raise or remove it once the backlog is cleared.
@@ -92,6 +92,19 @@ spec:
                     secretKeyRef:
                       name: fieldy-anthropic
                       key: api_key
+                # Langfuse token-usage tracing (reuses the zi project keys).
+                - name: LANGFUSE_HOST
+                  value: "http://langfuse-web.langfuse.svc:3000"
+                - name: LANGFUSE_PUBLIC_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: fieldy-langfuse
+                      key: public_key
+                - name: LANGFUSE_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: fieldy-langfuse
+                      key: secret_key
               resources:
                 requests:
                   cpu: 100m

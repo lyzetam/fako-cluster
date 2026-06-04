@@ -44,7 +44,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: enrich
-          image: lzetam/fieldy-webhook:v0.9.0
+          image: lzetam/fieldy-webhook:v0.11.0
           # No --limit: process the entire backlog. Idempotent + resumable.
           command:
             - python
@@ -73,19 +73,32 @@ spec:
             - name: ANTHROPIC_MODEL
               value: "claude-haiku-4-5-20251001"
             - name: FIELDY_ENRICH_CONCURRENCY
-              value: "4"
+              value: "2"  # matches the cronjob: avoids the 1Gi OOM seen at concurrency 4
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: fieldy-anthropic
                   key: api_key
+            # Langfuse token-usage tracing (reuses the zi project keys).
+            - name: LANGFUSE_HOST
+              value: "http://langfuse-web.langfuse.svc:3000"
+            - name: LANGFUSE_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fieldy-langfuse
+                  key: public_key
+            - name: LANGFUSE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fieldy-langfuse
+                  key: secret_key
           resources:
             requests:
               cpu: 100m
-              memory: 256Mi
+              memory: 512Mi
             limits:
               cpu: "1"
-              memory: 1Gi
+              memory: 3Gi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
