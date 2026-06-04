@@ -20,9 +20,9 @@ resources:
   # to trigger a one-off historical backfill via GitOps. Re-comment after it
   # completes (or leave it — the Job's ttlSecondsAfterFinished auto-cleans).
   # - backfill-job.yaml
-  # Uncomment + bump metadata.name in enrich-backfill-job.yaml to run the full
-  # one-time enrichment backlog sweep via GitOps. Re-comment after it completes.
-  # - enrich-backfill-job.yaml
+  # Full one-time enrichment backlog sweep. Re-comment + (next run) bump
+  # metadata.name after it completes; the Job's ttlSecondsAfterFinished cleans it.
+  - enrich-backfill-job.yaml
 
 labels:
   - pairs:
