@@ -49,22 +49,6 @@ spec:
           additionalEnv:
             - name: NODE_OPTIONS
               value: "--max-old-space-size=1536"
-            # Chart leaves the S3 secret access key empty; wire to MinIO root password.
-            - name: LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: langfuse-s3
-                  key: root-password
-            - name: LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: langfuse-s3
-                  key: root-password
-            - name: LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: langfuse-s3
-                  key: root-password
 
       worker:
         replicas: 1
@@ -75,24 +59,23 @@ spec:
           limits:
             memory: "1Gi"
             cpu: "1"
-        pod:
-          # Same S3 secret-key wiring as web (worker reads events from MinIO).
-          additionalEnv:
-            - name: LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: langfuse-s3
-                  key: root-password
-            - name: LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: langfuse-s3
-                  key: root-password
-            - name: LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: langfuse-s3
-                  key: root-password
+
+      # Blob storage (bundled MinIO). The chart auto-fills eventUpload.accessKeyId
+      # but leaves secretAccessKey empty, so OTEL trace ingestion 500s with
+      # "Could not load credentials". Fully specify eventUpload and wire the
+      # secret key to the MinIO root password (per-type overrides the base).
+      s3:
+        eventUpload:
+          bucket: "langfuse"
+          region: "auto"
+          endpoint: "http://langfuse-s3:9000"
+          forcePathStyle: true
+          accessKeyId:
+            value: "minio"
+          secretAccessKey:
+            secretKeyRef:
+              name: langfuse-s3
+              key: root-password
 
     # External Postgres (CloudNativePG postgres-cluster)
     postgresql:
