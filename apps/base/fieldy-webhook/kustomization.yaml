@@ -20,9 +20,11 @@ resources:
   # to trigger a one-off historical backfill via GitOps. Re-comment after it
   # completes (or leave it — the Job's ttlSecondsAfterFinished auto-cleans).
   # - backfill-job.yaml
-  # Full one-time enrichment backlog sweep. Re-comment + (next run) bump
-  # metadata.name after it completes; the Job's ttlSecondsAfterFinished cleans it.
-  - enrich-backfill-job.yaml
+  # Full one-time enrichment backlog sweep. Disabled: at full speed it overwhelms
+  # the Obsidian REST API (httpx PoolTimeout after ~200). Needs a resilience fix
+  # (retry/backoff + concurrency 1) before re-enabling. Gradual cron handles the
+  # backlog meanwhile. Uncomment + bump metadata.name to re-run.
+  # - enrich-backfill-job.yaml
 
 labels:
   - pairs:

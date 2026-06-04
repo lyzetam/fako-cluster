@@ -61,7 +61,7 @@ spec:
                 - python
                 - /app/scripts/enrich.py
                 - --limit
-                - "200"
+                - "50"  # lowered from 200: full-speed bulk overwhelmed the Obsidian REST API (httpx PoolTimeout ~200). 50/run is reliable.
               env:
                 - name: FIELDY_VAULT_MODE
                   value: "obsidian-api"
