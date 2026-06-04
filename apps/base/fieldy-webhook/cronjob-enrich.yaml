@@ -86,7 +86,7 @@ spec:
                 - name: ANTHROPIC_MODEL
                   value: "claude-haiku-4-5-20251001"
                 - name: FIELDY_ENRICH_CONCURRENCY
-                  value: "4"
+                  value: "2"  # lowered from 4: 4 concurrent deepagents + large transcripts OOMKilled at 1Gi
                 - name: ANTHROPIC_API_KEY
                   valueFrom:
                     secretKeyRef:
@@ -95,10 +95,10 @@ spec:
               resources:
                 requests:
                   cpu: 100m
-                  memory: 256Mi
+                  memory: 512Mi
                 limits:
                   cpu: "1"
-                  memory: 1Gi
+                  memory: 3Gi  # raised from 1Gi: deepagents + LangGraph + multi-thousand-segment transcripts
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
