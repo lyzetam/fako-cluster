@@ -102,20 +102,17 @@ spec:
     s3:
       deploy: true
       forcePathStyle: true
+      # MinIO root creds come from the independent langfuse-s3 secret
+      # (external-secret-minio.yaml ← AWS SM langfuse/minio). Using existingSecret
+      # means the chart references — never creates/prunes — the secret, and wires
+      # the same creds into langfuse's blob client so OTEL trace ingestion works.
+      auth:
+        existingSecret: langfuse-s3
+        rootUserSecretKey: root-user
+        rootPasswordSecretKey: root-password
       persistence:
         enabled: true
         size: 20Gi
-      eventUpload:
-        bucket: "langfuse"
-        region: "auto"
-        endpoint: "http://langfuse-s3:9000"
-        forcePathStyle: true
-        accessKeyId:
-          value: "minio"
-        secretAccessKey:
-          secretKeyRef:
-            name: langfuse-s3
-            key: root-password
 
     # Ingress handled separately
     ingress:
