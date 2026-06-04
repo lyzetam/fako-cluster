@@ -60,6 +60,16 @@ spec:
             memory: "1Gi"
             cpu: "1"
 
+      # Blob storage (bundled MinIO). The chart sets accessKeyId=minio but leaves
+      # the secret access key empty, so OTEL event uploads 500 with "Could not
+      # load credentials from any providers" — breaking trace ingestion for ALL
+      # clients. Wire the secret access key to the MinIO root password.
+      s3:
+        secretAccessKey:
+          secretKeyRef:
+            name: langfuse-s3
+            key: root-password
+
     # External Postgres (CloudNativePG postgres-cluster)
     postgresql:
       deploy: false
