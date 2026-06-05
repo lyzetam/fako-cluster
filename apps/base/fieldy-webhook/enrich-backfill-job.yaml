@@ -18,14 +18,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: fieldy-enrich-backfill-002  # bump on each new run
+  name: fieldy-enrich-backfill-003  # bump on each new run
   namespace: fieldy-webhook
   labels:
     app: fieldy-enrich
 spec:
   backoffLimit: 1
   ttlSecondsAfterFinished: 86400
-  activeDeadlineSeconds: 86400  # 24h cap for the full sweep
+  activeDeadlineSeconds: 172800  # 48h cap so the full sweep finishes in one resilient run
   template:
     metadata:
       labels:
@@ -73,7 +73,7 @@ spec:
             - name: ANTHROPIC_MODEL
               value: "claude-haiku-4-5-20251001"
             - name: FIELDY_ENRICH_CONCURRENCY
-              value: "1"  # full unbounded sweep: serialize requests to pace the Obsidian REST API (v0.12.0 also retries transient httpx errors)
+              value: "2"  # retries (v0.12.0) make concurrency 2 safe at scale; ~2x faster, fits the deadline
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
