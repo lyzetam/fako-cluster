@@ -18,7 +18,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: fieldy-enrich-backfill-003  # bump on each new run
+  name: fieldy-enrich-backfill-004  # bump on each new run
   namespace: fieldy-webhook
   labels:
     app: fieldy-enrich
@@ -73,7 +73,7 @@ spec:
             - name: ANTHROPIC_MODEL
               value: "claude-haiku-4-5-20251001"
             - name: FIELDY_ENRICH_CONCURRENCY
-              value: "2"  # retries (v0.12.0) make concurrency 2 safe at scale; ~2x faster, fits the deadline
+              value: "1"  # concurrency 1: minimize httpx pool pressure (Anthropic + langfuse) — the PoolTimeout source, not the Obsidian API
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
