@@ -18,7 +18,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: fieldy-enrich-backfill-004  # bump on each new run
+  name: fieldy-enrich-backfill-005  # bump on each new run
   namespace: fieldy-webhook
   labels:
     app: fieldy-enrich
@@ -44,7 +44,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: enrich
-          image: lzetam/fieldy-webhook:v0.12.0
+          image: lzetam/fieldy-webhook:v0.13.0
           # No --limit: process the entire backlog. Idempotent + resumable.
           command:
             - python
@@ -73,7 +73,7 @@ spec:
             - name: ANTHROPIC_MODEL
               value: "claude-haiku-4-5-20251001"
             - name: FIELDY_ENRICH_CONCURRENCY
-              value: "1"  # concurrency 1: minimize httpx pool pressure (Anthropic + langfuse) — the PoolTimeout source, not the Obsidian API
+              value: "4"  # v0.13.0 bounds the whole enrich_one under the semaphore, so this is true end-to-end concurrency (reads no longer stampede)
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
