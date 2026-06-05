@@ -24,7 +24,7 @@ spec:
         app: orchestrator-qt
         component: autonomous-agents
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-06-05T15:00:00Z"  # broker source-of-truth Phase 1 (PR #118)
+        kubectl.kubernetes.io/restartedAt: "2026-06-05T19:30:00Z"  # fill-verified profit close, Phase 2 (PR #119)
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
