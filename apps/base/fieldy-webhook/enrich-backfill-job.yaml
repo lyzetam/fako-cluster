@@ -18,7 +18,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: fieldy-enrich-backfill-001  # bump on each new run
+  name: fieldy-enrich-backfill-002  # bump on each new run
   namespace: fieldy-webhook
   labels:
     app: fieldy-enrich
@@ -44,7 +44,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: enrich
-          image: lzetam/fieldy-webhook:v0.11.0
+          image: lzetam/fieldy-webhook:v0.12.0
           # No --limit: process the entire backlog. Idempotent + resumable.
           command:
             - python
@@ -73,7 +73,7 @@ spec:
             - name: ANTHROPIC_MODEL
               value: "claude-haiku-4-5-20251001"
             - name: FIELDY_ENRICH_CONCURRENCY
-              value: "2"  # matches the cronjob: avoids the 1Gi OOM seen at concurrency 4
+              value: "1"  # full unbounded sweep: serialize requests to pace the Obsidian REST API (v0.12.0 also retries transient httpx errors)
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:

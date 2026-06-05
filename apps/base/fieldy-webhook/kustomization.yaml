@@ -24,7 +24,7 @@ resources:
   # the Obsidian REST API (httpx PoolTimeout after ~200). Needs a resilience fix
   # (retry/backoff + concurrency 1) before re-enabling. Gradual cron handles the
   # backlog meanwhile. Uncomment + bump metadata.name to re-run.
-  # - enrich-backfill-job.yaml
+  - enrich-backfill-job.yaml
 
 labels:
   - pairs:
