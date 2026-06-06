@@ -24,7 +24,7 @@ spec:
         app: orchestrator-qt
         component: autonomous-agents
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-06-05T20:30:00Z"  # two-sided execution ranking fix (PR #120)
+        kubectl.kubernetes.io/restartedAt: "2026-06-06T14:00:00Z"  # affordability pre-filter B2 (PR #121)
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
