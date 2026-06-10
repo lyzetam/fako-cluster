@@ -61,7 +61,7 @@ spec:
             - name: ZI_SOCIAL_TURN_ENABLED
               value: "true"
             - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "300"
+              value: "90"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -171,7 +171,7 @@ spec:
             - name: ZI_SOCIAL_TURN_ENABLED
               value: "true"
             - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "300"
+              value: "90"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -283,7 +283,7 @@ spec:
             - name: ZI_SOCIAL_TURN_ENABLED
               value: "true"
             - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "300"
+              value: "90"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -395,7 +395,7 @@ spec:
             - name: ZI_SOCIAL_TURN_ENABLED
               value: "true"
             - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "300"
+              value: "90"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -507,7 +507,7 @@ spec:
             - name: ZI_SOCIAL_TURN_ENABLED
               value: "true"
             - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "300"
+              value: "90"
           envFrom:
             - secretRef:
                 name: zi-secrets
