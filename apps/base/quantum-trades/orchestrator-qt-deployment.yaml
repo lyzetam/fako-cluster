@@ -24,7 +24,7 @@ spec:
         app: orchestrator-qt
         component: autonomous-agents
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-06-11T22:30:00Z"  # canonical balance-field extraction (PR #122) — required for reset $100k account
+        kubectl.kubernetes.io/restartedAt: "2026-06-12T16:30:00Z"  # direct-Tradier options chain (PR #123) — zero-trades root cause
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
