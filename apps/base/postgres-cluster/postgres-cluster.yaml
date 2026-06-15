@@ -49,6 +49,27 @@ spec:
       encoding: "UTF8"
       localeCollate: "en_US.UTF-8"
       localeCType: "en_US.UTF-8"
+
+  # Declaratively reconcile the `admin` login role's password from app-user-secret.
+  # Without this, `admin` was only synced by a one-shot init Job, so the role's
+  # DB password silently drifted from the (AWS-sourced) secret on rotation/restore
+  # and broke app auth (e.g. oura-collector: "password authentication failed for
+  # user admin"). CNPG now re-applies it every reconcile. Attributes mirror the
+  # role's existing state so this changes nothing but password reconciliation.
+  managed:
+    roles:
+      - name: admin
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        inherit: true
+        replication: false
+        bypassrls: false
+        connectionLimit: -1
+        passwordSecret:
+          name: app-user-secret
   
   storage:
     size: 50Gi
