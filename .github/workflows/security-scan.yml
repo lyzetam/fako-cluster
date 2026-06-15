@@ -1,0 +1,64 @@
+# Free / open-source security scanning for this GitOps repo.
+# Replaces the former paid Checkmarx One workflow (no account / paid product).
+# - Trivy:    IaC / Kubernetes misconfiguration scanning (KICS replacement),
+#             results uploaded to the GitHub Security tab as SARIF. Report-only.
+# - Gitleaks: secret scanning using the repo's .gitleaks.toml allowlists.
+# CodeQL (GitHub Actions) remains enabled via repo "default setup" — not here.
+name: Security Scan
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-misconfig:
+    name: Trivy IaC misconfiguration
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # upload SARIF to the Security tab
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-results.sarif
+          severity: MEDIUM,HIGH,CRITICAL
+          exit-code: "0"        # report-only — surface findings, never block merges
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-misconfig
+
+  gitleaks:
+    name: Gitleaks secret scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Scans the current working tree (--no-git) against .gitleaks.toml.
+      # Pinned to the same gitleaks image version used in-cluster.
+      - name: Run Gitleaks
+        run: |
+          docker run --rm -v "${GITHUB_WORKSPACE}:/repo" \
+            zricethezav/gitleaks:v8.30.1 detect \
+            --source=/repo \
+            --config=/repo/.gitleaks.toml \
+            --no-git \
+            --redact \
+            --verbose
