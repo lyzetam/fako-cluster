@@ -28,7 +28,7 @@ spec:
           
           containers:
           - name: gitleaks
-            image: zricethezav/gitleaks:v8.30.0
+            image: zricethezav/gitleaks:v8.30.1
             env:
             - name: GITHUB_TOKEN
               valueFrom:
