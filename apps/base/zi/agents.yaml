@@ -61,7 +61,7 @@ spec:
             - name: ZI_SOCIAL_TURN_ENABLED
               value: "true"
             - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "90"
+              value: "300"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -75,7 +75,7 @@ spec:
               memory: 256Mi
             limits:
               cpu: 100m
-              memory: 512Mi
+              memory: 1Gi
           livenessProbe:
             httpGet:
               path: /health
@@ -171,7 +171,7 @@ spec:
             - name: ZI_SOCIAL_TURN_ENABLED
               value: "true"
             - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "90"
+              value: "300"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -185,7 +185,7 @@ spec:
               memory: 256Mi
             limits:
               cpu: 100m
-              memory: 512Mi
+              memory: 1Gi
           livenessProbe:
             httpGet:
               path: /health
@@ -283,7 +283,7 @@ spec:
             - name: ZI_SOCIAL_TURN_ENABLED
               value: "true"
             - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "90"
+              value: "300"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -297,7 +297,7 @@ spec:
               memory: 256Mi
             limits:
               cpu: 100m
-              memory: 512Mi
+              memory: 1Gi
           livenessProbe:
             httpGet:
               path: /health
@@ -395,7 +395,7 @@ spec:
             - name: ZI_SOCIAL_TURN_ENABLED
               value: "true"
             - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "90"
+              value: "300"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -409,7 +409,7 @@ spec:
               memory: 256Mi
             limits:
               cpu: 100m
-              memory: 512Mi
+              memory: 1Gi
           livenessProbe:
             httpGet:
               path: /health
@@ -507,7 +507,7 @@ spec:
             - name: ZI_SOCIAL_TURN_ENABLED
               value: "true"
             - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "90"
+              value: "300"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -521,7 +521,7 @@ spec:
               memory: 256Mi
             limits:
               cpu: 100m
-              memory: 512Mi
+              memory: 1Gi
           livenessProbe:
             httpGet:
               path: /health
