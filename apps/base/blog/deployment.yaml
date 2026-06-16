@@ -24,7 +24,7 @@ spec:
         # pod spec, so Flux never triggered a rollout when a new image was
         # pushed — the site froze on whatever image the pod first cached.
         # Bump this tag on each release (or add Flux image automation).
-        image: lzetam/hugo:bdd4206fa199784431079791097fc475aca101c7
+        image: lzetam/hugo:9b640efb655b79120fd672d29aef59f92a2d6c41
         imagePullPolicy: IfNotPresent
         # Remove command override to let the image run its default nginx entrypoint
         ports:
