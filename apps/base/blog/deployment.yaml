@@ -20,8 +20,12 @@ spec:
       - name: dockerhub-registry
       containers:
       - name: hugo
-        image: lzetam/hugo:latest
-        imagePullPolicy: Always
+        # Pinned to an immutable commit-SHA tag. `:latest` never changes the
+        # pod spec, so Flux never triggered a rollout when a new image was
+        # pushed — the site froze on whatever image the pod first cached.
+        # Bump this tag on each release (or add Flux image automation).
+        image: lzetam/hugo:bdd4206fa199784431079791097fc475aca101c7
+        imagePullPolicy: IfNotPresent
         # Remove command override to let the image run its default nginx entrypoint
         ports:
         - containerPort: 80
