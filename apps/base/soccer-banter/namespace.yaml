@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: soccer-banter
+  labels:
+    app.kubernetes.io/part-of: soccer-banter
+    app.kubernetes.io/managed-by: flux

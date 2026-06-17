@@ -1,0 +1,14 @@
+# Persistent agent memory + analysis ledger.
+# ReadWriteOnce holds mutable per-agent memory, so the Deployment runs a single replica
+# with strategy Recreate. Switch to an RWX class (NFS) to scale out.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: soccer-banter-data
+  namespace: soccer-banter
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

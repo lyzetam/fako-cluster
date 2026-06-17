@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: soccer-banter
+  namespace: soccer-banter
+  labels:
+    app.kubernetes.io/name: soccer-banter
+    app.kubernetes.io/part-of: soccer-banter
+spec:
+  selector:
+    app.kubernetes.io/name: soccer-banter
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

@@ -136,3 +136,6 @@ resources:
   # AMIG GROUP ERP — demo for client (amig-erp.lztechnology.io)
   # Paused 2026-05-13: not in active use. Re-enable by uncommenting.
   # - amig-erp
+
+  # Soccer Banter — 3 World Cup analyst deep-agents (Sportmonks + Ollama Cloud)
+  - soccer-banter
