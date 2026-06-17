@@ -1,0 +1,71 @@
+# Cloudflare Tunnel exposing the board at https://sports-bets.landryzetam.net
+# Tunnel "sports-bets" (id acd05480-f578-4b74-bc15-61d01982a3f5); DNS CNAME sports-bets -> <id>.cfargotunnel.com.
+# Credentials live in the SOPS-encrypted tunnel-credentials secret (staging overlay).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: sports-bets
+  labels:
+    app: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2025.11.1
+          args: ["tunnel", "--config", "/etc/cloudflared/config/config.yaml", "run"]
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            failureThreshold: 1
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared/config
+              readOnly: true
+            - name: creds
+              mountPath: /etc/cloudflared/creds
+              readOnly: true
+      volumes:
+        - name: creds
+          secret:
+            secretName: tunnel-credentials
+        - name: config
+          configMap:
+            name: cloudflared
+            items:
+              - key: config.yaml
+                path: config.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared
+  namespace: sports-bets
+data:
+  config.yaml: |
+    tunnel: acd05480-f578-4b74-bc15-61d01982a3f5
+    credentials-file: /etc/cloudflared/creds/credentials.json
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+    ingress:
+      - hostname: sports-bets.landryzetam.net
+        service: http://sports-bets-web.sports-bets.svc.cluster.local:80
+      - service: http_status:404

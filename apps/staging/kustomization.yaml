@@ -139,3 +139,4 @@ resources:
 
   # Soccer Banter — 3 World Cup analyst deep-agents (Sportmonks + Ollama Cloud)
   - soccer-banter
+  - sports-bets

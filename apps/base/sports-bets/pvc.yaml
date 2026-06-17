@@ -1,0 +1,14 @@
+# Shared between the CronJob (writer) and the nginx web pod (reader).
+# RWO: both pods must land on the same node (K8s binds the CronJob to the node
+# holding the volume). Switch to an RWX class to let them schedule apart.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sports-bets-data
+  namespace: sports-bets
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
