@@ -9,5 +9,6 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - service.yaml
+  - cloudflare.yaml
 # Note: aws-credentials (SOPS-encrypted) lives in the staging overlay, like other apps,
 # because it is environment-specific.

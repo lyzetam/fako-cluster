@@ -1,0 +1,76 @@
+# Cloudflare Tunnel exposing soccer-banter at https://banter.landryzetam.net
+# Tunnel "soccer-banter" (id 0811b53c-83d5-411c-981c-7dcbc39c4025); DNS CNAME
+# banter -> <id>.cfargotunnel.com (proxied). Credentials live in the SOPS-encrypted
+# tunnel-credentials secret (staging overlay). Pattern matches apps/staging/open-webui.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: soccer-banter
+  labels:
+    app: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2025.11.1
+          args:
+            - tunnel
+            - --config
+            - /etc/cloudflared/config/config.yaml
+            - run
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            failureThreshold: 1
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared/config
+              readOnly: true
+            - name: creds
+              mountPath: /etc/cloudflared/creds
+              readOnly: true
+      volumes:
+        - name: creds
+          secret:
+            secretName: tunnel-credentials
+        - name: config
+          configMap:
+            name: cloudflared
+            items:
+              - key: config.yaml
+                path: config.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared
+  namespace: soccer-banter
+data:
+  config.yaml: |
+    tunnel: 0811b53c-83d5-411c-981c-7dcbc39c4025
+    credentials-file: /etc/cloudflared/creds/credentials.json
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+    ingress:
+      - hostname: banter.landryzetam.net
+        service: http://soccer-banter.soccer-banter.svc.cluster.local:80
+      - service: http_status:404

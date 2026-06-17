@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - ../../base/soccer-banter
   - aws-credentials-secret.yaml
+  - cloudflare-secret.yaml
