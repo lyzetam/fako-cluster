@@ -32,7 +32,7 @@ spec:
       containers:
         - name: api
           # Pin to an immutable tag. Never :latest.
-          image: lzetam/soccer-banter:20260617j
+          image: lzetam/soccer-banter:20260617k
           ports:
             - name: http
               containerPort: 8000
