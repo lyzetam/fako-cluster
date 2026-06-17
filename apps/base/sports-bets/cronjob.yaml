@@ -40,7 +40,15 @@ spec:
               args: ["run", "--tournament", "world-cup", "--stake", "5", "--out-dir", "/data"]
               envFrom:
                 - secretRef:
-                    name: sports-bets-secrets   # SPORTMONKS_API_KEY + URL
+                    name: sports-bets-secrets   # SPORTMONKS_API_KEY + URL + KALSHI creds
+              env:
+                # Auto-open ARMED: real Kalshi orders, capped at $5/slip and $10/day.
+                - name: SPORTSBETS_KALSHI_AUTO_OPEN
+                  value: "true"
+                - name: SPORTSBETS_KALSHI_DAILY_BUDGET
+                  value: "10"
+                - name: SPORTSBETS_KALSHI_MAX_STAKE_PER_SLIP
+                  value: "5"
               resources:
                 requests:
                   cpu: 100m
