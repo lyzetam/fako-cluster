@@ -8,6 +8,7 @@ resources:
   - external-secret-dockerhub.yaml
   - pvc.yaml
   - cronjob.yaml
+  - cronjob-agent.yaml
   - web.yaml
   - cloudflare.yaml
 # aws-credentials + tunnel-credentials (SOPS-encrypted) live in the staging overlay.

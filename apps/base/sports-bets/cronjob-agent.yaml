@@ -1,0 +1,68 @@
+# v2 — autonomous AI betting agent (deepagents + Ollama Cloud glm-5.2).
+# Same image as v1, different command. Reasons over Sportmonks signals, bets on Kalshi
+# through the governance-bounded money path ($5/slip, $20/day enforced by Supabase
+# agent-governance). Runs PARALLEL to the deterministic v1 for comparison. Memory lives
+# in Supabase, so no PVC.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sports-bets-agent
+  namespace: sports-bets
+  labels:
+    app.kubernetes.io/name: sports-bets
+    app.kubernetes.io/component: ai-agent
+    app.kubernetes.io/part-of: sports-bets
+    app.kubernetes.io/managed-by: flux
+spec:
+  schedule: "0 11,16 * * *"   # same slate as v1, head-to-head
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800   # LLM reasoning over the slate
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: sports-bets
+            app.kubernetes.io/component: ai-agent
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: agent
+              image: lzetam/sports-bets:sha-15ab87a
+              command: ["sports-bets-agent"]
+              envFrom:
+                - secretRef:
+                    name: sports-bets-secrets   # Sportmonks + Kalshi + Ollama + Supabase(gov)
+              env:
+                - name: GOV_MAX_STAKE_CENTS      # per-slip clamp ($5) — unbypassable
+                  value: "500"
+                - name: HOME
+                  value: /tmp
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}
