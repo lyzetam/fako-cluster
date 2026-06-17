@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - secret-store.yaml
   - external-secret.yaml
+  - external-secret-dockerhub.yaml
   - pvc.yaml
   - deployment.yaml
   - service.yaml

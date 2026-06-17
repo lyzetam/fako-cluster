@@ -27,6 +27,8 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
+      imagePullSecrets:
+        - name: dockerhub-registry
       containers:
         - name: api
           # Pin to an immutable tag. Never :latest.
