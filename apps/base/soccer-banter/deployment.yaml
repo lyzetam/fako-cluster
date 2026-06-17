@@ -32,7 +32,7 @@ spec:
       containers:
         - name: api
           # Pin to an immutable tag. Never :latest.
-          image: lzetam/soccer-banter:20260617d
+          image: lzetam/soccer-banter:20260617e
           ports:
             - name: http
               containerPort: 8000
@@ -46,6 +46,12 @@ spec:
               value: gpt-oss:20b
             - name: DATA_DIR
               value: /app/data
+            # Continuous heartbeat orchestrator. Fully-continuous (all upcoming → FT);
+            # the semaphore caps simultaneous Ollama Cloud calls.
+            - name: ORCHESTRATOR_ENABLED
+              value: "true"
+            - name: OLLAMA_MAX_CONCURRENCY
+              value: "4"
           envFrom:
             - secretRef:
                 name: soccer-banter-secrets   # SPORTMONKS_API_TOKEN + OLLAMA_API_KEY
