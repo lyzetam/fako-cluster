@@ -1,31 +1,31 @@
-# Generates the risk/reward board on a schedule and writes it to the shared PVC.
-# Deterministic: pulls Sportmonks predictions + Kalshi odds, no LLM on the WC path.
+# Renders the v1-vs-v2 head-to-head scoreboard to the shared PVC (served by nginx at
+# /scoreboard.html). Reads betting_recs (Supabase) + Kalshi settlements. Hourly, offset
+# from the v1/v2 betting runs so it doesn't contend on the RWO PVC.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: sports-bets-generate
+  name: sports-bets-scoreboard
   namespace: sports-bets
   labels:
     app.kubernetes.io/name: sports-bets
-    app.kubernetes.io/component: generator
+    app.kubernetes.io/component: scoreboard
     app.kubernetes.io/part-of: sports-bets
     app.kubernetes.io/managed-by: flux
 spec:
-  # Morning slate + a pre-kickoff catch-up (confirmed XIs). UTC.
-  schedule: "0 11,16 * * *"
+  schedule: "20 * * * *"   # hourly at :20 (avoids v1/v2 at :00 11,16)
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
-  startingDeadlineSeconds: 600
+  startingDeadlineSeconds: 300
   jobTemplate:
     spec:
       backoffLimit: 1
-      activeDeadlineSeconds: 900
+      activeDeadlineSeconds: 300
       template:
         metadata:
           labels:
             app.kubernetes.io/name: sports-bets
-            app.kubernetes.io/component: generator
+            app.kubernetes.io/component: scoreboard
         spec:
           restartPolicy: OnFailure
           securityContext:
@@ -35,22 +35,16 @@ spec:
           imagePullSecrets:
             - name: dockerhub-registry
           containers:
-            - name: generate
+            - name: scoreboard
               image: lzetam/sports-bets:sha-9917c13
-              args: ["run", "--tournament", "world-cup", "--stake", "5", "--out-dir", "/data"]
+              command: ["sports-bets-scoreboard"]
+              args: ["--out", "/data/scoreboard.html"]
               envFrom:
                 - secretRef:
-                    name: sports-bets-secrets   # SPORTMONKS_API_KEY + URL + KALSHI creds
+                    name: sports-bets-secrets   # Kalshi (outcomes) + Supabase (betting_recs)
               env:
-                # Auto-open ARMED: real Kalshi orders, capped at $5/slip and $20/day.
-                # Max-edge selection can favor longshots; we accept the variance within
-                # the cap and let the live results feed the eventual calibration check.
-                - name: SPORTSBETS_KALSHI_AUTO_OPEN
-                  value: "true"
-                - name: SPORTSBETS_KALSHI_DAILY_BUDGET
-                  value: "20"
-                - name: SPORTSBETS_KALSHI_MAX_STAKE_PER_SLIP
-                  value: "5"
+                - name: HOME
+                  value: /tmp
               resources:
                 requests:
                   cpu: 100m

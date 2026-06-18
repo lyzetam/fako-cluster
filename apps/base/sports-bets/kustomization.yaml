@@ -9,6 +9,7 @@ resources:
   - pvc.yaml
   - cronjob.yaml
   - cronjob-agent.yaml
+  - cronjob-scoreboard.yaml
   - web.yaml
   - cloudflare.yaml
 # aws-credentials + tunnel-credentials (SOPS-encrypted) live in the staging overlay.
