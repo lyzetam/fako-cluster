@@ -36,7 +36,7 @@ spec:
             - name: dockerhub-registry
           containers:
             - name: generate
-              image: lzetam/sports-bets:sha-b1a1bcc
+              image: lzetam/sports-bets:sha-05b9f6a
               args: ["run", "--tournament", "world-cup", "--stake", "5", "--out-dir", "/data"]
               envFrom:
                 - secretRef:
