@@ -14,7 +14,7 @@ metadata:
     app.kubernetes.io/part-of: sports-bets
     app.kubernetes.io/managed-by: flux
 spec:
-  schedule: "0 11,16 * * *"   # same slate as v1, head-to-head
+  schedule: "0 */2 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
