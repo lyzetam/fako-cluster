@@ -38,7 +38,7 @@ spec:
             - name: dockerhub-registry
           containers:
             - name: agent
-              image: lzetam/sports-bets:sha-15ab87a
+              image: lzetam/sports-bets:sha-d1663b5
               command: ["sports-bets-agent"]
               envFrom:
                 - secretRef:
