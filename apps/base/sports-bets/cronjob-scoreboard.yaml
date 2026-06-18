@@ -36,7 +36,8 @@ spec:
             - name: dockerhub-registry
           containers:
             - name: scoreboard
-              image: lzetam/sports-bets:sha-30f694d
+              image: lzetam/sports-bets:latest
+              imagePullPolicy: Always
               command: ["sports-bets-scoreboard"]
               args: ["--out", "/data/scoreboard.html"]
               envFrom:
