@@ -32,7 +32,7 @@ spec:
       containers:
         - name: api
           # Pin to an immutable tag. Never :latest.
-          image: lzetam/soccer-banter:20260618b
+          image: lzetam/soccer-banter:20260618c
           ports:
             - name: http
               containerPort: 8000
@@ -43,7 +43,7 @@ spec:
             - name: OLLAMA_BASE_URL
               value: https://ollama.com
             - name: OLLAMA_MODEL
-              value: gpt-oss:20b
+              value: gpt-oss:120b
             - name: DATA_DIR
               value: /app/data
             # Continuous heartbeat orchestrator. Fully-continuous (all upcoming → FT);
