@@ -25,6 +25,8 @@ resources:
   - cronjob-scanner.yaml
   # Trade Journal Sync CronJob (hourly)
   - cronjob-journal-sync.yaml
+  # Pre-Qualification Agent — premarket whole-market funnel (8am ET)
+  - cronjob-prequalification.yaml
   # Orchestrator-QT - LangGraph Trading Coordinator
   - redis-orchestrator-qt.yaml
   - configmap-orchestrator-qt.yaml
