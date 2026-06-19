@@ -1,6 +1,6 @@
 # v2 — autonomous AI betting agent (deepagents + Ollama Cloud glm-5.2).
 # Same image as v1, different command. Reasons over Sportmonks signals, bets on Kalshi
-# through the governance-bounded money path ($5/slip, $20/day enforced by Supabase
+# through the governance-bounded money path ($2/slip, $35/day enforced by Supabase
 # agent-governance). Runs PARALLEL to the deterministic v1 for comparison. Memory lives
 # in Supabase, so no PVC.
 apiVersion: batch/v1
@@ -45,8 +45,8 @@ spec:
                 - secretRef:
                     name: sports-bets-secrets   # Sportmonks + Kalshi + Ollama + Supabase(gov)
               env:
-                - name: GOV_MAX_STAKE_CENTS      # per-slip clamp ($5) — unbypassable
-                  value: "500"
+                - name: GOV_MAX_STAKE_CENTS      # per-slip clamp ($2) — unbypassable
+                  value: "200"
                 - name: HOME
                   value: /tmp
               resources:

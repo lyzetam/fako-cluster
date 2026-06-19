@@ -43,15 +43,15 @@ spec:
                 - secretRef:
                     name: sports-bets-secrets   # SPORTMONKS_API_KEY + URL + KALSHI creds
               env:
-                # Auto-open ARMED: real Kalshi orders, capped at $5/slip and $20/day.
+                # Auto-open ARMED: real Kalshi orders, capped at $2/slip and $35/day.
                 # Max-edge selection can favor longshots; we accept the variance within
                 # the cap and let the live results feed the eventual calibration check.
                 - name: SPORTSBETS_KALSHI_AUTO_OPEN
                   value: "true"
                 - name: SPORTSBETS_KALSHI_DAILY_BUDGET
-                  value: "20"
+                  value: "35"
                 - name: SPORTSBETS_KALSHI_MAX_STAKE_PER_SLIP
-                  value: "5"
+                  value: "2"
               resources:
                 requests:
                   cpu: 100m
