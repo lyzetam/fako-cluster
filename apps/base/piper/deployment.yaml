@@ -72,17 +72,17 @@ spec:
             - "--debug"
           env:
             - name: OMP_NUM_THREADS
-              value: "1"
+              value: "4"  # was 1 (single-threaded = ~19s synthesis); 4 threads → ~2s for the Voice PE's fetch window
           volumeMounts:
             - mountPath: /data
               name: piper-data
           resources:
             requests:
               memory: "128Mi"
-              cpu: "100m"
+              cpu: "500m"
             limits:
               memory: "512Mi"
-              cpu: "1000m"
+              cpu: "4000m"  # burst to 4 cores during synthesis (matches OMP_NUM_THREADS=4)
           livenessProbe:
             tcpSocket:
               port: 10200
