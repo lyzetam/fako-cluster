@@ -1,0 +1,13 @@
+# apps/base/parakeet/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: parakeet
+resources:
+  - namespace.yaml
+  # GPU configuration (enabled on aitower node)
+  - deployment.yaml
+  - service.yaml
+
+  # Common resources
+  - storage.yaml
+  - nodeport-service.yaml

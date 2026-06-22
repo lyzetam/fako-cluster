@@ -1,0 +1,15 @@
+# apps/base/kokoro/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kokoro
+  namespace: kokoro
+spec:
+  ports:
+    - port: 10210
+      targetPort: 10210
+      protocol: TCP
+      name: wyoming
+  selector:
+    app: kokoro
+  type: ClusterIP

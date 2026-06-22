@@ -1,0 +1,61 @@
+# apps/base/kokoro/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kokoro
+  namespace: kokoro
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kokoro
+  template:
+    metadata:
+      labels:
+        app: kokoro
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+
+      containers:
+      - name: kokoro
+        image: ghcr.io/relvacode/kokoro-wyoming:latest
+        ports:
+        - containerPort: 10210
+          protocol: TCP
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+
+        volumeMounts:
+        - mountPath: /data
+          name: kokoro-models
+
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "3Gi"
+            cpu: "2000m"
+
+        livenessProbe:
+          tcpSocket:
+            port: 10210
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 10210
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          timeoutSeconds: 5
+
+      volumes:
+      - name: kokoro-models
+        persistentVolumeClaim:
+          claimName: kokoro-models

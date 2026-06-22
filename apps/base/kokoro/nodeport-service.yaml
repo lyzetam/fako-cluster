@@ -1,0 +1,14 @@
+# apps/base/kokoro/nodeport-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kokoro-nodeport
+  namespace: kokoro
+spec:
+  type: NodePort
+  ports:
+    - port: 10210
+      targetPort: 10210
+      nodePort: 30210
+  selector:
+    app: kokoro

@@ -1,0 +1,14 @@
+# apps/base/parakeet/nodeport-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: parakeet-nodeport
+  namespace: parakeet
+spec:
+  type: NodePort
+  ports:
+    - port: 10300
+      targetPort: 10300
+      nodePort: 30303
+  selector:
+    app: parakeet

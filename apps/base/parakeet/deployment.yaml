@@ -1,0 +1,82 @@
+# apps/base/parakeet/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parakeet
+  namespace: parakeet
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: parakeet
+  template:
+    metadata:
+      labels:
+        app: parakeet
+    spec:
+      runtimeClassName: nvidia  # Required for GPU access with GPU operator
+      hostIPC: true  # Required for GPU access
+      nodeSelector:
+        kubernetes.io/hostname: aitower
+        nvidia.com/gpu.present: "true"
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+
+      containers:
+      - name: parakeet
+        image: ghcr.io/tboby/wyoming-onnx-asr-gpu:latest
+        args:
+        - "--uri"
+        - "tcp://0.0.0.0:10300"
+        - "--model-en"
+        ports:
+        - containerPort: 10300
+          protocol: TCP
+        env:
+        - name: ONNX_ASR_MODEL_DIR
+          value: "/data"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
+
+        volumeMounts:
+        - mountPath: /data
+          name: parakeet-models
+
+        resources:
+          requests:
+            memory: "3Gi"
+            cpu: "2000m"
+            nvidia.com/gpu: 1  # Request 1 GPU (RTX 3050 via NVIDIA_VISIBLE_DEVICES)
+          limits:
+            memory: "5Gi"
+            cpu: "4000m"
+            nvidia.com/gpu: 1  # Limit to 1 GPU
+
+        livenessProbe:
+          tcpSocket:
+            port: 10300
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 10300
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          timeoutSeconds: 5
+
+      volumes:
+      - name: parakeet-models
+        persistentVolumeClaim:
+          claimName: parakeet-models

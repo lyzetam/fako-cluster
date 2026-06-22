@@ -1,0 +1,15 @@
+# apps/base/parakeet/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: parakeet
+  namespace: parakeet
+spec:
+  ports:
+    - port: 10300
+      targetPort: 10300
+      protocol: TCP
+      name: wyoming
+  selector:
+    app: parakeet
+  type: ClusterIP
