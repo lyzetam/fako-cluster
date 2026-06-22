@@ -43,7 +43,7 @@ resources:
   # - ollama-jetson2  # Separate deployment for jetson02 node with qwen3:4b
   - ollama-webui    # Keep original running
   - open-webui      # Test new namespace with shared storage
-  # - whisper         # Disabled for WhisperX testing
+  - whisper           # GPU Wyoming STT (port 10300) for HA Assist real-time voice
   - whisper-cpu       # CPU-only Whisper with OpenAI-compatible API
   - piper
   # - piper-v13       # Piper (LinuxServer image) in separate namespace - DEACTIVATED
@@ -90,7 +90,7 @@ resources:
   - umami           # Privacy-focused website analytics
 
   # WhisperX - Speaker diarization testing
-  - whisperx        # WhisperX with speaker diarization (GPU)
+  # - whisperx        # Disabled - GPU slot freed for whisper-gpu (HA voice). Re-enable on-demand for Obsidian transcription.
 
   # Argo Workflows - Audio Processing Pipeline
   - audio-workflows # Unified audio processing DAG (replaces CronJobs)
