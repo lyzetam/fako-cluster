@@ -14,6 +14,11 @@ metadata:
     app.kubernetes.io/part-of: sports-bets
     app.kubernetes.io/managed-by: flux
 spec:
+  # SUSPENDED while the v2 strategy is redesigned (stateful memory + LLM-judged
+  # one-pick-per-game + cross-game combo slips). Was placing contradicting bets
+  # (e.g. Argentina-win AND Austria-win on one game) because it ran stateless every
+  # 2h with no view of its own positions. Re-enable (suspend: false) once shipped.
+  suspend: true
   schedule: "0 */2 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
