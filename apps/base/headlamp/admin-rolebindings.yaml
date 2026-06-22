@@ -505,19 +505,20 @@ subjects:
   name: headlamp-admin
   namespace: kube-system
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: headlamp-admin
-  namespace: whisper-cpu
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: headlamp-admin
-subjects:
-- kind: ServiceAccount
-  name: headlamp-admin
-  namespace: kube-system
+# Disabled with whisper-cpu (namespace pruned). Re-enable alongside whisper-cpu.
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: headlamp-admin
+#   namespace: whisper-cpu
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: headlamp-admin
+# subjects:
+# - kind: ServiceAccount
+#   name: headlamp-admin
+#   namespace: kube-system
 ---
 # Disabled with whisperx (namespace removed). Re-enable alongside whisperx.
 # apiVersion: rbac.authorization.k8s.io/v1

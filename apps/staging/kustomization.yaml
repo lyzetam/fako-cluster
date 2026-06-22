@@ -46,7 +46,7 @@ resources:
   # - whisper   # Disabled: replaced by parakeet (frees the aitower GPU slot)
   - parakeet          # GPU Wyoming STT (port 10300) — Parakeet ONNX ASR, replaces whisper-gpu
   # - kokoro          # Pruned: 24kHz FLAC won't play on the HA Voice PE; TTS uses cluster Piper (ryan-medium) instead
-  - whisper-cpu       # CPU-only Whisper with OpenAI-compatible API
+  # - whisper-cpu     # Pruned: unused (HA STT uses Parakeet; voice-ingest uses whisperx). Re-enable if you need a Speaches/OpenAI STT API.
   - piper             # Wyoming TTS (port 10200) — the active HA Voice PE TTS (ryan-medium, 4-thread)
   # - piper-v13       # Piper (LinuxServer image) in separate namespace - DEACTIVATED
   - openwakeword
