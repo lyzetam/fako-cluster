@@ -29,8 +29,8 @@ spec:
           args:
             - |
               set -e
-              BASE_URL="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/high"
-              VOICE="en_US-ryan-high"
+              BASE_URL="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/ryan/medium"
+              VOICE="en_US-ryan-medium"
               for f in "${VOICE}.onnx" "${VOICE}.onnx.json"; do
                 if [ ! -f "/data/${f}" ]; then
                   echo "Downloading ${f}..."
@@ -61,7 +61,7 @@ spec:
               protocol: TCP
           args:
             - "--voice"
-            - "en_US-ryan-high"
+            - "en_US-ryan-medium"
             - "--uri"
             - "tcp://0.0.0.0:10200"
             - "--data-dir"
@@ -114,7 +114,7 @@ spec:
                 echo "Voice manager check at $(date)"
                 
                 # Check if essential voice still exists
-                if [ -f /data/en_US-ryan-high.onnx ]; then
+                if [ -f /data/en_US-ryan-medium.onnx ]; then
                   echo "✓ Essential voice present (ryan-high)"
                 else
                   echo "⚠ Essential voice missing (ryan-high)!"
