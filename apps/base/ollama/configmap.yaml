@@ -30,11 +30,12 @@ data:
   # Ollama GPU Settings
   OLLAMA_GPU_LAYERS: "999"  # Force all layers to GPU
   OLLAMA_CUDA_FORCE_MMQ: "1"
-  OLLAMA_FLASH_ATTENTION: "0"  # Disabled - not supported
-  OLLAMA_GPU_MEMORY: "12G"  # Leave 0.5GB for system on 12GB card
-  
+  OLLAMA_FLASH_ATTENTION: "1"  # Enabled - RTX 5060 supports it; required for KV cache quant
+  OLLAMA_KV_CACHE_TYPE: "q8_0"  # Quantize KV cache (~half) so model+KV fit the 8GB RTX 5060
+  OLLAMA_GPU_MEMORY: "7G"  # Actual card is RTX 5060 8GB (not 12GB) - leave ~1GB for system
+
   # Performance Settings
-  OLLAMA_NUM_PARALLEL: "2"  # More parallel requests with RTX 5070
+  OLLAMA_NUM_PARALLEL: "1"  # Single concurrent request = single KV cache (8GB card, not 12GB)
   OLLAMA_NUM_THREAD: "8"
   OLLAMA_MAX_LOADED_MODELS: "1"  # Can keep more models in GPU memory with RTX 5070
   GOMAXPROCS: "8"
