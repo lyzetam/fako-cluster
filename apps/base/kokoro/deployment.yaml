@@ -14,12 +14,8 @@ spec:
       labels:
         app: kokoro
     spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-
+      # No restrictive securityContext: the kokoro-wyoming image loads its
+      # bundled model as its default (root) user; runAsNonRoot caused EACCES.
       containers:
       - name: kokoro
         image: ghcr.io/relvacode/kokoro-wyoming:latest

@@ -38,12 +38,15 @@ spec:
         - "--uri"
         - "tcp://0.0.0.0:10300"
         - "--model-en"
+        - "nemo-parakeet-tdt-0.6b-v2"
         ports:
         - containerPort: 10300
           protocol: TCP
         env:
         - name: ONNX_ASR_MODEL_DIR
           value: "/data"
+        - name: HF_HOME
+          value: "/data/.cache"
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: NVIDIA_DRIVER_CAPABILITIES
