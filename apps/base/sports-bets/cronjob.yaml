@@ -36,7 +36,9 @@ spec:
             - name: dockerhub-registry
           containers:
             - name: generate
-              image: lzetam/sports-bets:latest
+              # v1 generator now ships from its own repo/image (sports-bets-v1); the
+              # `sports-bets` CLI moved out of lzetam/sports-bets (which is now v2-only).
+              image: lzetam/sports-bets-v1:latest
               imagePullPolicy: Always
               args: ["run", "--tournament", "world-cup", "--stake", "5", "--out-dir", "/data"]
               envFrom:
