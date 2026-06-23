@@ -46,8 +46,11 @@ spec:
                 # Auto-open ARMED: real Kalshi orders, capped at $2/slip and $35/day.
                 # Max-edge selection can favor longshots; we accept the variance within
                 # the cap and let the live results feed the eventual calibration check.
+                # Disarmed: v1 keeps generating the board + recording its picks (the
+                # v1-vs-v2 scoreboard baseline) but no longer PLACES bets — only v2 bets
+                # on the shared Kalshi account. Flip back to "true" to re-arm v1.
                 - name: SPORTSBETS_KALSHI_AUTO_OPEN
-                  value: "true"
+                  value: "false"
                 - name: SPORTSBETS_KALSHI_DAILY_BUDGET
                   value: "35"
                 - name: SPORTSBETS_KALSHI_MAX_STAKE_PER_SLIP
