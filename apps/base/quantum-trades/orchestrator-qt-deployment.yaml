@@ -118,6 +118,14 @@ spec:
             - name: TRADING_MODE
               value: "paper"
 
+            # Paper-only: Tradier sandbox returns OI=0 for options, so the
+            # fail-closed open-interest floor would reject every paper trade and
+            # the autonomous loop could never trade (blocking the paper-prove
+            # go-live gate). This override relaxes the floor in paper. REMOVE when
+            # switching TRADING_MODE to "live" so the real profile floor applies.
+            - name: MIN_OPEN_INTEREST_OVERRIDE
+              value: "0"
+
             # Logging
             - name: LOG_LEVEL
               value: "INFO"
