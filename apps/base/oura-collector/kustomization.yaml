@@ -13,6 +13,9 @@ resources:
   - storage.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
+  # ingress.yaml removed 2026-06-30: dead config — host had no DNS, routed to a
+  # non-existent service port (8000; svc exposes 8080), no cloudflared tunnel
+  # route, only fronted the health endpoint. Left an LE HTTP-01 challenge stuck
+  # 350d. Collector is an outbound pipeline; needs no ingress.
   # - backfill-job.yaml  # Removed: Should only be run manually when needed
   - cronjob.yaml         # Added: Use CronJob for scheduled backfills instead
