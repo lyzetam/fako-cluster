@@ -14,11 +14,11 @@ metadata:
     app.kubernetes.io/part-of: sports-bets
     app.kubernetes.io/managed-by: flux
 spec:
-  # SUSPENDED while the v2 strategy is redesigned (stateful memory + LLM-judged
-  # one-pick-per-game + cross-game combo slips). Was placing contradicting bets
-  # (e.g. Argentina-win AND Austria-win on one game) because it ran stateless every
-  # 2h with no view of its own positions. Re-enable (suspend: false) once shipped.
-  suspend: true
+  # LIVE (2026-06-30). Shipped: StateGraph + atomic one-pick-per-game claim, deterministic
+  # match model as a tool (MAD-trimmed + self-consistent baseline, core v0.1.2), which-line-to-bet
+  # Kelly skill, cheap-tail untradeable rule. Capped verifies confirmed: grounded singles, no
+  # Over-5.5 longshots, money-safety holds (clamp $2/slip + $35/day budget + idempotency).
+  suspend: false
   schedule: "0 */2 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
