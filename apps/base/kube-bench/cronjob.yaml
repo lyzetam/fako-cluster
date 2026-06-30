@@ -24,7 +24,7 @@ spec:
           - name: dockerhub-registry
           containers:
           - name: kube-bench
-            image: aquasec/kube-bench:v0.15.0
+            image: aquasec/kube-bench:v0.15.6
             command:
             - /bin/sh
             - -c
@@ -89,7 +89,7 @@ spec:
             securityContext:
               privileged: true
           - name: results-processor
-            image: busybox:1.37.0
+            image: busybox:1.38.0
             command:
             - /bin/sh
             - -c
