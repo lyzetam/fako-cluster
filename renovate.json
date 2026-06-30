@@ -50,6 +50,12 @@
       "groupName": "flux packages"
     },
     {
+      "description": "gotk-components.yaml is owned by the flux2 release bundle (a tested set of controllers + matching CRDs). Only the flux2 version drives this file; ignore standalone controller image bumps so controllers never run ahead of the bundle (avoids untested combos / CRD mismatch on the GitOps control plane).",
+      "matchFileNames": ["clusters/staging/flux-system/gotk-components.yaml"],
+      "matchDatasources": ["docker"],
+      "enabled": false
+    },
+    {
       "description": "Group container image updates by application",
       "matchDatasources": ["docker"],
       "matchPaths": ["apps/base/*/**.yaml"],
