@@ -5,6 +5,16 @@ metadata:
   namespace: kubescape
 spec:
   interval: 30m
+  # node-agent DaemonSet rolls one pod at a time and pulls a new image across 5
+  # heterogeneous nodes (incl. slow 8GB pgmac01); Helm's default 5m wait times
+  # out on image-tag bumps and stalls the release. Give the rollout headroom.
+  timeout: 15m
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
   chart:
     spec:
       chart: kubescape-operator
