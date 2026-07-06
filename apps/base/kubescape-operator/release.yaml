@@ -28,6 +28,11 @@ spec:
     capabilities:
       continuousScan: enable
       networkPolicyService: enable
+      # Expose vulnerability/compliance counts as Prometheus metrics (server-side
+      # aggregation — avoids the storage API's spec-stripping on LIST queries that
+      # makes ad-hoc `kubectl get -A` reads look like "0 CVEs"). Feeds Grafana +
+      # alerting so the real posture is always visible. See kubescape-vuln-query-gotcha.
+      prometheusExporter: enable
       
     # Configure storage for scan results
     storage:
