@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: remarkable-ocr-state
+  namespace: remarkable-ocr
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 64Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: remarkable-ocr
+  namespace: remarkable-ocr
+  labels:
+    app: remarkable-ocr
+spec:
+  # Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC). Pulls changed reMarkable
+  # notebooks via rmapi, recognizes changed pages with MyScript, and writes one
+  # markdown file per page to the Obsidian vault (LAN REST API). Per-page hashing
+  # keeps re-recognition (and MyScript quota) minimal. See lyzetam/remarkable-sync.
+  # NOTE: the Obsidian REST host is on the LAN — a run scheduled while that host
+  # is asleep will fail and simply resume next run (state is crash-safe per page).
+  schedule: "0 */6 * * *"
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app: remarkable-ocr
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: dockerhub-secret
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: sync
+              image: lzetam/remarkable-ocr:v0.1.2
+              env:
+                - name: MYSCRIPT_APP_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: myscript-api
+                      key: app_key
+                - name: MYSCRIPT_HMAC_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: myscript-api
+                      key: hmac_key
+                - name: RMAPI_DEVICETOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: remarkable-cloud-token
+                      key: devicetoken
+                - name: OBSIDIAN_API_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: obsidian-api
+                      key: api_url
+                - name: OBSIDIAN_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: obsidian-api
+                      key: api_key
+                - name: OBSIDIAN_VERIFY_TLS
+                  value: "false"  # LAN Obsidian REST API uses a self-signed cert
+                - name: NOTES_ROOT
+                  value: "remarkable-notes"
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: "1"
+                  memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: state
+                  mountPath: /state
+          volumes:
+            - name: state
+              persistentVolumeClaim:
+                claimName: remarkable-ocr-state

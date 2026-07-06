@@ -114,6 +114,9 @@ resources:
   # Wearable AI notetaker — Compass transcription webhook → Obsidian vault
   - fieldy-webhook
 
+  # reMarkable handwritten notes → MyScript OCR → Obsidian vault (daily CronJob)
+  - remarkable-ocr
+
   # zI - Zetam Intelligence (AI orchestration + agents, single source of truth)
   - zi
 

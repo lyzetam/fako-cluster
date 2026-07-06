@@ -1,0 +1,54 @@
+# Alerts for kubescape vulnerability reporting.
+# The primary alert is the "silent-zero guard": if the vuln metrics disappear
+# (scanner/exporter broken), fire — because a missing metric reads as "0 CVEs",
+# which is exactly the failure mode that hid the cluster's real CVE exposure.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kubescape-vulnerability-alerts
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: kubescape-vulnerabilities.rules
+      rules:
+        # Silent-zero guard: vuln reporting stopped. A missing metric looks like
+        # "0 CVEs" — this catches a broken scanner/exporter so it can't hide again.
+        - alert: KubescapeVulnReportingDown
+          expr: absent(kubescape_vulnerabilities_total_cluster_critical)
+          for: 30m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kubescape vulnerability reporting is down"
+            description: >-
+              kubescape_vulnerabilities_total_cluster_critical has been absent for 30m.
+              The cluster is NOT CVE-free — the scanner or prometheus-exporter is broken
+              and reporting has silently gone to zero. Check the kubescape namespace.
+
+        # Exporter scrape target unreachable.
+        - alert: KubescapePrometheusExporterDown
+          expr: up{service="kubescape-prometheus-exporter"} == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Kubescape prometheus-exporter is not scrapeable"
+            description: >-
+              Prometheus cannot scrape the kubescape exporter ({{ $labels.instance }}).
+              Vulnerability metrics are stale.
+
+        # Actionable signal: runtime-relevant critical CVEs above threshold.
+        # Threshold is intentionally below the current baseline (~356) so it fires
+        # until remediation brings it down; tune as the backlog shrinks.
+        - alert: KubescapeRelevantCriticalCVEsHigh
+          expr: kubescape_vulnerabilities_relevant_cluster_critical > 100
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $value }} runtime-relevant critical CVEs in the cluster"
+            description: >-
+              Kubescape reports {{ $value }} relevant (loaded-at-runtime) critical CVEs.
+              See the "Kubescape Vulnerabilities" Grafana dashboard for the per-namespace
+              breakdown and prioritize remediation.

@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: remarkable-ocr
+
+resources:
+  - namespace.yaml
+  - aws-credentials-secret.yaml
+  - secretstore.yaml
+  - external-secret-dockerhub.yaml
+  - external-secret-remarkable.yaml
+  - external-secret-myscript.yaml
+  - external-secret-obsidian.yaml
+  - networkpolicy.yaml
+  - cronjob.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: remarkable-ocr
+      app.kubernetes.io/instance: production
+      app.kubernetes.io/component: sync
+      app.kubernetes.io/part-of: remarkable

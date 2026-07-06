@@ -1,0 +1,19 @@
+# Scrape the kubescape prometheus-exporter (enabled via capabilities.prometheusExporter).
+# The exporter aggregates vuln counts server-side, so it is immune to the storage
+# API's spec-stripping on LIST queries that makes ad-hoc reads look like "0 CVEs".
+# kube-prometheus-stack's Prometheus has empty selectors → discovers this automatically.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kubescape-prometheus-exporter
+  labels:
+    app.kubernetes.io/component: prometheus-exporter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: prometheus-exporter
+  endpoints:
+    - targetPort: 8080
+      path: /metrics
+      interval: 60s
+      scheme: http

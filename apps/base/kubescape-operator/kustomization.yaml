@@ -14,6 +14,10 @@ resources:
   - configmap-reporter.yaml
   - rbac-reporter.yaml
   - cronjob-reporter.yaml
+  # Vulnerability metrics reporting (prometheusExporter → Prometheus → Grafana/alerts)
+  - servicemonitor.yaml
+  - prometheus-rules.yaml
+  - dashboard-configmap.yaml
 
 labels:
 - pairs:

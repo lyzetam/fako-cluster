@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: remarkable-ocr
+  labels:
+    app.kubernetes.io/name: remarkable-ocr
+    app.kubernetes.io/part-of: remarkable
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

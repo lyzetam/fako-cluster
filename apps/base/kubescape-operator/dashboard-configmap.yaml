@@ -1,0 +1,90 @@
+# Grafana dashboard for kubescape image-vulnerability posture.
+# Auto-imported by the kube-prometheus-stack grafana sidecar (watches ALL namespaces
+# for ConfigMaps labeled grafana_dashboard=1). Data comes from the prometheus-exporter
+# (server-side aggregated — the correct, non-stripped source of CVE counts).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubescape-vulnerabilities-dashboard
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "Security"
+data:
+  kubescape-vulnerabilities.json: |
+    {
+      "title": "Kubescape Vulnerabilities",
+      "uid": "kubescape-vulns",
+      "tags": ["security", "kubescape", "vulnerabilities"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "5m",
+      "time": {"from": "now-24h", "to": "now"},
+      "templating": {
+        "list": [
+          {
+            "name": "datasource",
+            "type": "datasource",
+            "query": "prometheus",
+            "current": {},
+            "hide": 0
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "stat", "title": "Total Critical (cluster)",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}},
+          "targets": [{"expr": "kubescape_vulnerabilities_total_cluster_critical", "refId": "A"}]
+        },
+        {
+          "type": "stat", "title": "Total High (cluster)",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}]}}},
+          "targets": [{"expr": "kubescape_vulnerabilities_total_cluster_high", "refId": "A"}]
+        },
+        {
+          "type": "stat", "title": "Relevant Critical (runtime-loaded)",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}},
+          "targets": [{"expr": "kubescape_vulnerabilities_relevant_cluster_critical", "refId": "A"}]
+        },
+        {
+          "type": "stat", "title": "Relevant High (runtime-loaded)",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}]}}},
+          "targets": [{"expr": "kubescape_vulnerabilities_relevant_cluster_high", "refId": "A"}]
+        },
+        {
+          "type": "timeseries", "title": "Cluster CVE totals over time",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {"expr": "kubescape_vulnerabilities_total_cluster_critical", "legendFormat": "total critical", "refId": "A"},
+            {"expr": "kubescape_vulnerabilities_total_cluster_high", "legendFormat": "total high", "refId": "B"},
+            {"expr": "kubescape_vulnerabilities_relevant_cluster_critical", "legendFormat": "relevant critical", "refId": "C"},
+            {"expr": "kubescape_vulnerabilities_relevant_cluster_high", "legendFormat": "relevant high", "refId": "D"}
+          ]
+        },
+        {
+          "type": "bargauge", "title": "Total Critical by namespace (top 20)",
+          "gridPos": {"h": 11, "w": 12, "x": 0, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "options": {"orientation": "horizontal", "displayMode": "gradient"},
+          "targets": [{"expr": "topk(20, kubescape_vulnerabilities_total_namespace_critical > 0)", "legendFormat": "{{namespace}}", "refId": "A", "instant": true}]
+        },
+        {
+          "type": "bargauge", "title": "Relevant Critical by namespace (top 20)",
+          "gridPos": {"h": 11, "w": 12, "x": 12, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "options": {"orientation": "horizontal", "displayMode": "gradient"},
+          "targets": [{"expr": "topk(20, kubescape_vulnerabilities_relevant_namespace_critical > 0)", "legendFormat": "{{namespace}}", "refId": "A", "instant": true}]
+        }
+      ]
+    }
