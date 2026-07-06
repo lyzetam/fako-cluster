@@ -26,9 +26,11 @@ spec:
               The cluster is NOT CVE-free — the scanner or prometheus-exporter is broken
               and reporting has silently gone to zero. Check the kubescape namespace.
 
-        # Exporter scrape target unreachable.
+        # Exporter scrape target unreachable. NOTE: the prometheus-operator sets the
+        # `service`/`job` label from the Service NAME (prometheus-exporter), not the
+        # ServiceMonitor name — match that, namespace-qualified.
         - alert: KubescapePrometheusExporterDown
-          expr: up{service="kubescape-prometheus-exporter"} == 0
+          expr: up{job="prometheus-exporter", namespace="kubescape"} == 0
           for: 15m
           labels:
             severity: warning
