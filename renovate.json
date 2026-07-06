@@ -60,6 +60,12 @@
       "matchDatasources": ["docker"],
       "matchPaths": ["apps/base/*/**.yaml"],
       "groupName": "{{parentDir}} container images"
+    },
+    {
+      "description": "Shared utility base images (busybox, alpine) are used across many app dirs; the per-parentDir grouping above fragments them into one PR per directory (e.g. 7 busybox PRs). Override to collapse each into a single cluster-wide PR. Placed last so it wins over the parentDir rule.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["busybox", "alpine", "docker.io/library/busybox", "docker.io/library/alpine"],
+      "groupName": "shared base images"
     }
   ],
   "commitMessagePrefix": "chore(deps):",
