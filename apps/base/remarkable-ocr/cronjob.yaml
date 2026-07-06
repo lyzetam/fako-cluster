@@ -19,13 +19,15 @@ metadata:
   labels:
     app: remarkable-ocr
 spec:
-  # Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC). Pulls changed reMarkable
-  # notebooks via rmapi, recognizes changed pages with MyScript, and writes one
-  # markdown file per page to the Obsidian vault (LAN REST API). Per-page hashing
-  # keeps re-recognition (and MyScript quota) minimal. See lyzetam/remarkable-sync.
-  # NOTE: the Obsidian REST host is on the LAN — a run scheduled while that host
-  # is asleep will fail and simply resume next run (state is crash-safe per page).
-  schedule: "0 */6 * * *"
+  # Nightly at 07:00 UTC (~01:00-02:00 CT). Pulls changed reMarkable notebooks
+  # via rmapi, recognizes changed pages with MyScript, and writes one markdown
+  # file per page to the Obsidian vault (LAN REST API). Per-page hashing keeps
+  # re-recognition (and MyScript quota) minimal. See lyzetam/remarkable-sync.
+  # NOTE: the Obsidian REST host is on the LAN. fieldy-webhook found it asleep
+  # overnight (~03:00 UTC) — if this nightly slot fails "connection refused",
+  # move to a daytime hour like 16:00 UTC. State is crash-safe per page, so a
+  # failed night just resyncs the next successful run.
+  schedule: "0 7 * * *"
   timeZone: "UTC"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
