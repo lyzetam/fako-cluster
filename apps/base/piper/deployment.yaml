@@ -24,7 +24,7 @@ spec:
       initContainers:
         # Deterministically download ryan voice before main container starts
         - name: voice-init
-          image: busybox:1.37.0
+          image: busybox:1.38.0
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -102,7 +102,7 @@ spec:
         
         # Lightweight voice manager (only downloads what's missing)
         - name: voice-manager
-          image: busybox:1.37.0
+          image: busybox:1.38.0
           command: ["/bin/sh"]
           args:
             - -c
