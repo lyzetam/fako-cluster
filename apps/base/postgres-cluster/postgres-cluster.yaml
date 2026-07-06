@@ -5,7 +5,7 @@ metadata:
   namespace: postgres
 spec:
   instances: 3
-  imageName: ghcr.io/cloudnative-pg/postgresql:16.2
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.14
   enableSuperuserAccess: true
   
   # Use AWS Secrets Manager for admin credentials
