@@ -44,7 +44,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: enrich
-          image: lzetam/fieldy-webhook:v0.13.0
+          image: lzetam/fieldy-webhook:v0.14.0
           # No --limit: process the entire backlog. Idempotent + resumable.
           command:
             - python
