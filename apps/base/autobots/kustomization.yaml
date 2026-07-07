@@ -8,3 +8,6 @@ resources:
   - cloudflared.yaml
   - tunnel-secret.yaml
   - dockerhub-secret.yaml
+  - feed-external-secret.yaml
+  - feed-deployment.yaml
+  - feed-service.yaml

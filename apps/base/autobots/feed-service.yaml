@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: autobots-feed
+  namespace: autobots
+spec:
+  selector:
+    app.kubernetes.io/name: autobots-feed
+  ports:
+    - port: 8000
+      targetPort: 8000
