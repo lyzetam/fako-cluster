@@ -20,11 +20,14 @@ resources:
   # to trigger a one-off historical backfill via GitOps. Re-comment after it
   # completes (or leave it — the Job's ttlSecondsAfterFinished auto-cleans).
   # - backfill-job.yaml
-  # Full one-time enrichment backlog sweep. Disabled: at full speed it overwhelms
-  # the Obsidian REST API (httpx PoolTimeout after ~200). Needs a resilience fix
-  # (retry/backoff + concurrency 1) before re-enabling. Gradual cron handles the
-  # backlog meanwhile. Uncomment + bump metadata.name to re-run.
-  - enrich-backfill-job.yaml
+  # Full one-time enrichment backlog sweep — one-off, NOT a standing resource.
+  # DISABLED: it was left uncommented after backfill-005, and with
+  # ttlSecondsAfterFinished the completed Job kept getting TTL-deleted and
+  # re-created by Flux (a ~daily uncapped resurrection loop) — the source of the
+  # 2026-07-07 token burn. The capped cron (--limit 200) handles the backlog.
+  # To run a deliberate one-off: uncomment, bump metadata.name, push, then
+  # RE-COMMENT after it completes.
+  # - enrich-backfill-job.yaml
 
 labels:
   - pairs:

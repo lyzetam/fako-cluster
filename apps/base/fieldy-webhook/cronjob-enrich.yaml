@@ -82,16 +82,16 @@ spec:
                 - name: FIELDY_STATE_DIR
                   value: "/state"
                 - name: FIELDY_ENRICH_BACKEND
-                  value: "claude"
-                - name: ANTHROPIC_MODEL
-                  value: "claude-haiku-4-5-20251001"
+                  value: "ollama"
+                - name: OLLAMA_BASE_URL
+                  value: "http://ms3.landryzetam.net:11434"
+                - name: OLLAMA_MODEL
+                  value: "gpt-oss:20b"
                 - name: FIELDY_ENRICH_CONCURRENCY
                   value: "2"  # lowered from 4: 4 concurrent deepagents + large transcripts OOMKilled at 1Gi
-                - name: ANTHROPIC_API_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: fieldy-anthropic
-                      key: api_key
+                # ANTHROPIC_* intentionally removed: enrichment runs on the local
+                # ms3 Ollama model. With no cloud key in-env, the deepagents
+                # claude-sonnet-4-6 default fails loud instead of silently billing.
                 # Langfuse token-usage tracing (reuses the zi project keys).
                 - name: LANGFUSE_HOST
                   value: "http://langfuse-web.langfuse.svc:3000"
