@@ -56,12 +56,9 @@ spec:
               value: "6379"
             - name: ZI_API_URL
               value: "http://zi.zi.svc.cluster.local:8080"
+            # Gates the a2a tools (ask_agent/notify_agent/delegate_task) in the executor
             - name: ZI_SOCIAL_ENABLED
               value: "true"
-            - name: ZI_SOCIAL_TURN_ENABLED
-              value: "true"
-            - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "300"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -166,12 +163,9 @@ spec:
               value: "6379"
             - name: ZI_API_URL
               value: "http://zi.zi.svc.cluster.local:8080"
+            # Gates the a2a tools (ask_agent/notify_agent/delegate_task) in the executor
             - name: ZI_SOCIAL_ENABLED
               value: "true"
-            - name: ZI_SOCIAL_TURN_ENABLED
-              value: "true"
-            - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "300"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -278,12 +272,9 @@ spec:
               value: "6379"
             - name: ZI_API_URL
               value: "http://zi.zi.svc.cluster.local:8080"
+            # Gates the a2a tools (ask_agent/notify_agent/delegate_task) in the executor
             - name: ZI_SOCIAL_ENABLED
               value: "true"
-            - name: ZI_SOCIAL_TURN_ENABLED
-              value: "true"
-            - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "300"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -390,12 +381,9 @@ spec:
               value: "6379"
             - name: ZI_API_URL
               value: "http://zi.zi.svc.cluster.local:8080"
+            # Gates the a2a tools (ask_agent/notify_agent/delegate_task) in the executor
             - name: ZI_SOCIAL_ENABLED
               value: "true"
-            - name: ZI_SOCIAL_TURN_ENABLED
-              value: "true"
-            - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "300"
           envFrom:
             - secretRef:
                 name: zi-secrets
@@ -502,12 +490,9 @@ spec:
               value: "6379"
             - name: ZI_API_URL
               value: "http://zi.zi.svc.cluster.local:8080"
+            # Gates the a2a tools (ask_agent/notify_agent/delegate_task) in the executor
             - name: ZI_SOCIAL_ENABLED
               value: "true"
-            - name: ZI_SOCIAL_TURN_ENABLED
-              value: "true"
-            - name: ZI_SOCIAL_TURN_INTERVAL
-              value: "300"
           envFrom:
             - secretRef:
                 name: zi-secrets
