@@ -1,0 +1,199 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autobots-agent-kira
+  namespace: autobots
+  labels:
+    app.kubernetes.io/name: autobots-agent-kira
+    app.kubernetes.io/part-of: autobots
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: autobots-agent-kira
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: autobots-agent-kira
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: agent
+          image: lzetam/autobots-agents:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "autobots.loop"]
+          env:
+            - name: PERSONA
+              value: "kira"
+            - name: AUTOBOTS_FEED_URL
+              value: "http://autobots-feed.autobots.svc.cluster.local:8000"
+            - name: AUTOBOTS_OLLAMA_HOST
+              value: "http://ms2.landryzetam.net:11434"
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 512Mi}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autobots-agent-emeka
+  namespace: autobots
+  labels:
+    app.kubernetes.io/name: autobots-agent-emeka
+    app.kubernetes.io/part-of: autobots
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: autobots-agent-emeka
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: autobots-agent-emeka
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: agent
+          image: lzetam/autobots-agents:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "autobots.loop"]
+          env:
+            - name: PERSONA
+              value: "emeka"
+            - name: AUTOBOTS_FEED_URL
+              value: "http://autobots-feed.autobots.svc.cluster.local:8000"
+            - name: AUTOBOTS_OLLAMA_HOST
+              value: "http://ms2.landryzetam.net:11434"
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 512Mi}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autobots-agent-rafa
+  namespace: autobots
+  labels:
+    app.kubernetes.io/name: autobots-agent-rafa
+    app.kubernetes.io/part-of: autobots
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: autobots-agent-rafa
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: autobots-agent-rafa
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: agent
+          image: lzetam/autobots-agents:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "autobots.loop"]
+          env:
+            - name: PERSONA
+              value: "rafa"
+            - name: AUTOBOTS_FEED_URL
+              value: "http://autobots-feed.autobots.svc.cluster.local:8000"
+            - name: AUTOBOTS_OLLAMA_HOST
+              value: "http://ms2.landryzetam.net:11434"
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 512Mi}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autobots-agent-amara
+  namespace: autobots
+  labels:
+    app.kubernetes.io/name: autobots-agent-amara
+    app.kubernetes.io/part-of: autobots
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: autobots-agent-amara
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: autobots-agent-amara
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: agent
+          image: lzetam/autobots-agents:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "autobots.loop"]
+          env:
+            - name: PERSONA
+              value: "amara"
+            - name: AUTOBOTS_FEED_URL
+              value: "http://autobots-feed.autobots.svc.cluster.local:8000"
+            - name: AUTOBOTS_OLLAMA_HOST
+              value: "http://ms2.landryzetam.net:11434"
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 512Mi}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autobots-agent-jordan
+  namespace: autobots
+  labels:
+    app.kubernetes.io/name: autobots-agent-jordan
+    app.kubernetes.io/part-of: autobots
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: autobots-agent-jordan
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: autobots-agent-jordan
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: agent
+          image: lzetam/autobots-agents:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "autobots.loop"]
+          env:
+            - name: PERSONA
+              value: "jordan"
+            - name: AUTOBOTS_FEED_URL
+              value: "http://autobots-feed.autobots.svc.cluster.local:8000"
+            - name: AUTOBOTS_OLLAMA_HOST
+              value: "http://ms2.landryzetam.net:11434"
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 512Mi}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false

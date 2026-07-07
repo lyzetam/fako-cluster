@@ -11,3 +11,4 @@ resources:
   - feed-external-secret.yaml
   - feed-deployment.yaml
   - feed-service.yaml
+  - agents-deployment.yaml
