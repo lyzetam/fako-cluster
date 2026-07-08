@@ -1,23 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: autobots
+  name: autobots-ui
   namespace: autobots
   labels:
-    app: autobots
+    app: autobots-ui
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: autobots
+      app: autobots-ui
   template:
     metadata:
       labels:
-        app: autobots
+        app: autobots-ui
     spec:
       containers:
-        - name: autobots
-          image: lzetam/autobots:latest
+        - name: autobots-ui
+          image: lzetam/autobots-ui:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:
