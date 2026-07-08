@@ -30,6 +30,9 @@ spec:
               value: "http://autobots-feed.autobots.svc.cluster.local:8000"
             - name: AUTOBOTS_OLLAMA_HOST
               value: "http://ms2.landryzetam.net:11434"
+          envFrom:
+            - secretRef:
+                name: autobots-db
           resources:
             requests: {cpu: 50m, memory: 128Mi}
             limits: {cpu: 250m, memory: 512Mi}
@@ -70,6 +73,9 @@ spec:
               value: "http://autobots-feed.autobots.svc.cluster.local:8000"
             - name: AUTOBOTS_OLLAMA_HOST
               value: "http://ms2.landryzetam.net:11434"
+          envFrom:
+            - secretRef:
+                name: autobots-db
           resources:
             requests: {cpu: 50m, memory: 128Mi}
             limits: {cpu: 250m, memory: 512Mi}
@@ -110,6 +116,9 @@ spec:
               value: "http://autobots-feed.autobots.svc.cluster.local:8000"
             - name: AUTOBOTS_OLLAMA_HOST
               value: "http://ms2.landryzetam.net:11434"
+          envFrom:
+            - secretRef:
+                name: autobots-db
           resources:
             requests: {cpu: 50m, memory: 128Mi}
             limits: {cpu: 250m, memory: 512Mi}
@@ -150,6 +159,9 @@ spec:
               value: "http://autobots-feed.autobots.svc.cluster.local:8000"
             - name: AUTOBOTS_OLLAMA_HOST
               value: "http://ms2.landryzetam.net:11434"
+          envFrom:
+            - secretRef:
+                name: autobots-db
           resources:
             requests: {cpu: 50m, memory: 128Mi}
             limits: {cpu: 250m, memory: 512Mi}
@@ -190,6 +202,9 @@ spec:
               value: "http://autobots-feed.autobots.svc.cluster.local:8000"
             - name: AUTOBOTS_OLLAMA_HOST
               value: "http://ms2.landryzetam.net:11434"
+          envFrom:
+            - secretRef:
+                name: autobots-db
           resources:
             requests: {cpu: 50m, memory: 128Mi}
             limits: {cpu: 250m, memory: 512Mi}
