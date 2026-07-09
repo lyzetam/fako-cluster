@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: claude-usage-dashboard
+  namespace: claude-usage-dashboard
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-dns01"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: claude-usage.landryzetam.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: claude-usage-dashboard
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - claude-usage.landryzetam.net
+      secretName: claude-usage-dashboard-tls
