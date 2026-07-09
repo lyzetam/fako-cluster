@@ -1,0 +1,54 @@
+# Funnel fillability check — runs ~15 min after the 08:00 ET prequalification funnel
+# and confirms it produced a FRESH, FILLABLE watchlist so the autonomous entry path can
+# actually fill. Posts a PASS/FAIL summary to Discord. Runs the orchestrator-qt image
+# (in-cluster Supabase/Tradier/Discord secrets) with `python -m prequalification.fillability_check`.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: funnel-fillability-check
+  namespace: quantum-trades
+  labels:
+    app.kubernetes.io/name: funnel-fillability-check
+    app.kubernetes.io/part-of: quantum-trades
+    app.kubernetes.io/managed-by: flux
+spec:
+  # 08:15 ET on weekdays — ~15 min after the 08:00 ET prequalification funnel.
+  schedule: "15 8 * * 1-5"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      backoffLimit: 0
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: funnel-fillability-check
+              image: lzetam/quantum-trades-orchestrator-qt:latest
+              imagePullPolicy: Always
+              command: ["python", "-m", "prequalification.fillability_check"]
+              # SUPABASE_URL/KEY, Tradier creds, and the Discord webhook all come from
+              # the secret the live orchestrator-qt deployment already uses.
+              envFrom:
+                - secretRef:
+                    name: orchestrator-qt-secrets
+              env:
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                allowPrivilegeEscalation: false

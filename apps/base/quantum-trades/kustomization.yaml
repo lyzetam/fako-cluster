@@ -27,6 +27,8 @@ resources:
   - cronjob-journal-sync.yaml
   # Pre-Qualification Agent — premarket whole-market funnel (8am ET)
   - cronjob-prequalification.yaml
+  # Funnel fillability check — confirms the funnel produced a fillable watchlist (8:15am ET)
+  - cronjob-funnel-check.yaml
   # Orchestrator-QT - LangGraph Trading Coordinator
   - redis-orchestrator-qt.yaml
   - configmap-orchestrator-qt.yaml
