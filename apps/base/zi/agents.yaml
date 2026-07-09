@@ -359,8 +359,10 @@ spec:
               value: "glm-4.7-flash:latest"
             - name: AGENT_DESCRIPTION
               value: "Kubernetes deployment, cluster management, container orchestration, and cloud native architecture"
+            # Bumped 15→20 (recursion_limit=iter*2=40): the multi-step read-only
+            # sweep + deepagents planning overhead hit the old 30-step ceiling.
             - name: AGENT_MAX_ITERATIONS
-              value: "15"
+              value: "20"
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             # Static distribution across ms1/ms2/ms3 (no failover; LB is the resilience upgrade)
@@ -465,8 +467,10 @@ spec:
               value: "glm-4.7-flash:latest"
             - name: AGENT_DESCRIPTION
               value: "Platform reliability, infrastructure operations, and SRE practices"
+            # Bumped 15→20 (recursion_limit=iter*2=40): the multi-step read-only
+            # sweep + deepagents planning overhead hit the old 30-step ceiling.
             - name: AGENT_MAX_ITERATIONS
-              value: "15"
+              value: "20"
             - name: ZI_BRAIN_URL
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             # Static distribution across ms1/ms2/ms3 (no failover; LB is the resilience upgrade)
