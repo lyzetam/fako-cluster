@@ -60,6 +60,15 @@ spec:
                 # the run and leaving the universe stale -> loop blocked all entries.
                 - name: PREQUAL_RUN_TIMEOUT_SECONDS
                   value: "1200"
+                # Min committed universe size. Lowered 20->10 (2026-07-10): the
+                # option-liquidity fillability gate (OI>=500, 14-28 DTE, <=8% OTM,
+                # <=5% spread) culls ~252 technically-actionable names to ~13/day —
+                # the survivors are the genuinely-fillable subset, so accept them
+                # rather than abort. NOTE: the aggressive 252->13 cull is the real
+                # tuning lever (loosen prequal_min_option_oi for a wider universe) —
+                # tracked as a follow-up; this floor keeps the loop fed meanwhile.
+                - name: PREQUAL_MIN_UNIVERSE
+                  value: "10"
               resources:
                 requests:
                   cpu: 100m
