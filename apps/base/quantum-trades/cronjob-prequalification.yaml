@@ -25,7 +25,10 @@ spec:
       # = transient error (prefer a manual re-trigger over a retry near the open).
       backoffLimit: 0
       # K8s backstop for any process-level hang the app timeout can't catch.
-      activeDeadlineSeconds: 900
+      # Must exceed PREQUAL_RUN_TIMEOUT_SECONDS (1200) + persist + startup so the
+      # app-level timeout trips first; raised 900->1500 when the 500-ticker signal
+      # stage grew past the old 600s app timeout (2026-07-10).
+      activeDeadlineSeconds: 1500
       template:
         spec:
           restartPolicy: OnFailure
@@ -51,6 +54,12 @@ spec:
                   value: "http://signals-service:8002"
                 - name: PYTHONUNBUFFERED
                   value: "1"
+                # Whole-funnel app timeout. Raised 600->1200: the per-name signal
+                # stage (500 tickers, batches of 10) grew past 600s after the
+                # 2026-07-09 fillability filter + competitive-entry work, timing out
+                # the run and leaving the universe stale -> loop blocked all entries.
+                - name: PREQUAL_RUN_TIMEOUT_SECONDS
+                  value: "1200"
               resources:
                 requests:
                   cpu: 100m
