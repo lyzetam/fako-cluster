@@ -43,6 +43,17 @@ spec:
                 secretKeyRef:
                   name: ginger-hoa-secrets
                   key: api_key
+            # Supabase (anonymized Q&A logging + review agent)
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ginger-hoa-secrets
+                  key: supabase_url
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ginger-hoa-secrets
+                  key: supabase_service_key
           resources:
             requests:
               cpu: 100m
