@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ginger-hoa
+  namespace: ginger-hoa
+  labels:
+    app.kubernetes.io/name: ginger-hoa
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ginger-hoa
+    app.kubernetes.io/managed-by: flux
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ginger-hoa
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ginger-hoa
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: ginger-hoa
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: api
+          image: lzetam/ginger-hoa:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            # Ollama Cloud (key supplied via the secret below).
+            - name: OLLAMA_BASE_URL
+              value: https://ollama.com
+            - name: OLLAMA_MODEL
+              value: gpt-oss:120b
+            - name: OLLAMA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ginger-hoa-secrets
+                  key: api_key
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
