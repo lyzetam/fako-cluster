@@ -54,13 +54,9 @@ resources:
   # - voice-pipeline-test  # End-to-end voice pipeline testing (runs nightly at 3am)
   
   # AI Agent
-  # - kagent         # Kubernetes AI assistant
   - claude-code     # Claude Code container for n8n SSH orchestration
   - claude-usage-dashboard  # Internal Claude API cost/usage dashboard (LAN-only)
 
-  # MCP Servers for Kagent
-  # - mcp-servers    # Model Context Protocol servers
-  
   # Exolabs (replaced GPUStack)
   - exo               # Service proxy to exolabs Mac Studio cluster
   # - gpustack-proxy  # REPLACED by exo
