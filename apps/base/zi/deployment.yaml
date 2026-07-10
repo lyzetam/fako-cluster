@@ -63,6 +63,11 @@ spec:
               value: "true"
             - name: ZI_PROACTIVE_ENABLED
               value: "true"
+            # Retired: Noor's agent watchtower now owns cluster-health → #infrastructure
+            # (via ZI_PULSE_REPORT_CHANNEL on agent-platform-sre). This core check
+            # posted the same thing, so it's disabled to avoid a duplicate.
+            - name: ZI_CLUSTER_HEALTH_CHECK_ENABLED
+              value: "false"
             - name: ZI_SKILLS_DIR
               value: "/data/brain/skills"
             # MCP Gateway (tool integration via SSE)
