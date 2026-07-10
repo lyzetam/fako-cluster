@@ -69,6 +69,14 @@ spec:
                 # tracked as a follow-up; this floor keeps the loop fed meanwhile.
                 - name: PREQUAL_MIN_UNIVERSE
                   value: "10"
+                # Funnel option-LIQUIDITY floor. Loosened 500->250 (2026-07-10): OI>=500
+                # in the 14-28 DTE / <=8% OTM window culled 252 technically-actionable
+                # names to ~13/day, starving opportunity flow (~1 signal/cycle, unfillable).
+                # This is only a PRE-screen — the executor still per-contract-gates every
+                # fill (spread<=5%, min premium, DTE, strike), so a looser funnel adds
+                # candidates without risking bad fills. Widens the daily universe.
+                - name: PREQUAL_MIN_OPTION_OI
+                  value: "250"
               resources:
                 requests:
                   cpu: 100m
