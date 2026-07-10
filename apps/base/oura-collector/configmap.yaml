@@ -25,7 +25,7 @@ data:
 
   # Stale Data Detection
   STALE_DATA_THRESHOLD_DAYS: "3"
-  ALERT_ON_STALE_DATA: "true"
+  ALERT_ON_STALE_DATA: "false"
 
   # API Configuration
   API_TIMEOUT: "30"
