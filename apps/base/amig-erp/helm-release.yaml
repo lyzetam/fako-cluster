@@ -22,7 +22,7 @@ spec:
   values:
     image:
       repository: frappe/erpnext
-      tag: v16.14.0
+      tag: v16.26.2
       pullPolicy: IfNotPresent
 
     persistence:
