@@ -22,7 +22,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: n8n
-          image: n8nio/n8n:1.123.43
+          image: n8nio/n8n:1.123.64
           ports:
             - containerPort: 5678
               protocol: TCP
