@@ -8,12 +8,12 @@ spec:
     language: python
     image: newrelic/newrelic-python-init:13.0.0
   
-  # Target namespaces with Python applications (MCP servers + voice pipeline)
+  # Target namespaces with Python applications (voice pipeline)
   namespaceLabelSelector:
     matchExpressions:
       - key: "kubernetes.io/metadata.name"
         operator: "In"
-        values: ["mcp-servers", "piper", "piper-v13", "whisper", "openwakeword"]
+        values: ["piper", "piper-v13", "whisper", "openwakeword"]
   
   # Target all pods with the app label
   podLabelSelector:

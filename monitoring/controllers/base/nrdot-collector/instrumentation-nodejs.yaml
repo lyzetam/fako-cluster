@@ -13,7 +13,7 @@ spec:
     matchExpressions:
       - key: "kubernetes.io/metadata.name"
         operator: "In"
-        values: ["n8n", "mcp-servers"]
+        values: ["n8n"]
   
   # Target all pods with the app label
   podLabelSelector:
