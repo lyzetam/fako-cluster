@@ -54,6 +54,12 @@ spec:
                 secretKeyRef:
                   name: ginger-hoa-secrets
                   key: supabase_service_key
+            # Admin dashboard (Board Insights) basic-auth password
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ginger-hoa-secrets
+                  key: admin_password
           resources:
             requests:
               cpu: 100m
