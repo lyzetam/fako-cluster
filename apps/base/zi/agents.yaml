@@ -503,12 +503,13 @@ spec:
             # real problems, deduped). Weekly report defaults to #engineering-team.
             - name: ZI_PULSE_REPORT_CHANNEL
               value: "infrastructure"
-            # Self-heal v1 (reversible-only): every self_heal_interval seconds
-            # Noor turns kubectl Warning events into deterministic reversible
-            # pod restarts (flap-guarded, RFC1123-gated, honest zero-match) or
-            # recommendations. Durable-PR remediation is unwired in v1.
+            # Deterministic Python self-heal pipeline DISABLED — remediation
+            # pivoted to skill-driven Sol (k8s-engineer): Noor detects and
+            # delegates, Sol acts via the sre-remediation skill + his tools.
+            # Kept as an off-by-default kill switch; the Python modules are slated
+            # for removal in a follow-up cleanup.
             - name: ZI_SELF_HEAL_ENABLED
-              value: "true"
+              value: "false"
           envFrom:
             - secretRef:
                 name: zi-secrets
