@@ -21,6 +21,7 @@ resources:
   - external-secret.yaml
   - external-secret-dockerhub.yaml
   - external-secret-langfuse.yaml
+  - external-secret-fako-gh.yaml
   # Redis (cache for agent knowledge sharing)
   - redis-deployment.yaml
   - redis-service.yaml
