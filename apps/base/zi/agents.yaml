@@ -503,6 +503,12 @@ spec:
             # real problems, deduped). Weekly report defaults to #engineering-team.
             - name: ZI_PULSE_REPORT_CHANNEL
               value: "infrastructure"
+            # Self-heal v1 (reversible-only): every self_heal_interval seconds
+            # Noor turns kubectl Warning events into deterministic reversible
+            # pod restarts (flap-guarded, RFC1123-gated, honest zero-match) or
+            # recommendations. Durable-PR remediation is unwired in v1.
+            - name: ZI_SELF_HEAL_ENABLED
+              value: "true"
           envFrom:
             - secretRef:
                 name: zi-secrets
