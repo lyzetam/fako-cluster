@@ -60,6 +60,22 @@ spec:
                 secretKeyRef:
                   name: ginger-hoa-secrets
                   key: admin_password
+            # Langfuse observability (self-hosted, in-cluster)
+            - name: LANGFUSE_HOST
+              value: http://langfuse-web.langfuse.svc.cluster.local:3000
+            - name: LANGFUSE_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ginger-hoa-secrets
+                  key: langfuse_public_key
+            - name: LANGFUSE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ginger-hoa-secrets
+                  key: langfuse_secret_key
+            # Cookieless visit-hash salt (rotates daily with the date; not secret)
+            - name: VISIT_SALT
+              value: ginger-lake-estates-2026
           resources:
             requests:
               cpu: 100m
