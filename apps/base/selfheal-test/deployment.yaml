@@ -1,0 +1,41 @@
+# THROWAWAY self-heal act-path test. The memory limit is deliberately too low
+# so the pod OOMKills — the "bug" that self-heal (Noor -> Sol) should detect and
+# propose a fix for (bump the limit via propose_fix_pr). Remove after the test.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: selfheal-test
+  namespace: selfheal-test
+  labels:
+    app.kubernetes.io/name: selfheal-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: selfheal-test
+  template:
+    metadata:
+      labels:
+        app: selfheal-test
+        app.kubernetes.io/name: selfheal-test
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: memhog
+          image: python:3.12-alpine
+          command: ["python", "-c", "a = bytearray(300 * 1024 * 1024); import time; time.sleep(3600)"]
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"   # too low on purpose -> OOMKilled
+              cpu: "50m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

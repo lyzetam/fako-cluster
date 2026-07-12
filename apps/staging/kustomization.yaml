@@ -7,6 +7,7 @@ resources:
   # - homebot
   - oura-collector
   - oura-agent        # Oura health assistant Discord bot
+  - selfheal-test     # THROWAWAY OOM test for self-heal act-path (remove after)
   # - oura-dashboard  # Deactivated - not in use
   # - wger
   # - donetick         # Task & chore management
