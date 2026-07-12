@@ -520,6 +520,10 @@ spec:
             # for removal in a follow-up cleanup.
             - name: ZI_SELF_HEAL_ENABLED
               value: "false"
+            # delegate_task to Sol BLOCKS until his (slow, minutes-long)
+            # remediation run finishes; the a2a call must outlast it.
+            - name: ZI_A2A_TIMEOUT
+              value: "1200"
           envFrom:
             - secretRef:
                 name: zi-secrets
