@@ -11,6 +11,7 @@ resources:
   - external-secret-discord.yaml
   - external-secret-anthropic.yaml
   - external-secret-dockerhub.yaml
+  - external-secret-supabase.yaml
   - deployment.yaml
   - service.yaml
 

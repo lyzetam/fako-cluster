@@ -42,6 +42,8 @@ spec:
             name: discord-credentials-env
         - secretRef:
             name: anthropic-credentials-env
+        - secretRef:
+            name: supabase-credentials-env
 
         resources:
           requests:
