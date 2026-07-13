@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: oura-collector-migrate
+  namespace: oura-collector
+spec:
+  ttlSecondsAfterFinished: 86400
+  backoffLimit: 3
+  template:
+    spec:
+      serviceAccountName: oura-collector
+      restartPolicy: Never
+      containers:
+      - name: migrate
+        image: lzetam/oura-collector:latest
+        imagePullPolicy: Always
+        workingDir: /app
+        command:
+          - alembic
+          - upgrade
+          - head
+        env:
+        # Database configuration
+        - name: DATABASE_HOST
+          value: "postgres-cluster-rw.postgres.svc.cluster.local"
+        - name: DATABASE_PORT
+          value: "5432"
+        - name: DATABASE_NAME
+          value: "app"
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials-env
+              key: DATABASE_USER
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials-env
+              key: DATABASE_PASSWORD
+
+        # AWS configuration for logging (optional)
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+
+        envFrom:
+        - secretRef:
+            name: aws-credentials-env
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+        volumeMounts:
+        - name: working
+          mountPath: /app
+
+      volumes:
+      - name: working
+        emptyDir: {}

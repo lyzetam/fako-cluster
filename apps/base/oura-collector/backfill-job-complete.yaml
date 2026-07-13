@@ -1,0 +1,79 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: oura-collector-backfill
+  namespace: oura-collector
+spec:
+  ttlSecondsAfterFinished: 86400
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: oura-collector
+        job-type: backfill
+    spec:
+      serviceAccountName: oura-collector
+      restartPolicy: Never
+      containers:
+      - name: backfill
+        image: lzetam/oura-collector:latest
+        imagePullPolicy: Always
+        env:
+        # Storage configuration
+        - name: STORAGE_BACKEND
+          value: "postgres"
+        - name: DATABASE_HOST
+          value: "postgres-cluster-rw.postgres.svc.cluster.local"
+        - name: DATABASE_PORT
+          value: "5432"
+        - name: DATABASE_NAME
+          value: "app"
+
+        # API configuration
+        - name: OURA_SECRETS_NAME
+          value: "oura/api-credentials"
+        - name: POSTGRES_SECRETS_NAME
+          value: "postgres/app-user"
+
+        # Collection configuration
+        - name: DAYS_TO_BACKFILL
+          value: "365"  # One year backfill
+        - name: RUN_ONCE
+          value: "true"
+        - name: LOG_LEVEL
+          value: "INFO"
+
+        # AWS configuration
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+
+        envFrom:
+        - secretRef:
+            name: aws-credentials-env
+
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: "2"
+            memory: 2Gi
+
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "curl -f http://localhost:8080/health || exit 1"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+        volumeMounts:
+        - name: data
+          mountPath: /data
+
+      volumes:
+      - name: data
+        emptyDir: {}
