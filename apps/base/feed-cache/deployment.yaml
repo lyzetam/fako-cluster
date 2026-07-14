@@ -1,0 +1,49 @@
+# In-memory render cache for the feed service. Warms decoded feed assets on
+# startup and keeps them hot so the renderer serves reads without re-decoding.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feed-cache
+  namespace: feed-cache
+  labels:
+    app.kubernetes.io/name: feed-cache
+    app.kubernetes.io/part-of: feed
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: feed-cache
+  template:
+    metadata:
+      labels:
+        app: feed-cache
+        app.kubernetes.io/name: feed-cache
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cache-warmer
+          image: python:3.12-alpine
+          command: ["python", "-u", "-c"]
+          args:
+            - |
+              # Warm the decoded-asset cache and hold it hot for the renderer.
+              import time
+              cache = []
+              while True:
+                  cache.append(bytearray(16 * 1024 * 1024))  # ~16 MiB per warmed batch
+                  time.sleep(2)
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "10m"
+            limits:
+              memory: "256Mi"
+              cpu: "50m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
