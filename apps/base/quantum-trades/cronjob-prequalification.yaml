@@ -28,11 +28,13 @@ spec:
       # backoffLimit 2 retries a transient/slow run. A genuine floor-abort exits 0
       # (persist returns False, keeps prior watchlist) so it is NOT retried.
       backoffLimit: 2
-      # K8s backstop for any process-level hang the app timeout can't catch. This is
-      # a JOB-total across retries; sized so the per-attempt app timeout
-      # (PREQUAL_RUN_TIMEOUT_SECONDS=2400) trips first on the first ~2 attempts.
-      # Raised 1500->5400 (2026-07-14) to give backoffLimit:2 room to retry.
-      activeDeadlineSeconds: 5400
+      # K8s backstop for any process-level hang the app timeout can't catch. Sized
+      # just above the per-attempt app timeout (PREQUAL_RUN_TIMEOUT_SECONDS=7200) so
+      # the app timeout trips first on attempt 1. Raised 5400->7500 (2026-07-14) for
+      # the 2h headroom. backoffLimit:2 retries cover FAST crashes (which finish in
+      # minutes, leaving ample budget); a genuine full-2h run/hang is caught here and
+      # not retried (retrying a 2h hang wouldn't produce a universe that day anyway).
+      activeDeadlineSeconds: 7500
       template:
         spec:
           restartPolicy: OnFailure
@@ -58,14 +60,14 @@ spec:
                   value: "http://signals-service:8002"
                 - name: PYTHONUNBUFFERED
                   value: "1"
-                # Whole-funnel app timeout. Raised 600->1200->2400: the per-name
-                # signal stage (500 tickers, batches of 10) runs 10-21 min against
-                # the old 1200s (20 min) cap; upstream-latency variance blew it and
-                # left the universe stale -> loop blocked all entries (2 days,
-                # 2026-07-13/14). 2400 (40 min) absorbs the latency swings. Real fix
-                # is parallelizing the stage-4 signal calls (~15min->~3min) — filed.
+                # Whole-funnel app timeout. Raised 600->1200->2400->7200: the per-name
+                # signal stage (500 tickers, batches of 10) runs 10-21 min against the
+                # old caps; upstream-latency variance blew them and left the universe
+                # stale -> loop blocked all entries (2 days, 2026-07-13/14). 7200 (2h)
+                # gives a slow-but-progressing run all the room it needs to finish.
+                # Real fix is parallelizing the stage-4 signal calls (~15min->~3min) — filed.
                 - name: PREQUAL_RUN_TIMEOUT_SECONDS
-                  value: "2400"
+                  value: "7200"
                 # Min committed universe size. Lowered 20->10 (2026-07-10): the
                 # option-liquidity fillability gate (OI>=500, 14-28 DTE, <=8% OTM,
                 # <=5% spread) culls ~252 technically-actionable names to ~13/day —
