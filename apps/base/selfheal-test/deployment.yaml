@@ -1,6 +1,3 @@
-# THROWAWAY self-heal act-path test. The memory limit is deliberately too low
-# so the pod OOMKills — the "bug" that self-heal (Noor -> Sol) should detect and
-# propose a fix for (bump the limit via propose_fix_pr). Remove after the test.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,17 +22,21 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: memhog
-          image: python:3.12-alpine
-          command: ["python", "-c", "a = bytearray(600 * 1024 * 1024); import time; time.sleep(3600)"]
-          resources:
-            requests:
-              memory: "320Mi"
-              cpu: "10m"
-            limits:
-              memory: "512Mi"  # bumped per k8s-engineer agent OOM remediation
-              cpu: "50m"
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
+      - name: memhog
+        image: python:3.12-alpine
+        command:
+        - python
+        - -c
+        - a = bytearray(600 * 1024 * 1024); import time; time.sleep(3600)
+        resources:
+          requests:
+            memory: 320Mi
+            cpu: 10m
+          limits:
+            memory: 768Mi
+            cpu: 50m
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
