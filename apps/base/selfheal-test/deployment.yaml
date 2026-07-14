@@ -27,7 +27,7 @@ spec:
       containers:
         - name: memhog
           image: python:3.12-alpine
-          command: ["python", "-c", "a = bytearray(300 * 1024 * 1024); import time; time.sleep(3600)"]
+          command: ["python", "-c", "a = bytearray(600 * 1024 * 1024); import time; time.sleep(3600)"]
           resources:
             requests:
               memory: "320Mi"
