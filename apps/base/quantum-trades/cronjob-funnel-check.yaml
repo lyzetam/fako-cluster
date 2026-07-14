@@ -12,8 +12,11 @@ metadata:
     app.kubernetes.io/part-of: quantum-trades
     app.kubernetes.io/managed-by: flux
 spec:
-  # 08:15 ET on weekdays — ~15 min after the 08:00 ET prequalification funnel.
-  schedule: "15 8 * * 1-5"
+  # 09:00 ET on weekdays. Moved 08:15->09:00 (2026-07-14): the prequal funnel can now
+  # retry (backoffLimit:2, up to ~40 min/attempt), so an 08:15 check raced an unfinished
+  # funnel and posted a false FAIL. 09:00 lets prequal (incl. one retry) settle first,
+  # and still alerts ~30 min before the 09:30 open.
+  schedule: "0 9 * * 1-5"
   timeZone: "America/New_York"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 5
@@ -22,7 +25,11 @@ spec:
     spec:
       ttlSecondsAfterFinished: 86400
       backoffLimit: 0
-      activeDeadlineSeconds: 300
+      # Raised 300->600 (2026-07-14): the check makes up to 8 Tradier expiration calls;
+      # a slow-premarket Tradier could exceed 300s and K8s SIGKILL the pod BEFORE it
+      # posts the PASS/FAIL to Discord — i.e. the alert silently never fired. 600s
+      # guarantees the Discord post (the real signal) completes.
+      activeDeadlineSeconds: 600
       template:
         spec:
           restartPolicy: OnFailure

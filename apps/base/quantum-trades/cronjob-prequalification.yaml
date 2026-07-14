@@ -21,14 +21,18 @@ spec:
   jobTemplate:
     spec:
       ttlSecondsAfterFinished: 86400
-      # No retry: exit 1 = floor abort (a retry won't change market data); exit 2
-      # = transient error (prefer a manual re-trigger over a retry near the open).
-      backoffLimit: 0
-      # K8s backstop for any process-level hang the app timeout can't catch.
-      # Must exceed PREQUAL_RUN_TIMEOUT_SECONDS (1200) + persist + startup so the
-      # app-level timeout trips first; raised 900->1500 when the 500-ticker signal
-      # stage grew past the old 600s app timeout (2026-07-10).
-      activeDeadlineSeconds: 1500
+      # Retry transient failures (2026-07-14): the funnel failed 2 consecutive days
+      # from margin fragility — a slow-upstream run blows the app timeout, or an
+      # early transient crash exits non-zero. backoffLimit 0 lost the whole trading
+      # day on the first hiccup (stale universe -> all entries blocked silently).
+      # backoffLimit 2 retries a transient/slow run. A genuine floor-abort exits 0
+      # (persist returns False, keeps prior watchlist) so it is NOT retried.
+      backoffLimit: 2
+      # K8s backstop for any process-level hang the app timeout can't catch. This is
+      # a JOB-total across retries; sized so the per-attempt app timeout
+      # (PREQUAL_RUN_TIMEOUT_SECONDS=2400) trips first on the first ~2 attempts.
+      # Raised 1500->5400 (2026-07-14) to give backoffLimit:2 room to retry.
+      activeDeadlineSeconds: 5400
       template:
         spec:
           restartPolicy: OnFailure
@@ -54,12 +58,14 @@ spec:
                   value: "http://signals-service:8002"
                 - name: PYTHONUNBUFFERED
                   value: "1"
-                # Whole-funnel app timeout. Raised 600->1200: the per-name signal
-                # stage (500 tickers, batches of 10) grew past 600s after the
-                # 2026-07-09 fillability filter + competitive-entry work, timing out
-                # the run and leaving the universe stale -> loop blocked all entries.
+                # Whole-funnel app timeout. Raised 600->1200->2400: the per-name
+                # signal stage (500 tickers, batches of 10) runs 10-21 min against
+                # the old 1200s (20 min) cap; upstream-latency variance blew it and
+                # left the universe stale -> loop blocked all entries (2 days,
+                # 2026-07-13/14). 2400 (40 min) absorbs the latency swings. Real fix
+                # is parallelizing the stage-4 signal calls (~15min->~3min) — filed.
                 - name: PREQUAL_RUN_TIMEOUT_SECONDS
-                  value: "1200"
+                  value: "2400"
                 # Min committed universe size. Lowered 20->10 (2026-07-10): the
                 # option-liquidity fillability gate (OI>=500, 14-28 DTE, <=8% OTM,
                 # <=5% spread) culls ~252 technically-actionable names to ~13/day —
