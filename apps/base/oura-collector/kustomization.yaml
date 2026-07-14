@@ -8,6 +8,7 @@ resources:
   - secret-store.yaml        # SecretStore for local K8s secret transformation
   - external-secret-aws.yaml # New: External Secret for AWS credentials
   - external-secret-postgres.yaml # New: External Secret for PostgreSQL credentials
+  - external-secret-discord-webhook.yaml # Discord webhook for health reports
   - configmap.yaml
   - storage.yaml
   - deployment.yaml

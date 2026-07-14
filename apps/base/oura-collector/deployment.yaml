@@ -33,9 +33,8 @@ spec:
             name: aws-credentials-env
         - secretRef:
             name: postgres-credentials-env
-        # Discord webhook removed: it posted personal-health data into the LZT
-        # Engineering Discord (#sre-alerts); that webhook was deleted, so this
-        # only 404'd. Stale-data alerting is disabled via ALERT_ON_STALE_DATA.
+        - secretRef:
+            name: discord-webhook-env
         resources:
           requests:
             memory: "128Mi"
