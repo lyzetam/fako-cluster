@@ -8,6 +8,7 @@ resources:
   - external-secret-postgres.yaml
   - external-secret-ingest-token.yaml
   - external-secret-obsidian.yaml
+  - external-secret-dockerhub.yaml
   - networkpolicy.yaml
   - configmap.yaml
   - deployment.yaml
