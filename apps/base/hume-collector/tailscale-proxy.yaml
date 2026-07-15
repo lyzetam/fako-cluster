@@ -1,0 +1,71 @@
+# Tailscale proxy: joins the tailnet as "hume-collector" and serves the receiver
+# over HTTPS at hume-collector.<tailnet>.ts.net → http://hume-collector:8080.
+# Private to the tailnet — no public exposure, no token needed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tailscale-serve
+  namespace: hume-collector
+data:
+  serve.json: |
+    {
+      "TCP": { "443": { "HTTPS": true } },
+      "Web": {
+        "${TS_CERT_DOMAIN}:443": {
+          "Handlers": { "/": { "Proxy": "http://hume-collector:8080" } }
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tailscale-proxy
+  namespace: hume-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tailscale-proxy
+  template:
+    metadata:
+      labels:
+        app: tailscale-proxy
+    spec:
+      containers:
+      - name: tailscale
+        image: tailscale/tailscale:v1.80.0
+        env:
+        - name: TS_AUTHKEY
+          valueFrom:
+            secretKeyRef:
+              name: tailscale-authkey
+              key: TS_AUTHKEY
+        - name: TS_HOSTNAME
+          value: "hume-collector"
+        - name: TS_EXTRA_ARGS
+          value: "--advertise-tags=tag:k8s"
+        - name: TS_USERSPACE
+          value: "true"
+        - name: TS_STATE_DIR
+          value: "/tmp/tsstate"
+        - name: TS_SERVE_CONFIG
+          value: "/etc/tailscale/serve.json"
+        volumeMounts:
+        - name: serve
+          mountPath: /etc/tailscale
+        - name: state
+          mountPath: /tmp/tsstate
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "20m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      volumes:
+      - name: serve
+        configMap:
+          name: tailscale-serve
+      - name: state
+        emptyDir: {}

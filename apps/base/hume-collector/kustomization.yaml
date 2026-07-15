@@ -9,6 +9,8 @@ resources:
   - external-secret-ingest-token.yaml
   - external-secret-obsidian.yaml
   - external-secret-dockerhub.yaml
+  - external-secret-tailscale.yaml
+  - tailscale-proxy.yaml
   - networkpolicy.yaml
   - configmap.yaml
   - deployment.yaml
