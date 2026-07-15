@@ -16,12 +16,17 @@ data:
   MESSAGE_WINDOW_MINUTES: "30"  # only process messages from last N minutes
 
   # LLM configuration
-  LLM_MODEL: "claude-sonnet-4-5-20250929"
+  # LLM_PROVIDER: "anthropic" (Claude) or "ollama" (local homelab models).
+  # Flip to "ollama" to keep all health-data inference on the ms nodes.
+  LLM_PROVIDER: "anthropic"
+  LLM_MODEL: "claude-sonnet-4-5-20250929"      # used when provider=anthropic
+  OLLAMA_CHAT_MODEL: "glm-4.7-flash:latest"    # used when provider=ollama (on ms1/ms2/ms3)
+  OLLAMA_CHAT_BASE_URLS: "http://ms1.landryzetam.net:11434,http://ms2.landryzetam.net:11434,http://ms3.landryzetam.net:11434"
   LLM_TEMPERATURE: "0.3"
   LLM_MAX_TOKENS: "4096"
 
-  # Ollama embedding service (cluster internal)
-  OLLAMA_BASE_URL: "http://ollama.ollama.svc.cluster.local:11434"
+  # Ollama embedding service (nomic-embed-text lives on ms3)
+  OLLAMA_BASE_URL: "http://ms3.landryzetam.net:11434"
   OLLAMA_MODEL: "nomic-embed-text"
   OLLAMA_EMBEDDING_DIM: "768"
 
