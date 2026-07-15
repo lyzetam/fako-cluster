@@ -1,0 +1,69 @@
+# Pre-Qualification FALLBACK — post-open safety net for the 08:00 premarket funnel.
+# The 08:00 prequalification run has crashed 3 days straight (2026-07-13/14/15) with
+# a premarket-specific failure; the SAME funnel succeeds during market hours. This
+# job re-runs the funnel at 09:45 ET (post-open) so a fresh universe exists for the
+# day even when the 08:00 run fails. persist_universe is idempotent + floor-guarded,
+# so if 08:00 already succeeded this simply refreshes the same-day marker (harmless).
+# Runs the orchestrator-qt image with `python -m prequalification`.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: prequalification-fallback
+  namespace: quantum-trades
+  labels:
+    app.kubernetes.io/name: prequalification-fallback
+    app.kubernetes.io/part-of: quantum-trades
+    app.kubernetes.io/managed-by: flux
+spec:
+  # 09:45 ET on weekdays — 15 min after the 09:30 open (funnel is known to succeed
+  # during market hours). Universe ready ~09:55 on days the 08:00 run crashed.
+  schedule: "45 9 * * 1-5"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      backoffLimit: 2
+      activeDeadlineSeconds: 7500
+      template:
+        spec:
+          restartPolicy: Never  # retain failed pods for traceback (see primary job)
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: prequalification-fallback
+              image: lzetam/quantum-trades-orchestrator-qt:latest
+              imagePullPolicy: Always
+              command: ["python", "-m", "prequalification"]
+              envFrom:
+                - secretRef:
+                    name: orchestrator-qt-secrets
+              env:
+                - name: MASSIVE_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: quantum-trades-secrets
+                      key: MASSIVE_API_KEY
+                - name: SIGNALS_SERVICE_URL
+                  value: "http://signals-service:8002"
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+                - name: PREQUAL_RUN_TIMEOUT_SECONDS
+                  value: "7200"
+                - name: PREQUAL_MIN_UNIVERSE
+                  value: "10"
+                - name: PREQUAL_MIN_OPTION_OI
+                  value: "250"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 512Mi
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                allowPrivilegeEscalation: false

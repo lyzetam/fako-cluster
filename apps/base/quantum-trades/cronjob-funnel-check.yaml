@@ -16,7 +16,10 @@ spec:
   # retry (backoffLimit:2, up to ~40 min/attempt), so an 08:15 check raced an unfinished
   # funnel and posted a false FAIL. 09:00 lets prequal (incl. one retry) settle first,
   # and still alerts ~30 min before the 09:30 open.
-  schedule: "0 9 * * 1-5"
+  # 10:15 ET — moved 09:00->10:15 (2026-07-15) to run AFTER the 09:45 post-open
+  # fallback (+retries) settles, so it checks the day's final universe, not a
+  # mid-rebuild one.
+  schedule: "15 10 * * 1-5"
   timeZone: "America/New_York"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 5

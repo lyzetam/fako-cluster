@@ -37,7 +37,16 @@ spec:
       activeDeadlineSeconds: 7500
       template:
         spec:
-          restartPolicy: OnFailure
+          # Never (was OnFailure) so each backoffLimit retry is a SEPARATE pod that
+          # is RETAINED on failure (OnFailure restarts in-place and the failed pod
+          # gets GC'd before its logs can be read). The 08:00 premarket run has
+          # crashed 3 days running (2026-07-13/14/15) — same funnel SUCCEEDS mid-day,
+          # so it's premarket-specific — but every failed pod GC'd before the
+          # traceback could be captured. Never + failedJobsHistoryLimit:5 keeps the
+          # pods so `kubectl logs` finally reveals the crash. Belt: a 09:45 fallback
+          # CronJob (cronjob-prequalification-fallback.yaml) guarantees a universe
+          # even when 08:00 crashes.
+          restartPolicy: Never
           imagePullSecrets:
             - name: dockerhub-registry
           containers:
