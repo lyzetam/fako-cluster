@@ -34,8 +34,9 @@ spec:
             name: hume-collector-config
         - secretRef:
             name: postgres-credentials-env
-        - secretRef:
-            name: hume-ingest-token-env
+        # Token dropped: endpoint is private to the tailnet (Tailscale). The
+        # receiver runs open when HUME_INGEST_TOKEN is unset. Re-add for public
+        # (Cloudflare) exposure.
         resources:
           requests:
             memory: "128Mi"
