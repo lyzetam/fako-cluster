@@ -6,7 +6,10 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate            # RWO PVC for tailscale state — old pod must release it first
+    type: RollingUpdate       # maxSurge 0 → old pod deleted before new one, releasing the RWO PVC
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: hume-collector
