@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix
+  namespace: apisix
+  labels:
+    app.kubernetes.io/name: apisix
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: apisix
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: apisix
+        app.kubernetes.io/name: apisix
+    spec:
+      containers:
+        - name: apisix
+          image: apache/apisix:3.15.0-debian
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: proxy
+              containerPort: 9080
+            - name: metrics
+              containerPort: 9091
+          readinessProbe:
+            tcpSocket:
+              port: 9080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 9080
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: conf
+              mountPath: /usr/local/apisix/conf/config.yaml
+              subPath: config.yaml
+            - name: conf
+              mountPath: /usr/local/apisix/conf/apisix.yaml
+              subPath: apisix.yaml
+      volumes:
+        - name: conf
+          configMap:
+            name: apisix-conf

@@ -1,0 +1,78 @@
+# APISIX AI gateway — standalone (no etcd), declarative config. LLM front door
+# for the Mac Studio Ollama fleet: one OpenAI-compatible endpoint that load-
+# balances ms1/ms2/ms3 and fails over on error/timeout. Proven in PoC (routes +
+# wedge-failover verified live). Wedge recovery is handled by the msctl watchdog
+# on the nodes (~2 min); this layer just routes around a failing node per request.
+#
+# NOTE: config changes need a `kubectl rollout restart deployment/apisix -n apisix`
+# (subPath ConfigMap mounts don't hot-reload). That's a rollout trigger, allowed.
+#
+# TODO (fast-follow): add Ollama Cloud (priority 50) + Anthropic (priority 10)
+# tiers via an ExternalSecret + $ENV:// key refs; add key-auth for consumers.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apisix-conf
+  namespace: apisix
+data:
+  config.yaml: |
+    apisix:
+      node_listen: 9080
+      enable_admin: false
+    deployment:
+      role: data_plane
+      role_data_plane:
+        config_provider: yaml
+    plugin_attr:
+      prometheus:
+        export_addr:
+          ip: 0.0.0.0
+          port: 9091
+  apisix.yaml: |
+    routes:
+      - id: llm-chat
+        uri: /v1/chat/completions
+        plugins:
+          prometheus: {}
+          ai-proxy-multi:
+            balancer:
+              algorithm: roundrobin
+            fallback_strategy:
+              - http_5xx
+              - http_429
+            timeout: 180000
+            instances:
+              - name: ms1
+                provider: openai-compatible
+                weight: 1
+                priority: 100
+                auth:
+                  header:
+                    Authorization: "Bearer ollama"
+                options:
+                  model: glm-4.7-flash
+                override:
+                  endpoint: "http://ms1.landryzetam.net:11434/v1/chat/completions"
+              - name: ms2
+                provider: openai-compatible
+                weight: 1
+                priority: 100
+                auth:
+                  header:
+                    Authorization: "Bearer ollama"
+                options:
+                  model: glm-4.7-flash
+                override:
+                  endpoint: "http://ms2.landryzetam.net:11434/v1/chat/completions"
+              - name: ms3
+                provider: openai-compatible
+                weight: 1
+                priority: 100
+                auth:
+                  header:
+                    Authorization: "Bearer ollama"
+                options:
+                  model: glm-4.7-flash
+                override:
+                  endpoint: "http://ms3.landryzetam.net:11434/v1/chat/completions"
+    #END
