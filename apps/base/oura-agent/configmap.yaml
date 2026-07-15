@@ -16,7 +16,7 @@ data:
   MESSAGE_WINDOW_MINUTES: "30"  # only process messages from last N minutes
 
   # LLM configuration
-  LLM_MODEL: "claude-sonnet-4-20250514"
+  LLM_MODEL: "claude-sonnet-4-5-20250929"
   LLM_TEMPERATURE: "0.3"
   LLM_MAX_TOKENS: "4096"
 
