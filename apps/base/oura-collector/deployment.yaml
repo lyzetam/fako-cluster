@@ -29,8 +29,10 @@ spec:
         envFrom:
         - configMapRef:
             name: oura-collector-config
+        # aws-credentials-env removed (H3): the app reads Oura + DB creds from env
+        # (delivered by the external-secrets controller); it no longer calls AWS.
         - secretRef:
-            name: aws-credentials-env
+            name: oura-api-env
         - secretRef:
             name: postgres-credentials-env
         - secretRef:
