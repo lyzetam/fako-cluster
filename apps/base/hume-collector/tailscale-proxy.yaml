@@ -47,6 +47,8 @@ spec:
           value: "--advertise-tags=tag:k8s"
         - name: TS_USERSPACE
           value: "true"
+        - name: TS_KUBE_SECRET
+          value: ""                # use dir state, not a k8s Secret (no API access needed)
         - name: TS_STATE_DIR
           value: "/tmp/tsstate"
         - name: TS_SERVE_CONFIG

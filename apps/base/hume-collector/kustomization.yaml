@@ -11,6 +11,8 @@ resources:
   - external-secret-dockerhub.yaml
   - external-secret-tailscale.yaml
   - tailscale-proxy.yaml
+  # networkpolicy.yaml removed: too restrictive for Tailscale's NAT-traversal
+  # egress (UDP/DERP). The receiver's auth is the token/tailnet, not egress filtering.
   - networkpolicy.yaml
   - configmap.yaml
   - deployment.yaml
