@@ -12,8 +12,13 @@ metadata:
     app.kubernetes.io/part-of: quantum-trades
     app.kubernetes.io/managed-by: flux
 spec:
-  # 08:00 ET on weekdays — ~1.5h before the 09:30 open.
-  schedule: "0 8 * * 1-5"
+  # 10:00 ET on weekdays. Moved 08:00->10:00 (2026-07-15): the 08:00 PREMARKET run
+  # could never succeed — options aren't trading, so stage 5's spread gate (bid/ask>0,
+  # spread<=5%) rejects every contract, survivors fall below the floor, and the funnel
+  # aborts (exit 1) → k8s "failure" 3 days running. Options QUOTES only exist during
+  # market hours, and spreads normalize ~30 min after the 09:30 open (MM price
+  # discovery). 10:00 is the earliest reliably-quote-populated time. Backup at 10:30.
+  schedule: "0 10 * * 1-5"
   timeZone: "America/New_York"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 10

@@ -15,9 +15,11 @@ metadata:
     app.kubernetes.io/part-of: quantum-trades
     app.kubernetes.io/managed-by: flux
 spec:
-  # 09:45 ET on weekdays — 15 min after the 09:30 open (funnel is known to succeed
-  # during market hours). Universe ready ~09:55 on days the 08:00 run crashed.
-  schedule: "45 9 * * 1-5"
+  # 10:30 ET on weekdays — backup 30 min after the 10:00 primary. If the primary run
+  # was thin/aborted, this second post-open pass (spreads fully normalized by 10:30)
+  # refreshes the universe. persist is idempotent + persists-thin, so it's harmless
+  # when the primary already succeeded.
+  schedule: "30 10 * * 1-5"
   timeZone: "America/New_York"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 5
