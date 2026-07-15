@@ -5,6 +5,8 @@ metadata:
   namespace: hume-collector
 spec:
   replicas: 1
+  strategy:
+    type: Recreate            # RWO PVC for tailscale state — old pod must release it first
   selector:
     matchLabels:
       app: hume-collector
@@ -78,14 +80,18 @@ spec:
         - name: TS_USERSPACE
           value: "true"
         - name: TS_KUBE_SECRET
-          value: "tailscale-state"                  # persistent state → stable device name
+          value: ""                                 # no k8s API (unreachable in userspace mode)
+        - name: TS_STATE_DIR
+          value: "/tmp/tsstate"                     # persistent dir state on a PVC → stable name
         - name: TS_SOCKET
-          value: "/tmp/tailscaled.sock"             # writable path for non-root uid
+          value: "/tmp/tsstate/tailscaled.sock"
         - name: TS_SERVE_CONFIG
           value: "/etc/tailscale/serve.json"
         volumeMounts:
         - name: serve
           mountPath: /etc/tailscale
+        - name: tsstate
+          mountPath: /tmp/tsstate
         resources:
           requests:
             memory: "64Mi"
@@ -97,3 +103,18 @@ spec:
       - name: serve
         configMap:
           name: tailscale-serve
+      - name: tsstate
+        persistentVolumeClaim:
+          claimName: hume-tailscale-state
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hume-tailscale-state
+  namespace: hume-collector
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 64Mi
