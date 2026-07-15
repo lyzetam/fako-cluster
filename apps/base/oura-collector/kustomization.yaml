@@ -10,6 +10,8 @@ resources:
   - external-secret-postgres.yaml # New: External Secret for PostgreSQL credentials
   - external-secret-discord-webhook.yaml # Discord webhook for health reports
   - external-secret-obsidian.yaml # Obsidian Local REST API for vault copies
+  - external-secret-dr-token.yaml # bearer token for the oura-agent hand-off
+  - networkpolicy.yaml            # scoped egress
   - configmap.yaml
   - storage.yaml
   - deployment.yaml

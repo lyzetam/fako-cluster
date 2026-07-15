@@ -44,6 +44,15 @@ spec:
             name: anthropic-credentials-env
         - secretRef:
             name: supabase-credentials-env
+        - secretRef:
+            name: webhook-token-env
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
 
         resources:
           requests:

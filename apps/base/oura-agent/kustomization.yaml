@@ -12,6 +12,8 @@ resources:
   - external-secret-anthropic.yaml
   - external-secret-dockerhub.yaml
   - external-secret-supabase.yaml
+  - external-secret-webhook-token.yaml  # bearer token for /daily-summary + /webhook/discord
+  - networkpolicy.yaml                  # scoped egress
   - deployment.yaml
   - service.yaml
 

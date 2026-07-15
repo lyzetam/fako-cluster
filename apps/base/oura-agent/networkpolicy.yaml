@@ -1,0 +1,50 @@
+# oura-agent egress: DNS, postgres, the ms-node Ollama (embeddings + local chat),
+# and public HTTPS (Anthropic, AWS Secrets Manager, Discord). Egress-only — the
+# /daily-summary + /webhook/discord endpoints are protected by the bearer gate.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: oura-agent-egress
+  namespace: oura-agent
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # PostgreSQL
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Homelab Ollama nodes ms1/ms2/ms3 (embeddings + local chat)
+    - to:
+        - ipBlock:
+            cidr: 10.85.30.0/24
+      ports:
+        - protocol: TCP
+          port: 11434
+    # Public HTTPS — Anthropic API, AWS Secrets Manager, Discord (no fixed range)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443

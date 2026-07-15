@@ -11,9 +11,11 @@ metadata:
   name: oura-agent
   namespace: oura-agent
 rules:
+# The agent reads config + secrets via envFrom, and its ExternalSecrets use the
+# AWS store (external-secrets-user), not this SA — so it needs no K8s secret access.
 - apiGroups: [""]
-  resources: ["configmaps", "secrets"]
-  verbs: ["get", "list", "watch"]
+  resources: ["configmaps"]
+  verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

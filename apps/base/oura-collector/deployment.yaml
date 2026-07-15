@@ -37,6 +37,15 @@ spec:
             name: discord-webhook-env
         - secretRef:
             name: obsidian-api-env
+        - secretRef:
+            name: dr-agent-token-env
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
         resources:
           requests:
             memory: "128Mi"
@@ -66,8 +75,12 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /data
-      
+        - name: tmp
+          mountPath: /tmp
+
       volumes:
       - name: data
         persistentVolumeClaim:
           claimName: oura-collector-data
+      - name: tmp
+        emptyDir: {}
