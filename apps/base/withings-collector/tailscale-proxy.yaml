@@ -1,0 +1,18 @@
+# Tailscale serve config for the sidecar (runs inside the collector pod).
+# Proxies to 127.0.0.1 — loopback works regardless of Tailscale's netstack mode
+# (a ClusterIP dial from a *separate* userspace-mode pod gets connection-refused).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tailscale-serve
+  namespace: withings-collector
+data:
+  serve.json: |
+    {
+      "TCP": { "443": { "HTTPS": true } },
+      "Web": {
+        "${TS_CERT_DOMAIN}:443": {
+          "Handlers": { "/": { "Proxy": "http://127.0.0.1:8080" } }
+        }
+      }
+    }

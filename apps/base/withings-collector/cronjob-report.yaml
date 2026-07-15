@@ -1,0 +1,43 @@
+# Daily Withings report → Obsidian vault "Health/Withings Daily/<date>.md".
+# The second "drop", parallel to oura/hume-collector's daily vault report.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: withings-report
+  namespace: withings-collector
+spec:
+  schedule: "45 5 * * *"        # 05:45 daily (after the Hume 05:30 report)
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: withings-collector
+          imagePullSecrets:
+            - name: dockerhub-pull
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+          containers:
+          - name: withings-report
+            image: lzetam/withings-collector:latest
+            imagePullPolicy: Always
+            command: ["python", "report.py"]
+            envFrom:
+            - configMapRef:
+                name: withings-collector-config
+            - secretRef:
+                name: postgres-credentials-env
+            - secretRef:
+                name: obsidian-api-env
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "50m"
+              limits:
+                memory: "256Mi"
+                cpu: "300m"
