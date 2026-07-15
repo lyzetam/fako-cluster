@@ -7,6 +7,7 @@ resources:
   # - homebot
   - oura-collector
   - oura-agent        # Oura health assistant Discord bot
+  - hume-collector    # HealthBridge push receiver + daily Hume report
   - selfheal-test     # THROWAWAY OOM test for self-heal act-path (remove after)
   - feed-cache        # In-memory render cache for the feed service
   # - oura-dashboard  # Deactivated - not in use

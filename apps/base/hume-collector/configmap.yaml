@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hume-collector-config
+  namespace: hume-collector
+data:
+  DATABASE_HOST: "postgres-cluster-rw.postgres.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "hume"
+
+  # Daily report → Obsidian vault (parallel to oura's "Health/Oura Daily").
+  OBSIDIAN_VAULT_FOLDER: "Health/Hume Daily"
+  OBSIDIAN_VERIFY_TLS: "false"   # self-signed cert on the Local REST API

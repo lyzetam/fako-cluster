@@ -1,0 +1,35 @@
+# Scoped egress: DNS, Postgres, and outbound HTTPS (Obsidian LAN API, AWS SM).
+# Ingress is unrestricted (Traefik → receiver).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hume-collector-egress
+  namespace: hume-collector
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Outbound HTTPS — Obsidian Local REST API + AWS Secrets Manager.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443

@@ -1,0 +1,20 @@
+# Inbound HTTPS for the phone to push to. TLS terminated by Cloudflare Tunnel
+# (add the hume-health.landryzetam.net route to the tunnel), same as oura-dashboard.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hume-collector
+  namespace: hume-collector
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: hume-health.landryzetam.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hume-collector
+            port:
+              number: 8080
