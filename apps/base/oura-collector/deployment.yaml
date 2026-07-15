@@ -35,6 +35,8 @@ spec:
             name: postgres-credentials-env
         - secretRef:
             name: discord-webhook-env
+        - secretRef:
+            name: obsidian-api-env
         resources:
           requests:
             memory: "128Mi"

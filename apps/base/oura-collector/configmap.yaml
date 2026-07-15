@@ -31,3 +31,7 @@ data:
   API_TIMEOUT: "30"
   MAX_RETRIES: "3"
   RETRY_DELAY: "5"
+
+  # Obsidian vault copy (URL + key come from the obsidian-api-env secret)
+  OBSIDIAN_VERIFY_TLS: "false"          # self-signed cert on the Local REST API
+  OBSIDIAN_VAULT_FOLDER: "Health/Oura Daily"
