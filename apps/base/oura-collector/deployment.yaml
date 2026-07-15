@@ -79,6 +79,9 @@ spec:
           mountPath: /data
         - name: tmp
           mountPath: /tmp
+        - name: obsidian-ca
+          mountPath: /etc/obsidian-ca
+          readOnly: true
 
       volumes:
       - name: data
@@ -86,3 +89,6 @@ spec:
           claimName: oura-collector-data
       - name: tmp
         emptyDir: {}
+      - name: obsidian-ca
+        configMap:
+          name: obsidian-ca

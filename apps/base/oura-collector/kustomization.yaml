@@ -12,6 +12,7 @@ resources:
   - external-secret-obsidian.yaml # Obsidian Local REST API for vault copies
   - external-secret-dr-token.yaml # bearer token for the oura-agent hand-off
   - external-secret-oura-api.yaml # Oura API token (env-first, removes app AWS need)
+  - configmap-obsidian-ca.yaml    # pinned Obsidian TLS cert for verification
   - networkpolicy.yaml            # scoped egress
   - configmap.yaml
   - storage.yaml

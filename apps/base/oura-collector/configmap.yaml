@@ -33,5 +33,6 @@ data:
   RETRY_DELAY: "5"
 
   # Obsidian vault copy (URL + key come from the obsidian-api-env secret)
-  OBSIDIAN_VERIFY_TLS: "false"          # self-signed cert on the Local REST API
+  # Verify TLS against the pinned plugin cert (SAN includes obsidian-api.landryzetam.net)
+  OBSIDIAN_CA_CERT: "/etc/obsidian-ca/ca.pem"
   OBSIDIAN_VAULT_FOLDER: "Health/Oura Daily"
