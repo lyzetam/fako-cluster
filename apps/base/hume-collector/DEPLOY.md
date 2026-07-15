@@ -46,9 +46,24 @@ git commit -m "feat(hume): deploy hume-collector receiver + daily report"
 git push && flux reconcile kustomization apps --with-source
 ```
 
-## 6. Cloudflare Tunnel route
-Add `hume-health.landryzetam.net` → the tunnel (same as oura-dashboard's host),
-so the phone can POST over HTTPS.
+## 6. Cloudflare Tunnel route (the last mile — needs your Cloudflare account)
+The receiver is live in-cluster; this exposes it over HTTPS. `cloudflare.yaml`
+is written and ready but **not** in `kustomization.yaml` yet (it crashloops
+without the credentials secret).
+
+```bash
+# create the named tunnel + DNS, then drop its credentials into the namespace
+cloudflared tunnel login
+cloudflared tunnel create hume-health
+cloudflared tunnel route dns hume-health hume-health.landryzetam.net
+# store credentials.json as the tunnel-credentials secret (sops or a k8s secret)
+kubectl create secret generic tunnel-credentials -n hume-collector \
+  --from-file=credentials.json=$HOME/.cloudflared/<TUNNEL_ID>.json --dry-run=client -o yaml \
+  | sops -e /dev/stdin > ../../staging/hume-collector/tunnel-credentials.yaml   # then add to overlay
+```
+Then add `- cloudflare.yaml` to `kustomization.yaml`, commit, push, reconcile.
+Alternative: skip Cloudflare and use **Tailscale Serve** on the service — the app
+just needs any `https://…` base URL.
 
 ## 7. Point the app
 In HealthBridge → Sync tab: Base URL = `https://hume-health.landryzetam.net`,

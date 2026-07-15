@@ -1,0 +1,60 @@
+# External HTTPS via Cloudflare Tunnel (mirrors oura-dashboard).
+# NOT YET in kustomization.yaml — enable it after you have created the tunnel
+# and its `tunnel-credentials` secret (see DEPLOY.md § Cloudflare). Without the
+# credentials secret this Deployment crashloops, so it stays inert until then.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: hume-collector
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:2025.11.1
+        args: ["tunnel", "--config", "/etc/cloudflared/config/config.yaml", "run"]
+        resources:
+          requests: { memory: "128Mi", cpu: "100m" }
+          limits: { memory: "256Mi", cpu: "300m" }
+        livenessProbe:
+          httpGet: { path: /ready, port: 2000 }
+          failureThreshold: 1
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        volumeMounts:
+        - { name: config, mountPath: /etc/cloudflared/config, readOnly: true }
+        - { name: creds, mountPath: /etc/cloudflared/creds, readOnly: true }
+      volumes:
+      - name: creds
+        secret:
+          secretName: tunnel-credentials
+      - name: config
+        configMap:
+          name: cloudflared
+          items:
+          - { key: config.yaml, path: config.yaml }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared
+  namespace: hume-collector
+data:
+  config.yaml: |
+    tunnel: hume-health
+    credentials-file: /etc/cloudflared/creds/credentials.json
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+
+    ingress:
+    - hostname: hume-health.landryzetam.net
+      service: http://hume-collector:8080
+    - service: http_status:404
