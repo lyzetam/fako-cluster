@@ -75,4 +75,17 @@ data:
                   model: glm-4.7-flash
                 override:
                   endpoint: "http://ms3.landryzetam.net:11434/v1/chat/completions"
+              # Tier 2: Ollama Cloud — only used when all 3 local nodes fail
+              # (lower priority). Bearer key injected from the SOPS secret.
+              - name: ollama-cloud
+                provider: openai-compatible
+                weight: 1
+                priority: 50
+                auth:
+                  header:
+                    Authorization: "${{OLLAMA_CLOUD_AUTH}}"
+                options:
+                  model: glm-4.7
+                override:
+                  endpoint: "https://ollama.com/v1/chat/completions"
     #END

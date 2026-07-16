@@ -29,6 +29,14 @@ spec:
         - name: apisix
           image: apache/apisix:3.15.0-debian
           imagePullPolicy: IfNotPresent
+          env:
+            # Ollama Cloud bearer for the fallback tier — the config references it
+            # via ${{OLLAMA_CLOUD_AUTH}} (APISIX interpolates env at load).
+            - name: OLLAMA_CLOUD_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: apisix-provider-keys
+                  key: OLLAMA_CLOUD_AUTH
           ports:
             - name: proxy
               containerPort: 9080
