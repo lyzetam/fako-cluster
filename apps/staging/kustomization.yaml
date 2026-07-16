@@ -90,6 +90,7 @@ resources:
   # Trading Platform
   - quantum-trades  # Quantum Trades trading platform
   - market-replay   # Market replay system (recorder, replay, gateway)
+  - futures-trader  # IBKR /MGC gold-futures scalper (PAPER; separate ns + IB Gateway pod)
 
   # Analytics
   - umami           # Privacy-focused website analytics

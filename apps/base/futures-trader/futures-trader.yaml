@@ -72,6 +72,11 @@ spec:
           env:
             - name: TRADING_MODE
               value: "paper"
+            # READ_ONLY_API=no is REQUIRED: without it the Gateway pops an
+            # "API client needs write access" dialog that stalls the startup
+            # state sync and drops the client (verified 2026-07-16).
+            - name: READ_ONLY_API
+              value: "no"
             - name: TWS_USERID
               valueFrom:
                 secretKeyRef:
@@ -83,7 +88,10 @@ spec:
                   name: futures-trader-secrets
                   key: TWS_PASSWORD
           ports:
-            - containerPort: 4002  # paper API port
+            # 4004 is the socat forwarder the gnzsnz image exposes for paper
+            # (internal IB Gateway API binds 127.0.0.1:4002 only; external peers
+            # must hit 4004). Live would be 4003. Verified 2026-07-16.
+            - containerPort: 4004
           resources:
             requests:
               cpu: 250m
@@ -102,8 +110,8 @@ spec:
     app: ib-gateway
   ports:
     - name: api-paper
-      port: 4002
-      targetPort: 4002
+      port: 4004
+      targetPort: 4004
 ---
 # The order port on the cluster network REQUIRES this policy (spec): only the
 # futures-trader pod may reach the IB Gateway API.
@@ -123,7 +131,7 @@ spec:
             matchLabels:
               app: futures-trader
       ports:
-        - port: 4002
+        - port: 4004
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -144,20 +152,27 @@ spec:
       labels:
         app: futures-trader
     spec:
-      imagePullSecrets:
-        - name: dockerhub-registry
+      # No imagePullSecrets: lzetam/quantum-trades-futures-trader is a public
+      # DockerHub repo (amd64-only image; all cluster nodes are amd64).
       containers:
         - name: futures-trader
           image: lzetam/quantum-trades-futures-trader:latest
           imagePullPolicy: Always
+          # envFrom injects the FT_-prefixed keys the app reads (FuturesSettings
+          # env_prefix="FT_"): FT_SUPABASE_URL, FT_SUPABASE_KEY,
+          # FT_AGENTS_API_KEY, FT_TRADING_MODE. (TWS_*/username/password are also
+          # present but ignored by the app.)
           envFrom:
             - secretRef:
                 name: futures-trader-secrets
           env:
-            - name: IB_HOST
+            # Reach the IB Gateway Service on its socat paper port (see the
+            # Service above). The app's config default host IS "ib-gateway", but
+            # the default port is 4002 — override to 4004 to match the forwarder.
+            - name: FT_IB_GATEWAY_HOST
               value: "ib-gateway"
-            - name: IB_PORT
-              value: "4002"
+            - name: FT_IB_GATEWAY_PAPER_PORT
+              value: "4004"
             - name: PYTHONUNBUFFERED
               value: "1"
           ports:
