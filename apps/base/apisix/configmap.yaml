@@ -85,7 +85,9 @@ data:
                   header:
                     Authorization: "${{OLLAMA_CLOUD_AUTH}}"
                 options:
-                  model: glm-4.7
+                  # Cloud model (APISIX overrides the client's model per-instance).
+                  # glm-4.x retired on Ollama Cloud 2026-07-15; glm-5.2 is current.
+                  model: glm-5.2
                 override:
                   endpoint: "https://ollama.com/v1/chat/completions"
     #END
