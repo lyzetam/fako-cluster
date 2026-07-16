@@ -363,6 +363,8 @@ spec:
               value: "glm-4.7-flash:latest"
             - name: ZI_AGENT_REASONING
               value: "true"
+            - name: ZI_AGENT_GATEWAY_URL
+              value: "http://apisix.apisix.svc.cluster.local:9080/v1"
             - name: AGENT_DESCRIPTION
               value: "Kubernetes deployment, cluster management, container orchestration, and cloud native architecture"
             # Bumped 15→20 (recursion_limit=iter*2=40): the multi-step read-only
@@ -487,6 +489,8 @@ spec:
               value: "glm-4.7-flash:latest"
             - name: ZI_AGENT_REASONING
               value: "true"
+            - name: ZI_AGENT_GATEWAY_URL
+              value: "http://apisix.apisix.svc.cluster.local:9080/v1"
             - name: AGENT_DESCRIPTION
               value: "Platform reliability, infrastructure operations, and SRE practices"
             # Bumped 15→20 (recursion_limit=iter*2=40): the multi-step read-only
