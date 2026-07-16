@@ -208,6 +208,13 @@ spec:
               value: "ib-gateway"
             - name: FT_IB_GATEWAY_PAPER_PORT
               value: "4004"
+            # 24h operation: entries allowed all day (MGC trades ~23h/day). The
+            # tick itself runs every minute regardless (exits/reconciliation are
+            # always live); this window gates ENTRIES only.
+            - name: FT_SESSION_START_ET
+              value: "00:00"
+            - name: FT_SESSION_END_ET
+              value: "23:59"
             - name: PYTHONUNBUFFERED
               value: "1"
           ports:
