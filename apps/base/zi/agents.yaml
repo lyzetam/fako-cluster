@@ -372,7 +372,7 @@ spec:
             # Sol runs multi-step delegated remediation loops — bump the budget
             # (remediation is not real-time; a converging loop can need minutes).
             - name: AGENT_MAX_ITERATIONS
-              value: "8"
+              value: "15"
             - name: ZI_OLLAMA_TIMEOUT
               value: "600"
             # Pulse ON for the Weekly report → #engineering-team (no Continuous
