@@ -41,10 +41,42 @@ spec:
     name: futures-trader-secrets
     creationPolicy: Owner
   dataFrom:
-    # AWS SM JSON secret: TWS_USERID, TWS_PASSWORD, FUTURES_API_KEY,
-    # SUPABASE_URL, SUPABASE_KEY (Plan 2.5 creates it)
+    # AWS SM JSON secret (keys: TWS_USERID, TWS_PASSWORD, FT_SUPABASE_URL,
+    # FT_SUPABASE_KEY, FT_TRADING_MODE, FT_AGENTS_API_KEY). The FT_-prefixed keys
+    # are what the app reads via FuturesSettings (env_prefix="FT_"); TWS_* feed
+    # the IB Gateway container.
     - extract:
         key: quantum-trades/futures/ibkr-paper
+---
+# Declaratively renders the private-image pull secret from AWS SM
+# dockerhub/credentials — no imperative Job or manual kubectl.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: dockerhub-registry
+  namespace: futures-trader
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    name: aws-secrets
+    kind: SecretStore
+  target:
+    name: dockerhub-registry
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: |
+          {"auths":{"https://index.docker.io/v1/":{"username":"{{ .username }}","password":"{{ .token }}","auth":"{{ printf "%s:%s" .username .token | b64enc }}"}}}
+  data:
+    - secretKey: username
+      remoteRef:
+        key: dockerhub/credentials
+        property: username
+    - secretKey: token
+      remoteRef:
+        key: dockerhub/credentials
+        property: token
 ---
 # IB Gateway — separate Deployment by design (user decision in spec), never a sidecar.
 apiVersion: apps/v1
@@ -152,8 +184,11 @@ spec:
       labels:
         app: futures-trader
     spec:
-      # No imagePullSecrets: lzetam/quantum-trades-futures-trader is a public
-      # DockerHub repo (amd64-only image; all cluster nodes are amd64).
+      # Private DockerHub repo; the dockerhub-registry ExternalSecret above
+      # renders this pull secret from AWS SM. (amd64-only image; all cluster
+      # nodes are amd64.)
+      imagePullSecrets:
+        - name: dockerhub-registry
       containers:
         - name: futures-trader
           image: lzetam/quantum-trades-futures-trader:latest
