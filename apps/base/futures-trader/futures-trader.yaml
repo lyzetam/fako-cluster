@@ -1,0 +1,185 @@
+# futures-trader — STAGED (see README.md; not referenced by any kustomization yet).
+# Namespace + ExternalSecret + IB Gateway + service Deployment + NetworkPolicy.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: futures-trader
+  labels:
+    app.kubernetes.io/part-of: futures-trader
+    app.kubernetes.io/managed-by: flux
+---
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: aws-secrets
+  namespace: futures-trader
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: us-east-1
+      auth:
+        secretRef:
+          accessKeyIDSecretRef:
+            name: aws-credentials
+            key: access-key-id
+          secretAccessKeySecretRef:
+            name: aws-credentials
+            key: secret-access-key
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: futures-trader-secrets
+  namespace: futures-trader
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets
+    kind: SecretStore
+  target:
+    name: futures-trader-secrets
+    creationPolicy: Owner
+  dataFrom:
+    # AWS SM JSON secret: TWS_USERID, TWS_PASSWORD, FUTURES_API_KEY,
+    # SUPABASE_URL, SUPABASE_KEY (Plan 2.5 creates it)
+    - extract:
+        key: quantum-trades/futures/ibkr-paper
+---
+# IB Gateway — separate Deployment by design (user decision in spec), never a sidecar.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ib-gateway
+  namespace: futures-trader
+  labels:
+    app: ib-gateway
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # IBKR allows ONE session per credential set
+  selector:
+    matchLabels:
+      app: ib-gateway
+  template:
+    metadata:
+      labels:
+        app: ib-gateway
+    spec:
+      containers:
+        - name: ib-gateway
+          image: ghcr.io/gnzsnz/ib-gateway:stable
+          env:
+            - name: TRADING_MODE
+              value: "paper"
+            - name: TWS_USERID
+              valueFrom:
+                secretKeyRef:
+                  name: futures-trader-secrets
+                  key: TWS_USERID
+            - name: TWS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: futures-trader-secrets
+                  key: TWS_PASSWORD
+          ports:
+            - containerPort: 4002  # paper API port
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ib-gateway
+  namespace: futures-trader
+spec:
+  selector:
+    app: ib-gateway
+  ports:
+    - name: api-paper
+      port: 4002
+      targetPort: 4002
+---
+# The order port on the cluster network REQUIRES this policy (spec): only the
+# futures-trader pod may reach the IB Gateway API.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ib-gateway-only-from-futures-trader
+  namespace: futures-trader
+spec:
+  podSelector:
+    matchLabels:
+      app: ib-gateway
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: futures-trader
+      ports:
+        - port: 4002
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: futures-trader
+  namespace: futures-trader
+  labels:
+    app: futures-trader
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # single trading loop, no leader lock in v1
+  selector:
+    matchLabels:
+      app: futures-trader
+  template:
+    metadata:
+      labels:
+        app: futures-trader
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-registry
+      containers:
+        - name: futures-trader
+          image: lzetam/quantum-trades-futures-trader:latest
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: futures-trader-secrets
+          env:
+            - name: IB_HOST
+              value: "ib-gateway"
+            - name: IB_PORT
+              value: "4002"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          ports:
+            - containerPort: 8000
+          startupProbe:
+            httpGet: {path: /health, port: 8000}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 18
+          livenessProbe:
+            httpGet: {path: /health, port: 8000}
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
