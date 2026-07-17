@@ -215,6 +215,17 @@ spec:
               value: "00:00"
             - name: FT_SESSION_END_ET
               value: "23:59"
+            # Bracket sized to gold's real volatility. The default 10-tick stop
+            # is smaller than MGC's ~18.5-tick average 1-min bar, so noise stops
+            # it out constantly (live: 41% win rate, deeply net-negative). A
+            # backtest sweep on real bars showed a 40-tick stop / 40-tick target
+            # (1:1) is the most slippage-robust config (61% win rate, positive
+            # through moderate slippage). Evidence, 2026-07-16. Re-tune as more
+            # paper data + a multi-session backtest accumulate.
+            - name: FT_STOP_TICKS
+              value: "40"
+            - name: FT_TARGET_TICKS
+              value: "40"
             - name: PYTHONUNBUFFERED
               value: "1"
           ports:
