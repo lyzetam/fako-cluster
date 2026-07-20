@@ -12,6 +12,7 @@ metadata:
     app.kubernetes.io/managed-by: flux
 spec:
   # Morning slate + a pre-kickoff catch-up (confirmed XIs). UTC.
+  suspend: true
   schedule: "0 */2 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3

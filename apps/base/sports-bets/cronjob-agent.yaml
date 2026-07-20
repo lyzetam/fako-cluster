@@ -18,7 +18,7 @@ spec:
   # match model as a tool (MAD-trimmed + self-consistent baseline, core v0.1.2), which-line-to-bet
   # Kelly skill, cheap-tail untradeable rule. Capped verifies confirmed: grounded singles, no
   # Over-5.5 longshots, money-safety holds (clamp $2/slip + $35/day budget + idempotency).
-  suspend: false
+  suspend: true
   schedule: "0 */2 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
