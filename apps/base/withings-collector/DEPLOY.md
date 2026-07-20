@@ -1,10 +1,10 @@
 # withings-collector — deploy notes
 
-> **STATUS: STAGED, NOT LIVE.** These manifests are committed but **not** referenced
-> by `apps/staging/kustomization.yaml`, so Flux does **not** reconcile them yet.
-> Activation is deliberately deferred until (a) the physical Withings device +
-> real account exist and (b) the Europe-cloud / US-account **data-residency**
-> question is verified with a live OAuth (see below).
+> **STATUS: LIVE (activated 2026-07-20).** Residency verified (Europe app reads the
+> US account, userid 48811103), `withings` db created, tailscale authkey minted,
+> SOPS bootstrap in place, wired into `apps/staging/kustomization.yaml`, OAuth
+> bootstrapped, and both drops confirmed (Postgres `withings_measures` + vault
+> `Health/Withings Daily`). The checklist below is retained for rebuild/DR.
 
 Mirrors the `hume-collector` pattern (Tailscale-private receiver + ExternalSecrets
 + two drops: Postgres `withings` db + Obsidian `Health/Withings Daily`). The image
