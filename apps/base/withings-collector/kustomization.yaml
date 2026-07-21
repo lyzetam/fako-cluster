@@ -16,3 +16,4 @@ resources:
   - service.yaml
   - cronjob-collect.yaml
   - cronjob-report.yaml
+  - cloudflare.yaml         # public /webhook exposure for Withings appli-58 notifications

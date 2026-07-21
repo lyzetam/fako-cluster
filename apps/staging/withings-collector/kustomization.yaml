@@ -6,4 +6,5 @@ resources:
   # sops-age decryption (see ../../base/withings-collector/DEPLOY.md). Mirrors
   # oura/hume-collector's overlay.
   - aws-credentials-secret.yaml
+  - cloudflare-secret.yaml
   - ../../base/withings-collector/
