@@ -151,11 +151,18 @@ spec:
             - name: REDIS_URL
               value: "redis://agent-redis:6379"
 
-            # LLM Configuration - Anthropic Haiku primary (cost-effective), Ollama fallback
+            # LLM Configuration (2026-07-21): Ollama Cloud ONLY — the audits'
+            # dedicated Anthropic key is being disabled (it produced failed
+            # calls for weeks + an inline-await stall risk). Native /api/chat
+            # against ollama.com, bearer auth via OLLAMA_API_KEY (from the
+            # ExternalSecret), model glm-5.2 (glm-4.x retired on cloud
+            # 2026-07-15). Chat + tool-calling probed live before this change.
             - name: LLM_PROVIDER_ORDER
-              value: "anthropic,ollama"
+              value: "ollama"
             - name: OLLAMA_BASE_URL
-              value: "http://ms3.landryzetam.net:11434"
+              value: "https://ollama.com"
+            - name: OLLAMA_MODEL
+              value: "glm-5.2"
             - name: LLM_FALLBACK_ENABLED
               value: "true"
             - name: LLM_FALLBACK_CACHE_TTL_SECONDS
