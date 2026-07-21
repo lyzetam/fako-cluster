@@ -51,6 +51,13 @@ spec:
                 secretKeyRef:
                   name: quantum-trades-secrets
                   key: ANTHROPIC_API_KEY
+            - name: OLLAMA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: OLLAMA_API_KEY
+            - name: OLLAMA_MODEL
+              value: "glm-5.2"
             - name: CORS_ORIGINS
               valueFrom:
                 configMapKeyRef:
