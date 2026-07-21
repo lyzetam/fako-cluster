@@ -21,52 +21,50 @@ spec:
         app: apisix
         app.kubernetes.io/name: apisix
       annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "9091"
-        prometheus.io/path: "/apisix/prometheus/metrics"
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9091'
+        prometheus.io/path: /apisix/prometheus/metrics
     spec:
       containers:
-        - name: apisix
-          image: apache/apisix:3.15.0-debian
-          imagePullPolicy: IfNotPresent
-          env:
-            # Ollama Cloud bearer for the fallback tier — the config references it
-            # via ${{OLLAMA_CLOUD_AUTH}} (APISIX interpolates env at load).
-            - name: OLLAMA_CLOUD_AUTH
-              valueFrom:
-                secretKeyRef:
-                  name: apisix-provider-keys
-                  key: OLLAMA_CLOUD_AUTH
-          ports:
-            - name: proxy
-              containerPort: 9080
-            - name: metrics
-              containerPort: 9091
-          readinessProbe:
-            tcpSocket:
-              port: 9080
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          livenessProbe:
-            tcpSocket:
-              port: 9080
-            initialDelaySeconds: 20
-            periodSeconds: 15
-          resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              cpu: "1"
-              memory: 512Mi
-          volumeMounts:
-            - name: conf
-              mountPath: /usr/local/apisix/conf/config.yaml
-              subPath: config.yaml
-            - name: conf
-              mountPath: /usr/local/apisix/conf/apisix.yaml
-              subPath: apisix.yaml
-      volumes:
+      - name: apisix
+        image: apache/apisix:3.15.0-debian
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: OLLAMA_CLOUD_AUTH
+          valueFrom:
+            secretKeyRef:
+              name: apisix-provider-keys
+              key: OLLAMA_CLOUD_AUTH
+        ports:
+        - name: proxy
+          containerPort: 9080
+        - name: metrics
+          containerPort: 9091
+        readinessProbe:
+          tcpSocket:
+            port: 9080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 9080
+          initialDelaySeconds: 20
+          periodSeconds: 15
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
         - name: conf
-          configMap:
-            name: apisix-conf
+          mountPath: /usr/local/apisix/conf/config.yaml
+          subPath: config.yaml
+        - name: conf
+          mountPath: /usr/local/apisix/conf/apisix.yaml
+          subPath: apisix.yaml
+      volumes:
+      - name: conf
+        configMap:
+          name: apisix-conf
