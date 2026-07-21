@@ -34,11 +34,15 @@ spec:
                 secretKeyRef:
                   name: quantum-trades-secrets
                   key: MASSIVE_API_KEY
-            - name: ANTHROPIC_API_KEY
+            - name: OLLAMA_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: quantum-trades-secrets
-                  key: ANTHROPIC_API_KEY
+                  key: OLLAMA_API_KEY
+            - name: OLLAMA_BASE_URL
+              value: "https://ollama.com"
+            - name: OLLAMA_MODEL
+              value: "glm-5.2"
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -50,7 +54,7 @@ spec:
                   name: quantum-trades-secrets
                   key: GOOGLE_API_KEY
             - name: LLM_PROVIDER_ORDER
-              value: "anthropic,openai,google,ollama"
+              value: "ollama"
             - name: LLM_FALLBACK_ENABLED
               value: "true"
             - name: LLM_FALLBACK_CACHE_TTL_SECONDS

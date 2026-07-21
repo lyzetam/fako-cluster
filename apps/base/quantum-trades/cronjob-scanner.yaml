@@ -45,11 +45,15 @@ spec:
                   key: api_key
             - name: SIGNALS_SERVICE_URL
               value: "http://signals-service:8002"
-            - name: ANTHROPIC_API_KEY
+            # Scanner CronJob (app.cli.scanner) uses no LLM; OLLAMA_* serves
+            # manual combined_scan runs from this image (Ollama Cloud pattern).
+            - name: OLLAMA_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: quantum-trades-secrets
-                  key: ANTHROPIC_API_KEY
+                  key: OLLAMA_API_KEY
+            - name: OLLAMA_MODEL
+              value: "glm-5.2"
             resources:
               requests:
                 memory: "512Mi"
