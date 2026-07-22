@@ -1,0 +1,91 @@
+# options-scanner-day: was cluster-only (manual kubectl apply, Jan 2026) —
+# adopted into GitOps 2026-07-22 after the ANTHROPIC_API_KEY secret key removal
+# broke pod creation (CreateContainerConfigError). Scheduled path (app.cli.scanner)
+# uses no LLM; OLLAMA_* serves manual combined_scan runs (Ollama Cloud pattern).
+apiVersion: v1
+data:
+  BACKEND_URL: http://backend-service:8000
+  DISCORD_ENABLED: 'true'
+  DISCORD_MAX_POSTS: '5'
+  LOG_LEVEL: INFO
+  MAX_DTE: '5'
+  MAX_RESULTS_PER_SYMBOL: '3'
+  MAX_SYMBOLS: '100'
+  MIN_DTE: '0'
+  MIN_SIGNAL_STRENGTH: '50'
+  OBSIDIAN_FOLDER: trading/Options/Scans
+  SCORING_PROFILE: aggressive
+  SECTOR_SCAN_ENABLED: 'false'
+  SIGNALS_SERVICE_URL: http://signals-service:8002
+  STRATEGY: long_option
+  SYMBOL_LISTS: tech_mega,popular_options,high_iv
+  TRADING_STYLE: day
+kind: ConfigMap
+metadata:
+  name: options-scanner-day-config
+  namespace: quantum-trades
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: options-scanner-day
+  namespace: quantum-trades
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - env:
+            - name: MASSIVE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: MASSIVE_API_KEY
+                  name: quantum-trades-secrets
+            - name: OBSIDIAN_API_URL
+              valueFrom:
+                secretKeyRef:
+                  key: api_url
+                  name: obsidian-api
+            - name: OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: api_key
+                  name: obsidian-api
+            - name: DISCORD_WEBHOOK_DAY_OPTIONS
+              valueFrom:
+                secretKeyRef:
+                  key: DISCORD_WEBHOOK_DAY_OPTIONS
+                  name: alpha-scribe-secrets
+            - name: OLLAMA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: quantum-trades-secrets
+                  key: OLLAMA_API_KEY
+            - name: OLLAMA_MODEL
+              value: glm-5.2
+            envFrom:
+            - configMapRef:
+                name: options-scanner-day-config
+            - secretRef:
+                name: alpha-scribe-secrets
+            image: lzetam/quantum-trades-scanner:latest
+            imagePullPolicy: Always
+            name: scanner
+            resources:
+              limits:
+                cpu: '1'
+                memory: 1Gi
+              requests:
+                cpu: 200m
+                memory: 512Mi
+          imagePullSecrets:
+          - name: dockerhub-registry
+          restartPolicy: OnFailure
+      ttlSecondsAfterFinished: 86400
+  schedule: 30 9,11,14 * * 1-5
+  successfulJobsHistoryLimit: 5
+  suspend: false
+  timeZone: America/New_York

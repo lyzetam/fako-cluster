@@ -23,6 +23,9 @@ resources:
   - external-secret-obsidian.yaml
   - configmap-scanner.yaml
   - cronjob-scanner.yaml
+  # Day/swing scanner variants — adopted into GitOps 2026-07-22 (were manual applies)
+  - cronjob-scanner-day.yaml
+  - cronjob-scanner-swing.yaml
   # Trade Journal Sync CronJob (hourly)
   - cronjob-journal-sync.yaml
   # Pre-Qualification Agent — premarket whole-market funnel (8am ET)
