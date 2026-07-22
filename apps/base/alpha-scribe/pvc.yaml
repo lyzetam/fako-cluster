@@ -1,0 +1,24 @@
+# Adopted into GitOps 2026-07-22 from manual kubectl applies (source repo
+# ~/dev/alpha-scribe/k8s/). Cluster state was the source of truth — adoption
+# only, no behavior changes.
+# Existing volume with data — spec must stay identical or adoption recreates it.
+# prune: disabled — a data volume must NEVER be garbage-collected by Flux if this
+# entry is ever removed from the kustomization (PV reclaim=Retain is the backstop).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: alpha-scribe
+  name: alpha-scribe-data
+  namespace: quantum-trades
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: nfs-csi-v2
+  volumeMode: Filesystem
+  volumeName: pvc-0207b23c-3b0d-4c59-a098-2a8d316bdf81

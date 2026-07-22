@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# alpha-scribe market-notes suite — runs in the quantum-trades namespace (historical
+# placement, kept on adoption to avoid PVC/secret churn).
+namespace: quantum-trades
+resources:
+  - externalsecret.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - cronjobs.yaml

@@ -1,0 +1,14 @@
+# Adopted into GitOps 2026-07-22 from manual kubectl applies (source repo
+# ~/dev/alpha-scribe/k8s/). Cluster state was the source of truth — adoption
+# only, no behavior changes.
+apiVersion: v1
+data:
+  SCAN_LIMIT: '10'
+  SCAN_MIN_SCORE: '0.5'
+  SCAN_PROFILE: content
+kind: ConfigMap
+metadata:
+  labels:
+    app: alpha-scribe
+  name: alpha-scribe-config
+  namespace: quantum-trades

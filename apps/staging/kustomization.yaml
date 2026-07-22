@@ -143,6 +143,10 @@ resources:
   # AI Mastery Path - AI education platform (learn.lztechnology.io)
   - ai-mastery-path
 
+  # Alpha-scribe market-notes suite — adopted 2026-07-22 from manual applies;
+  # runs in the quantum-trades namespace (historical placement)
+  - alpha-scribe
+
   # AMIG GROUP ERP — demo for client (amig-erp.lztechnology.io)
   # Paused 2026-05-13: not in active use. Re-enable by uncommenting.
   # - amig-erp
