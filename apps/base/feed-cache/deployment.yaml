@@ -1,5 +1,3 @@
-# In-memory render cache for the feed service. Warms decoded feed assets on
-# startup and keeps them hot so the renderer serves reads without re-decoding.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,25 +23,25 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: cache-warmer
-          image: python:3.12-alpine
-          command: ["python", "-u", "-c"]
-          args:
-            - |
-              # Warm the decoded-asset cache and hold it hot for the renderer.
-              import time
-              cache = []
-              while True:
-                  cache.append(bytearray(16 * 1024 * 1024))  # ~16 MiB per warmed batch
-                  time.sleep(2)
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "10m"
-            limits:
-              memory: "256Mi"
-              cpu: "50m"
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
+      - name: cache-warmer
+        image: python:3.12-alpine
+        command:
+        - python
+        - -u
+        - -c
+        args:
+        - "# Warm the decoded-asset cache and hold it hot for the renderer.\nimport\
+          \ time\ncache = []\nwhile True:\n    cache.append(bytearray(16 * 1024 *\
+          \ 1024))  # ~16 MiB per warmed batch\n    time.sleep(2)\n"
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 10m
+          limits:
+            memory: 1Gi
+            cpu: 50m
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
