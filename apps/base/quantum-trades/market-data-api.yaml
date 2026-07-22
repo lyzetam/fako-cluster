@@ -1,0 +1,157 @@
+# market-data-api (Tier 3 internal data aggregator, port 8007): was cluster-only
+# (13 revisions of manual kubectl applies, no manifests in ANY repo) — adopted into
+# GitOps 2026-07-22 during the namespace drift audit.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: market-data-api
+    component: data-aggregation
+  name: market-data-api
+  namespace: quantum-trades
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: market-data-api
+      component: data-aggregation
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: '2026-07-06T07:30:27-04:00'
+        prometheus.io/path: /metrics
+        prometheus.io/port: '8007'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: market-data-api
+        component: data-aggregation
+    spec:
+      containers:
+      - env:
+        - name: HOST
+          value: 0.0.0.0
+        - name: PORT
+          value: '8007'
+        - name: TECHNICALS_SERVICE_URL
+          value: http://technicals-service:8001
+        - name: SIGNALS_SERVICE_URL
+          value: http://signals-service:8002
+        - name: AGENTS_SERVICE_URL
+          value: http://agents:8006
+        - name: LOG_LEVEL
+          value: INFO
+        image: lzetam/quantum-trades-market-data-api:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: market-data-api
+        ports:
+        - containerPort: 8007
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+      imagePullSecrets:
+      - name: dockerhub-registry
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - 'echo "Checking service dependencies..."
+
+          wget -q --spider http://technicals-service:8001/health || exit 1
+
+          wget -q --spider http://signals-service:8002/health || exit 1
+
+          echo "All dependencies healthy!"
+
+          '
+        image: busybox:1.36
+        imagePullPolicy: IfNotPresent
+        name: check-dependencies
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: market-data-api
+  name: market-data-api
+  namespace: quantum-trades
+spec:
+  clusterIP: 10.43.201.151
+  clusterIPs:
+  - 10.43.201.151
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    port: 8007
+    protocol: TCP
+    targetPort: 8007
+  selector:
+    app: market-data-api
+  sessionAffinity: None
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: market-data-api
+  namespace: quantum-trades
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: mds.landryzetam.net
+    http:
+      paths:
+      - backend:
+          service:
+            name: market-data-api
+            port:
+              number: 8007
+        path: /
+        pathType: Prefix
