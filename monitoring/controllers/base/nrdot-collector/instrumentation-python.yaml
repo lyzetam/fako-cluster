@@ -6,7 +6,7 @@ metadata:
 spec:
   agent:
     language: python
-    image: newrelic/newrelic-python-init:13.0.0
+    image: newrelic/newrelic-python-init:13.3.0
   
   # Target namespaces with Python applications (voice pipeline)
   namespaceLabelSelector:
