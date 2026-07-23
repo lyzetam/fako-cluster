@@ -226,6 +226,14 @@ spec:
               value: "40"
             - name: FT_TARGET_TICKS
               value: "40"
+            # Daily-loss cap raised from the $100 code default to $5000 so the
+            # PAPER account trades continuously as a data feed (operator choice,
+            # 2026-07-23) rather than halting entries for the rest of the ET day
+            # after a drawdown. NOTE: the cap is NOT dormant — the broker-truth
+            # reconcile.record_close path populates futures_trades, so
+            # get_realized_daily_pnl() reads real losses and this gate is live.
+            - name: FT_MAX_DAILY_LOSS_DOLLARS
+              value: "5000"
             - name: PYTHONUNBUFFERED
               value: "1"
           ports:
