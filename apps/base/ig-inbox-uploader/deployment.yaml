@@ -6,10 +6,10 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: RollingUpdate
+    type: RollingUpdate       # maxSurge 0 → old pod deleted before new one, releasing the RWO PVC
     rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+      maxUnavailable: 1
+      maxSurge: 0
   selector:
     matchLabels:
       app: ig-inbox-uploader
@@ -103,4 +103,17 @@ spec:
       - name: tmp
         emptyDir: {}
       - name: tsstate
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: ig-inbox-tailscale-state
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ig-inbox-tailscale-state
+  namespace: ig-inbox-uploader
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 64Mi
