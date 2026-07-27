@@ -18,6 +18,8 @@ spec:
       labels:
         app: ig-inbox-uploader
     spec:
+      imagePullSecrets:
+      - name: dockerhub-pull          # private DockerHub repo; bootstrap secret in-ns
       containers:
       # FastAPI app — receives/processes IG inbox uploads, pushes to Dropbox +
       # Supabase.
