@@ -1,0 +1,55 @@
+# nginx serving the DJI archive read-only.
+#
+# Byte-range support is the point: without Accept-Ranges, seeking inside a 16 GiB
+# clip means downloading 16 GiB. nginx enables ranges by default for static files;
+# what matters is that nothing here disables it (no gzip on video, no proxy buffering).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dji-media-nginx
+  namespace: dji-media
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name _;
+
+        root /srv/media;
+
+        # Machine-readable browsing for the pipeline, human browsing for you.
+        autoindex on;
+        autoindex_format json;
+        autoindex_exact_size on;
+        autoindex_localtime on;
+
+        # Large files: never buffer whole clips into memory, always allow seeking.
+        sendfile on;
+        tcp_nopush on;
+        directio 8m;
+        output_buffers 2 1m;
+        max_ranges 100;
+
+        # Video should stream, not download-then-play.
+        types {
+            video/mp4  mp4;
+            video/quicktime mov;
+            image/jpeg jpg jpeg;
+            application/json json;
+        }
+        default_type application/octet-stream;
+
+        # gzip on video/jpeg is wasted CPU and breaks nothing but helps nothing.
+        gzip off;
+
+        location = /healthz {
+            access_log off;
+            add_header Content-Type text/plain;
+            return 200 'ok';
+        }
+
+        # HTML index for humans; JSON autoindex for machines via ?json.
+        location / {
+            add_header Accept-Ranges bytes;
+            add_header Cache-Control "public, max-age=300";
+        }
+    }

@@ -1,0 +1,53 @@
+# The DJI archive on the UNAS Pro, mounted READ-ONLY.
+#
+# NFS rather than SMB deliberately. UniFi Drive presents NFS as its programmatic
+# mount path and authenticates by HOST IP, not by password — the node itself is
+# the identity. The cluster nodes are already on the UNAS NFS connection list, so
+# no credential exists to leak, rotate, or get wrong. An SMB service account was
+# tried first and could not authenticate as an SMB principal at all.
+#
+# Path format comes from the UNAS Services page verbatim:
+#   mount -t nfs 10.85.0.168:/var/nfs/shared/[Shared Drive Name] /mnt
+# NOT the physical path that `showmount -e` reports
+# (/volume/<uuid>/.srv/.unifi-drive/<share>/.data) — that is the on-disk location,
+# not the export alias clients are meant to use.
+#
+# readOnly is enforced at THREE layers: the PV mount option, the PVC access mode,
+# and the container volumeMount. The archive is the source of truth; an
+# HTTP server must be structurally incapable of writing to it.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: dji-media-archive
+  labels:
+    app.kubernetes.io/name: dji-media
+spec:
+  capacity:
+    storage: 1Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=4.1
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /var/nfs/shared/dji
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dji-media-archive
+  namespace: dji-media
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: dji-media-archive
+  resources:
+    requests:
+      storage: 1Ti

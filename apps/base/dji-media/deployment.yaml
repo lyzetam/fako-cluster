@@ -1,0 +1,151 @@
+# nginx serving the DJI archive from the UNAS, fronted by a Tailscale sidecar.
+#
+# The Tailscale proxy is a SIDECAR, not a separate pod: in userspace mode a
+# separate proxy pod dialling a ClusterIP gets connection-refused, so it must
+# reach the app over loopback. Same pattern as ig-inbox-uploader.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dji-media
+  namespace: dji-media
+  labels:
+    app.kubernetes.io/name: dji-media
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: dji-media
+    app.kubernetes.io/managed-by: flux
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: dji-media
+  template:
+    metadata:
+      labels:
+        app: dji-media
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101              # nginx-unprivileged runs as uid 101
+        fsGroup: 101
+      containers:
+      - name: nginx
+        image: nginxinc/nginx-unprivileged:1.27-alpine
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 20m
+            memory: 32Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+        - name: archive
+          mountPath: /srv/media
+          readOnly: true                       # third layer of read-only enforcement
+        - name: nginx-conf
+          mountPath: /etc/nginx/conf.d
+          readOnly: true
+        - name: cache
+          mountPath: /tmp
+
+      # Tailscale sidecar — serves the archive privately over HTTPS.
+      - name: tailscale
+        image: tailscale/tailscale:v1.80.0
+        env:
+        - name: TS_AUTHKEY
+          valueFrom:
+            secretKeyRef:
+              name: tailscale-authkey
+              key: TS_AUTHKEY
+        - name: TS_HOSTNAME
+          value: "dji-media"
+        - name: TS_EXTRA_ARGS
+          value: "--advertise-tags=tag:k8s"
+        - name: TS_USERSPACE
+          value: "true"
+        - name: TS_KUBE_SECRET
+          value: ""                            # no k8s API access in userspace mode
+        - name: TS_STATE_DIR
+          value: "/tmp/tsstate"
+        - name: TS_SOCKET
+          value: "/tmp/tsstate/tailscaled.sock"
+        - name: TS_SERVE_CONFIG
+          value: "/etc/tailscale/serve.json"
+        volumeMounts:
+        - name: serve
+          mountPath: /etc/tailscale
+        - name: tsstate
+          mountPath: /tmp/tsstate
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "20m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      volumes:
+      - name: archive
+        persistentVolumeClaim:
+          claimName: dji-media-archive
+          readOnly: true
+      - name: nginx-conf
+        configMap:
+          name: dji-media-nginx
+      - name: serve
+        configMap:
+          name: tailscale-serve
+      - name: cache
+        emptyDir: {}
+      - name: tsstate
+        persistentVolumeClaim:
+          claimName: dji-media-tailscale-state
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dji-media-tailscale-state
+  namespace: dji-media
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: nfs-csi-v2
+  resources:
+    requests:
+      storage: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dji-media
+  namespace: dji-media
+spec:
+  selector:
+    app: dji-media
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
