@@ -6,16 +6,16 @@
 # no credential exists to leak, rotate, or get wrong. An SMB service account was
 # tried first and could not authenticate as an SMB principal at all.
 #
-# Path depends on the NFS version, which is why two different paths both look
-# "correct" for this share:
+# Pinned to NFSv3 with the physical export path, because that is the only
+# combination the server demonstrably serves:
 #
-#   NFSv3: /volume/<uuid>/.srv/.unifi-drive/dji/.data   <- what `showmount -e` reports
-#   NFSv4: /var/nfs/shared/dji                          <- what the UNAS UI documents
+#   `rpcinfo -p` advertises nfs v3 (tcp+udp) and v4 (tcp) — but NOT v4.1
+#   `showmount -e` reports this exact path as exported to the cluster nodes
 #
-# `showmount` queries the v3-only MOUNT protocol and reports physical export
-# paths. NFSv4 instead presents a pseudo-filesystem root, so clients mount the
-# alias. Using the v3 path with nfsvers=4.1 fails with "No such file or
-# directory" from the server, which reads like a permissions problem but is not.
+# Both /var/nfs/shared/dji (documented in the UNAS UI) and this path FAIL under
+# nfsvers=4.1 with "No such file or directory" from the server — which reads
+# like a permissions error but is a protocol-version mismatch. Do not "upgrade"
+# to v4.x without re-testing; v3 is what showmount can actually prove.
 #
 # readOnly is enforced at THREE layers: the PV mount option, the PVC access mode,
 # and the container volumeMount. The archive is the source of truth; an
@@ -35,13 +35,13 @@ spec:
   storageClassName: ""
   mountOptions:
     - ro
-    - nfsvers=4.1
+    - nfsvers=3
     - hard
     - timeo=600
     - retrans=2
   nfs:
     server: unas.landryzetam.net
-    path: /var/nfs/shared/dji
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/dji/.data
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
