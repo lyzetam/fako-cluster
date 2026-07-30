@@ -47,9 +47,10 @@ data:
             return 200 'ok';
         }
 
-        # HTML index for humans; JSON autoindex for machines via ?json.
         location / {
-            add_header Accept-Ranges bytes;
+            # No `add_header Accept-Ranges` here: nginx already emits it for
+            # static files, and adding it produced a duplicate header on every
+            # response. Verified with `curl -I` returning it twice.
             add_header Cache-Control "public, max-age=300";
         }
     }
