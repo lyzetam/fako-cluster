@@ -6,11 +6,16 @@
 # no credential exists to leak, rotate, or get wrong. An SMB service account was
 # tried first and could not authenticate as an SMB principal at all.
 #
-# Path is taken from the live export table, NOT from the UNAS UI. The Services
-# page documents `mount -t nfs <host>:/var/nfs/shared/[Shared Drive Name]`, but
-# `showmount -e unas.landryzetam.net` reports the actual export as the physical
-# path below. The documented alias is not what the server advertises; trusting it
-# would fail the mount. Re-check with showmount if this ever stops working.
+# Path depends on the NFS version, which is why two different paths both look
+# "correct" for this share:
+#
+#   NFSv3: /volume/<uuid>/.srv/.unifi-drive/dji/.data   <- what `showmount -e` reports
+#   NFSv4: /var/nfs/shared/dji                          <- what the UNAS UI documents
+#
+# `showmount` queries the v3-only MOUNT protocol and reports physical export
+# paths. NFSv4 instead presents a pseudo-filesystem root, so clients mount the
+# alias. Using the v3 path with nfsvers=4.1 fails with "No such file or
+# directory" from the server, which reads like a permissions problem but is not.
 #
 # readOnly is enforced at THREE layers: the PV mount option, the PVC access mode,
 # and the container volumeMount. The archive is the source of truth; an
@@ -36,7 +41,7 @@ spec:
     - retrans=2
   nfs:
     server: unas.landryzetam.net
-    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/dji/.data
+    path: /var/nfs/shared/dji
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
