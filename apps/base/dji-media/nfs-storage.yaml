@@ -17,9 +17,12 @@
 # like a permissions error but is a protocol-version mismatch. Do not "upgrade"
 # to v4.x without re-testing; v3 is what showmount can actually prove.
 #
-# readOnly is enforced at THREE layers: the PV mount option, the PVC access mode,
-# and the container volumeMount. The archive is the source of truth; an
-# HTTP server must be structurally incapable of writing to it.
+# readOnly is enforced at FOUR layers: the UNAS export itself, the PV mount
+# option, the PVC access mode, and the container volumeMount. The UNAS layer is
+# the one that matters — verified 2026-07-29 by mounting the same export rw from
+# a throwaway pod: the kernel reported `rw` and the server still returned
+# "Read-only file system" on write. The other three are defence in depth; only
+# the export makes the archive immutable to a compromised container.
 apiVersion: v1
 kind: PersistentVolume
 metadata:
