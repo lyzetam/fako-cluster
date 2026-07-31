@@ -1,0 +1,62 @@
+# Exit validation — PRE-OPEN. "Is today's code sound before we trade?"
+#
+# This is the job that makes the system PREVENTIVE rather than merely
+# retrospective. It replays the GOLDEN corpus — frozen real-market scenarios
+# promoted from previously-verified clean days — through the currently deployed
+# code. If a commit changed an exit decision, it surfaces at 08:30 ET rather
+# than at 10:22 on a live runner.
+#
+# Only pure_core and coordinator run here. The execution check is deliberately
+# omitted: it diffs against a specific day's broker order tape, which has no
+# meaning across a corpus that spans many days.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: exit-validation-preopen
+  namespace: quantum-trades
+  labels:
+    app.kubernetes.io/name: exit-validation-preopen
+    app.kubernetes.io/part-of: quantum-trades
+    app.kubernetes.io/managed-by: flux
+spec:
+  # 08:30 ET weekdays — a full hour before the 09:30 open, so a red result
+  # leaves time to act (roll forward, or suspend the trading loop) BEFORE the
+  # bell rather than during the session.
+  schedule: "30 8 * * 1-5"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      backoffLimit: 0
+      # Must finish well before the 09:30 open to be useful at all.
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: exit-validation-preopen
+              image: lzetam/quantum-trades-orchestrator-qt:latest
+              imagePullPolicy: Always
+              command: ["python", "-m", "validation.run", "--mode", "pre_open"]
+              envFrom:
+                - secretRef:
+                    name: orchestrator-qt-secrets
+              env:
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 768Mi
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                allowPrivilegeEscalation: false

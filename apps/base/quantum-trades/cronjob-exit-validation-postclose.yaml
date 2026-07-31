@@ -1,0 +1,70 @@
+# Exit validation — POST-CLOSE. "What went wrong today?"
+#
+# Replays the day's decision tape against broker truth and against the live exit
+# stack, then posts a divergence summary to Discord. Runs all three checks:
+#   execution   — recorded INTENT vs what the broker actually did (fake fills,
+#                 instant stop-outs, unprotected positions, unaudited fills)
+#   pure_core   — replays _desired_stop_price from the recorded inputs
+#   coordinator — drives the real ExitCoordinator over the recorded state
+#
+# A clean run also PROMOTES the day into the golden corpus, which the pre-open
+# job uses as its regression baseline. Promotion is guarded (all checks pass +
+# minimum event count) because auto-promoting any clean day would let a tape
+# recorded under a buggy recorder bless that bug permanently.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: exit-validation-postclose
+  namespace: quantum-trades
+  labels:
+    app.kubernetes.io/name: exit-validation-postclose
+    app.kubernetes.io/part-of: quantum-trades
+    app.kubernetes.io/managed-by: flux
+spec:
+  # 16:30 ET weekdays — 30 min after the close, so the last cycle's tape rows
+  # and any late broker fills have settled before we diff against them.
+  schedule: "30 16 * * 1-5"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      # backoffLimit 0: a retry would re-run the quarantine writes. They are
+      # idempotent by design, but a failed validation run is a signal worth
+      # seeing rather than silently retrying away.
+      backoffLimit: 0
+      # The coordinator replay drives the real exit stack once per recorded
+      # cycle (~780 cycles/session), so this needs more headroom than the
+      # other jobs in this namespace.
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: exit-validation-postclose
+              image: lzetam/quantum-trades-orchestrator-qt:latest
+              imagePullPolicy: Always
+              command: ["python", "-m", "validation.run", "--mode", "post_close"]
+              # SUPABASE_URL/KEY, Tradier creds and the Discord webhook all come
+              # from the secret the live orchestrator-qt deployment already uses.
+              envFrom:
+                - secretRef:
+                    name: orchestrator-qt-secrets
+              env:
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 768Mi
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                allowPrivilegeEscalation: false
