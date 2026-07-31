@@ -1,0 +1,20 @@
+# Cluster-internal S3 endpoint. Public exposure (for Instagram to fetch a
+# presigned URL) is a separate Cloudflare Tunnel concern, not a LoadBalancer —
+# see the tunnel overlay. Nothing here is reachable off-cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: versitygw
+  namespace: social-media
+  labels:
+    app.kubernetes.io/name: versitygw
+    app.kubernetes.io/part-of: social-media
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: versitygw
+  ports:
+    - name: s3
+      port: 7070
+      targetPort: 7070
+      protocol: TCP

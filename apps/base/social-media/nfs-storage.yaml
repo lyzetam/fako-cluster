@@ -1,0 +1,54 @@
+# The `SocialMedia` UniFi Drive on the UNAS Pro, mounted READ-WRITE.
+#
+# This is the storage substrate for the Instagram content pipeline — it replaces
+# paying for Dropbox with capacity already owned. versitygw (see deployment.yaml)
+# fronts it with an S3 API so the same bytes are reachable as plain files over
+# SMB and as S3 objects over HTTP.
+#
+# Pinned to NFSv3 with the physical export path, matching dji-media. The UNAS
+# advertises nfs v3 and v4 but NOT v4.1, and both path forms fail under
+# nfsvers=4.1 with a misleading "No such file or directory". See
+# apps/base/dji-media/nfs-storage.yaml for the full derivation.
+#
+# ReadWriteMany, unlike the dji archive: the gateway writes here. Write access
+# was verified 2026-07-31 from a pod on this export (a real file written, read
+# back byte-identical, removed) — the UniFi console's "Read-Write" label alone
+# is not evidence, since a pod can mount rw and still be refused by the server.
+#
+# The export is allowlisted to the six k3s node IPs only; there is no password,
+# the node itself is the identity.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: social-media-storage
+  labels:
+    app.kubernetes.io/name: social-media-storage
+spec:
+  capacity:
+    storage: 2Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/SocialMedia/.data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: social-media-storage
+  namespace: social-media
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: social-media-storage
+  resources:
+    requests:
+      storage: 2Ti

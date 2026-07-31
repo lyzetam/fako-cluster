@@ -1,0 +1,116 @@
+# versitygw — S3 protocol translator in front of the SocialMedia NFS export.
+#
+# WHY A GATEWAY AT ALL: Instagram's Graph API fetches media by URL from the
+# public internet, and the cloud Managed Agent cannot mount NFS. S3 presigned
+# URLs solve both — time-limited, signed, no credential in the fetcher.
+#
+# WHY versitygw AND NOT MinIO: MinIO removed gateway/FS mode in 2022 and owns
+# its on-disk format, which would make the NAS contents opaque. versitygw's
+# posix backend stores each object as a PLAIN FILE at its key path, so the same
+# footage stays browsable over SMB from a Mac. Verified 2026-07-31: an object
+# PUT as s3://social-media/ig/reel-inbox/2026-07-31/CLIP_1.mov landed on disk at
+# buckets/social-media/ig/reel-inbox/2026-07-31/CLIP_1.mov with a matching md5.
+#
+# WHY --sidecar IS NOT OPTIONAL: versitygw's posix backend normally keeps S3
+# metadata (etag, content-type, checksums, multipart state) in extended
+# attributes. THIS EXPORT CANNOT STORE THEM — `setfattr` returns "Not supported",
+# because xattrs over NFS require v4.2 and the UNAS tops out at v4. Without
+# --sidecar the gateway fails on metadata writes. --sidecar redirects that
+# metadata into a parallel directory tree of small plain files instead.
+# Keep the sidecar OUTSIDE the gateway root, or it would be served as a bucket.
+#
+# --disable-copy-file-range is upstream's own NFS guidance ("may hang with some
+# NFS servers"); multipart parts are copied explicitly instead. An 8 MB
+# multipart upload round-tripped byte-identical with it set.
+#
+# Single replica deliberately, against the usual "never 1" rule: multipart
+# upload state lives on the shared filesystem under .sgwtmp, and a second writer
+# buys availability this pipeline does not need at the cost of concurrent-write
+# edge cases. Recreate strategy so two pods never overlap on the same tree.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: versitygw
+  namespace: social-media
+  labels:
+    app.kubernetes.io/name: versitygw
+    app.kubernetes.io/component: s3-gateway
+    app.kubernetes.io/part-of: social-media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: versitygw
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: versitygw
+        app.kubernetes.io/component: s3-gateway
+        app.kubernetes.io/part-of: social-media
+    spec:
+      securityContext:
+        # Must match the on-disk ownership the UNAS assigns. The export squashes
+        # every client UID to 977:988, and the local kernel then checks the
+        # container's UID against those 0755/0644 files — so a "safer" UID like
+        # 1000 would be denied write. 977 is both non-root and correct here.
+        runAsUser: 977
+        runAsGroup: 988
+        fsGroup: 988
+        runAsNonRoot: true
+      containers:
+        - name: versitygw
+          image: ghcr.io/versity/versitygw:v1.7.0
+          args:
+            - --port
+            - ":7070"
+            - posix
+            - --sidecar
+            - /meta
+            - --disable-copy-file-range
+            - /gwroot
+          env:
+            - name: ROOT_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: social-media-s3
+                  key: S3_ACCESS_KEY
+            - name: ROOT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: social-media-s3
+                  key: S3_SECRET_KEY
+            - name: VGW_REGION
+              value: us-east-1
+          ports:
+            - name: s3
+              containerPort: 7070
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          livenessProbe:
+            tcpSocket:
+              port: 7070
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: 7070
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: storage
+              mountPath: /gwroot
+              subPath: buckets
+            - name: storage
+              mountPath: /meta
+              subPath: meta
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: social-media-storage

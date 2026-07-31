@@ -11,6 +11,7 @@ resources:
   - withings-collector # Withings OAuth2 pull → Postgres + daily vault report
   - ig-inbox-uploader  # IG inbox → Dropbox/Supabase uploader (Tailscale-private)
   - dji-media          # read-only NAS media server for DJI footage (Tailscale-private)
+  - social-media       # versitygw S3 gateway over the SocialMedia UNAS drive (IG pipeline storage)
   - selfheal-test     # THROWAWAY OOM test for self-heal act-path (remove after)
   - feed-cache        # In-memory render cache for the feed service
   # - oura-dashboard  # Deactivated - not in use
