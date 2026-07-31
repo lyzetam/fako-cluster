@@ -35,10 +35,15 @@ spec:
             name: ig-inbox-uploader-config
         resources:
           requests:
-            memory: "128Mi"
+            memory: "256Mi"
             cpu: "100m"
           limits:
-            memory: "512Mi"
+            # Video uploads are buffered wholly in memory by the current handler
+            # (app/main.py reads every file with `await f.read()` and holds them
+            # all before writing). 512Mi was OOMKilled (exit 137) by a phone-video
+            # upload on 2026-07-30. This is a STOPGAP that only raises the ceiling
+            # — the real fix is streaming uploads, tracked in the app repo.
+            memory: "2Gi"
             cpu: "500m"
         livenessProbe:
           httpGet:
