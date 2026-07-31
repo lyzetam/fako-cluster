@@ -11,11 +11,16 @@
 # one object, and time-limited. Write access requires the root credential, which
 # exists only in AWS Secrets Manager and the cluster.
 #
-# KNOWN LIMIT: Cloudflare caps proxied request bodies (100 MB on the free plan),
-# so large uploads must NOT traverse this hostname. In-cluster writers (the
-# uploader) use the ClusterIP Service directly and are unaffected; only the cloud
-# agent would be subject to it, and only for uploads, not the reel/photo fetches
-# Instagram performs.
+# KNOWN LIMIT — and why it does NOT bind here: Cloudflare caps proxied request
+# BODIES at 100 MB on Free/Pro. That is per-request, not per-object, and every
+# mainstream S3 client switches to multipart above ~8 MB, so a large object
+# arrives as many small requests. Measured 2026-07-31 through this hostname:
+#   150 MB multipart    -> OK, 157286400 bytes verified server-side
+#   150 MB single-shot  -> FAILS ("EOF occurred in violation of protocol";
+#                          Cloudflare kills the connection, no clean 413)
+# So the only real rule is: do not disable multipart. Upgrading would not help
+# anyway — Pro is also 100 MB; only Business (200 MB) raises it.
+# Downloads are uncapped, which is all Instagram does.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
