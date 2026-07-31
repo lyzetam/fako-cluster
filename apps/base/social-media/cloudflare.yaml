@@ -1,0 +1,102 @@
+# Public edge for the S3 gateway: s3.landryzetam.net -> versitygw:7070.
+#
+# WHY PUBLIC AT ALL: Instagram's Graph API fetches media by URL from its own
+# servers, so a Tailscale-private endpoint (the pattern used by ig-inbox-uploader
+# and dji-media) cannot work here. A Cloudflare Tunnel exposes the origin without
+# opening a port or putting the cluster on a public IP.
+#
+# WHAT PROTECTS IT: versitygw enforces AWS SigV4 on every request — an unsigned
+# GET is rejected, so publishing the hostname does not publish the bucket. The
+# only unauthenticated access is via a presigned URL, which is signed, scoped to
+# one object, and time-limited. Write access requires the root credential, which
+# exists only in AWS Secrets Manager and the cluster.
+#
+# KNOWN LIMIT: Cloudflare caps proxied request bodies (100 MB on the free plan),
+# so large uploads must NOT traverse this hostname. In-cluster writers (the
+# uploader) use the ClusterIP Service directly and are unaffected; only the cloud
+# agent would be subject to it, and only for uploads, not the reel/photo fetches
+# Instagram performs.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: social-media
+  labels:
+    app: cloudflared
+    app.kubernetes.io/part-of: social-media
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+        app.kubernetes.io/part-of: social-media
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2025.11.1
+          args:
+            - tunnel
+            - --config
+            - /etc/cloudflared/config/config.yaml
+            - run
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            failureThreshold: 1
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared/config
+              readOnly: true
+            - name: creds
+              mountPath: /etc/cloudflared/creds
+              readOnly: true
+      volumes:
+        - name: creds
+          secret:
+            secretName: tunnel-credentials
+        - name: config
+          configMap:
+            name: cloudflared
+            items:
+              - key: config.yaml
+                path: config.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared
+  namespace: social-media
+data:
+  config.yaml: |
+    # Referenced by UUID, not name: the credentials file pins this ID, and a
+    # renamed tunnel would silently stop matching.
+    tunnel: 44793c06-3641-408a-b36b-4b75aea14158
+    credentials-file: /etc/cloudflared/creds/credentials.json
+
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+
+    ingress:
+      - hostname: s3.landryzetam.net
+        service: http://versitygw:7070
+        originRequest:
+          # Media objects are large and Instagram reads them slowly; the default
+          # 30s would cut long reel transfers off mid-stream.
+          connectTimeout: 30s
+          noHappyEyeballs: true
+      # Anything that did not match above is not part of this service.
+      - service: http_status:404

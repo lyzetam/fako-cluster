@@ -6,5 +6,7 @@ resources:
   - nfs-storage.yaml
   - secret-store.yaml
   - external-secret.yaml
+  - external-secret-tunnel.yaml
   - deployment.yaml
   - service.yaml
+  - cloudflare.yaml
