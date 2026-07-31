@@ -43,8 +43,8 @@ spec:
             # all before writing). 512Mi was OOMKilled (exit 137) by a phone-video
             # upload on 2026-07-30. This is a STOPGAP that only raises the ceiling
             # — the real fix is streaming uploads, tracked in the app repo.
-            memory: "2Gi"
-            cpu: "500m"
+            memory: "4Gi"
+            cpu: "1000m"
         livenessProbe:
           httpGet:
             path: /healthz
