@@ -6,6 +6,8 @@ resources:
   - secret-store.yaml
   - external-secret.yaml
   - external-secret-s3.yaml
+  - external-secret-agent-token.yaml
   - external-secret-tailscale.yaml
   - tailscale-serve-configmap.yaml
+  - service.yaml
   - deployment.yaml

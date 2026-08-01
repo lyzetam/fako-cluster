@@ -1,0 +1,14 @@
+# Service exposing the uploader app to other namespaces (the Cloudflare Tunnel
+# in the social-media namespace routes the public agent API hostname here).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ig-inbox-uploader
+  namespace: ig-inbox-uploader
+spec:
+  selector:
+    app: ig-inbox-uploader
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

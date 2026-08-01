@@ -103,5 +103,10 @@ data:
           # 30s would cut long reel transfers off mid-stream.
           connectTimeout: 30s
           noHappyEyeballs: true
+      # Public edge for the cloud agent's inbox read API. Only /api/inbox routes
+      # are exposed; the rest of the uploader UI stays Tailscale-private.
+      - hostname: ig-inbox-api.landryzetam.net
+        path: /api/inbox
+        service: http://ig-inbox-uploader.ig-inbox-uploader.svc.cluster.local:8080
       # Anything that did not match above is not part of this service.
       - service: http_status:404
