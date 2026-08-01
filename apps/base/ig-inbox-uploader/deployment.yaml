@@ -33,11 +33,20 @@ spec:
         envFrom:
         - secretRef:
             name: ig-inbox-uploader-config
-        # S3 backend (versitygw over the UNAS). Presence of these four keys is what
-        # switches the uploader off Dropbox — see app/main.py::_store. Removing this
-        # envFrom reverts to Dropbox without a code change.
-        - secretRef:
-            name: social-media-s3
+        # S3 backend (versitygw over the UNAS) — READY BUT NOT ENABLED.
+        #
+        # Uncommenting this switches the uploader off Dropbox (app/main.py::_store
+        # keys off the presence of S3_ENDPOINT/ACCESS/SECRET/BUCKET). The code path
+        # is tested and was verified writing to the NAS from this pod.
+        #
+        # It stays off until the CLOUD AGENT can also read from S3. The agent lists
+        # /ig-inbox/<date>/ over the Dropbox HTTP API; flipping only the writer makes
+        # every new upload invisible to it. S3 needs SigV4, whose secret is an HMAC
+        # key computed inside the sandbox — so unlike IG_TOKEN it CANNOT be supplied
+        # by an egress-substituted vault credential (verified: a URL signed with a
+        # placeholder secret returns 403). Enable both sides together.
+        # - secretRef:
+        #     name: social-media-s3
         resources:
           requests:
             memory: "256Mi"
