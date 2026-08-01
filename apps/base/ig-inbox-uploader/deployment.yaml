@@ -33,6 +33,11 @@ spec:
         envFrom:
         - secretRef:
             name: ig-inbox-uploader-config
+        # S3 backend (versitygw over the UNAS). Presence of these four keys is what
+        # switches the uploader off Dropbox — see app/main.py::_store. Removing this
+        # envFrom reverts to Dropbox without a code change.
+        - secretRef:
+            name: social-media-s3
         resources:
           requests:
             memory: "256Mi"

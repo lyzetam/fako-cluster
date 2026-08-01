@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - secret-store.yaml
   - external-secret.yaml
+  - external-secret-s3.yaml
   - external-secret-tailscale.yaml
   - tailscale-serve-configmap.yaml
   - deployment.yaml
