@@ -24,7 +24,7 @@ spec:
       # FastAPI app — receives/processes IG inbox uploads, pushes to Dropbox +
       # Supabase.
       - name: ig-inbox-uploader
-        image: lzetam/ig-inbox-uploader:sha-bd0d84d86183788577fe1f27e0d1209868a5d7a5
+        image: lzetam/ig-inbox-uploader:sha-090a4db763419d509dadefd7cb4941fab701fe4c
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
