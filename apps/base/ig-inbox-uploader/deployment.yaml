@@ -24,7 +24,7 @@ spec:
       # FastAPI app — receives/processes IG inbox uploads, pushes to Dropbox +
       # Supabase.
       - name: ig-inbox-uploader
-        image: lzetam/ig-inbox-uploader:sha-090a4db763419d509dadefd7cb4941fab701fe4c
+        image: lzetam/ig-inbox-uploader:sha-e58abb0773f99ac8624d61b9b8bd6b91a961df9c
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -43,6 +43,10 @@ spec:
         # vault substitutes the same value in the Authorization header at egress.
         - secretRef:
             name: ig-inbox-uploader-agent-token
+        # Bearer token for the iOS Shortcut's one-shot upload. Separate
+        # credential from the agent's — this one can write.
+        - secretRef:
+            name: ig-inbox-uploader-shortcut-token
         resources:
           requests:
             memory: "256Mi"
