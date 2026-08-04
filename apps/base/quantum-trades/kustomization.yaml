@@ -30,7 +30,16 @@ resources:
   - cronjob-scanner-swing.yaml
   # Trade Journal Sync CronJob (hourly)
   - cronjob-journal-sync.yaml
-  # Pre-Qualification Agent — premarket whole-market funnel (8am ET)
+  # Pre-Qualification CANDIDATES — premarket stages 1-4 (8:00am ET). No live
+  # quotes needed, so it publishes session_date=today BEFORE the open and
+  # entries are never blocked waiting for a funnel run at 09:30.
+  - cronjob-prequalification-candidates.yaml
+  # Pre-Qualification PRUNE — stage 5 option liquidity (9:40am ET). Needs live
+  # quotes. An optimisation, not a gate: on failure the premarket universe is
+  # left untouched and trading continues.
+  - cronjob-prequalification-prune.yaml
+  # Pre-Qualification Agent — full 5-stage funnel (10:00am ET), now a FALLBACK
+  # for days when the premarket candidates run fails
   - cronjob-prequalification.yaml
   # Pre-Qualification FALLBACK — post-open re-run (9:45am ET) guarantees a universe
   # when the 8am premarket run crashes (recurring 2026-07-13/14/15)

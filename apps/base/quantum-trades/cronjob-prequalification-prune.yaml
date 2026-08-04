@@ -1,0 +1,92 @@
+# Pre-Qualification — PRUNE stage (funnel stage 5, option liquidity).
+#
+# Refines the watchlist published premarket by prequalification-candidates down
+# to names the executor can actually fill (open interest, bid/ask spread).
+#
+# WHY IT RUNS AFTER THE OPEN
+# Stage 5 reads LIVE bid/ask and open interest. Premarket those do not exist,
+# so the spread gate rejects every contract — the failure that forced the old
+# single-shot funnel from 08:00 to 10:00 on 2026-07-15. Spreads normalise about
+# 10 minutes after the open as market makers price in, so 09:40 is the earliest
+# reliably-quoted time.
+#
+# THIS JOB IS AN OPTIMISATION, NOT A GATE
+# Entries are already unblocked at 09:30 by the premarket candidates run. If
+# this job fails, the day's universe is deliberately left EXACTLY as the
+# candidates run published it — the entrypoint refuses to persist on failure or
+# on an empty watchlist. A failed refinement must never turn a degraded outcome
+# into a dead session, and the executor per-contract-gates every fill anyway
+# (spread, min premium, DTE, strike), so an unpruned watchlist cannot produce a
+# bad fill — only a wasted scan.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: prequalification-prune
+  namespace: quantum-trades
+  labels:
+    app.kubernetes.io/name: prequalification-prune
+    app.kubernetes.io/part-of: quantum-trades
+    app.kubernetes.io/managed-by: flux
+spec:
+  # 09:40 ET weekdays — 10 minutes after the open, once quotes are populated and
+  # opening spreads have started to normalise.
+  schedule: "40 9 * * 1-5"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 10
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      # One retry only. Trading is already live and unblocked; a prune that
+      # keeps failing should stop consuming quota rather than keep retrying
+      # against whatever upstream is unhealthy.
+      backoffLimit: 1
+      activeDeadlineSeconds: 2400
+      template:
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: prequalification-prune
+              image: lzetam/quantum-trades-orchestrator-qt:latest
+              imagePullPolicy: Always
+              command: ["python", "-m", "prequalification", "--stage", "prune"]
+              envFrom:
+                - secretRef:
+                    name: orchestrator-qt-secrets
+              env:
+                - name: MASSIVE_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: quantum-trades-secrets
+                      key: MASSIVE_API_KEY
+                - name: SIGNALS_SERVICE_URL
+                  value: "http://signals-service:8002"
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+                # Only stage 5 over an already-narrow list — far cheaper than the
+                # full funnel, and it must not still be running deep into the
+                # session.
+                - name: PREQUAL_RUN_TIMEOUT_SECONDS
+                  value: "1800"
+                - name: PREQUAL_MIN_UNIVERSE
+                  value: "10"
+                # Option-liquidity floor. Matches the full funnel (loosened
+                # 500->250 on 2026-07-10): OI>=500 culled ~252 actionable names
+                # to ~13/day and starved opportunity flow. This is a PRE-screen
+                # only — the executor still gates every contract at fill time.
+                - name: PREQUAL_MIN_OPTION_OI
+                  value: "250"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 512Mi
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                allowPrivilegeEscalation: false
