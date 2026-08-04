@@ -6,7 +6,17 @@ metadata:
     app: quantum-trades
     component: signals
 spec:
-  replicas: 2
+  # Raised 2->6 (2026-08-04). The research loop scans the whole watchlist with
+  # SCAN_CONCURRENCY=30, and each /evaluate fans out 8 CPU-bound Massive calls,
+  # so per-pod concurrency is what sets scan latency. MEASURED at 2 replicas:
+  #
+  #   23-symbol scan  60.1s  ->  5 of 23 hit get_entry_signal's 60s timeout
+  #                              and return score=0 (invisible to the loop)
+  #
+  # 30 concurrent requests over 2 pods is ~15 each; over 6 it is ~5, which is
+  # what the 2-core limit can actually serve. This is throughput, not
+  # redundancy — a timed-out symbol is a trade the system never sees.
+  replicas: 6
   selector:
     matchLabels:
       app: quantum-trades
@@ -19,6 +29,20 @@ spec:
       annotations:
         kubectl.kubernetes.io/restartedAt: "2026-06-02T13:46:00Z"  # symmetry audit: ATR neutral + SI bearish dampener (PR #114)
     spec:
+      # Spread replicas across nodes. Without this the scheduler may stack
+      # several onto one node, where they contend for the SAME cores — and CPU
+      # is exactly the bottleneck being scaled out of, so co-located replicas
+      # buy far less throughput than their count suggests.
+      # ScheduleAnyway (not DoNotSchedule) so a busy cluster degrades to
+      # co-location rather than leaving replicas Pending.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: quantum-trades
+              component: signals
       imagePullSecrets:
         - name: dockerhub-registry
       containers:
@@ -81,7 +105,11 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              memory: "1Gi"
+              # Lowered 1Gi->512Mi (2026-08-04). Measured steady-state usage is
+              # ~250Mi, so 1Gi reserved 4x what the pod uses — at 6 replicas
+              # that would book 6Gi of scheduling room to hold ~1.5Gi and crowd
+              # out neighbours for no benefit. Limit stays 2Gi for headroom.
+              memory: "512Mi"
               # Raised 50m->500m so the scheduler actually reserves capacity for
               # the burst below, instead of best-efforting it against neighbours.
               cpu: "500m"
