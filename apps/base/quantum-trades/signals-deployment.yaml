@@ -82,10 +82,33 @@ spec:
           resources:
             requests:
               memory: "1Gi"
-              cpu: "50m"
+              # Raised 50m->500m so the scheduler actually reserves capacity for
+              # the burst below, instead of best-efforting it against neighbours.
+              cpu: "500m"
             limits:
               memory: "2Gi"
-              cpu: "500m"
+              # Raised 500m->2 (2026-08-04). MEASURED during a real 10-symbol
+              # concurrent scan inside the pod:
+              #
+              #   10 concurrent /api/signals/evaluate   9.50s wall
+              #   THROTTLED                             5.35s of 9.50s = 56%
+              #   cpu used                              3.29s of 4.75s available
+              #
+              # The service was CPU-starved for more than half of every scan.
+              # Each evaluate fires 8 concurrent Massive calls via
+              # asyncio.to_thread (TLS handshake + JSON parse = CPU-bound), and
+              # the research loop scans the whole watchlist at once.
+              #
+              # Compounding it: os.cpu_count() reports the NODE's 28 cores, not
+              # the cgroup's 0.5, so asyncio's default executor sizes itself to
+              # 32 threads and oversubscribes half a core ~64x — the threads
+              # then thrash on context switches instead of doing work.
+              #
+              # Consequence was not slowness but a TRADING OUTAGE: scans
+              # exceeded get_entry_signal's 60s client timeout, which returns
+              # score=0, so every watchlist name read NO_SIGNAL and no entry
+              # could fire (observed live 2026-08-04).
+              cpu: "2"
       volumes:
         - name: config
           configMap:
