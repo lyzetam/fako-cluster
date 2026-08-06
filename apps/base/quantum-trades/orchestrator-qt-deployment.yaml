@@ -96,6 +96,17 @@ spec:
             - name: MAX_DAILY_LOSS_PCT
               value: "0.10"
 
+            # Weekly cap = 2x the daily limit (zz, 2026-08-06): losing a full
+            # daily limit twice ends the week. 2 x (10% of ~$94k) = ~$18.8k.
+            # Was a flat $2,000 set when the account was far smaller -- 2.1% of
+            # today's equity, i.e. a WEEKLY tolerance one-fifth of the DAILY
+            # one, which inverted the usual backstop relationship.
+            # NOTE this is still a flat dollar amount and will drift as the
+            # account grows; the derivation (weekly = 2 x effective daily) is
+            # shipping separately so it tracks automatically.
+            - name: MAX_WEEKLY_LOSS_DOLLARS
+              value: "18800"
+
             # Service URLs
             - name: HOST
               value: "0.0.0.0"
