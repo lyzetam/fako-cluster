@@ -15,9 +15,14 @@ data:
 
     : "${S3_BUCKET:?S3_BUCKET is not set - the ExternalSecret did not land}"
 
-    DRIVES="dji documentscanner DropboxData iPhoneData Journals MBPBackup
-            Others Scannerdrive Shared_Drive_Example SocialMedia TESLADRIVE
-            UNVRBackup ZetamFamilyData ZetamFamilyPictures"
+    # DRIVES_OVERRIDE lets a one-off Job re-run a single drive that failed,
+    # without touching the other thirteen:
+    #   kubectl create job --from=cronjob/unas-backup rerun-dji -n unas-backup
+    #   kubectl set env job/rerun-dji DRIVES_OVERRIDE=dji -n unas-backup
+    ALL_DRIVES="dji documentscanner DropboxData iPhoneData Journals MBPBackup
+                Others Scannerdrive Shared_Drive_Example SocialMedia TESLADRIVE
+                UNVRBackup ZetamFamilyData ZetamFamilyPictures"
+    DRIVES="${DRIVES_OVERRIDE:-$ALL_DRIVES}"
 
     # Kept unquoted-expandable on purpose (word splitting IS the mechanism).
     # Anything containing a space must NOT go in here - see BWLIMIT below.
