@@ -81,6 +81,21 @@ spec:
             - name: PYTHONUNBUFFERED
               value: "1"
 
+            # Daily loss limit = max(MAX_DAILY_LOSS_DOLLARS, pct * equity).
+            # Raised 2% -> 10% (2026-08-06, zz). On the ~$94k account that is
+            # ~$9.4k/day rather than ~$1.9k.
+            #
+            # NOTE this does NOT fix the halt that prompted it. On 2026-08-05
+            # trading halted on a -$808 day against a $1,879 limit, because
+            # agents/risk/daily_risk.py fails safe to portfolio_value=0 when the
+            # equity read errors -- and effective_daily_loss_limit(0) collapses
+            # to the DOLLAR FLOOR ($50). Tradier was 504ing all that session
+            # (the same outage that froze the stop ratchet), so the limit became
+            # $50 and any losing day tripped it. Raising the pct leaves that
+            # collapse-to-floor path untouched.
+            - name: MAX_DAILY_LOSS_PCT
+              value: "0.10"
+
             # Service URLs
             - name: HOST
               value: "0.0.0.0"
