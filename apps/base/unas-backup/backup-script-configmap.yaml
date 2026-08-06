@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unas-backup-script
+  namespace: unas-backup
+data:
+  backup.sh: |
+    #!/bin/sh
+    # Monthly mirror of every UniFi Drive on the UNAS Pro into S3 Glacier Deep
+    # Archive. One S3 prefix per drive: s3://$S3_BUCKET/<DriveName>/
+    #
+    # Failure policy: a drive that fails does NOT stop the others, but the job
+    # exits non-zero so the CronJob shows Failed rather than quietly "Complete".
+    set -u
+
+    : "${S3_BUCKET:?S3_BUCKET is not set - the ExternalSecret did not land}"
+
+    DRIVES="dji documentscanner DropboxData iPhoneData Journals MBPBackup
+            Others Scannerdrive Shared_Drive_Example SocialMedia TESLADRIVE
+            UNVRBackup ZetamFamilyData ZetamFamilyPictures"
+
+    # Kept unquoted-expandable on purpose (word splitting IS the mechanism).
+    # Anything containing a space must NOT go in here - see BWLIMIT below.
+    RCLONE_FLAGS="
+      --transfers 4
+      --checkers 8
+      --fast-list
+      --retries 3
+      --low-level-retries 10
+      --s3-chunk-size 128M
+      --s3-upload-concurrency 4
+      --delete-after
+      --stats 5m
+      --stats-one-line
+      --log-level INFO
+    "
+
+    # Throttle to 8 MByte/s during waking hours, full speed overnight, so a
+    # multi-terabyte run does not eat the whole home uplink during the day.
+    # This is a single argument containing a space, so it is passed separately -
+    # folding it into RCLONE_FLAGS would split it into two broken arguments.
+    BWLIMIT="07:00,8M 23:00,off"
+
+    failed=""
+    skipped=""
+    started=$(date -u +%s)
+
+    for drive in $DRIVES; do
+      src="/mnt/$drive"
+      echo "=== $drive: starting $(date -u +%FT%TZ) ==="
+
+      # Guard 1: the NFS mount must actually be mounted. An unmounted path is an
+      # empty directory, and `rclone sync` from an empty source DELETES the
+      # entire S3 copy. This is the one failure that would destroy the backup,
+      # so it is checked before anything else.
+      if ! grep -q " $src nfs" /proc/mounts 2>/dev/null; then
+        echo "FATAL: $src is not an NFS mount - refusing to sync (would delete the S3 copy)"
+        failed="$failed $drive"
+        continue
+      fi
+
+      # Guard 2: an empty source is only safe when the destination is also
+      # empty. Empty source + populated destination means the drive vanished or
+      # the export broke, not that you deleted 300 GB on purpose.
+      if [ -z "$(ls -A "$src" 2>/dev/null)" ]; then
+        if rclone lsf "s3:$S3_BUCKET/$drive/" --max-depth 1 2>/dev/null | grep -q .; then
+          echo "FATAL: $src is empty but s3://$S3_BUCKET/$drive/ is not - refusing to sync"
+          failed="$failed $drive"
+        else
+          echo "note: $drive is empty on both sides, nothing to do"
+          skipped="$skipped $drive"
+        fi
+        continue
+      fi
+
+      # shellcheck disable=SC2086
+      rclone sync "$src" "s3:$S3_BUCKET/$drive/" --bwlimit "$BWLIMIT" $RCLONE_FLAGS
+      rc=$?
+      if [ "$rc" -eq 0 ]; then
+        echo "=== $drive: OK ==="
+      else
+        echo "=== $drive: FAILED (rclone exit $rc) ==="
+        failed="$failed $drive"
+      fi
+    done
+
+    elapsed=$(( $(date -u +%s) - started ))
+    echo "-------------------------------------------------------------"
+    echo "run finished in $(( elapsed / 3600 ))h $(( (elapsed % 3600) / 60 ))m"
+    [ -n "$skipped" ] && echo "empty (no-op):$skipped"
+
+    if [ -n "$failed" ]; then
+      echo "FAILED DRIVES:$failed"
+      exit 1
+    fi
+    echo "all drives backed up successfully"

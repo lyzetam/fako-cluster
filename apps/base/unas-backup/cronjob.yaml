@@ -1,0 +1,184 @@
+# Monthly mirror of the whole UNAS Pro into S3 Glacier Deep Archive.
+#
+# Runs at 02:00 America/New_York on the 1st of each month. Pinned to aitower for
+# two independent reasons, both verified 2026-08-06:
+#   1. UniFi Drive NFS authorises by client IP - the exports are granted to
+#      10.85.30.58 specifically, so elsewhere the mount is refused.
+#   2. thinkpad01 has no NFS client helper at all; an identical probe pod there
+#      failed with "bad option ... you might need a /sbin/mount.<type> helper".
+# Do not relax this nodeSelector without re-probing the replacement node.
+#
+# The first run moves ~6 TB and will take days, not hours. concurrencyPolicy
+# Forbid means the next month is skipped rather than started alongside it, and
+# activeDeadlineSeconds kills anything still running after 24 days so a wedged
+# job can never block the schedule forever.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: unas-backup
+  namespace: unas-backup
+  labels:
+    app.kubernetes.io/name: unas-backup
+spec:
+  schedule: "0 2 1 * *"
+  timeZone: America/New_York
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 2073600   # 24 days
+      template:
+        metadata:
+          labels:
+            app: unas-backup
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: aitower
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          containers:
+          - name: rclone
+            image: rclone/rclone:1.75
+            imagePullPolicy: IfNotPresent
+            command: ["/bin/sh", "/scripts/backup.sh"]
+            envFrom:
+            - secretRef:
+                name: unas-backup-secret
+            env:
+            - name: TZ
+              value: America/New_York
+            - name: RCLONE_CONFIG
+              value: /tmp/rclone.conf     # never written; keeps rclone off $HOME
+            - name: TMPDIR
+              value: /tmp
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "250m"
+              limits:
+                memory: "2Gi"
+                cpu: "2"
+            volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: dji
+              mountPath: /mnt/dji
+              readOnly: true
+            - name: documentscanner
+              mountPath: /mnt/documentscanner
+              readOnly: true
+            - name: dropboxdata
+              mountPath: /mnt/DropboxData
+              readOnly: true
+            - name: iphonedata
+              mountPath: /mnt/iPhoneData
+              readOnly: true
+            - name: journals
+              mountPath: /mnt/Journals
+              readOnly: true
+            - name: mbpbackup
+              mountPath: /mnt/MBPBackup
+              readOnly: true
+            - name: others
+              mountPath: /mnt/Others
+              readOnly: true
+            - name: scannerdrive
+              mountPath: /mnt/Scannerdrive
+              readOnly: true
+            - name: shared-drive-example
+              mountPath: /mnt/Shared_Drive_Example
+              readOnly: true
+            - name: socialmedia
+              mountPath: /mnt/SocialMedia
+              readOnly: true
+            - name: tesladrive
+              mountPath: /mnt/TESLADRIVE
+              readOnly: true
+            - name: unvrbackup
+              mountPath: /mnt/UNVRBackup
+              readOnly: true
+            - name: zetamfamilydata
+              mountPath: /mnt/ZetamFamilyData
+              readOnly: true
+            - name: zetamfamilypictures
+              mountPath: /mnt/ZetamFamilyPictures
+              readOnly: true
+          volumes:
+          - name: scripts
+            configMap:
+              name: unas-backup-script
+          - name: tmp
+            emptyDir: {}
+          - name: dji
+            persistentVolumeClaim:
+              claimName: unas-backup-dji
+              readOnly: true
+          - name: documentscanner
+            persistentVolumeClaim:
+              claimName: unas-backup-documentscanner
+              readOnly: true
+          - name: dropboxdata
+            persistentVolumeClaim:
+              claimName: unas-backup-dropboxdata
+              readOnly: true
+          - name: iphonedata
+            persistentVolumeClaim:
+              claimName: unas-backup-iphonedata
+              readOnly: true
+          - name: journals
+            persistentVolumeClaim:
+              claimName: unas-backup-journals
+              readOnly: true
+          - name: mbpbackup
+            persistentVolumeClaim:
+              claimName: unas-backup-mbpbackup
+              readOnly: true
+          - name: others
+            persistentVolumeClaim:
+              claimName: unas-backup-others
+              readOnly: true
+          - name: scannerdrive
+            persistentVolumeClaim:
+              claimName: unas-backup-scannerdrive
+              readOnly: true
+          - name: shared-drive-example
+            persistentVolumeClaim:
+              claimName: unas-backup-shared-drive-example
+              readOnly: true
+          - name: socialmedia
+            persistentVolumeClaim:
+              claimName: unas-backup-socialmedia
+              readOnly: true
+          - name: tesladrive
+            persistentVolumeClaim:
+              claimName: unas-backup-tesladrive
+              readOnly: true
+          - name: unvrbackup
+            persistentVolumeClaim:
+              claimName: unas-backup-unvrbackup
+              readOnly: true
+          - name: zetamfamilydata
+            persistentVolumeClaim:
+              claimName: unas-backup-zetamfamilydata
+              readOnly: true
+          - name: zetamfamilypictures
+            persistentVolumeClaim:
+              claimName: unas-backup-zetamfamilypictures
+              readOnly: true
+          imagePullSecrets:
+          - name: dockerhub-registry

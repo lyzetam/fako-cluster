@@ -1,0 +1,559 @@
+# Every UniFi Drive on the UNAS Pro, mounted READ-ONLY as a backup source.
+#
+# NFSv3 with the physical export path, pinned deliberately. See the long note in
+# apps/base/dji-media/nfs-storage.yaml: this server advertises nfs v3 and v4 but
+# NOT v4.1, and these paths fail under nfsvers=4.1 with a misleading "No such
+# file or directory". Do not "upgrade" without re-testing against showmount.
+#
+# UniFi Drive NFS authenticates by CLIENT IP, not by password. Each drive below
+# must be on the NFS client list for the node this job is pinned to
+# (aitower / 10.85.30.58) or the mount hangs and the backup fails loudly.
+#
+# readOnly everywhere: this job only ever reads. Nothing here can write to the
+# NAS even if the container is compromised.
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-dji
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "dji"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/dji/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-dji
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-dji
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-documentscanner
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "documentscanner"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/documentscanner/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-documentscanner
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-documentscanner
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-dropboxdata
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "DropboxData"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/DropboxData/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-dropboxdata
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-dropboxdata
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-iphonedata
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "iPhoneData"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/iPhoneData/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-iphonedata
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-iphonedata
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-journals
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "Journals"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/Journals/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-journals
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-journals
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-mbpbackup
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "MBPBackup"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/MBPBackup/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-mbpbackup
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-mbpbackup
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-others
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "Others"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/Others/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-others
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-others
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-scannerdrive
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "Scannerdrive"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/Scannerdrive/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-scannerdrive
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-scannerdrive
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-shared-drive-example
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "Shared_Drive_Example"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/Shared_Drive_Example/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-shared-drive-example
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-shared-drive-example
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-socialmedia
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "SocialMedia"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/SocialMedia/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-socialmedia
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-socialmedia
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-tesladrive
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "TESLADRIVE"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/TESLADRIVE/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-tesladrive
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-tesladrive
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-unvrbackup
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "UNVRBackup"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/UNVRBackup/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-unvrbackup
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-unvrbackup
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-zetamfamilydata
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "ZetamFamilyData"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/ZetamFamilyData/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-zetamfamilydata
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-zetamfamilydata
+  resources:
+    requests:
+      storage: 8Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-zetamfamilypictures
+  labels:
+    app.kubernetes.io/name: unas-backup
+    unas.drive: "ZetamFamilyPictures"
+spec:
+  capacity:
+    storage: 8Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/ZetamFamilyPictures/.data
+    readOnly: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-zetamfamilypictures
+  namespace: unas-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-zetamfamilypictures
+  resources:
+    requests:
+      storage: 8Ti

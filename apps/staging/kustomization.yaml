@@ -130,6 +130,7 @@ resources:
 
   # UniFi Clips Exporter
   - unifi-clients  # Daily export of UniFi Protect motion clips to S3
+  - unas-backup    # Monthly mirror of every UNAS drive to S3 Glacier Deep Archive
 
   # Debt Management
   - zeroed        # Zeroed - automated debt payoff optimization
