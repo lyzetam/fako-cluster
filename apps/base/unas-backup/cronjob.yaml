@@ -1,19 +1,18 @@
-# Monthly mirror of the whole UNAS Pro into S3 Glacier Deep Archive.
+# Monthly mirror of every UniFi Drive on the NAS into S3 Glacier Deep Archive.
 #
-# Runs at 02:00 America/New_York on the 1st of each month, restricted to
-# aitower or pglenovo01. Those are the ONLY two eligible nodes, for two
-# independent reasons, both probed directly on 2026-08-06:
-#   1. Most nodes have no NFS client helper at all. Identical probe pods on
-#      thinkpad01, pglenovo02 and pgmac01 all failed with "bad option ... you
-#      might need a /sbin/mount.<type> helper program". Only aitower and
-#      pglenovo01 mounted successfully.
-#   2. UniFi Drive NFS authorises by CLIENT IP, so all 14 drives are exported
-#      to 10.85.30.58 and 10.85.30.126 specifically - and nowhere else.
-# Two nodes rather than one because aitower went unreachable the same evening
-# this was built, which would otherwise have blocked the backup entirely.
-# Do not add a node here without re-probing it AND adding its IP on the UNAS.
+# Runs at 02:00 America/New_York on the 1st of each month.
 #
-# The first run moves ~6 TB and will take days, not hours. concurrencyPolicy
+# Node restriction: the NAS serves these drives over NFS, and only a subset of
+# cluster nodes can mount them. Two conditions must BOTH hold for a node to be
+# eligible, and both were verified by running probe pods:
+#   1. the node has an NFS client helper installed - most do not, and the mount
+#      fails with "bad option ... you might need a /sbin/mount.<type> helper"
+#   2. the NAS grants that node access; its NFS shares authorise by client
+#      address, configured console-side, not from this repo
+# Two nodes are listed rather than one so a single machine being down does not
+# block the backup. Do not add a node here without checking both conditions.
+#
+# The first run moves several TB and will take days, not hours. concurrencyPolicy
 # Forbid means the next month is skipped rather than started alongside it, and
 # activeDeadlineSeconds kills anything still running after 24 days so a wedged
 # job can never block the schedule forever.

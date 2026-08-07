@@ -1,16 +1,17 @@
-# Every UniFi Drive on the UNAS Pro, mounted READ-ONLY as a backup source.
+# Every UniFi Drive on the NAS, mounted READ-ONLY as a backup source.
 #
 # NFSv3 with the physical export path, pinned deliberately. See the long note in
 # apps/base/dji-media/nfs-storage.yaml: this server advertises nfs v3 and v4 but
 # NOT v4.1, and these paths fail under nfsvers=4.1 with a misleading "No such
 # file or directory". Do not "upgrade" without re-testing against showmount.
 #
-# UniFi Drive NFS authenticates by CLIENT IP, not by password. Each drive below
-# must be on the NFS client list for the node this job is pinned to
-# (aitower / 10.85.30.58) or the mount hangs and the backup fails loudly.
+# The NAS authorises NFS by client address, configured console-side rather than
+# from this repo, so the eligible nodes are constrained in cronjob.yaml. A node
+# that is not authorised does not fail fast - its mount hangs.
 #
-# readOnly everywhere: this job only ever reads. Nothing here can write to the
-# NAS even if the container is compromised.
+# readOnly everywhere: this job only ever reads. The export itself is read-only
+# server-side, which is the layer that actually matters; the PV, PVC and
+# volumeMount flags are defence in depth.
 ---
 apiVersion: v1
 kind: PersistentVolume
