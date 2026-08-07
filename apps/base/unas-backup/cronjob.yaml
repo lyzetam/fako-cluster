@@ -24,6 +24,14 @@ metadata:
   labels:
     app.kubernetes.io/name: unas-backup
 spec:
+  # SUSPENDED 2026-08-07. Superseded by the UNAS Pro's own native Offsite Backup
+  # task (Drive > Backup Tasks), which pushes straight to S3 with no cluster
+  # involvement - no NFS, no node eligibility, no credential in the cluster, and
+  # it reaches the personal drives this job never could.
+  #
+  # Kept suspended rather than deleted until the native task completes a full
+  # run, so there is a working fallback. Delete this whole app after that.
+  suspend: true
   schedule: "0 2 1 * *"
   timeZone: America/New_York
   concurrencyPolicy: Forbid
