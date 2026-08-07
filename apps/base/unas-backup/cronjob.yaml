@@ -1,12 +1,17 @@
 # Monthly mirror of the whole UNAS Pro into S3 Glacier Deep Archive.
 #
-# Runs at 02:00 America/New_York on the 1st of each month. Pinned to aitower for
-# two independent reasons, both verified 2026-08-06:
-#   1. UniFi Drive NFS authorises by client IP - the exports are granted to
-#      10.85.30.58 specifically, so elsewhere the mount is refused.
-#   2. thinkpad01 has no NFS client helper at all; an identical probe pod there
-#      failed with "bad option ... you might need a /sbin/mount.<type> helper".
-# Do not relax this nodeSelector without re-probing the replacement node.
+# Runs at 02:00 America/New_York on the 1st of each month, restricted to
+# aitower or pglenovo01. Those are the ONLY two eligible nodes, for two
+# independent reasons, both probed directly on 2026-08-06:
+#   1. Most nodes have no NFS client helper at all. Identical probe pods on
+#      thinkpad01, pglenovo02 and pgmac01 all failed with "bad option ... you
+#      might need a /sbin/mount.<type> helper program". Only aitower and
+#      pglenovo01 mounted successfully.
+#   2. UniFi Drive NFS authorises by CLIENT IP, so all 14 drives are exported
+#      to 10.85.30.58 and 10.85.30.126 specifically - and nowhere else.
+# Two nodes rather than one because aitower went unreachable the same evening
+# this was built, which would otherwise have blocked the backup entirely.
+# Do not add a node here without re-probing it AND adding its IP on the UNAS.
 #
 # The first run moves ~6 TB and will take days, not hours. concurrencyPolicy
 # Forbid means the next month is skipped rather than started alongside it, and
@@ -36,8 +41,16 @@ spec:
             app: unas-backup
         spec:
           restartPolicy: Never
-          nodeSelector:
-            kubernetes.io/hostname: aitower
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                    - aitower
+                    - pglenovo01
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
