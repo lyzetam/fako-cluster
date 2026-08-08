@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: unas-backup
-  labels:
-    app.kubernetes.io/name: unas-backup
-    app.kubernetes.io/part-of: unas-backup
