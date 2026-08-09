@@ -29,7 +29,7 @@ spec:
             - name: AUTOBOTS_FEED_URL
               value: "http://autobots-feed.autobots.svc.cluster.local:8000"
             - name: AUTOBOTS_OLLAMA_HOST
-              value: "http://ms2.landryzetam.net:11434"
+              value: "http://apisix.apisix.svc.cluster.local:9080"
           envFrom:
             - secretRef:
                 name: autobots-db
@@ -72,7 +72,7 @@ spec:
             - name: AUTOBOTS_FEED_URL
               value: "http://autobots-feed.autobots.svc.cluster.local:8000"
             - name: AUTOBOTS_OLLAMA_HOST
-              value: "http://ms2.landryzetam.net:11434"
+              value: "http://apisix.apisix.svc.cluster.local:9080"
           envFrom:
             - secretRef:
                 name: autobots-db
@@ -115,7 +115,7 @@ spec:
             - name: AUTOBOTS_FEED_URL
               value: "http://autobots-feed.autobots.svc.cluster.local:8000"
             - name: AUTOBOTS_OLLAMA_HOST
-              value: "http://ms2.landryzetam.net:11434"
+              value: "http://apisix.apisix.svc.cluster.local:9080"
           envFrom:
             - secretRef:
                 name: autobots-db
@@ -158,7 +158,7 @@ spec:
             - name: AUTOBOTS_FEED_URL
               value: "http://autobots-feed.autobots.svc.cluster.local:8000"
             - name: AUTOBOTS_OLLAMA_HOST
-              value: "http://ms2.landryzetam.net:11434"
+              value: "http://apisix.apisix.svc.cluster.local:9080"
           envFrom:
             - secretRef:
                 name: autobots-db
@@ -201,7 +201,7 @@ spec:
             - name: AUTOBOTS_FEED_URL
               value: "http://autobots-feed.autobots.svc.cluster.local:8000"
             - name: AUTOBOTS_OLLAMA_HOST
-              value: "http://ms2.landryzetam.net:11434"
+              value: "http://apisix.apisix.svc.cluster.local:9080"
           envFrom:
             - secretRef:
                 name: autobots-db

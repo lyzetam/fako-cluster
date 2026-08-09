@@ -32,7 +32,7 @@ spec:
                 - name: LLM_MODEL
                   value: "gemma3:27b"
                 - name: OLLAMA_URL
-                  value: "http://ms3.landryzetam.net:11434"
+                  value: "http://apisix.apisix.svc.cluster.local:9080"
                 - name: MIN_CONFIDENCE_SCORE
                   value: "0.6"
               envFrom:

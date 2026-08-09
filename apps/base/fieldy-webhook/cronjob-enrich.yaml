@@ -84,7 +84,7 @@ spec:
                 - name: FIELDY_ENRICH_BACKEND
                   value: "ollama"
                 - name: OLLAMA_BASE_URL
-                  value: "http://ms3.landryzetam.net:11434"
+                  value: "http://apisix.apisix.svc.cluster.local:9080"
                 - name: OLLAMA_MODEL
                   value: "gpt-oss:20b"
                 - name: FIELDY_ENRICH_CONCURRENCY

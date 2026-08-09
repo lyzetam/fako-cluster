@@ -29,7 +29,55 @@ data:
           ip: 0.0.0.0
           port: 9091
   apisix.yaml: |
+    upstreams:
+      # Plain round-robin over the three Macs for Ollama-NATIVE traffic
+      # (/api/chat, /api/generate, /api/embed...). The ai-proxy-multi route below
+      # only speaks the OpenAI shape and rewrites the caller's model, which is
+      # wrong for callers that want gemma3/gpt-oss/nomic-embed-text — so those go
+      # here instead and keep their own request body untouched.
+      #
+      # Read timeout is 600s on purpose: with OLLAMA_NUM_PARALLEL=1 a 25k-token
+      # prompt can hold a node's single slot for minutes, and cutting it short is
+      # what made clients see 500s while the node was healthy and still decoding.
+      - id: ollama-fleet
+        type: roundrobin
+        retries: 2
+        timeout:
+          connect: 5
+          send: 600
+          read: 600
+        nodes:
+          "ms1.landryzetam.net:11434": 1
+          "ms2.landryzetam.net:11434": 1
+          "ms3.landryzetam.net:11434": 1
+        checks:
+          active:
+            type: http
+            http_path: /api/version
+            timeout: 5
+            healthy:
+              interval: 10
+              successes: 1
+            unhealthy:
+              interval: 5
+              http_failures: 2
+              timeouts: 2
+          passive:
+            healthy:
+              http_statuses: [200, 201]
+              successes: 1
+            unhealthy:
+              http_statuses: [500, 502, 503, 504]
+              http_failures: 2
+              timeouts: 2
     routes:
+      # Ollama-native front door. Everything that currently dials a Mac directly
+      # points here instead, so no workload is pinned to one node.
+      - id: ollama-native
+        uri: /api/*
+        upstream_id: ollama-fleet
+        plugins:
+          prometheus: {}
       - id: llm-chat
         uri: /v1/chat/completions
         plugins:

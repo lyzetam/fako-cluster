@@ -20,13 +20,14 @@ data:
   # Flip to "ollama" to keep all health-data inference on the ms nodes.
   LLM_PROVIDER: "anthropic"
   LLM_MODEL: "claude-sonnet-4-5-20250929"      # used when provider=anthropic
-  OLLAMA_CHAT_MODEL: "glm-4.7-flash:latest"    # used when provider=ollama (on ms1/ms2/ms3)
-  OLLAMA_CHAT_BASE_URLS: "http://ms1.landryzetam.net:11434,http://ms2.landryzetam.net:11434,http://ms3.landryzetam.net:11434"
+  OLLAMA_CHAT_MODEL: "glm-4.7-flash:latest"    # used when provider=ollama (via the APISIX gateway)
+  OLLAMA_CHAT_BASE_URLS: "http://apisix.apisix.svc.cluster.local:9080"
   LLM_TEMPERATURE: "0.3"
   LLM_MAX_TOKENS: "4096"
 
-  # Ollama embedding service (nomic-embed-text lives on ms3)
-  OLLAMA_BASE_URL: "http://ms3.landryzetam.net:11434"
+  # Ollama embedding service via the gateway. NOTE: nomic-embed-text must exist
+  # on ALL THREE Macs or round-robin will 404 on whichever node lacks it.
+  OLLAMA_BASE_URL: "http://apisix.apisix.svc.cluster.local:9080"
   OLLAMA_MODEL: "nomic-embed-text"
   OLLAMA_EMBEDDING_DIM: "768"
 

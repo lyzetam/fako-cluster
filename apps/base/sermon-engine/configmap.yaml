@@ -7,7 +7,7 @@ data:
   # Supabase URL for bible-toolkit
   SUPABASE_URL: "https://rehpmoxczibgkwcawelo.supabase.co"
   # Ollama URL for embeddings and generation (Mac Studio ms3)
-  OLLAMA_URL: "http://ms3.landryzetam.net:11434"
+  OLLAMA_URL: "http://apisix.apisix.svc.cluster.local:9080"
   # Claude model for sermon generation
   CLAUDE_MODEL: "claude-sonnet-4-20250514"
   # News settings
