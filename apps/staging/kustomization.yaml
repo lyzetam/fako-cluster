@@ -157,6 +157,7 @@ resources:
   # Soccer Banter — 3 World Cup analyst deep-agents (Sportmonks + Ollama Cloud)
   - soccer-banter
   - sports-bets
+  - tldr-pipeline      # TLDR newsletters → full-text article notes (replaces the paused managed agent)
 
   # Ginger HOA — Ollama Cloud-backed HOA assistant (ginger.lztechnology.io)
   - ginger-hoa

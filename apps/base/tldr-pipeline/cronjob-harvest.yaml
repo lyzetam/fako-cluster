@@ -1,0 +1,80 @@
+# Harvest: read the TLDR newsletters, open every linked article, store the full text in
+# the Obsidian vault and mail a copy to AgentMail. No summarizing happens here — the
+# enricher adds that from the stored text, so a better prompt can be re-run without
+# refetching a hundred articles.
+#
+# Replaces the `TLDR Digest` managed agent, paused 2026-08-08. See
+# github.com/lyzetam/tldr-pipeline/docs/adr/0001 for why.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tldr-harvest
+  namespace: tldr-pipeline
+  labels:
+    app.kubernetes.io/name: tldr-pipeline
+    app.kubernetes.io/component: harvest
+    app.kubernetes.io/part-of: tldr-pipeline
+    app.kubernetes.io/managed-by: flux
+spec:
+  # 09:15 ET. The managed agent ran at 09:00 and the later editions had not always
+  # landed; the ledger is a set, so anything missed is picked up the next day anyway.
+  schedule: "15 13 * * 1-5"   # UTC. TLDR does not publish at weekends.
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      # A full day is ~100 articles fetched at concurrency 6, plus one AgentMail send
+      # every 3.6s and two 60s verification waits. Observed runs are well under 30min;
+      # this leaves room for a slow day without letting a hung run linger.
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: tldr-pipeline
+            app.kubernetes.io/component: harvest
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: harvest
+              image: lzetam/tldr-pipeline:latest
+              imagePullPolicy: Always
+              args: ["--apply"]          # the entrypoint is dry without this
+              envFrom:
+                - secretRef:
+                    name: tldr-pipeline-secrets
+              env:
+                - name: HOME
+                  value: /tmp
+                # Ollama Cloud by decision — the in-cluster GPU is down until further
+                # notice. Point this at http://ollama-gpu.ollama.svc.cluster.local:11434
+                # to bring inference home; no other change is needed.
+                - name: TLDR_OLLAMA_BASE
+                  value: "https://ollama.com"
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}
