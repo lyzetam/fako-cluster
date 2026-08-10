@@ -16,9 +16,19 @@ metadata:
     app.kubernetes.io/part-of: tldr-pipeline
     app.kubernetes.io/managed-by: flux
 spec:
-  # 09:15 ET. The managed agent ran at 09:00 and the later editions had not always
-  # landed; the ledger is a set, so anything missed is picked up the next day anyway.
-  schedule: "15 13 * * 1-5"   # UTC. TLDR does not publish at weekends.
+  # 15:00 UTC (11:00 ET), chosen from six days of measured arrival times rather than
+  # guessed. The editions land in a fixed order and TLDR AI is always last:
+  #
+  #   TLDR Product 10:16-10:17   TLDR Dev      11:29-11:43
+  #   TLDR         10:31-11:17   TLDR Crypto   12:18-12:34
+  #   TLDR DevOps  11:30-11:34   TLDR Founders 12:33-12:43
+  #   TLDR InfoSec 13:18-13:30   TLDR AI       13:50-14:12
+  #
+  # The first schedule here was 13:15, which missed InfoSec and AI *every day* — they
+  # would have been picked up 24h late and filed under the previous date. 15:00 leaves
+  # ~48 minutes past the latest arrival ever seen. If TLDR slips later than that the
+  # ledger still catches it next run; this only decides whether that is routine or rare.
+  schedule: "0 15 * * 1-5"   # UTC. TLDR does not publish at weekends.
   timeZone: Etc/UTC
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
