@@ -1,7 +1,27 @@
-# Pre-Qualification Agent — premarket whole-market funnel.
+# Pre-Qualification FALLBACK — full-funnel recovery run.
+#
+# ROLE (changed 2026-08-10): this is NO LONGER the primary path. The funnel was
+# split into two premarket stages on 2026-08-04 because running it whole at 10:00
+# blocked entries for the first ~53 minutes of every session:
+#
+#     prequalification-candidates  08:00  stages 1-4  (no live quotes needed)
+#     prequalification-prune       09:40  stage 5     (needs live quotes)
+#
+# This job exists ONLY for when one of those fails. That failure is silent and
+# expensive: a failed 08:00 leaves the 09:40 prune with an empty watchlist, prune
+# correctly refuses to persist nothing, the universe_meta marker stays frozen at
+# the prior session date, and universe_is_stale() then blocks EVERY entry for the
+# whole day with no alert. A full-funnel retry is the only recovery.
+#
 # Narrows the whole optionable market -> the day's watchlist + universe_meta
-# marker. The trading loop's freshness gate opens entries once a fresh universe
-# exists for today. Runs the orchestrator-qt image with `python -m prequalification`.
+# marker. Runs the orchestrator-qt image with `python -m prequalification`.
+#
+# There used to be TWO identical full-funnel jobs here (10:00 primary + a 10:30
+# "fallback"). Deleted the 10:30 copy and moved this one into its slot, because
+# concurrencyPolicy: Forbid only prevents a CronJob from overlapping ITSELF — it
+# does nothing across two different CronJobs, so a 10:00 start could race the
+# still-running 09:40 prune and produce two concurrent writers on the same
+# universe row. 10:30 gives prune ~50 minutes of headroom.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -12,13 +32,14 @@ metadata:
     app.kubernetes.io/part-of: quantum-trades
     app.kubernetes.io/managed-by: flux
 spec:
-  # 10:00 ET on weekdays. Moved 08:00->10:00 (2026-07-15): the 08:00 PREMARKET run
-  # could never succeed — options aren't trading, so stage 5's spread gate (bid/ask>0,
-  # spread<=5%) rejects every contract, survivors fall below the floor, and the funnel
-  # aborts (exit 1) → k8s "failure" 3 days running. Options QUOTES only exist during
-  # market hours, and spreads normalize ~30 min after the 09:30 open (MM price
-  # discovery). 10:00 is the earliest reliably-quote-populated time. Backup at 10:30.
-  schedule: "0 10 * * 1-5"
+  # 10:30 ET on weekdays. History: moved 08:00->10:00 (2026-07-15) because the 08:00
+  # PREMARKET run could never succeed — options aren't trading, so stage 5's spread
+  # gate (bid/ask>0, spread<=5%) rejects every contract, survivors fall below the
+  # floor, and the funnel aborts (exit 1) → k8s "failure" 3 days running. Options
+  # QUOTES only exist during market hours and spreads normalize ~30 min after the
+  # open. That constraint is why the 2026-08-04 split runs stage 5 at 09:40 and NOT
+  # earlier. Moved 10:00->10:30 (2026-08-10) to clear the 09:40 prune — see header.
+  schedule: "30 10 * * 1-5"
   timeZone: "America/New_York"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 10

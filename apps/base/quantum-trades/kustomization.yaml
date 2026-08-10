@@ -43,7 +43,6 @@ resources:
   - cronjob-prequalification.yaml
   # Pre-Qualification FALLBACK — post-open re-run (9:45am ET) guarantees a universe
   # when the 8am premarket run crashes (recurring 2026-07-13/14/15)
-  - cronjob-prequalification-fallback.yaml
   # Funnel fillability check — confirms the funnel produced a fillable watchlist (10:15am ET)
   - cronjob-funnel-check.yaml
   # Exit validation: post-close divergence audit + pre-open regression gate
