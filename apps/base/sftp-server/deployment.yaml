@@ -17,21 +17,6 @@ spec:
     spec:
       securityContext:
         fsGroup: 1001
-      # unifi-journals binds an in-tree NFS PV, which mounts via the node's
-      # /sbin/mount.nfs helper. Only pglenovo01 has it -- pgmac01 and
-      # pglenovo02 both fail with "mount failed: exit status 32" (see also
-      # social-media/versitygw, stuck on pgmac01 for days on the same PV).
-      # Proper fix is converting unifi-journals-pv to the nfs.csi.k8s.io
-      # driver, which bundles its own mount helper; until then, pin here.
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values:
-                      - pglenovo01
       containers:
         - name: sftp
           image: atmoz/sftp:alpine

@@ -11,10 +11,20 @@ spec:
   accessModes:
     - ReadOnlyMany
   persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
   mountOptions:
     - nfsvers=3
     - nolock
     - ro
-  nfs:
-    server: unas.landryzetam.net
-    path: /var/nfs/shared/Journals
+  # nfs.csi.k8s.io rather than the in-tree `nfs:` source: the in-tree driver
+  # mounts via the node's own /sbin/mount.nfs, which only pglenovo01 has.
+  # pgmac01 and pglenovo02 both fail with "mount failed: exit status 32",
+  # leaving pods stuck in ContainerCreating forever. The CSI node DaemonSet
+  # carries its own mount helper and runs on all nodes. The mount still
+  # originates from the node's IP, so the UNAS export allowlist is unaffected.
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: unifi-journals-pv
+    volumeAttributes:
+      server: "unas.landryzetam.net"
+      share: "/var/nfs/shared/Journals"

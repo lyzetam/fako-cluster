@@ -35,9 +35,18 @@ spec:
     - hard
     - timeo=600
     - retrans=2
-  nfs:
-    server: unas.landryzetam.net
-    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/SocialMedia/.data
+  # nfs.csi.k8s.io rather than the in-tree `nfs:` source: the in-tree driver
+  # mounts via the node's own /sbin/mount.nfs, which only pglenovo01 has. This
+  # pod sat in ContainerCreating on pgmac01 for over three days with
+  # "you might need a /sbin/mount.<type> helper program". The CSI node
+  # DaemonSet carries its own helper and runs on all nodes. The mount still
+  # originates from the node's IP, so the export allowlist is unaffected.
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: social-media-storage
+    volumeAttributes:
+      server: "unas.landryzetam.net"
+      share: "/volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/SocialMedia/.data"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
