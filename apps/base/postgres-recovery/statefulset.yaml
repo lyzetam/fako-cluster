@@ -14,8 +14,6 @@ spec:
       labels:
         app: postgres-recovery
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: aitower
       containers:
       - name: postgres
         image: postgres:16

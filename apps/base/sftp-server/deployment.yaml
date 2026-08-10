@@ -17,8 +17,18 @@ spec:
     spec:
       securityContext:
         fsGroup: 1001
-      nodeSelector:
-        kubernetes.io/hostname: aitower
+      # unifi-journals binds an in-tree NFS PV, which mounts via the node's
+      # /sbin/mount.nfs helper. pgmac01 lacks nfs-common, so a pod scheduled
+      # there hangs in ContainerCreating forever (see social-media/versitygw).
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - pgmac01
       containers:
         - name: sftp
           image: atmoz/sftp:alpine
