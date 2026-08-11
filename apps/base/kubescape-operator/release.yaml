@@ -34,20 +34,29 @@ spec:
       # alerting so the real posture is always visible. See kubescape-vuln-query-gotcha.
       prometheusExporter: enable
       
-    # Configure storage for scan results
+    # Enable the aggregated APIServer that backs the storage CRDs.
     storage:
       enabled: true
-      storageClass: nfs-security-logs  # Use our dedicated security logs storage
-      size: 20Gi
-      
-    # Configure persistent storage for vulnerability database
-    vulnerabilityDB:
-      persistence:
-        enabled: true
-        storageClass: nfs-security-logs
-        size: 10Gi
-        accessMode: ReadWriteOnce
-        
+
+    # Persistent volumes for scan results and the vulnerability DB.
+    #
+    # These MUST live under `persistence:` — the chart has no `storage.storageClass`,
+    # `storage.size` or top-level `vulnerabilityDB` key, so the previous config here
+    # was silently ignored and both PVCs fell through to the cluster default
+    # (local-path). local-path landed the storage PVC on aitower; when that node
+    # died the PVC went unschedulable, the storage Service lost its endpoints, and
+    # the aggregated APIService v1beta1.spdx.softwarecomposition.kubescape.io went
+    # Available=False — which made resource discovery fail and blocked namespace
+    # deletion cluster-wide. Node-local storage under an aggregated APIServer is a
+    # cluster-wide single point of failure; keep these on NFS.
+    persistence:
+      storageClass: nfs-security-logs
+      accessMode: ReadWriteOnce
+      size:
+        backingStorage: 20Gi
+        kubevuln: 10Gi
+
+
     # Configure the Kubescape cloud component (optional - for cloud dashboard)
     kubescapeCloud:
       enabled: false  # Set to true if you have a Kubescape cloud account
