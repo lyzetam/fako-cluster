@@ -49,6 +49,8 @@ spec:
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             # Routed through the APISIX gateway: round-robin across ms1/ms2/ms3 with
             # active health checks, so a dead or wedged node is skipped per request.
+            - name: ZI_AGENT_GATEWAY_URL
+              value: "http://apisix.apisix.svc.cluster.local:9080/v1"
             - name: ZI_OLLAMA_URL
               value: "http://apisix.apisix.svc.cluster.local:9080"
             - name: ZI_KNOWLEDGE_REDIS_HOST
@@ -174,6 +176,8 @@ spec:
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             # Routed through the APISIX gateway: round-robin across ms1/ms2/ms3 with
             # active health checks, so a dead or wedged node is skipped per request.
+            - name: ZI_AGENT_GATEWAY_URL
+              value: "http://apisix.apisix.svc.cluster.local:9080/v1"
             - name: ZI_OLLAMA_URL
               value: "http://apisix.apisix.svc.cluster.local:9080"
             - name: ZI_KNOWLEDGE_REDIS_HOST
@@ -321,6 +325,8 @@ spec:
               value: "http://zi-brain.zi.svc.cluster.local:8100"
             # Routed through the APISIX gateway: round-robin across ms1/ms2/ms3 with
             # active health checks, so a dead or wedged node is skipped per request.
+            - name: ZI_AGENT_GATEWAY_URL
+              value: "http://apisix.apisix.svc.cluster.local:9080/v1"
             - name: ZI_OLLAMA_URL
               value: "http://apisix.apisix.svc.cluster.local:9080"
             - name: ZI_KNOWLEDGE_REDIS_HOST
