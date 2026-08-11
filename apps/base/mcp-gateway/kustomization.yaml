@@ -3,17 +3,13 @@ kind: Kustomization
 
 namespace: mcp-gateway
 
+# The MCP gateway itself was retired 2026-08-11 (no consumers). What remains
+# is the shared cloudflared tunnel, which fronts n8n, the family-manager
+# webhook and market-replay -- none of which are MCP.
 resources:
   - namespace.yaml
-  - secret-store.yaml
-  - external-secret-github.yaml
-  - configmap.yaml
-  - deployment.yaml
-  - service.yaml
   - cloudflare.yaml
   - cloudflare-secret.yaml
-
-  - external-secret-dockerhub.yaml
 labels:
 - pairs:
     app.kubernetes.io/part-of: mcp-gateway

@@ -69,13 +69,9 @@ data:
     no-autoupdate: true
 
     ingress:
-    # MCP Gateway SSE endpoint
-    - hostname: mcp.landryzetam.net
-      service: http://mcp-gateway:8811
-
-    # MCP Gateway Streamable HTTP endpoint
-    - hostname: mcp-stream.landryzetam.net
-      service: http://mcp-gateway:8812
+    # NOTE: this tunnel outlived the MCP gateway it was named after. The
+    # gateway was retired 2026-08-11; the routes below are the reason the
+    # namespace still exists. Move them to their own namespace when convenient.
 
     # n8n - route to n8n namespace service
     - hostname: n8n.landryzetam.net
