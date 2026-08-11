@@ -50,18 +50,25 @@ data:
           "ms1.landryzetam.net:11434": 1
           "ms2.landryzetam.net:11434": 1
           "ms3.landryzetam.net:11434": 1
+        # Deliberately patient. A node that is merely BUSY must not be ejected:
+        # with NUM_PARALLEL=1 a large prompt occupies the slot for minutes and
+        # even /api/version can be slow to answer. The first cut (5s timeout,
+        # 2 failures) ejected ms2 for 10s during a normal load spike and handed
+        # 20 requests a 502. Now it takes ~45s of sustained failure to eject.
+        # The on-node watchdog clears a genuine wedge in ~2min, so there is no
+        # value in the gateway being twitchier than that.
         checks:
           active:
             type: http
             http_path: /api/version
-            timeout: 5
+            timeout: 15
             healthy:
               interval: 10
               successes: 1
             unhealthy:
-              interval: 5
-              http_failures: 2
-              timeouts: 2
+              interval: 15
+              http_failures: 3
+              timeouts: 3
           passive:
             healthy:
               http_statuses: [200, 201]
