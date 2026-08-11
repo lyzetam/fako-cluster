@@ -16,7 +16,12 @@ spec:
   # 30 concurrent requests over 2 pods is ~15 each; over 6 it is ~5, which is
   # what the 2-core limit can actually serve. This is throughput, not
   # redundancy — a timed-out symbol is a trade the system never sees.
-  replicas: 6
+  # Reduced 6->4 (2026-08-12): after aitower left the cluster, 6 x 512Mi of
+  # signals starved the orchestrator — a Recreate restart mid-session could not
+  # schedule its 512Mi pod ("4 nodes Insufficient memory") and TRADING WAS DOWN.
+  # 4 is still double the pre-08-04 count that caused the scan-timeout outage;
+  # if timeouts return, add capacity to the cluster rather than replicas here.
+  replicas: 4
   selector:
     matchLabels:
       app: quantum-trades
