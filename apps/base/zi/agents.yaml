@@ -66,16 +66,27 @@ spec:
               subPath: backend-engineer
           resources:
             requests:
-              cpu: 5m
+              cpu: 50m
               memory: 256Mi
             limits:
-              cpu: 100m
+              cpu: 500m
               memory: 1Gi
+          # Boot imports the full LangChain/deepagents tree before uvicorn
+          # binds the port. A startupProbe gives that up to 300s WITHOUT the
+          # liveness probe running — previously liveness fired at 45s and
+          # SIGKILLed the pod mid-import, which is what produced Sol's 65
+          # restarts and Noor's crash loop.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 45
             periodSeconds: 30
             timeoutSeconds: 5
           readinessProbe:
@@ -195,16 +206,27 @@ spec:
               subPath: code-reviewer
           resources:
             requests:
-              cpu: 5m
+              cpu: 50m
               memory: 256Mi
             limits:
-              cpu: 100m
+              cpu: 500m
               memory: 1Gi
+          # Boot imports the full LangChain/deepagents tree before uvicorn
+          # binds the port. A startupProbe gives that up to 300s WITHOUT the
+          # liveness probe running — previously liveness fired at 45s and
+          # SIGKILLed the pod mid-import, which is what produced Sol's 65
+          # restarts and Noor's crash loop.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 45
             periodSeconds: 30
             timeoutSeconds: 5
           readinessProbe:
@@ -306,16 +328,27 @@ spec:
               subPath: devops-engineer
           resources:
             requests:
-              cpu: 5m
+              cpu: 50m
               memory: 256Mi
             limits:
-              cpu: 100m
+              cpu: 500m
               memory: 1Gi
+          # Boot imports the full LangChain/deepagents tree before uvicorn
+          # binds the port. A startupProbe gives that up to 300s WITHOUT the
+          # liveness probe running — previously liveness fired at 45s and
+          # SIGKILLed the pod mid-import, which is what produced Sol's 65
+          # restarts and Noor's crash loop.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 45
             periodSeconds: 30
             timeoutSeconds: 5
           readinessProbe:
@@ -433,16 +466,27 @@ spec:
               subPath: k8s-engineer
           resources:
             requests:
-              cpu: 5m
+              cpu: 50m
               memory: 256Mi
             limits:
-              cpu: 100m
+              cpu: 500m
               memory: 1Gi
+          # Boot imports the full LangChain/deepagents tree before uvicorn
+          # binds the port. A startupProbe gives that up to 300s WITHOUT the
+          # liveness probe running — previously liveness fired at 45s and
+          # SIGKILLed the pod mid-import, which is what produced Sol's 65
+          # restarts and Noor's crash loop.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 45
             periodSeconds: 30
             timeoutSeconds: 5
           readinessProbe:
@@ -584,16 +628,27 @@ spec:
               subPath: platform-sre
           resources:
             requests:
-              cpu: 5m
+              cpu: 50m
               memory: 256Mi
             limits:
-              cpu: 100m
+              cpu: 500m
               memory: 1Gi
+          # Boot imports the full LangChain/deepagents tree before uvicorn
+          # binds the port. A startupProbe gives that up to 300s WITHOUT the
+          # liveness probe running — previously liveness fired at 45s and
+          # SIGKILLed the pod mid-import, which is what produced Sol's 65
+          # restarts and Noor's crash loop.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 45
             periodSeconds: 30
             timeoutSeconds: 5
           readinessProbe:
