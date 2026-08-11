@@ -12,7 +12,7 @@ resources:
   - ig-inbox-uploader  # IG inbox → Dropbox/Supabase uploader (Tailscale-private)
   - dji-media          # read-only NAS media server for DJI footage (Tailscale-private)
   - social-media       # versitygw S3 gateway over the SocialMedia UNAS drive (IG pipeline storage)
-  # - selfheal-test   # Deactivated 2026-08-10 - throwaway OOM test, done its job (96 restarts/22min)
+  - selfheal-test     # PERMANENT self-heal fixture — 7 deliberately-broken workloads. DO NOT RETIRE.
   - feed-cache        # In-memory render cache for the feed service
   # - oura-dashboard  # Deactivated - not in use
   # - wger

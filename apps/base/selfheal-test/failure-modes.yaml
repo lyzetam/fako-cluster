@@ -1,0 +1,246 @@
+# PERMANENT self-heal test fixture. DO NOT RETIRE.
+#
+# These workloads are broken on purpose. Each one produces a distinct failure
+# signature so the zi self-heal agents (Noor -> Sol, agent-k8s-engineer,
+# agent-platform-sre) always have live material to detect, triage and propose
+# fixes against. A green cluster gives them nothing to work on.
+#
+# Each deployment below maps to a rule in
+# monitoring/configs/base/zi-alerts/prometheus-rules.yaml:
+#
+#   oomkill        -> PodOOMKilled
+#   crashloop      -> PodCrashLoopBackOff, PodHighRestartCount
+#   notready       -> PodNotReady
+#   imagepull      -> ContainerWaiting  (ImagePullBackOff)
+#   configerror    -> ContainerWaiting  (CreateContainerConfigError)
+#   unschedulable  -> DeploymentReplicasUnavailable / DeploymentAllReplicasDown
+#   jobfail        -> a terminally Failed pod (phase=Failed, not a restart loop)
+#
+# Design constraints, so this stays a fixture and not a problem:
+#   - Total memory requests are ~50Mi across the whole namespace.
+#   - Only oomkill and crashloop restart at all, and both sleep before exiting
+#     so kubelet backoff stretches to its 5-minute ceiling. The previous version
+#     of this fixture burned 96 restarts in 22 minutes; this settles near 12/hr.
+#   - notready, imagepull, configerror and unschedulable never restart — they
+#     hold a steady bad state with zero churn.
+#
+# If an agent "fixes" one of these, that is the test passing. Revert the fix to
+# re-arm it.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oomkill
+  namespace: selfheal-test
+  labels: { app.kubernetes.io/name: oomkill, selfheal.test/mode: oomkilled }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: oomkill }
+  template:
+    metadata:
+      labels: { app: oomkill, selfheal.test/mode: oomkilled }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: memhog
+          image: python:3.12-alpine
+          # Allocates ~48Mi against a 32Mi limit -> OOMKilled on every start.
+          command: ["python", "-c", "import time; time.sleep(20); a = bytearray(48 * 1024 * 1024); time.sleep(3600)"]
+          resources:
+            requests: { memory: "16Mi", cpu: "5m" }
+            limits:   { memory: "32Mi", cpu: "50m" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crashloop
+  namespace: selfheal-test
+  labels: { app.kubernetes.io/name: crashloop, selfheal.test/mode: crashloopbackoff }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: crashloop }
+  template:
+    metadata:
+      labels: { app: crashloop, selfheal.test/mode: crashloopbackoff }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: exiter
+          image: busybox:1.37
+          # 60s of "work" then a non-zero exit, so backoff climbs to its 5m cap.
+          command: ["sh", "-c", "echo 'selfheal-test: simulating a failing service'; sleep 60; exit 1"]
+          resources:
+            requests: { memory: "8Mi", cpu: "5m" }
+            limits:   { memory: "32Mi", cpu: "50m" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notready
+  namespace: selfheal-test
+  labels: { app.kubernetes.io/name: notready, selfheal.test/mode: podnotready }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: notready }
+  template:
+    metadata:
+      labels: { app: notready, selfheal.test/mode: podnotready }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: never-ready
+          image: busybox:1.37
+          # Runs happily forever but never passes readiness -> permanently
+          # NotReady with zero restarts. No liveness probe on purpose.
+          command: ["sh", "-c", "sleep infinity"]
+          readinessProbe:
+            exec: { command: ["false"] }
+            periodSeconds: 30
+            failureThreshold: 1
+          resources:
+            requests: { memory: "8Mi", cpu: "5m" }
+            limits:   { memory: "32Mi", cpu: "50m" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imagepull
+  namespace: selfheal-test
+  labels: { app.kubernetes.io/name: imagepull, selfheal.test/mode: imagepullbackoff }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: imagepull }
+  template:
+    metadata:
+      labels: { app: imagepull, selfheal.test/mode: imagepullbackoff }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: missing
+          # Deliberately non-existent tag -> ImagePullBackOff, never runs.
+          image: lzetam/selfheal-test-does-not-exist:v0
+          resources:
+            requests: { memory: "8Mi", cpu: "5m" }
+            limits:   { memory: "32Mi", cpu: "50m" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: configerror
+  namespace: selfheal-test
+  labels: { app.kubernetes.io/name: configerror, selfheal.test/mode: createcontainerconfigerror }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: configerror }
+  template:
+    metadata:
+      labels: { app: configerror, selfheal.test/mode: createcontainerconfigerror }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: needs-missing-secret
+          image: busybox:1.37
+          command: ["sh", "-c", "sleep infinity"]
+          # This Secret does not exist -> CreateContainerConfigError.
+          envFrom:
+            - secretRef: { name: selfheal-test-missing-secret }
+          resources:
+            requests: { memory: "8Mi", cpu: "5m" }
+            limits:   { memory: "32Mi", cpu: "50m" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unschedulable
+  namespace: selfheal-test
+  labels: { app.kubernetes.io/name: unschedulable, selfheal.test/mode: pending }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: unschedulable }
+  template:
+    metadata:
+      labels: { app: unschedulable, selfheal.test/mode: pending }
+    spec:
+      # No node carries this label -> Pending forever, reserves nothing.
+      nodeSelector:
+        selfheal.test/nonexistent-node: "true"
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: never-scheduled
+          image: busybox:1.37
+          command: ["sh", "-c", "sleep infinity"]
+          resources:
+            requests: { memory: "8Mi", cpu: "5m" }
+            limits:   { memory: "32Mi", cpu: "50m" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: jobfail
+  namespace: selfheal-test
+  labels: { app.kubernetes.io/name: jobfail, selfheal.test/mode: failed }
+spec:
+  backoffLimit: 2
+  # No ttlSecondsAfterFinished: the Failed pod is the artifact under test and
+  # must persist. Delete the Job by hand to re-arm it.
+  template:
+    metadata:
+      labels: { app: jobfail, selfheal.test/mode: failed }
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: fails
+          image: busybox:1.37
+          command: ["sh", "-c", "echo 'selfheal-test: simulating a failed batch job'; exit 1"]
+          resources:
+            requests: { memory: "8Mi", cpu: "5m" }
+            limits:   { memory: "32Mi", cpu: "50m" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
