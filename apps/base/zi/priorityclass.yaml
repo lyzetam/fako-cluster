@@ -1,0 +1,22 @@
+# Sol (k8s-engineer) is the only agent that can act on the cluster: he applies
+# the rollout restarts and opens the memory-bump PRs that fix everything else.
+# If he is evicted or loses a scheduling race under node pressure, the cluster
+# loses its remediation path exactly when it is under stress and needs it most.
+#
+# thinkpad01 runs at ~97% of memory requests, and every agent is Burstable
+# (requests well under limits), so the kubelet is free to evict them under
+# pressure in whatever order it likes. This makes that order explicit.
+#
+# Value sits below kubescape-critical (100000100) and far below the
+# system-*-critical classes — Sol matters, but not more than the control plane
+# or the security agent.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: zi-agent-remediator
+value: 100000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: >-
+  The zi remediation agent (Sol / k8s-engineer). Scheduled ahead of, and
+  evicted after, ordinary workloads — it is the cluster's self-heal path.

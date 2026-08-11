@@ -439,6 +439,9 @@ spec:
         app.kubernetes.io/name: agent-k8s-engineer
         app.kubernetes.io/component: agent
     spec:
+      # Sol is the cluster's remediation path — he must not lose a
+      # scheduling race or get evicted first under node pressure.
+      priorityClassName: zi-agent-remediator
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
