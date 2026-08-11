@@ -84,7 +84,6 @@ resources:
 
   # Shared Cloudflare tunnel — fronts n8n, family-manager webhook, market-replay
   - cloudflare-tunnel
-  - mcp-gateway     # DEPRECATED — being replaced by cloudflare-tunnel; removed once the new connectors are live
 
   # AI Gateway — APISIX OpenAI-compatible front door load-balancing the Mac Studio Ollama fleet
   - apisix

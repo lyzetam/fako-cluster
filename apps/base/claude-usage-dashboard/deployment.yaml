@@ -20,6 +20,12 @@ spec:
       app.kubernetes.io/name: claude-usage-dashboard
   template:
     metadata:
+      annotations:
+        # Bump to force a repull of the stable :latest tag. An imperative
+        # `kubectl rollout restart` does not survive here — Flux reconciles the
+        # annotation away and the old pod stays up while rollout status still
+        # reports success.
+        kubectl.kubernetes.io/restartedAt: "2026-08-11T11:22:30Z"
       labels:
         app.kubernetes.io/name: claude-usage-dashboard
         app.kubernetes.io/component: web
