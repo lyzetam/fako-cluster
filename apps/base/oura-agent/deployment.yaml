@@ -46,6 +46,9 @@ spec:
             name: supabase-credentials-env
         - secretRef:
             name: webhook-token-env
+        # APISIX key-auth for the LLM gateway — keyless calls 401.
+        - secretRef:
+            name: apisix-gateway-key
 
         securityContext:
           allowPrivilegeEscalation: false

@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: oura-agent
 
 resources:
+  - external-secret-gateway.yaml
   - namespace.yaml
   - rbac.yaml
   - configmap.yaml

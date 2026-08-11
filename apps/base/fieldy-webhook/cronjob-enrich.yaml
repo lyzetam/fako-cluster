@@ -85,6 +85,12 @@ spec:
                   value: "ollama"
                 - name: OLLAMA_BASE_URL
                   value: "http://apisix.apisix.svc.cluster.local:9080"
+                # The gateway requires key-auth; a keyless call 401s before the first token.
+                - name: OLLAMA_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: apisix-gateway-key
+                      key: OLLAMA_API_KEY
                 - name: OLLAMA_MODEL
                   value: "gpt-oss:20b"
                 - name: FIELDY_ENRICH_CONCURRENCY

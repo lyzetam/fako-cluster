@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: sermon-engine
 
 resources:
+  - external-secret-gateway.yaml
   - namespace.yaml
   - secretstore.yaml
   - external-secret.yaml

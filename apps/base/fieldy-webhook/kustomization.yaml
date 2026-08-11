@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: fieldy-webhook
 
 resources:
+  - external-secret-gateway.yaml
   - namespace.yaml
   - aws-credentials-secret.yaml
   - secretstore.yaml

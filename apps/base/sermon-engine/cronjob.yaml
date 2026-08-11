@@ -35,6 +35,9 @@ spec:
                     name: sermon-engine-config
                 - secretRef:
                     name: sermon-engine-secrets
+                # APISIX key-auth for the LLM gateway — keyless calls 401.
+                - secretRef:
+                    name: apisix-gateway-key
               resources:
                 requests:
                   memory: "256Mi"

@@ -33,6 +33,12 @@ spec:
                   value: "gemma3:27b"
                 - name: OLLAMA_URL
                   value: "http://apisix.apisix.svc.cluster.local:9080"
+                # The gateway requires key-auth; a keyless call 401s before the first token.
+                - name: OLLAMA_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: apisix-gateway-key
+                      key: OLLAMA_API_KEY
                 - name: MIN_CONFIDENCE_SCORE
                   value: "0.6"
               envFrom:
