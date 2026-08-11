@@ -49,8 +49,13 @@ spec:
     # Available=False — which made resource discovery fail and blocked namespace
     # deletion cluster-wide. Node-local storage under an aggregated APIServer is a
     # cluster-wide single point of failure; keep these on NFS.
+    # NOTE: nfs-csi-v2, not nfs-security-logs. The security-logs class points at
+    # 10.85.30.127:/volume1/k8s-storage/security-logs, which does not exist on the
+    # NAS -- provisioning fails with "No such file or directory" and no PVC in the
+    # cluster has ever bound to it. Create that directory under the k8s-storage
+    # share and this can move back.
     persistence:
-      storageClass: nfs-security-logs
+      storageClass: nfs-csi-v2
       accessMode: ReadWriteOnce
       size:
         backingStorage: 20Gi
