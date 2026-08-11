@@ -77,7 +77,12 @@ spec:
               memory: 256Mi
             limits:
               cpu: 500m
-              memory: 1Gi
+              # 1Gi -> 2Gi. Sol sits at ~600Mi idle and OOMKilled five times in
+              # five hours: a remediation run holds the ReAct transcript plus a
+              # 64K-context model response, and the peak cleared 1Gi. Limit only
+              # — requests stay at 256Mi so this does not add scheduling
+              # pressure on a node already at 97% of memory requests.
+              memory: 2Gi
           # Boot imports the full LangChain/deepagents tree before uvicorn
           # binds the port. A startupProbe gives that up to 300s WITHOUT the
           # liveness probe running — previously liveness fired at 45s and
@@ -224,7 +229,12 @@ spec:
               memory: 256Mi
             limits:
               cpu: 500m
-              memory: 1Gi
+              # 1Gi -> 2Gi. Sol sits at ~600Mi idle and OOMKilled five times in
+              # five hours: a remediation run holds the ReAct transcript plus a
+              # 64K-context model response, and the peak cleared 1Gi. Limit only
+              # — requests stay at 256Mi so this does not add scheduling
+              # pressure on a node already at 97% of memory requests.
+              memory: 2Gi
           # Boot imports the full LangChain/deepagents tree before uvicorn
           # binds the port. A startupProbe gives that up to 300s WITHOUT the
           # liveness probe running — previously liveness fired at 45s and
@@ -353,7 +363,12 @@ spec:
               memory: 256Mi
             limits:
               cpu: 500m
-              memory: 1Gi
+              # 1Gi -> 2Gi. Sol sits at ~600Mi idle and OOMKilled five times in
+              # five hours: a remediation run holds the ReAct transcript plus a
+              # 64K-context model response, and the peak cleared 1Gi. Limit only
+              # — requests stay at 256Mi so this does not add scheduling
+              # pressure on a node already at 97% of memory requests.
+              memory: 2Gi
           # Boot imports the full LangChain/deepagents tree before uvicorn
           # binds the port. A startupProbe gives that up to 300s WITHOUT the
           # liveness probe running — previously liveness fired at 45s and
@@ -496,7 +511,12 @@ spec:
               memory: 256Mi
             limits:
               cpu: 500m
-              memory: 1Gi
+              # 1Gi -> 2Gi. Sol sits at ~600Mi idle and OOMKilled five times in
+              # five hours: a remediation run holds the ReAct transcript plus a
+              # 64K-context model response, and the peak cleared 1Gi. Limit only
+              # — requests stay at 256Mi so this does not add scheduling
+              # pressure on a node already at 97% of memory requests.
+              memory: 2Gi
           # Boot imports the full LangChain/deepagents tree before uvicorn
           # binds the port. A startupProbe gives that up to 300s WITHOUT the
           # liveness probe running — previously liveness fired at 45s and
@@ -663,7 +683,12 @@ spec:
               memory: 256Mi
             limits:
               cpu: 500m
-              memory: 1Gi
+              # 1Gi -> 2Gi. Sol sits at ~600Mi idle and OOMKilled five times in
+              # five hours: a remediation run holds the ReAct transcript plus a
+              # 64K-context model response, and the peak cleared 1Gi. Limit only
+              # — requests stay at 256Mi so this does not add scheduling
+              # pressure on a node already at 97% of memory requests.
+              memory: 2Gi
           # Boot imports the full LangChain/deepagents tree before uvicorn
           # binds the port. A startupProbe gives that up to 300s WITHOUT the
           # liveness probe running — previously liveness fired at 45s and
