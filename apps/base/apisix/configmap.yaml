@@ -110,6 +110,22 @@ data:
           # open /api/* is free inference on the Mac fleet for anyone who finds
           # the hostname.
           key-auth: {}
+      # OpenAI-shape passthrough that PRESERVES the caller's model. The
+      # llm-chat route below runs ai-proxy-multi, which overrides the model
+      # per instance (glm-4.7-flash local, glm-5.2 cloud) — correct for a
+      # caller that just wants "a model", wrong for one that has measured a
+      # specific model and needs that one. Ollama already serves the OpenAI
+      # shape at /v1 on every node, so this is a plain proxy to the fleet:
+      # same round-robin, same health checks, no model rewriting.
+      - id: ollama-openai-passthrough
+        uri: /local/v1/*
+        upstream_id: ollama-fleet
+        plugins:
+          prometheus: {}
+          key-auth: {}
+          proxy-rewrite:
+            regex_uri: ["^/local(/v1/.*)$", "$1"]
+
       - id: llm-chat
         uri: /v1/chat/completions
         plugins:
