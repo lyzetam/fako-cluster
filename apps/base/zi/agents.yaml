@@ -60,6 +60,11 @@ spec:
           envFrom:
             - secretRef:
                 name: zi-secrets
+            # ZI_AGENT_GATEWAY_KEY — APISIX gained key-auth on every LLM route,
+            # so an unauthenticated call now returns "Missing API key in
+            # request" and the run dies before its first token.
+            - secretRef:
+                name: apisix-gateway-key
           volumeMounts:
             - name: agent-memory
               mountPath: /data
@@ -196,6 +201,11 @@ spec:
           envFrom:
             - secretRef:
                 name: zi-secrets
+            # ZI_AGENT_GATEWAY_KEY — APISIX gained key-auth on every LLM route,
+            # so an unauthenticated call now returns "Missing API key in
+            # request" and the run dies before its first token.
+            - secretRef:
+                name: apisix-gateway-key
             # ZI_FAKO_GH_TOKEN — the same token Sol writes with. Vera only
             # reads PRs and submits reviews; there is no merge tool in the image.
             - secretRef:
@@ -322,6 +332,11 @@ spec:
           envFrom:
             - secretRef:
                 name: zi-secrets
+            # ZI_AGENT_GATEWAY_KEY — APISIX gained key-auth on every LLM route,
+            # so an unauthenticated call now returns "Missing API key in
+            # request" and the run dies before its first token.
+            - secretRef:
+                name: apisix-gateway-key
           volumeMounts:
             - name: agent-memory
               mountPath: /data
@@ -457,6 +472,11 @@ spec:
           envFrom:
             - secretRef:
                 name: zi-secrets
+            # ZI_AGENT_GATEWAY_KEY — APISIX gained key-auth on every LLM route,
+            # so an unauthenticated call now returns "Missing API key in
+            # request" and the run dies before its first token.
+            - secretRef:
+                name: apisix-gateway-key
             # ZI_FAKO_GH_TOKEN — write token scoped to Sol only (external-secret-fako-gh.yaml).
             - secretRef:
                 name: fako-gh-token
@@ -622,6 +642,11 @@ spec:
           envFrom:
             - secretRef:
                 name: zi-secrets
+            # ZI_AGENT_GATEWAY_KEY — APISIX gained key-auth on every LLM route,
+            # so an unauthenticated call now returns "Missing API key in
+            # request" and the run dies before its first token.
+            - secretRef:
+                name: apisix-gateway-key
           volumeMounts:
             - name: agent-memory
               mountPath: /data
