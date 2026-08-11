@@ -45,18 +45,23 @@ resources:
   # - pixie     # Now deployed via New Relic in monitoring/controllers
   
   # AI/ML stack with GPU support
-  - ollama
+  # Retired 2026-08-11 with the loss of aitower — the cluster has no GPU node.
+  # Re-enable ollama + parakeet when a GPU node joins. Their model volumes are
+  # reclaimPolicy: Retain on NFS (ollama-models 200Gi, parakeet-models 5Gi), so
+  # the downloaded models survive and re-bind by name.
+  # - ollama
   # - ollama-jetson   # Separate deployment for Jetson Orin Nano
   # - ollama-jetson2  # Separate deployment for jetson02 node with qwen3:4b
   - ollama-webui    # Keep original running
   - open-webui      # Test new namespace with shared storage
   # - whisper   # Disabled: replaced by parakeet (frees the aitower GPU slot)
-  - parakeet          # GPU Wyoming STT (port 10300) — Parakeet ONNX ASR, replaces whisper-gpu
+  # - parakeet        # Retired 2026-08-11 — GPU Wyoming STT; no GPU node since aitower died
   # - kokoro          # Pruned: 24kHz FLAC won't play on the HA Voice PE; TTS uses cluster Piper (ryan-medium) instead
   # - whisper-cpu     # Pruned: unused (HA STT uses Parakeet; voice-ingest uses whisperx). Re-enable if you need a Speaches/OpenAI STT API.
-  - piper             # Wyoming TTS (port 10200) — the active HA Voice PE TTS (ryan-medium, 4-thread)
+  # - piper           # Retired 2026-08-11 — CPU-only and healthy, but the HA voice pipeline
+  #                   # (openwakeword -> parakeet STT -> LLM -> piper TTS) cannot complete without STT
   # - piper-v13       # Piper (LinuxServer image) in separate namespace - DEACTIVATED
-  - openwakeword
+  # - openwakeword    # Retired 2026-08-11 — wake-word detection with no STT behind it
   # - node-labeling
   # - voice-pipeline-test  # End-to-end voice pipeline testing (runs nightly at 3am)
   
