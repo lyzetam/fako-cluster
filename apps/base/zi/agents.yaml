@@ -119,7 +119,11 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 0
+  # Activated: Vera reviews the agent-proposed PRs Sol opens against this repo.
+  # Sol cannot merge, so without a reviewer those PRs sit open indefinitely —
+  # five were open for up to three weeks before this. Vera cannot merge either;
+  # her verdict is a recommendation and a human still merges.
+  replicas: 1
   selector:
     matchLabels:
       app: agent-code-reviewer
@@ -162,9 +166,29 @@ spec:
               value: "6379"
             - name: ZI_API_URL
               value: "http://zi.zi.svc.cluster.local:8080"
+            # PR review loop. Daily cadence — the backlog is a handful of PRs,
+            # not a live incident feed, and one careful verdict per day clears
+            # it faster than it fills.
+            - name: ZI_PULSE_ENABLED
+              value: "true"
+            - name: ZI_PULSE_CHECK_INTERVAL
+              value: "2700"
+            - name: ZI_PULSE_REPORT_CHANNEL
+              value: "engineering-team"
+            # Repo whose agent-proposed PRs Vera reviews.
+            - name: ZI_FAKO_REPO
+              value: "lyzetam/fako-cluster"
+            # Sol opens the PRs, so Sol must never review them. Vera also
+            # always denies herself; this names the proposer explicitly.
+            - name: ZI_PR_REVIEW_AUTHOR_DENY
+              value: "k8s-engineer"
           envFrom:
             - secretRef:
                 name: zi-secrets
+            # ZI_FAKO_GH_TOKEN — the same token Sol writes with. Vera only
+            # reads PRs and submits reviews; there is no merge tool in the image.
+            - secretRef:
+                name: fako-gh-token
           volumeMounts:
             - name: agent-memory
               mountPath: /data
