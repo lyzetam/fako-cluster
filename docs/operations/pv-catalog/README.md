@@ -33,9 +33,10 @@ its own mount helper.
 
 ### Not covered (22 PVs, reported as `unmeasured`)
 
-- **17 node-local** (`local-path`) — 9 stranded on the dead aitower, 8 on live
-  nodes. The live ones need a second pass: a DaemonSet reading
-  `/var/lib/rancher/k3s/storage` on each node.
+- **9 node-local on aitower** (`local-path`) — unreadable until that node
+  returns. The other 8 live-node local PVs are now covered by
+  `catalog-local-pvs.yaml` (second pass, measured 2026-08-11: 30.25 GiB total,
+  of which 30.2 GiB is a single volume, `ai-content-studio/…-clips` on pgmac01).
 - **3 off-server** — unas `Journals`, unas `SocialMedia`, ugnas `k8s-backups`.
 
 ## Safety

@@ -1,0 +1,262 @@
+# PV catalog, second pass — node-local (`local-path`) volumes.
+#
+# The first pass (catalog-pvs.yaml) measures the 309 NFS-backed PVs by mounting
+# four parent shares. It cannot see the 17 `local-path` PVs, which live on a
+# node's own disk under /var/lib/rancher/k3s/storage and are reported as
+# `unmeasured`. This pass covers the 8 on live nodes.
+#
+# The 9 on aitower stay unmeasured until that node comes back — there is no way
+# to read a disk in a machine that is powered off.
+#
+# Directory naming: k3s local-path names each directory
+#   <pv-name>_<namespace>_<pvc-name>
+# so the PV name is everything before the first underscore. This emits that
+# prefix as the join key, matching the first pass's output format:
+#
+#   <node>\t<pv-name>\t<kb|SLOW|ERR>\t<mtime-epoch>
+#
+# SAFETY: the hostPath is mounted readOnly and the container only runs `du` and
+# `stat`. It never writes. All local-path PVs here are Bound, so nothing is
+# deleted or reclaimed as a side effect of reading them.
+#
+# WHY privileged PSS: hostPath volumes are forbidden under both `restricted` and
+# `baseline`. Root is required because each directory is owned by whatever UID
+# the original workload ran as. This namespace exists only for the duration of
+# the run and is torn down afterwards.
+#
+# This is a deliberate one-off, applied by hand. It lives outside every Flux
+# reconcile path and must never be added to one.
+#
+# Usage:
+#   kubectl apply -f catalog-local-pvs.yaml
+#   for n in pglenovo01 pglenovo02 pgmac01 thinkpad01; do
+#     kubectl logs -n pv-catalog-local job/catalog-local-$n
+#   done
+#   kubectl delete -f catalog-local-pvs.yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pv-catalog-local
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: catalog-local-pglenovo01
+  namespace: pv-catalog-local
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  template:
+    spec:
+      restartPolicy: Never
+      nodeName: pglenovo01
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: du
+          image: busybox:1.37
+          securityContext:
+            runAsUser: 0
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef: { fieldPath: spec.nodeName }
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -u
+              NODE=${NODE_NAME:?}
+              ROOT=/hostdata
+              PER_DIR_TIMEOUT=${PER_DIR_TIMEOUT:-120}
+              if [ ! -d "$ROOT" ]; then
+                echo "MISSING	$NODE	0	0"
+                echo "CATALOG_COMPLETE"
+                exit 0
+              fi
+              for d in "$ROOT"/*/; do
+                [ -d "$d" ] || continue
+                base=$(basename "$d")
+                # PV name is the segment before the first underscore
+                pv=$(echo "$base" | cut -d_ -f1)
+                mt=$(stat -c %Y "$d" 2>/dev/null || echo 0)
+                kb=$(timeout -s KILL "$PER_DIR_TIMEOUT" du -sk "$d" 2>/dev/null | cut -f1)
+                if [ -z "$kb" ]; then
+                  if timeout -s KILL 10 ls "$d" >/dev/null 2>&1; then kb=SLOW; else kb=ERR; fi
+                fi
+                echo "$NODE	$pv	$kb	$mt"
+              done
+              echo "CATALOG_COMPLETE"
+          volumeMounts:
+            - name: hostdata
+              mountPath: /hostdata
+              readOnly: true
+          resources:
+            requests: { memory: "16Mi", cpu: "10m" }
+            limits:   { memory: "64Mi", cpu: "500m" }
+      volumes:
+        - name: hostdata
+          hostPath:
+            path: /var/lib/rancher/k3s/storage
+            type: Directory
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: catalog-local-pglenovo02
+  namespace: pv-catalog-local
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  template:
+    spec:
+      restartPolicy: Never
+      nodeName: pglenovo02
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: du
+          image: busybox:1.37
+          securityContext:
+            runAsUser: 0
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef: { fieldPath: spec.nodeName }
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -u
+              NODE=${NODE_NAME:?}; ROOT=/hostdata; PER_DIR_TIMEOUT=${PER_DIR_TIMEOUT:-120}
+              if [ ! -d "$ROOT" ]; then echo "MISSING	$NODE	0	0"; echo "CATALOG_COMPLETE"; exit 0; fi
+              for d in "$ROOT"/*/; do
+                [ -d "$d" ] || continue
+                pv=$(basename "$d" | cut -d_ -f1)
+                mt=$(stat -c %Y "$d" 2>/dev/null || echo 0)
+                kb=$(timeout -s KILL "$PER_DIR_TIMEOUT" du -sk "$d" 2>/dev/null | cut -f1)
+                if [ -z "$kb" ]; then
+                  if timeout -s KILL 10 ls "$d" >/dev/null 2>&1; then kb=SLOW; else kb=ERR; fi
+                fi
+                echo "$NODE	$pv	$kb	$mt"
+              done
+              echo "CATALOG_COMPLETE"
+          volumeMounts:
+            - name: hostdata
+              mountPath: /hostdata
+              readOnly: true
+          resources:
+            requests: { memory: "16Mi", cpu: "10m" }
+            limits:   { memory: "64Mi", cpu: "500m" }
+      volumes:
+        - name: hostdata
+          hostPath:
+            path: /var/lib/rancher/k3s/storage
+            type: Directory
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: catalog-local-pgmac01
+  namespace: pv-catalog-local
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  template:
+    spec:
+      restartPolicy: Never
+      nodeName: pgmac01
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: du
+          image: busybox:1.37
+          securityContext:
+            runAsUser: 0
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef: { fieldPath: spec.nodeName }
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -u
+              NODE=${NODE_NAME:?}; ROOT=/hostdata; PER_DIR_TIMEOUT=${PER_DIR_TIMEOUT:-120}
+              if [ ! -d "$ROOT" ]; then echo "MISSING	$NODE	0	0"; echo "CATALOG_COMPLETE"; exit 0; fi
+              for d in "$ROOT"/*/; do
+                [ -d "$d" ] || continue
+                pv=$(basename "$d" | cut -d_ -f1)
+                mt=$(stat -c %Y "$d" 2>/dev/null || echo 0)
+                kb=$(timeout -s KILL "$PER_DIR_TIMEOUT" du -sk "$d" 2>/dev/null | cut -f1)
+                if [ -z "$kb" ]; then
+                  if timeout -s KILL 10 ls "$d" >/dev/null 2>&1; then kb=SLOW; else kb=ERR; fi
+                fi
+                echo "$NODE	$pv	$kb	$mt"
+              done
+              echo "CATALOG_COMPLETE"
+          volumeMounts:
+            - name: hostdata
+              mountPath: /hostdata
+              readOnly: true
+          resources:
+            requests: { memory: "16Mi", cpu: "10m" }
+            limits:   { memory: "64Mi", cpu: "500m" }
+      volumes:
+        - name: hostdata
+          hostPath:
+            path: /var/lib/rancher/k3s/storage
+            type: Directory
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: catalog-local-thinkpad01
+  namespace: pv-catalog-local
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  template:
+    spec:
+      restartPolicy: Never
+      nodeName: thinkpad01
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: du
+          image: busybox:1.37
+          securityContext:
+            runAsUser: 0
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef: { fieldPath: spec.nodeName }
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -u
+              NODE=${NODE_NAME:?}; ROOT=/hostdata; PER_DIR_TIMEOUT=${PER_DIR_TIMEOUT:-120}
+              if [ ! -d "$ROOT" ]; then echo "MISSING	$NODE	0	0"; echo "CATALOG_COMPLETE"; exit 0; fi
+              for d in "$ROOT"/*/; do
+                [ -d "$d" ] || continue
+                pv=$(basename "$d" | cut -d_ -f1)
+                mt=$(stat -c %Y "$d" 2>/dev/null || echo 0)
+                kb=$(timeout -s KILL "$PER_DIR_TIMEOUT" du -sk "$d" 2>/dev/null | cut -f1)
+                if [ -z "$kb" ]; then
+                  if timeout -s KILL 10 ls "$d" >/dev/null 2>&1; then kb=SLOW; else kb=ERR; fi
+                fi
+                echo "$NODE	$pv	$kb	$mt"
+              done
+              echo "CATALOG_COMPLETE"
+          volumeMounts:
+            - name: hostdata
+              mountPath: /hostdata
+              readOnly: true
+          resources:
+            requests: { memory: "16Mi", cpu: "10m" }
+            limits:   { memory: "64Mi", cpu: "500m" }
+      volumes:
+        - name: hostdata
+          hostPath:
+            path: /var/lib/rancher/k3s/storage
+            type: Directory
