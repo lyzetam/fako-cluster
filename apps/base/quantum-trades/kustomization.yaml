@@ -47,6 +47,7 @@ resources:
   - cronjob-funnel-check.yaml
   # Exit validation: post-close divergence audit + pre-open regression gate
   - cronjob-exit-validation-postclose.yaml
+  - cronjob-loop-watchdog.yaml
   - cronjob-exit-validation-preopen.yaml
   # Orchestrator-QT - LangGraph Trading Coordinator
   - redis-orchestrator-qt.yaml
