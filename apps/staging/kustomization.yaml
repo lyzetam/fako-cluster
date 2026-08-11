@@ -89,7 +89,7 @@ resources:
   - apisix
 
   # Document Management
-  - paperless-ngx   # Document management system with OCR
+  # - paperless-ngx # Deactivated 2026-08-11 - not in use. 56MB of docs; all 5 PVs are Retain so data survives on the NAS.
 
   # Trading Platform
   - quantum-trades  # Quantum Trades trading platform
@@ -103,7 +103,8 @@ resources:
   # - whisperx        # Disabled - GPU slot freed for whisper-gpu (HA voice). Re-enable on-demand for Obsidian transcription.
 
   # Argo Workflows - Audio Processing Pipeline
-  - audio-workflows # Unified audio processing DAG (replaces CronJobs)
+  # - audio-workflows # Deactivated 2026-08-11 - no audio files being processed. audio-raw (50Gi) and
+  #                   # transcriptions (10Gi) PVs are Retain, so data survives on the NAS.
 
   # Public AI Social Feed
   - autobots        # AI team conversations at autobots.landryzetam.net

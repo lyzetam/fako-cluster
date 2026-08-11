@@ -11,6 +11,7 @@ resources:
   - system-tuning
   - cloudnative-pg
   - unifi-data
-  - argo-workflows
+  # - argo-workflows  # Deactivated 2026-08-11 - audio-workflows was its only consumer (sole source of
+  #                   # Workflow/CronWorkflow/WorkflowTemplate CRs cluster-wide) and is now retired.
   - system-upgrade-controller
   # - newrelic
