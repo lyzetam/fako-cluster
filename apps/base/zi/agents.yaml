@@ -520,8 +520,22 @@ spec:
             # restart; all destructive kubectl is refused.
             - name: ZI_PULSE_ENABLED
               value: "true"
+            # 900 -> 2700. The pulse loop is SERIAL: it runs one due task, then
+            # sleeps check_interval. A sweep against the local 30B model takes
+            # 1200-2700s, so at 900s the fleet was working ~60% of every hour
+            # with two agents (Sol's delegated run happens inside Noor's sweep,
+            # blocking on it). 2700s gives the Mac Studios real idle time
+            # between sweeps — they serve NUM_PARALLEL=1, so a queued canary
+            # sits behind a multi-minute generation. A watchtower that reports
+            # once an hour and finishes beats one that starts every 15 minutes
+            # and times out 21 times in 24.
             - name: ZI_PULSE_CHECK_INTERVAL
-              value: "900"
+              value: "2700"
+            # Explicit rather than inherited. The code floors the gateway client
+            # timeout at 400s regardless, but leaving this unset made the
+            # effective per-call budget invisible in the manifest.
+            - name: ZI_OLLAMA_TIMEOUT
+              value: "400"
             # Watchtower posts cluster-health issues to #infrastructure (only on
             # real problems, deduped). Weekly report defaults to #engineering-team.
             - name: ZI_PULSE_REPORT_CHANNEL
