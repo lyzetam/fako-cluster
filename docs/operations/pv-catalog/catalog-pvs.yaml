@@ -1,0 +1,204 @@
+# PV catalog — measures the ACTUAL bytes behind every NFS-backed PersistentVolume.
+#
+# Why this exists: `kubectl get pv` reports the capacity someone typed into a
+# manifest, which for thin NFS volumes is fiction. A 200Gi PV may hold 40Gi or
+# nothing. With 275 of 331 PVs sitting Released (orphaned but Retain), the only
+# way to know which are empty shells and which hold real data is to read the disk.
+#
+# How it works: every dynamically-provisioned nfs.csi.k8s.io PV is a subdirectory
+# named after itself under one of four parent shares on 10.85.30.127. Verified:
+# 309/309 PVs have volumeAttributes.subdir == metadata.name. So mounting the four
+# PARENT shares read-only in one pod and running `du -sk` on each child measures
+# 309 of 331 PVs in a single pass.
+#
+#   /volume1/k8s-storage   268 PVs
+#   /volume1/k8s-db         25 PVs
+#   /volume1/k8s-pg         13 PVs
+#   /volume1/k8s-backups     3 PVs
+#
+# Not covered (22 PVs), reported as "unmeasured" by join-catalog.py:
+#   - 17 node-local (local-path): 9 stranded on the dead aitower, 8 on live nodes
+#     (those need a DaemonSet reading /var/lib/rancher/k3s/storage, second pass)
+#   - 3 off-server: unas Journals, unas SocialMedia, ugnas k8s-backups
+#
+# SAFETY: read-only three ways over — ReadOnlyMany PVs, `ro` mount option, and
+# readOnly:true on every container mount. The Job only runs `du` and `stat`.
+# All PVs here are reclaimPolicy Retain, so deleting these objects afterwards
+# touches no data.
+#
+# This is a deliberate one-off, applied by hand. It lives outside every Flux
+# reconcile path (apps/staging, infrastructure/*, monitoring/*, clusters/) and
+# must never be added to one.
+#
+# Usage: see README.md in this directory.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pv-catalog
+  labels:
+    # baseline, not restricted: the container runs as root so `du` can traverse
+    # directories owned by whatever UID each original workload used. Without it
+    # a large fraction of the catalog comes back unreadable.
+    pod-security.kubernetes.io/enforce: baseline
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: catalog-k8s-storage
+spec:
+  capacity: { storage: 1Gi }          # informational only; NFS is thin
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [nfsvers=3, nolock, ro, hard]
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: catalog-k8s-storage
+    readOnly: true
+    volumeAttributes:
+      server: "10.85.30.127"
+      share: "/volume1/k8s-storage"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: catalog-k8s-db
+spec:
+  capacity: { storage: 1Gi }
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [nfsvers=3, nolock, ro, hard]
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: catalog-k8s-db
+    readOnly: true
+    volumeAttributes:
+      server: "10.85.30.127"
+      share: "/volume1/k8s-db"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: catalog-k8s-pg
+spec:
+  capacity: { storage: 1Gi }
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [nfsvers=3, nolock, ro, hard]
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: catalog-k8s-pg
+    readOnly: true
+    volumeAttributes:
+      server: "10.85.30.127"
+      share: "/volume1/k8s-pg"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: catalog-k8s-backups
+spec:
+  capacity: { storage: 1Gi }
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [nfsvers=3, nolock, ro, hard]
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: catalog-k8s-backups
+    readOnly: true
+    volumeAttributes:
+      server: "10.85.30.127"
+      share: "/volume1/k8s-backups"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: k8s-storage, namespace: pv-catalog }
+spec:
+  accessModes: [ReadOnlyMany]
+  storageClassName: ""
+  volumeName: catalog-k8s-storage
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: k8s-db, namespace: pv-catalog }
+spec:
+  accessModes: [ReadOnlyMany]
+  storageClassName: ""
+  volumeName: catalog-k8s-db
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: k8s-pg, namespace: pv-catalog }
+spec:
+  accessModes: [ReadOnlyMany]
+  storageClassName: ""
+  volumeName: catalog-k8s-pg
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: k8s-backups, namespace: pv-catalog }
+spec:
+  accessModes: [ReadOnlyMany]
+  storageClassName: ""
+  volumeName: catalog-k8s-backups
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pv-catalog
+  namespace: pv-catalog
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 5400        # du over ~7TB of NFSv3 is the slow part
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 0                 # see namespace comment
+      containers:
+        - name: du
+          image: busybox:1.37
+          command: ["sh", "-c"]
+          args:
+            - |
+              # Emits TSV: share <TAB> pvname <TAB> kbytes <TAB> dir_mtime_epoch
+              # kbytes is "ERR" if the directory could not be read, never a
+              # silent 0 -- an unreadable volume must not look like an empty one.
+              set -u
+              for share in k8s-storage k8s-db k8s-pg k8s-backups; do
+                base=/mnt/$share
+                if [ ! -d "$base" ]; then
+                  echo "MISSING	$share	0	0"
+                  continue
+                fi
+                for d in "$base"/*; do
+                  [ -d "$d" ] || continue
+                  name=$(basename "$d")
+                  kb=$(du -sk "$d" 2>/dev/null | cut -f1)
+                  [ -n "${kb:-}" ] || kb=ERR
+                  mt=$(stat -c %Y "$d" 2>/dev/null || echo 0)
+                  echo "$share	$name	$kb	$mt"
+                done
+              done
+              echo "CATALOG_COMPLETE"
+          volumeMounts:
+            - { name: k8s-storage, mountPath: /mnt/k8s-storage, readOnly: true }
+            - { name: k8s-db,      mountPath: /mnt/k8s-db,      readOnly: true }
+            - { name: k8s-pg,      mountPath: /mnt/k8s-pg,      readOnly: true }
+            - { name: k8s-backups, mountPath: /mnt/k8s-backups, readOnly: true }
+          resources:
+            requests: { memory: "16Mi", cpu: "10m" }
+            limits:   { memory: "64Mi", cpu: "500m" }
+      volumes:
+        - { name: k8s-storage, persistentVolumeClaim: { claimName: k8s-storage, readOnly: true } }
+        - { name: k8s-db,      persistentVolumeClaim: { claimName: k8s-db,      readOnly: true } }
+        - { name: k8s-pg,      persistentVolumeClaim: { claimName: k8s-pg,      readOnly: true } }
+        - { name: k8s-backups, persistentVolumeClaim: { claimName: k8s-backups, readOnly: true } }
