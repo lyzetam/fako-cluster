@@ -12,7 +12,7 @@ resources:
   - ig-inbox-uploader  # IG inbox → Dropbox/Supabase uploader (Tailscale-private)
   - dji-media          # read-only NAS media server for DJI footage (Tailscale-private)
   - social-media       # versitygw S3 gateway over the SocialMedia UNAS drive (IG pipeline storage)
-  - selfheal-test     # THROWAWAY OOM test for self-heal act-path (remove after)
+  # - selfheal-test   # Deactivated 2026-08-10 - throwaway OOM test, done its job (96 restarts/22min)
   - feed-cache        # In-memory render cache for the feed service
   # - oura-dashboard  # Deactivated - not in use
   # - wger
@@ -65,7 +65,7 @@ resources:
   - claude-usage-dashboard  # Internal Claude API cost/usage dashboard (LAN-only)
 
   # Exolabs (replaced GPUStack)
-  - exo               # Service proxy to exolabs Mac Studio cluster
+  # - exo             # Deactivated 2026-08-10 - bare ClusterIP Service, no pods/workloads; exo cluster not in use
   # - gpustack-proxy  # REPLACED by exo
   
   # Workflow Automation
