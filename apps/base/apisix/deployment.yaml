@@ -37,6 +37,19 @@ spec:
                 secretKeyRef:
                   name: apisix-provider-keys
                   key: OLLAMA_CLOUD_AUTH
+            # Consumer keys for key-auth. Referenced as ${{VAR}} in apisix.yaml;
+            # the ConfigMap is plaintext in git so the values can only come from
+            # the SOPS secret via the environment.
+            - name: APISIX_KEY_SOCIAL
+              valueFrom:
+                secretKeyRef:
+                  name: apisix-provider-keys
+                  key: APISIX_KEY_SOCIAL
+            - name: APISIX_KEY_CLUSTER
+              valueFrom:
+                secretKeyRef:
+                  name: apisix-provider-keys
+                  key: APISIX_KEY_CLUSTER
           ports:
             - name: proxy
               containerPort: 9080
