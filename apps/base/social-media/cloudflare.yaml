@@ -123,6 +123,16 @@ data:
       # terminates the real TLS at the edge.
       - hostname: vault-api.landryzetam.net
         service: https://obsidian-api.landryzetam.net:27124
+      # APISIX AI gateway — the LLM front door for the Mac Studio fleet, so
+      # workloads OUTSIDE the cluster (the social pipeline runs on a Hostinger
+      # VPS) can reach local models and fall back to Ollama Cloud on 429/5xx.
+      #
+      # This is the only reason the gateway is on the internet at all, so it is
+      # NOT open: every route behind it requires APISIX key-auth, and the
+      # social consumer is additionally rate-limited to 600 requests/hour so a
+      # runaway agent loop cannot saturate a fleet the whole homelab shares.
+      - hostname: llm.landryzetam.net
+        service: http://apisix.apisix.svc.cluster.local:9080
         originRequest:
           noTLSVerify: true
       # Anything that did not match above is not part of this service.

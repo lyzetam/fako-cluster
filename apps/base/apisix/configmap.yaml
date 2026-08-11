@@ -70,6 +70,33 @@ data:
               http_statuses: [500, 502, 503, 504]
               http_failures: 2
               timeouts: 2
+    consumers:
+      # key-auth is the standard API-key mechanism in APISIX: the consumer
+      # presents `apikey: <key>` and the gateway resolves it to a named
+      # identity BEFORE proxying. Named consumers are what make per-client
+      # rate limits and per-client metrics possible — an anonymous shared
+      # bearer gives you neither, and revoking one client means rotating for
+      # everyone.
+      #
+      # Keys come from the SOPS secret via $ENV, never inline: this ConfigMap
+      # is plaintext in git.
+      - username: social_media_content
+        plugins:
+          key-auth:
+            key: "${{APISIX_KEY_SOCIAL}}"
+          limit-count:
+            # A runaway agent loop must not saturate a three-node fleet that
+            # serves every other project. 600/hour is ~10x a normal pipeline
+            # day (3 orchestrator runs at tens of calls each) and still bounded.
+            count: 600
+            time_window: 3600
+            rejected_code: 429
+            policy: local
+      - username: cluster_internal
+        plugins:
+          key-auth:
+            key: "${{APISIX_KEY_CLUSTER}}"
+
     routes:
       # Ollama-native front door. Everything that currently dials a Mac directly
       # points here instead, so no workload is pinned to one node.
@@ -78,10 +105,16 @@ data:
         upstream_id: ollama-fleet
         plugins:
           prometheus: {}
+          # Was unauthenticated because it was only reachable in-cluster. Once
+          # this is exposed through the tunnel that is no longer true, and an
+          # open /api/* is free inference on the Mac fleet for anyone who finds
+          # the hostname.
+          key-auth: {}
       - id: llm-chat
         uri: /v1/chat/completions
         plugins:
           prometheus: {}
+          key-auth: {}
           ai-proxy-multi:
             balancer:
               algorithm: roundrobin
