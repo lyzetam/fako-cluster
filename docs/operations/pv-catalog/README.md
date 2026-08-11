@@ -62,8 +62,11 @@ python3 join-catalog.py --csv ~/pv-catalog-$(date +%F).csv   # optional
 kubectl delete -f catalog-pvs.yaml
 ```
 
-`du` over ~7TB of NFSv3 is the slow part. Budget 30–90 minutes, not 10. The Job
-has `activeDeadlineSeconds: 5400`.
+`du` over ~7TB of NFSv3 is the slow part. Measured run: **9 minutes**, because
+each directory is bounded by `PER_DIR_TIMEOUT` (default 120s). Without that bound
+a single chunk store — `loki-stack/storage-loki-0` — held the walk for over 14
+minutes on its own and would have consumed the whole Job deadline, returning no
+catalog at all. Volumes that exceed the bound report `SLOW` and the run moves on.
 
 `join-catalog.py` refuses to print if the Job's `CATALOG_COMPLETE` sentinel is
 missing, so a partial run can't be mistaken for a full one.
@@ -71,7 +74,16 @@ missing, so a partial run can't be mistaken for a full one.
 ## Output
 
 Per PV: name, phase, the claim it belonged to, claimed size, **actual size**, and
-directory mtime — sorted Released-first, biggest-real-data-first. Then a summary
+directory mtime. Sizes that are not a number carry meaning:
+
+| value | meaning |
+|---|---|
+| `GONE` | share was mounted and walked, but no directory of that name exists — the PV is a tombstone, safe to reap |
+| `SLOW` | exceeded `PER_DIR_TIMEOUT`; readable but too large to walk. **Never** treated as empty |
+| `ERR` | unreadable. **Never** treated as empty |
+| `unmeasured` | node-local or off-server; not covered by this pass |
+
+The table is — sorted Released-first, biggest-real-data-first. Then a summary
 splitting Released volumes into "effectively empty (<1MiB), safe to reap" versus
 "still holding data", and a claimed-vs-real total.
 

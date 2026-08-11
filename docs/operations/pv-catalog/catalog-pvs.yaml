@@ -170,9 +170,21 @@ spec:
           args:
             - |
               # Emits TSV: share <TAB> pvname <TAB> kbytes <TAB> dir_mtime_epoch
-              # kbytes is "ERR" if the directory could not be read, never a
-              # silent 0 -- an unreadable volume must not look like an empty one.
+              #
+              # kbytes is:
+              #   <number>  measured size in KiB
+              #   ERR       directory unreadable (NEVER a silent 0 -- an
+              #             unreadable volume must not look like an empty one)
+              #   SLOW      exceeded PER_DIR_TIMEOUT and was abandoned
+              #
+              # The per-directory timeout is essential. Chunk stores like
+              # loki-stack/storage-loki-0 hold enormous numbers of small files,
+              # and a single one can consume the entire Job deadline over NFSv3 --
+              # which would mean finishing with no catalog at all. Bounding each
+              # directory guarantees the run always completes; the handful of SLOW
+              # entries can be measured individually afterwards if you care.
               set -u
+              PER_DIR_TIMEOUT=${PER_DIR_TIMEOUT:-120}
               for share in k8s-storage k8s-db k8s-pg k8s-backups; do
                 base=/mnt/$share
                 if [ ! -d "$base" ]; then
@@ -182,9 +194,13 @@ spec:
                 for d in "$base"/*; do
                   [ -d "$d" ] || continue
                   name=$(basename "$d")
-                  kb=$(du -sk "$d" 2>/dev/null | cut -f1)
-                  [ -n "${kb:-}" ] || kb=ERR
                   mt=$(stat -c %Y "$d" 2>/dev/null || echo 0)
+                  kb=$(timeout -s KILL "$PER_DIR_TIMEOUT" du -sk "$d" 2>/dev/null | cut -f1)
+                  if [ -z "${kb:-}" ]; then
+                    # Distinguish "too slow" from "unreadable": a cheap listing
+                    # succeeds on a readable-but-huge directory.
+                    if timeout -s KILL 10 ls "$d" >/dev/null 2>&1; then kb=SLOW; else kb=ERR; fi
+                  fi
                   echo "$share	$name	$kb	$mt"
                 done
               done

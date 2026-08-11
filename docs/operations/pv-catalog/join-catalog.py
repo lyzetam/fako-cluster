@@ -68,6 +68,14 @@ def main() -> None:
     if missing_shares:
         print(f"WARNING: these shares did not mount: {', '.join(missing_shares)}\n")
 
+    # Shares this pass actually mounted. A PV whose share is in here but whose
+    # directory produced no row has no backing directory left on disk.
+    MOUNTED = {"/volume1/k8s-storage", "/volume1/k8s-db",
+               "/volume1/k8s-pg", "/volume1/k8s-backups"}
+    MOUNTED_SERVER = "10.85.30.127"
+    CATALOG_OWN = {"catalog-k8s-storage", "catalog-k8s-db",
+                   "catalog-k8s-pg", "catalog-k8s-backups"}
+
     pvs = json.loads(sh("kubectl", "get", "pv", "-o", "json"))["items"]
 
     rows = []
@@ -75,10 +83,22 @@ def main() -> None:
         name = pv["metadata"]["name"]
         claim = pv["spec"].get("claimRef") or {}
         share, kb, mt = sizes.get(name, ("-", None, 0))
-        if kb is None:
+        csi = pv["spec"].get("csi") or {}
+        va = csi.get("volumeAttributes") or {}
+        on_mounted_share = (va.get("server") == MOUNTED_SERVER
+                            and va.get("share") in MOUNTED
+                            and name not in CATALOG_OWN)
+        if kb is None and on_mounted_share:
+            # Its share was mounted and walked, yet no directory bearing this
+            # PV's name exists -> the backing directory is already gone.
+            actual = "GONE"
+        elif kb is None:
             actual = None          # not covered by this pass
-        elif kb == "ERR":
-            actual = "ERR"         # covered but unreadable — never treat as empty
+        elif kb in ("ERR", "SLOW"):  # noqa: E501
+            # ERR  = unreadable; SLOW = too large to walk inside the timeout.
+            # Neither is ever treated as empty, so neither can be reaped by
+            # mistake off the back of this report.
+            actual = kb
         else:
             actual = int(kb) / 1024  # MiB
         rows.append({
@@ -108,8 +128,8 @@ def main() -> None:
         a = r["actual_mib"]
         if a is None:
             shown = "unmeasured"
-        elif a == "ERR":
-            shown = "ERR"
+        elif isinstance(a, str):
+            shown = a
         elif a >= 1024:
             shown = f"{a/1024:.1f}G"
         else:
@@ -123,6 +143,9 @@ def main() -> None:
     empty = [r for r in rel_meas if r["actual_mib"] < 1]
     holding = [r for r in rel_meas if r["actual_mib"] >= 1]
     errs = [r for r in rows if r["actual_mib"] == "ERR"]
+    slow = [r for r in rows if r["actual_mib"] == "SLOW"]
+    gone = [r for r in rows if r["actual_mib"] == "GONE"]
+    gone_released = [r for r in gone if r["phase"] == "Released"]
     unmeasured = [r for r in rows if r["actual_mib"] is None]
 
     real_gib = sum(r["actual_mib"] for r in measured) / 1024
@@ -132,11 +155,15 @@ def main() -> None:
     print(f'PVs total .................... {len(rows)}')
     print(f'  measured ................... {len(measured)}')
     print(f'  unreadable (ERR) ........... {len(errs)}')
+    print(f'  too large to walk (SLOW) ... {len(slow)}')
+    print(f'  backing dir already gone ... {len(gone)}')
     print(f'  unmeasured (node-local/off-server) {len(unmeasured)}')
     print()
     print(f'Released total ............... {len(released)}')
     print(f'  effectively empty (<1MiB) .. {len(empty)}   <-- safe to reap')
+    print(f'  backing dir gone ........... {len(gone_released)}   <-- safe to reap')
     print(f'  still holding data ......... {len(holding)}')
+    print(f'  TOTAL definitively reapable  {len(empty) + len(gone_released)}')
     print()
     print(f'Claimed vs real (measured PVs): {claimed_gib:,.0f} GiB claimed '
           f'vs {real_gib:,.1f} GiB actual')
