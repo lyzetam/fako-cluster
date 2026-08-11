@@ -61,7 +61,7 @@ resources:
   # - voice-pipeline-test  # End-to-end voice pipeline testing (runs nightly at 3am)
   
   # AI Agent
-  - claude-code     # Claude Code container for n8n SSH orchestration
+  # - claude-code   # Deactivated 2026-08-11 - idle 7d+, no n8n workflow references it, no PVCs
   - claude-usage-dashboard  # Internal Claude API cost/usage dashboard (LAN-only)
 
   # Exolabs (replaced GPUStack)
