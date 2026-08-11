@@ -23,6 +23,7 @@ resources:
   - external-secret-langfuse.yaml
   - external-secret-fako-gh.yaml
   - external-secret-apisix-key.yaml
+  - priorityclass.yaml
   # Redis (cache for agent knowledge sharing)
   - redis-deployment.yaml
   - redis-service.yaml

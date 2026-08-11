@@ -7,7 +7,16 @@ metadata:
     app.kubernetes.io/name: autobots-agent-kira
     app.kubernetes.io/part-of: autobots
 spec:
-  replicas: 1
+  # PAUSED 2026-08-11. Nine agents (these five + zi's four) share three Mac
+  # Studios that serve NUM_PARALLEL=1, so one long run blocks everything queued
+  # behind it. Symptoms while running: 502s from APISIX here, and zi's reviewer
+  # timing out at 630-800s. Paused to give the fleet back to zi — Sol in
+  # particular has to stay responsive, he is the one that fixes the cluster.
+  #
+  # Resume: set this back to 1 (all five), commit, `flux reconcile kustomization
+  # apps --with-source`. Nothing else was removed — services, secrets, the feed
+  # and the UI are all untouched, so the board still serves.
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: autobots-agent-kira
@@ -56,7 +65,16 @@ metadata:
     app.kubernetes.io/name: autobots-agent-emeka
     app.kubernetes.io/part-of: autobots
 spec:
-  replicas: 1
+  # PAUSED 2026-08-11. Nine agents (these five + zi's four) share three Mac
+  # Studios that serve NUM_PARALLEL=1, so one long run blocks everything queued
+  # behind it. Symptoms while running: 502s from APISIX here, and zi's reviewer
+  # timing out at 630-800s. Paused to give the fleet back to zi — Sol in
+  # particular has to stay responsive, he is the one that fixes the cluster.
+  #
+  # Resume: set this back to 1 (all five), commit, `flux reconcile kustomization
+  # apps --with-source`. Nothing else was removed — services, secrets, the feed
+  # and the UI are all untouched, so the board still serves.
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: autobots-agent-emeka
@@ -105,7 +123,16 @@ metadata:
     app.kubernetes.io/name: autobots-agent-rafa
     app.kubernetes.io/part-of: autobots
 spec:
-  replicas: 1
+  # PAUSED 2026-08-11. Nine agents (these five + zi's four) share three Mac
+  # Studios that serve NUM_PARALLEL=1, so one long run blocks everything queued
+  # behind it. Symptoms while running: 502s from APISIX here, and zi's reviewer
+  # timing out at 630-800s. Paused to give the fleet back to zi — Sol in
+  # particular has to stay responsive, he is the one that fixes the cluster.
+  #
+  # Resume: set this back to 1 (all five), commit, `flux reconcile kustomization
+  # apps --with-source`. Nothing else was removed — services, secrets, the feed
+  # and the UI are all untouched, so the board still serves.
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: autobots-agent-rafa
@@ -154,7 +181,16 @@ metadata:
     app.kubernetes.io/name: autobots-agent-amara
     app.kubernetes.io/part-of: autobots
 spec:
-  replicas: 1
+  # PAUSED 2026-08-11. Nine agents (these five + zi's four) share three Mac
+  # Studios that serve NUM_PARALLEL=1, so one long run blocks everything queued
+  # behind it. Symptoms while running: 502s from APISIX here, and zi's reviewer
+  # timing out at 630-800s. Paused to give the fleet back to zi — Sol in
+  # particular has to stay responsive, he is the one that fixes the cluster.
+  #
+  # Resume: set this back to 1 (all five), commit, `flux reconcile kustomization
+  # apps --with-source`. Nothing else was removed — services, secrets, the feed
+  # and the UI are all untouched, so the board still serves.
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: autobots-agent-amara
@@ -203,7 +239,16 @@ metadata:
     app.kubernetes.io/name: autobots-agent-jordan
     app.kubernetes.io/part-of: autobots
 spec:
-  replicas: 1
+  # PAUSED 2026-08-11. Nine agents (these five + zi's four) share three Mac
+  # Studios that serve NUM_PARALLEL=1, so one long run blocks everything queued
+  # behind it. Symptoms while running: 502s from APISIX here, and zi's reviewer
+  # timing out at 630-800s. Paused to give the fleet back to zi — Sol in
+  # particular has to stay responsive, he is the one that fixes the cluster.
+  #
+  # Resume: set this back to 1 (all five), commit, `flux reconcile kustomization
+  # apps --with-source`. Nothing else was removed — services, secrets, the feed
+  # and the UI are all untouched, so the board still serves.
+  replicas: 0
   selector:
     matchLabels:
       app.kubernetes.io/name: autobots-agent-jordan
