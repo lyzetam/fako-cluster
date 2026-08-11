@@ -1,0 +1,82 @@
+# Enrich: read notes harvest already stored, summarize them and write carousel angles,
+# then update the same files in place. Never touches Gmail and never opens a URL — the
+# article text is already on disk.
+#
+# Runs after harvest rather than as part of it because the two fail differently. A
+# fetch is worth doing once; a summary is worth re-running whenever the prompt improves.
+# Anything left unenriched stays `enriched: false` and is picked up by the next run, so
+# a bad night self-heals with no bookkeeping.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tldr-enrich
+  namespace: tldr-pipeline
+  labels:
+    app.kubernetes.io/name: tldr-pipeline
+    app.kubernetes.io/component: enrich
+    app.kubernetes.io/part-of: tldr-pipeline
+    app.kubernetes.io/managed-by: flux
+spec:
+  # 15:30 UTC — half an hour after harvest, which takes about five minutes for a full
+  # day. If harvest overruns, enrichment simply finds fewer unenriched notes and the
+  # rest are picked up tomorrow; nothing is lost either way.
+  schedule: "30 15 * * 1-5"   # UTC. TLDR does not publish at weekends.
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      # ~100 notes at two model calls each, concurrency 6, plus re-mailing only what
+      # changed. The 2026-08-10 backfill of 96 notes took about eight minutes.
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: tldr-pipeline
+            app.kubernetes.io/component: enrich
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: enrich
+              image: lzetam/tldr-pipeline:latest
+              imagePullPolicy: Always
+              command: ["tldr-enrich"]  # the image entrypoint is the harvest run
+              args: ["--apply"]         # both commands are dry without this
+              envFrom:
+                - secretRef:
+                    name: tldr-pipeline-secrets
+              env:
+                - name: HOME
+                  value: /tmp
+                # Ollama Cloud by decision — the in-cluster GPU is down until further
+                # notice. Point this at http://ollama-gpu.ollama.svc.cluster.local:11434
+                # to bring inference home; no other change is needed.
+                - name: TLDR_OLLAMA_BASE
+                  value: "https://ollama.com"
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}
