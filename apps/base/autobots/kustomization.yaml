@@ -9,6 +9,7 @@ resources:
   - tunnel-secret.yaml
   - dockerhub-secret.yaml
   - feed-external-secret.yaml
+  - external-secret-gateway.yaml
   - agents-db-external-secret.yaml
   - feed-deployment.yaml
   - feed-service.yaml
