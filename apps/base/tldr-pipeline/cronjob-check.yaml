@@ -1,0 +1,82 @@
+# Watchdog: check that the day actually produced something, and shout into Discord if
+# it did not.
+#
+# It checks the OUTCOME, not the job status. A Job marked Complete has already lied to
+# us once, and a Job marked Failed had already done all its work. What matters is
+# whether notes exist, whether they are enriched, whether the inbox agrees with the
+# vault, and whether the digest arrived.
+#
+# On 2026-08-11 both CronJobs failed at 15:00 and 15:30 UTC and sat failed for eight
+# hours, because a failed harvest looks exactly like a quiet day from outside.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tldr-check
+  namespace: tldr-pipeline
+  labels:
+    app.kubernetes.io/name: tldr-pipeline
+    app.kubernetes.io/component: watchdog
+    app.kubernetes.io/part-of: tldr-pipeline
+    app.kubernetes.io/managed-by: flux
+spec:
+  # 16:15 UTC — after harvest (15:00, ~8 min) and enrichment (15:30, ~10 min), with
+  # room for a slow day before declaring anything wrong.
+  schedule: "15 16 * * 1-5"   # UTC. TLDR does not publish at weekends.
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      # Reads the vault and lists the inbox. Seconds, not minutes.
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: tldr-pipeline
+            app.kubernetes.io/component: watchdog
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: check
+              image: lzetam/tldr-pipeline:latest
+              imagePullPolicy: Always
+              command: ["tldr-check"]   # read-only; it never writes or sends mail
+              args: []
+              envFrom:
+                - secretRef:
+                    name: tldr-pipeline-secrets
+              env:
+                - name: HOME
+                  value: /tmp
+                # Ollama Cloud by decision — the in-cluster GPU is down until further
+                # notice. Point this at http://ollama-gpu.ollama.svc.cluster.local:11434
+                # to bring inference home; no other change is needed.
+                - name: TLDR_OLLAMA_BASE
+                  value: "https://ollama.com"
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}

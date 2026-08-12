@@ -8,3 +8,4 @@ resources:
   - external-secret-dockerhub.yaml
   - cronjob-harvest.yaml
   - cronjob-enrich.yaml
+  - cronjob-check.yaml
