@@ -83,9 +83,22 @@ spec:
         username: "default"
         existingSecret: "langfuse-secrets"
         existingSecretKey: clickhouse_password
+      # storageClass MUST be set. Without it the Bitnami subchart falls through
+      # to the cluster default (local-path), which pins the volume to one node.
+      # That is what happened here: clickhouse landed on aitower, and when that
+      # node died the PVC went unschedulable, clickhouse never started, and
+      # langfuse-web crashlooped 1500+ times failing its clickhouse migrations
+      # ("dial tcp :9000: connect: connection refused"). An aggregated data
+      # tier on node-local storage is a single point of failure.
       persistence:
         enabled: true
         size: 50Gi
+        storageClass: nfs-csi-v2
+      # ClickHouse's bundled ZooKeeper had the same problem.
+      zookeeper:
+        persistence:
+          enabled: true
+          storageClass: nfs-csi-v2
       migration:
         autoMigrate: true
 
@@ -97,6 +110,10 @@ spec:
         enabled: false
       auth:
         enabled: false
+      primary:
+        persistence:
+          enabled: true
+          storageClass: nfs-csi-v2
 
     # MinIO — local S3-compatible object store
     s3:
@@ -113,6 +130,7 @@ spec:
       persistence:
         enabled: true
         size: 20Gi
+        storageClass: nfs-csi-v2
 
     # Ingress handled separately
     ingress:
