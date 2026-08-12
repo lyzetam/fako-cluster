@@ -30,8 +30,10 @@ spec:
     spec:
       backoffLimit: 1
       # ~100 notes at two model calls each, concurrency 6, plus re-mailing only what
-      # changed. The 2026-08-10 backfill of 96 notes took about eight minutes.
-      activeDeadlineSeconds: 3600
+      # changed. On Ollama Cloud a 96-note backfill took about eight minutes; the local
+      # fleet is far slower (141s for a first summarize against ~4s), so this needs
+      # real headroom. Anything unfinished stays `enriched: false` and retries tomorrow.
+      activeDeadlineSeconds: 10800
       template:
         metadata:
           labels:
@@ -60,8 +62,11 @@ spec:
                 # Ollama Cloud by decision — the in-cluster GPU is down until further
                 # notice. Point this at http://ollama-gpu.ollama.svc.cluster.local:11434
                 # to bring inference home; no other change is needed.
+                # The APISIX gateway fronts the local Mac fleet (ms1-3) with
+                # round-robin and health checks. Set to https://ollama.com to fall
+                # back to the cloud, or to a node directly to bypass the gateway.
                 - name: TLDR_OLLAMA_BASE
-                  value: "https://ollama.com"
+                  value: "http://apisix.apisix.svc.cluster.local:9080"
               resources:
                 requests:
                   cpu: 200m

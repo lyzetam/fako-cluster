@@ -68,8 +68,11 @@ spec:
                 # Ollama Cloud by decision — the in-cluster GPU is down until further
                 # notice. Point this at http://ollama-gpu.ollama.svc.cluster.local:11434
                 # to bring inference home; no other change is needed.
+                # The APISIX gateway fronts the local Mac fleet (ms1-3) with
+                # round-robin and health checks. Set to https://ollama.com to fall
+                # back to the cloud, or to a node directly to bypass the gateway.
                 - name: TLDR_OLLAMA_BASE
-                  value: "https://ollama.com"
+                  value: "http://apisix.apisix.svc.cluster.local:9080"
               resources:
                 requests:
                   cpu: 200m
