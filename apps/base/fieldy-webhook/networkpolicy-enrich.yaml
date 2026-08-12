@@ -31,9 +31,25 @@ spec:
       ports:
         - protocol: TCP
           port: 27124
-    # ms3 Ollama — local LLM backend for enrichment (gpt-oss:20b), homelab LAN.
-    # Scoped to the homelab /16 on the Ollama port. TIGHTEN to ms3's /32 once its
-    # LAN IP is confirmed: `dig +short ms3.landryzetam.net` on the cluster.
+    # APISIX LLM gateway (in-cluster) — the ACTUAL Ollama path since
+    # 8854420d routed all Ollama traffic through it. OLLAMA_BASE_URL is
+    # http://apisix.apisix.svc.cluster.local:9080.
+    #
+    # This rule was missing until 2026-08-12. Without it every LLM call was
+    # dropped at connect: the gateway's ClusterIP (10.43.x.x) falls inside the
+    # 10.0.0.0/8 block excluded from the public rule below, and 9080 was not
+    # opened anywhere. The job still "succeeded" — enrich_one catches per
+    # conversation errors so the batch survives — it just wrote zero
+    # enrichments in 3m24s and exited 0. Silent, and invisible to job status.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: apisix
+      ports:
+        - protocol: TCP
+          port: 9080
+    # Direct ms3 Ollama on the homelab LAN — retained as the fallback path for
+    # when OLLAMA_BASE_URL is pointed straight at ms3 to bypass the gateway.
     - to:
         - ipBlock:
             cidr: 10.85.0.0/16
