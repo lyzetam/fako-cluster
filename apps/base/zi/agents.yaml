@@ -207,6 +207,15 @@ spec:
             # always denies herself; this names the proposer explicitly.
             - name: ZI_PR_REVIEW_AUTHOR_DENY
               value: "k8s-engineer"
+            # Narrow auto-merge. merge_if_trivial reads the DIFF and merges only
+            # a single-line resources.limits.memory increase within the ratio
+            # below, on a PR that already carries an APPROVED review. Every
+            # other shape — multi-line, non-memory, decrease, multi-file — is
+            # refused in code, so this is not a general merge grant.
+            - name: ZI_AUTOMERGE_ENABLED
+              value: "true"
+            - name: ZI_MERGE_MAX_RATIO
+              value: "2.0"
           envFrom:
             - secretRef:
                 name: zi-secrets
