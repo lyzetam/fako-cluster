@@ -99,6 +99,19 @@ spec:
         persistence:
           enabled: true
           storageClass: nfs-csi-v2
+      # The Bitnami default preset requests 3Gi/1cpu, sized for a real
+      # analytics cluster. That fit on aitower (64Gi) but not on what is left
+      # after losing it — the largest remaining node had 2.0Gi free, so the pod
+      # sat Pending on "Insufficient memory". This is a single-node ClickHouse
+      # backing one self-hosted langfuse; 1Gi is ample, with headroom to 3Gi.
+      resourcesPreset: "none"
+      resources:
+        requests:
+          cpu: 300m
+          memory: 1Gi
+        limits:
+          cpu: "2"
+          memory: 3Gi
       migration:
         autoMigrate: true
 
