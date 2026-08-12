@@ -22,10 +22,12 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Obsidian REST API (private host).
+    # Obsidian REST API (private host on the LAN client subnet, not in-cluster).
+    # Subnet-scoped for the same reason as networkpolicy.yaml — the host's IP
+    # moved from .195 to .229 on 2026-08-05 and silently broke every write.
     - to:
         - ipBlock:
-            cidr: 10.85.10.195/32
+            cidr: 10.85.10.0/24
       ports:
         - protocol: TCP
           port: 27124
