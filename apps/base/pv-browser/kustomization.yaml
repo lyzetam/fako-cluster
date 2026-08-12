@@ -4,6 +4,7 @@ namespace: pv-browser
 resources:
   - namespace.yaml
   - storage.yaml
+  - middleware.yaml
   - deployment.yaml
 labels:
 - pairs:

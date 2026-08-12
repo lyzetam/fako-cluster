@@ -136,6 +136,10 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
+    # Enforced home-network-only access. Without this, LAN-only is merely an
+    # assumption about DNS; with it Traefik 403s any source outside the ranges
+    # in middleware.yaml before the request reaches filebrowser.
+    traefik.ingress.kubernetes.io/router.middlewares: pv-browser-lan-only@kubernetescrd
     # letsencrypt-dns01, NOT letsencrypt-production. This host resolves to
     # 10.85.30.214, a private address, so Let's Encrypt can never reach an
     # HTTP-01 challenge from the internet. letsencrypt-production is an
