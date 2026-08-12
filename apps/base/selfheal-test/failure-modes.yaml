@@ -52,7 +52,7 @@ spec:
           command: ["python", "-c", "import time; time.sleep(20); a = bytearray(48 * 1024 * 1024); time.sleep(3600)"]
           resources:
             requests: { memory: "16Mi", cpu: "5m" }
-            limits:   { memory: "32Mi", cpu: "50m" }
+            limits:   { memory: "64Mi", cpu: "50m" }
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: { drop: ["ALL"] }
