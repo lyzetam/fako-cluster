@@ -259,7 +259,7 @@ Voice Input → OpenWakeWord → Whisper (STT) → LLM → Piper (TTS) → Audio
 | Node | Role | CPU | Memory | Storage | Specialization |
 |------|------|-----|--------|---------|----------------|
 | **zz-macbookpro** | Control Plane | M1 Pro (12 cores) | 16GB | 479GB SSD | Cluster management |
-| **thinkpad02** | Worker | i7-9750H (6c/12t) | 32GB | 954GB NVMe | Largest worker. **WiFi-only** (no NIC). GTX 1650 Mobile present, driver NOT installed |
+| **thinkpad02** | Worker + GPU | i7-9750H (6c/12t) | 32GB | 954GB NVMe | Largest worker. **WiFi-only** (no NIC). GTX 1650 Mobile, 4GB — driver 595.84, `nvidia.com/gpu: 1` |
 | **thinkpad01** | Worker + Storage | i5-8250U (8 cores) | 16GB | 102GB SSD | General workloads, `node-role.kubernetes.io/storage` |
 | **pgmac01/02** | Workers | i5 (4 cores each) | 8GB each | 102GB SSD | Stateless services |
 | **pglenovo01/02** | Workers | i5-6200U (4 cores each) | 8GB each | ~110GB SSD | Distributed load |
@@ -278,9 +278,26 @@ Voice Input → OpenWakeWord → Whisper (STT) → LLM → Piper (TTS) → Audio
   cloud-init network regeneration disabled.
 - **Power:** lid-close and all sleep/suspend/hibernate targets are masked, so the node
   survives the lid being shut.
-- **GPU:** NFD detects the GTX 1650 Mobile and the GPU Operator schedules onto it, but the
-  host has no NVIDIA driver, so `driver-validation` loops and five `gpu-operator` pods sit
-  in `Init`. Either install the driver or clear the `nvidia.com/gpu.deploy.*` labels.
+- **GPU:** GTX 1650 Mobile / Max-Q (TU117M, 4GB), driver **595.84**, CUDA runtime 13.2.
+  `nvidia.com/gpu: 1` is allocatable and verified end-to-end — a pod requesting a GPU ran
+  `nvidia-smi` inside a container and saw 3715 MiB free.
+
+  **Secure Boot is enabled on this node**, so do *not* let the driver go in via DKMS — the
+  unsigned module will not load. Install Canonical's pre-signed module instead, and use the
+  HWE metapackage so it follows kernel upgrades rather than pinning to one kernel:
+
+  ```bash
+  sudo apt-get install -y linux-modules-nvidia-595-generic-hwe-24.04 nvidia-driver-595
+  ```
+
+  `nvidia-driver-595` depends on `nvidia-dkms-595 | linux-modules-nvidia-595-<flavour>`, so
+  installing the pre-signed package first satisfies the alternative and skips DKMS entirely.
+  `ubuntu-drivers devices` recommends the 595 branch for this GPU.
+
+  **Known gap:** the `nvidia-gpu-exporter` DaemonSet in `gpu-monitoring` selects on
+  `nvidia.com/gpu=true`, a label the GPU Operator does not set — GFD sets
+  `nvidia.com/gpu.present=true`. It has been `DESIRED: 0` since aitower left and stays that
+  way. Fix the selector, or label the node, if GPU metrics are wanted.
 
 ### Storage Architecture
 
