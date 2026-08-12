@@ -22,7 +22,8 @@ spec:
   # Daily at 16:30 UTC — 30 min after the puller (16:00 UTC) so the day's
   # conversations + transcripts are already on disk via the Obsidian REST API.
   # Reads those sidecars and writes LLM enrichment back via the same REST API.
-  # LangGraph SQLite checkpointer lives on its own PVC under FIELDY_STATE_DIR.
+  # LangGraph SQLite checkpointer lives on an emptyDir under FIELDY_STATE_DIR
+  # (see the volumes block for why it is not a PVC).
   # See lyzetam/fieldy scripts/enrich.py.
   schedule: "30 16 * * *"
   timeZone: "UTC"
@@ -128,6 +129,17 @@ spec:
                 - name: state
                   mountPath: /state
           volumes:
+            # emptyDir, NOT the fieldy-enrich-state PVC. The PVC uses local-path,
+            # so its PV carried a nodeAffinity pin to `aitower` — a node that no
+            # longer exists in the cluster. That made this job permanently
+            # unschedulable ("didn't match PersistentVolume's node affinity"),
+            # and it sat Pending from 2026-07-24 to 2026-08-12.
+            #
+            # Nothing is lost. FIELDY_STATE_DIR holds only the LangGraph SQLite
+            # checkpointer, and scripts/enrich.py generates a fresh timestamped
+            # thread_id per run — so the checkpoint never resumes across runs.
+            # Its useful lifetime is exactly one pod, which is what emptyDir is.
+            # Idempotency comes from the vault (enriched.exists), not from here.
             - name: state
-              persistentVolumeClaim:
-                claimName: fieldy-enrich-state
+              emptyDir:
+                sizeLimit: 256Mi
