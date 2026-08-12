@@ -14,7 +14,7 @@ actually in there"; you have to read the disk.
 ## How it works
 
 Every dynamically-provisioned `nfs.csi.k8s.io` PV is a subdirectory named after
-itself under one of four parent shares on `10.85.30.127`. Verified: **309 of 309
+itself under one of four parent shares on `ugnas.landryzetam.net`. Verified: **309 of 309
 PVs have `volumeAttributes.subdir == metadata.name`**. So mounting the four
 *parent* shares in a single pod and running `du -sk` on each child measures 309 of
 331 PVs in one pass — no per-volume mounting.

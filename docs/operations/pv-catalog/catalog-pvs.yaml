@@ -6,7 +6,7 @@
 # way to know which are empty shells and which hold real data is to read the disk.
 #
 # How it works: every dynamically-provisioned nfs.csi.k8s.io PV is a subdirectory
-# named after itself under one of four parent shares on 10.85.30.127. Verified:
+# named after itself under one of four parent shares on ugnas.landryzetam.net. Verified:
 # 309/309 PVs have volumeAttributes.subdir == metadata.name. So mounting the four
 # PARENT shares read-only in one pod and running `du -sk` on each child measures
 # 309 of 331 PVs in a single pass.
@@ -57,7 +57,7 @@ spec:
     volumeHandle: catalog-k8s-storage
     readOnly: true
     volumeAttributes:
-      server: "10.85.30.127"
+      server: "ugnas.landryzetam.net"
       share: "/volume1/k8s-storage"
 ---
 apiVersion: v1
@@ -75,7 +75,7 @@ spec:
     volumeHandle: catalog-k8s-db
     readOnly: true
     volumeAttributes:
-      server: "10.85.30.127"
+      server: "ugnas.landryzetam.net"
       share: "/volume1/k8s-db"
 ---
 apiVersion: v1
@@ -93,7 +93,7 @@ spec:
     volumeHandle: catalog-k8s-pg
     readOnly: true
     volumeAttributes:
-      server: "10.85.30.127"
+      server: "ugnas.landryzetam.net"
       share: "/volume1/k8s-pg"
 ---
 apiVersion: v1
@@ -111,7 +111,7 @@ spec:
     volumeHandle: catalog-k8s-backups
     readOnly: true
     volumeAttributes:
-      server: "10.85.30.127"
+      server: "ugnas.landryzetam.net"
       share: "/volume1/k8s-backups"
 ---
 apiVersion: v1

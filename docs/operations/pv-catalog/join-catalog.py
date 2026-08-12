@@ -72,7 +72,7 @@ def main() -> None:
     # directory produced no row has no backing directory left on disk.
     MOUNTED = {"/volume1/k8s-storage", "/volume1/k8s-db",
                "/volume1/k8s-pg", "/volume1/k8s-backups"}
-    MOUNTED_SERVER = "10.85.30.127"
+    MOUNTED_SERVER = "ugnas.landryzetam.net"
     CATALOG_OWN = {"catalog-k8s-storage", "catalog-k8s-db",
                    "catalog-k8s-pg", "catalog-k8s-backups"}
 
