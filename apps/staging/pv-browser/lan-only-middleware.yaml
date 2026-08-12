@@ -1,0 +1,32 @@
+# Access control for pv-browser. The allowed source ranges are SOPS-encrypted
+# because they map the private network; see private/pv-browser.md for the
+# plaintext reference and rationale.
+#   sops -d apps/staging/pv-browser/lan-only-middleware.yaml   # view
+#   sops    apps/staging/pv-browser/lan-only-middleware.yaml   # edit in place
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+    name: lan-only
+    namespace: pv-browser
+spec:
+    ipAllowList:
+        sourceRange:
+            - ENC[AES256_GCM,data:NIDWh3CYzzWI/5og,iv:1q5Ur+RXrMXET4RAPLDRq5bhtoQPqjPLLpRoPX4y0LI=,tag:rI2VECdOYrpBWLqrLxAUrw==,type:str]
+            - ENC[AES256_GCM,data:A9fs31OfxYgUdZRc,iv:tmuviHN3vOlSbujuowwH2JB4tHJb/admdpjNupoCQdE=,tag:NNxKX6ikNGUQd6+P9TC3Hw==,type:str]
+            - ENC[AES256_GCM,data:DUF+dpd5B/rgpiDE,iv:2sYBMzyudIIPz7tk9UTRAkxPooEZGcXcwor85ZOJ3P0=,tag:GYLCXFpRw5Wabevwv9TQ4g==,type:str]
+            - ENC[AES256_GCM,data:fLofgcly5zfJMO/Cego=,iv:3echDIcgVERKnmIm/PCgKr9D2MKM1+pzy5qeh7tEfyE=,tag:ZayYV7D5FiV8b97tL+AUmw==,type:str]
+sops:
+    age:
+        - recipient: age1wz30c9m30hshgx9tg5lylctp646hgu3p0v0sxjuy8xxz34exh4hstn9utd
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA3NUZzTGJXMnZjcmc2YzFE
+            SGFWalAyTWduYVJQcGtHTi9kNTZyZ0dQd3lzCk5iLzBhaVBTeVlpS2FjM1liMGpq
+            ajNyNTYyOHR2bkllNCtBZDFibHp4alkKLS0tIGFvd0ZoYW5pN1I4Q1l1d3FOYmZq
+            Mm0rTXJUcng0RlBJbFJ1a3RKd2dKS0EKCNJ/4YebB2oh7d3Yf9X9tHE8aR3PXxxS
+            J+G1tZ+pUe9qLfkyiAQylPWIa7U35fan57dtp9gFlWwvX85t6R+Bvw==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2026-08-12T11:54:09Z"
+    mac: ENC[AES256_GCM,data:+rDRf/mpuWoO1hJHZsoJ1BRSM076tthqMHF7I1IpcEU1pQrz9KN7oy3kpqhPjc7XDTVWaYKXP+q+sqrc1iaI+IrsgngAr2wOpZ4C4KBPtRodpkF8i4b3xyPHdb0NBcqDbnoo43z3HqUuRTh7QUEgAX1MoM0RaQN4nu1K2OZepc4=,iv:aMHDAXjOGLw5qWve3UKtFyf+Bs+EVZo1ZuOCoCp3eOg=,tag:+r63yA4g6d8LOWUEb7+ubg==,type:str]
+    encrypted_regex: ^(sourceRange)$
+    version: 3.10.2

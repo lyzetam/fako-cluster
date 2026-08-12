@@ -35,3 +35,7 @@ iac/override.tf.json
 iac/*_override.tf
 iac/*_override.tf.json
 iac/.DS_Store
+
+# Private operational notes — network topology, addressing, anything that
+# should not be in a manifest or in git. One file per namespace: private/<ns>.md
+/private/

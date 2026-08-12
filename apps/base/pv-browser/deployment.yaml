@@ -15,8 +15,9 @@
 #   - Read-only: ReadOnlyMany PVs + `ro` mountOptions + readOnly:true mounts +
 #     filebrowser perms with create/delete/rename/modify all false.
 #   - LAN-only: Traefik ingress on pv-browser.landryzetam.net, whose public DNS
-#     record resolves to 10.85.30.214 (a private address), same as headlamp and
-#     pgadmin. Not routed through any Cloudflare tunnel.
+#     record resolves to a private address, same as headlamp and pgadmin, and
+#     access is further restricted by the lan-only middleware. Not routed
+#     through any Cloudflare tunnel.
 #   - Authenticated: admin password comes from a SOPS-encrypted Secret in the
 #     staging overlay. There is no signup and no anonymous access.
 #
@@ -141,7 +142,7 @@ metadata:
     # in middleware.yaml before the request reaches filebrowser.
     traefik.ingress.kubernetes.io/router.middlewares: pv-browser-lan-only@kubernetescrd
     # letsencrypt-dns01, NOT letsencrypt-production. This host resolves to
-    # 10.85.30.214, a private address, so Let's Encrypt can never reach an
+    # a private address, so Let's Encrypt can never reach an
     # HTTP-01 challenge from the internet. letsencrypt-production is an
     # HTTP-01/traefik issuer and leaves the cert stuck Ready=False forever —
     # which is why 10 of the 12 certs in this cluster are failing. DNS-01

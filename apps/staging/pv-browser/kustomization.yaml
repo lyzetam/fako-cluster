@@ -4,3 +4,4 @@ namespace: pv-browser
 resources:
   - ../../base/pv-browser
   - admin-secret.yaml
+  - lan-only-middleware.yaml

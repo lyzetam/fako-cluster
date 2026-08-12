@@ -30,7 +30,7 @@ spec:
     volumeHandle: pvbrowser-k8s-storage
     readOnly: true
     volumeAttributes:
-      server: "10.85.30.127"
+      server: "ugnas.landryzetam.net"
       share: "/volume1/k8s-storage"
 ---
 apiVersion: v1
@@ -59,7 +59,7 @@ spec:
     volumeHandle: pvbrowser-k8s-db
     readOnly: true
     volumeAttributes:
-      server: "10.85.30.127"
+      server: "ugnas.landryzetam.net"
       share: "/volume1/k8s-db"
 ---
 apiVersion: v1
@@ -88,7 +88,7 @@ spec:
     volumeHandle: pvbrowser-k8s-pg
     readOnly: true
     volumeAttributes:
-      server: "10.85.30.127"
+      server: "ugnas.landryzetam.net"
       share: "/volume1/k8s-pg"
 ---
 apiVersion: v1
@@ -117,7 +117,7 @@ spec:
     volumeHandle: pvbrowser-k8s-backups
     readOnly: true
     volumeAttributes:
-      server: "10.85.30.127"
+      server: "ugnas.landryzetam.net"
       share: "/volume1/k8s-backups"
 ---
 apiVersion: v1
