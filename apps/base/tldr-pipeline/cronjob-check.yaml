@@ -19,8 +19,9 @@ metadata:
     app.kubernetes.io/part-of: tldr-pipeline
     app.kubernetes.io/managed-by: flux
 spec:
-  # 16:15 UTC — after harvest (15:00, ~8 min) and enrichment (15:30, ~10 min), with
-  # room for a slow day before declaring anything wrong.
+  # 16:15 UTC — after harvest (15:00, ~10 min), with room for a slow day. It checks
+  # TODAY's harvest and YESTERDAY's enrichment, because enrichment runs overnight;
+  # judging today's enrichment would page every day for correct behaviour.
   schedule: "15 16 * * 1-5"   # UTC. TLDR does not publish at weekends.
   timeZone: Etc/UTC
   concurrencyPolicy: Forbid
