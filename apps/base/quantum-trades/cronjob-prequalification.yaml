@@ -50,6 +50,15 @@ spec:
   schedule: "0 12 * * 1-5"
   timeZone: "America/New_York"
   concurrencyPolicy: Forbid
+  # A missed slot must be SKIPPED, not back-filled. With this unset, k8s will
+  # start a slot it missed at whatever time it becomes able to — on 2026-08-12 a
+  # 12:00 ET slot (created when the schedule changed the night before) fired at
+  # 03:47 ET, hours outside market hours where stage 5 cannot work at all
+  # because options do not quote. It happened to be overwritten by the 08:00
+  # candidates run; a later slot would not be so lucky. Every job here is
+  # market-hours-sensitive, so a late start produces a WORSE universe than no
+  # run at all — and the previous day's universe is the safer fallback.
+  startingDeadlineSeconds: 600
   successfulJobsHistoryLimit: 10
   failedJobsHistoryLimit: 5
   jobTemplate:
