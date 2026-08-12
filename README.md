@@ -94,10 +94,10 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              COMPUTE LAYER                                   │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │  aitower    │ │ zz-macbook  │ │ thinkpad01  │ │ pglenovo01  │  + 3 more │
-│  │  GPU Node   │ │ Control Plane│ │   Worker   │ │   Worker    │           │
-│  │  Ryzen 9    │ │  M1 Pro     │ │  i5-8250U  │ │  i5-6200U   │           │
-│  │  32GB/2xGPU │ │   16GB      │ │    16GB    │ │     8GB     │           │
+│  │ thinkpad02  │ │ zz-macbook  │ │ thinkpad01  │ │ pglenovo01  │  + 2 more │
+│  │  Worker     │ │ Control Plane│ │  Wkr/Store │ │   Worker    │           │
+│  │  i7-9750H   │ │  M1 Pro     │ │  i5-8250U  │ │  i5-6200U   │           │
+│  │  32GB/WiFi  │ │   16GB      │ │    16GB    │ │     8GB     │           │
 │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -258,11 +258,29 @@ Voice Input → OpenWakeWord → Whisper (STT) → LLM → Piper (TTS) → Audio
 
 | Node | Role | CPU | Memory | Storage | Specialization |
 |------|------|-----|--------|---------|----------------|
-| **aitower** | GPU Worker | Ryzen 9 3900X (24 cores) | 32GB | 957GB NVMe | Dual NVIDIA GPUs |
 | **zz-macbookpro** | Control Plane | M1 Pro (12 cores) | 16GB | 479GB SSD | Cluster management |
-| **thinkpad01** | Worker | i5-8250U (8 cores) | 16GB | 102GB SSD | General workloads |
+| **thinkpad02** | Worker | i7-9750H (6c/12t) | 32GB | 954GB NVMe | Largest worker. **WiFi-only** (no NIC). GTX 1650 Mobile present, driver NOT installed |
+| **thinkpad01** | Worker + Storage | i5-8250U (8 cores) | 16GB | 102GB SSD | General workloads, `node-role.kubernetes.io/storage` |
 | **pgmac01/02** | Workers | i5 (4 cores each) | 8GB each | 102GB SSD | Stateless services |
 | **pglenovo01/02** | Workers | i5-6200U (4 cores each) | 8GB each | ~110GB SSD | Distributed load |
+
+> **aitower** (Ryzen 9 3900X, 32GB, dual NVIDIA GPUs) left the cluster 2026-08-11. The GPU
+> workloads pinned to it — `whisper`, `whisperx`, `parakeet`, `piper-v13`, `ollama` GPU —
+> remain retired in `apps/staging/kustomization.yaml`.
+
+#### thinkpad02 — added 2026-08-12
+
+- **Hardware:** ThinkPad X1 Extreme 2nd Gen (20QV000DUS), Ubuntu 24.04, kernel 7.0.0-28
+- **Network:** `10.85.30.8` over **WiFi** (`wlp82s0`) — this laptop has no Ethernet port.
+  Joined via the `Fingerweg-Servers` SSID, created specifically to put VLAN 30 (Servers)
+  on the air; it is 5 GHz / WPA2 / PMF-disabled and broadcasts on 5 of 6 APs (AP Upstairs
+  was at its per-AP SSID limit). Config lives in `/etc/netplan/50-cloud-init.yaml`, with
+  cloud-init network regeneration disabled.
+- **Power:** lid-close and all sleep/suspend/hibernate targets are masked, so the node
+  survives the lid being shut.
+- **GPU:** NFD detects the GTX 1650 Mobile and the GPU Operator schedules onto it, but the
+  host has no NVIDIA driver, so `driver-validation` loops and five `gpu-operator` pods sit
+  in `Init`. Either install the driver or clear the `nvidia.com/gpu.deploy.*` labels.
 
 ### Storage Architecture
 
