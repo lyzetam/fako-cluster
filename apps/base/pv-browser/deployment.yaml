@@ -136,7 +136,14 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
-    cert-manager.io/cluster-issuer: "letsencrypt-production"
+    # letsencrypt-dns01, NOT letsencrypt-production. This host resolves to
+    # 10.85.30.214, a private address, so Let's Encrypt can never reach an
+    # HTTP-01 challenge from the internet. letsencrypt-production is an
+    # HTTP-01/traefik issuer and leaves the cert stuck Ready=False forever —
+    # which is why 10 of the 12 certs in this cluster are failing. DNS-01
+    # proves ownership through the Cloudflare API instead and needs no
+    # inbound reachability.
+    cert-manager.io/cluster-issuer: "letsencrypt-dns01"
 spec:
   ingressClassName: traefik
   tls:
