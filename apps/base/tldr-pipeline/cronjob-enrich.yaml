@@ -35,7 +35,11 @@ spec:
   startingDeadlineSeconds: 600
   jobTemplate:
     spec:
-      backoffLimit: 1
+      # A node bounce must not end the night's work. On 2026-08-12 thinkpad02 restarted
+      # 51 minutes into a run; the pod died with it and backoffLimit: 1 gave up, leaving
+      # 48 of 101 notes unenriched. Retrying is free: enrichment is idempotent and the
+      # 53 already done are skipped without a model call.
+      backoffLimit: 4
       # ~100 notes at two model calls each, concurrency 6, plus re-mailing only what
       # changed. On Ollama Cloud a 96-note backfill took about eight minutes; the local
       # fleet is far slower (141s for a first summarize against ~4s), so this needs
