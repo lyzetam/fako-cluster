@@ -27,6 +27,29 @@ sops    apps/staging/<app>/<file>.yaml    # edit in place
 Encrypted resources live in the **staging overlay**, next to the SOPS secrets,
 not in `apps/base/`.
 
+## 2b. Best of all: generate it at runtime from a Secret
+
+If a **Job** can build the resource, the address never enters git *or* a SOPS
+file. `infrastructure/controllers/base/nfs-storage/dynamic-storageclass-job.yaml`
+does this: it reads an `nfs-config` Secret (fed from AWS Secrets Manager by
+ExternalSecrets) and creates the NFS StorageClasses at apply time. The manifest
+contains no address at all.
+
+Prefer this wherever the resource can be generated rather than declared. Its one
+cost is that the built object is not directly visible in git.
+
+Note StorageClass `parameters` are **immutable** — verified:
+
+```
+The StorageClass "nfs-csi-v2" is invalid:
+  parameters: Forbidden: updates to parameters are forbidden.
+```
+
+so changing one means deleting and re-running the Job. Existing PVs are
+unaffected: a dynamically provisioned PV bakes `server` into its own
+`volumeAttributes` at creation and never consults the class again. Any such
+change is therefore forward-only.
+
 ## 3. It is explanation → private/
 
 Why a range is allowed, what sits on which VLAN, which box is which — that is
