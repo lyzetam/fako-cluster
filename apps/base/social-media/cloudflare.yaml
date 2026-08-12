@@ -123,6 +123,25 @@ data:
       # terminates the real TLS at the edge.
       - hostname: vault-api.landryzetam.net
         service: https://obsidian-api.landryzetam.net:27124
+        originRequest:
+          # The Obsidian Local REST API serves its own self-signed certificate, and
+          # this is the only https:// origin in the tunnel. Without this, cloudflared
+          # rejects it with "x509: certificate signed by unknown authority" and every
+          # request 502s.
+          #
+          # It worked for a week without this line only because the running pod was on
+          # an older cloudflared. Deploying the apisix route on 2026-08-11 restarted
+          # cloudflared onto 2025.11.1, which verifies the origin certificate — and both
+          # tldr-pipeline CronJobs failed that afternoon. Nothing was down; an unrelated
+          # deploy changed the image under a route that depended on the old behaviour.
+          #
+          # The hop this skips verification on is cluster -> private LAN host. It is not
+          # the public hop, which Cloudflare still terminates normally, and the origin
+          # is independently protected: bearer token, a key scoped to Reading/TLDR/**,
+          # and OBSIDIAN_API_ALLOWED_NETWORKS limiting the source to 10.85.30.0/24.
+          # The stricter alternative is caPool with the origin certificate mounted into
+          # cloudflared; worth doing if this origin ever carries anything broader.
+          noTLSVerify: true
       # APISIX AI gateway — the LLM front door for the Mac Studio fleet, so
       # workloads OUTSIDE the cluster (the social pipeline runs on a Hostinger
       # VPS) can reach local models and fall back to Ollama Cloud on 429/5xx.
