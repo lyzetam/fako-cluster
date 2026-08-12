@@ -90,6 +90,9 @@ resources:
   # Shared Cloudflare tunnel — fronts n8n, family-manager webhook, market-replay
   - cloudflare-tunnel
 
+  # PV Browser — read-only web UI over every NFS-backed PV (LAN-only, authenticated)
+  - pv-browser
+
   # AI Gateway — APISIX OpenAI-compatible front door load-balancing the Mac Studio Ollama fleet
   - apisix
 

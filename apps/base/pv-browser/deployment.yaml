@@ -1,0 +1,154 @@
+# PV Browser — a read-only web UI over every NFS-backed PersistentVolume.
+#
+# Why: `kubectl get pv` shows the capacity someone typed in a manifest, not what
+# is actually inside. Answering "what is in this volume" previously meant SSHing
+# to the NAS and walking directories by hand. This gives a tree, file sizes,
+# modified times, search, preview and download — without touching the NAS.
+#
+# Each of the 309 NFS PVs appears as a directory named after itself under one of
+# four shares mounted at /srv. Cross-reference a pvc-<uuid> directory to its
+# owning namespace/claim with:
+#   kubectl get pv <name> -o jsonpath='{.spec.claimRef.namespace}/{.spec.claimRef.name}'
+# or against the catalog CSV produced by docs/operations/pv-catalog/.
+#
+# SECURITY POSTURE
+#   - Read-only: ReadOnlyMany PVs + `ro` mountOptions + readOnly:true mounts +
+#     filebrowser perms with create/delete/rename/modify all false.
+#   - LAN-only: Traefik ingress on pv-browser.landryzetam.net, whose public DNS
+#     record resolves to 10.85.30.214 (a private address), same as headlamp and
+#     pgadmin. Not routed through any Cloudflare tunnel.
+#   - Authenticated: admin password comes from a SOPS-encrypted Secret in the
+#     staging overlay. There is no signup and no anonymous access.
+#
+# This surfaces the contents of every volume in one place, database directories
+# included. That is the point, but it is also why it must never gain a public
+# route.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pv-browser
+  namespace: pv-browser
+  labels: { app.kubernetes.io/name: pv-browser }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }        # single RWO config volume
+  selector:
+    matchLabels: { app: pv-browser }
+  template:
+    metadata:
+      labels: { app: pv-browser, app.kubernetes.io/name: pv-browser }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        # Initialise the bolt DB on first run and set the admin password. Safe to
+        # re-run: `config init` is a no-op once the DB exists, and `users update`
+        # simply re-applies the password from the Secret.
+        - name: init
+          image: filebrowser/filebrowser:v2.63.23
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              DB=/config/filebrowser.db
+              if [ ! -f "$DB" ]; then
+                filebrowser -d "$DB" config init
+                filebrowser -d "$DB" users add admin "$FB_ADMIN_PASSWORD" --perm.admin
+              else
+                filebrowser -d "$DB" users update admin --password "$FB_ADMIN_PASSWORD" || true
+              fi
+              # Read-only everywhere, every time — re-applied on each start so a
+              # UI change cannot quietly grant write access.
+              filebrowser -d "$DB" config set --auth.method=json --branding.name="PV Browser" \
+                --perm.create=false --perm.delete=false --perm.rename=false --perm.modify=false
+              filebrowser -d "$DB" users update admin \
+                --perm.create=false --perm.delete=false --perm.rename=false --perm.modify=false
+          env:
+            - name: FB_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: pv-browser-admin, key: password }
+          volumeMounts:
+            - { name: config, mountPath: /config }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { memory: "32Mi", cpu: "10m" }
+            limits:   { memory: "128Mi", cpu: "200m" }
+      containers:
+        - name: filebrowser
+          image: filebrowser/filebrowser:v2.63.23
+          args: ["-d", "/config/filebrowser.db", "-r", "/srv", "-a", "0.0.0.0", "-p", "8080"]
+          ports:
+            - { name: http, containerPort: 8080 }
+          volumeMounts:
+            - { name: config,       mountPath: /config }
+            - { name: k8s-storage,  mountPath: /srv/k8s-storage,  readOnly: true }
+            - { name: k8s-db,       mountPath: /srv/k8s-db,       readOnly: true }
+            - { name: k8s-pg,       mountPath: /srv/k8s-pg,       readOnly: true }
+            - { name: k8s-backups,  mountPath: /srv/k8s-backups,  readOnly: true }
+          readinessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { memory: "64Mi", cpu: "20m" }
+            limits:   { memory: "256Mi", cpu: "500m" }
+      volumes:
+        - name: config
+          persistentVolumeClaim: { claimName: pvbrowser-config }
+        - name: k8s-storage
+          persistentVolumeClaim: { claimName: pvbrowser-k8s-storage, readOnly: true }
+        - name: k8s-db
+          persistentVolumeClaim: { claimName: pvbrowser-k8s-db, readOnly: true }
+        - name: k8s-pg
+          persistentVolumeClaim: { claimName: pvbrowser-k8s-pg, readOnly: true }
+        - name: k8s-backups
+          persistentVolumeClaim: { claimName: pvbrowser-k8s-backups, readOnly: true }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pv-browser
+  namespace: pv-browser
+spec:
+  selector: { app: pv-browser }
+  ports:
+    - { name: http, port: 80, targetPort: 8080 }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pv-browser
+  namespace: pv-browser
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [pv-browser.landryzetam.net]
+      secretName: pv-browser-tls
+  rules:
+    - host: pv-browser.landryzetam.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pv-browser
+                port: { number: 80 }

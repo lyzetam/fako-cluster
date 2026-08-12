@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pv-browser
+  labels:
+    app.kubernetes.io/name: pv-browser
+    app.kubernetes.io/component: ops-tooling
+    pod-security.kubernetes.io/enforce: restricted

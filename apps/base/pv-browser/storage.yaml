@@ -1,0 +1,144 @@
+# Read-only mounts of the four parent NFS shares that hold every dynamically
+# provisioned PV in the cluster. Each PV is a directory named after itself under
+# one of these, so mounting the PARENTS surfaces all 309 NFS-backed volumes.
+# See docs/operations/pv-catalog/README.md for the derivation.
+#
+#   /volume1/k8s-storage   268 PVs
+#   /volume1/k8s-db         25 PVs
+#   /volume1/k8s-pg         13 PVs
+#   /volume1/k8s-backups     3 PVs
+#
+# READ-ONLY, enforced three ways: ReadOnlyMany accessMode, `ro` in mountOptions,
+# and readOnly:true on every container mount in deployment.yaml. filebrowser is
+# additionally configured with no create/delete/rename permissions.
+#
+# nfs.csi.k8s.io, never an in-tree `nfs:` source: only pglenovo01 has
+# /sbin/mount.nfs, so an in-tree mount hangs in ContainerCreating anywhere else.
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pvbrowser-k8s-storage
+spec:
+  capacity: { storage: 1Gi }          # informational only; NFS is thin
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [nfsvers=3, nolock, ro, hard]
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: pvbrowser-k8s-storage
+    readOnly: true
+    volumeAttributes:
+      server: "10.85.30.127"
+      share: "/volume1/k8s-storage"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvbrowser-k8s-storage
+  namespace: pv-browser
+spec:
+  accessModes: [ReadOnlyMany]
+  storageClassName: ""
+  volumeName: pvbrowser-k8s-storage
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pvbrowser-k8s-db
+spec:
+  capacity: { storage: 1Gi }
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [nfsvers=3, nolock, ro, hard]
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: pvbrowser-k8s-db
+    readOnly: true
+    volumeAttributes:
+      server: "10.85.30.127"
+      share: "/volume1/k8s-db"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvbrowser-k8s-db
+  namespace: pv-browser
+spec:
+  accessModes: [ReadOnlyMany]
+  storageClassName: ""
+  volumeName: pvbrowser-k8s-db
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pvbrowser-k8s-pg
+spec:
+  capacity: { storage: 1Gi }
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [nfsvers=3, nolock, ro, hard]
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: pvbrowser-k8s-pg
+    readOnly: true
+    volumeAttributes:
+      server: "10.85.30.127"
+      share: "/volume1/k8s-pg"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvbrowser-k8s-pg
+  namespace: pv-browser
+spec:
+  accessModes: [ReadOnlyMany]
+  storageClassName: ""
+  volumeName: pvbrowser-k8s-pg
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pvbrowser-k8s-backups
+spec:
+  capacity: { storage: 1Gi }
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [nfsvers=3, nolock, ro, hard]
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: pvbrowser-k8s-backups
+    readOnly: true
+    volumeAttributes:
+      server: "10.85.30.127"
+      share: "/volume1/k8s-backups"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvbrowser-k8s-backups
+  namespace: pv-browser
+spec:
+  accessModes: [ReadOnlyMany]
+  storageClassName: ""
+  volumeName: pvbrowser-k8s-backups
+  resources: { requests: { storage: 1Gi } }
+---
+# filebrowser's own bolt database (users, settings). Small, read-write, on NFS
+# so it survives a reschedule. This is the ONLY writable volume in the app.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvbrowser-config
+  namespace: pv-browser
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: nfs-csi-v2
+  resources: { requests: { storage: 1Gi } }
