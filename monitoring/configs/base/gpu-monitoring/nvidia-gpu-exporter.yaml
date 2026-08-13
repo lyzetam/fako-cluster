@@ -36,8 +36,14 @@ spec:
     spec:
       serviceAccountName: dcgm-exporter  # Reuse the same service account
       hostPID: true
+      # nvidia.com/gpu.present is what NFD/GFD actually sets. The old selector
+      # (nvidia.com/gpu: "true") is a label nothing in this cluster ever applies, so this
+      # DaemonSet sat at DESIRED: 0 — silently, with no GPU metrics — from aitower's
+      # departure through thinkpad02 joining with a working GPU on 2026-08-12.
+      # Note this pod requests no nvidia.com/gpu resource, so it does not contend with
+      # whisperx for the single GPU; it reads the host's nvidia-smi directly.
       nodeSelector:
-        nvidia.com/gpu: "true"
+        nvidia.com/gpu.present: "true"
       tolerations:
       - key: nvidia.com/gpu
         operator: Exists

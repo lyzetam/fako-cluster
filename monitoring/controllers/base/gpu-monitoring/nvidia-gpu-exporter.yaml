@@ -36,8 +36,11 @@ spec:
     spec:
       serviceAccountName: dcgm-exporter  # Reuse the same service account
       hostPID: true
+      # Kept byte-identical to monitoring/configs/base/gpu-monitoring/. Both are
+      # reconciled (monitoring-controllers and monitoring-configs both list gpu-monitoring),
+      # so they target the same DaemonSet and must not drift. See the note there.
       nodeSelector:
-        nvidia.com/gpu: "true"
+        nvidia.com/gpu.present: "true"
       tolerations:
       - key: nvidia.com/gpu
         operator: Exists
