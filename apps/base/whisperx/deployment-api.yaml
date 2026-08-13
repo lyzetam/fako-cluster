@@ -37,13 +37,22 @@ spec:
         - containerPort: 8000
           name: http
         env:
+        # Sized for thinkpad02's GTX 1650 (TU117, CC 7.5, 4GB). aitower had dual
+        # tensor-core GPUs, so the old distil-large-v3 + float16 config was fine there
+        # and is NOT fine here. Measured 2026-08-12 with a real 5s transcription:
+        #
+        #   distil-large-v3 + float16  -> "!!!!!!!!..." , language "pa"  (NaN logits;
+        #                                 TU117 is the one Turing die with no tensor cores)
+        #   distil-large-v3 + int8     -> loads (1152 MiB) but hallucinates; distil-whisper
+        #                                 is notoriously quantization-sensitive
+        #   distil-large-v3 + float32  -> CUDA out of memory at 3612/4096 MiB (~3GB of
+        #                                 fp32 weights alone)
+        #
+        # So: a smaller model at full precision, rather than a cheaper precision on a
+        # big model. distil-medium.en is ~1.6GB in fp32 and English-only, which matches
+        # what voice-ingest feeds it (Landry's wearable voice notes).
         - name: WHISPER_MODEL
-          value: "distil-large-v3"
-        # int8, NOT float16. Measured on thinkpad02's GTX 1650 (TU117, CC 7.5) on
-        # 2026-08-12: float16 returned "!!!!!!!!..." with language "pa" — the NaN-logit
-        # signature. TU117 is the one Turing die without tensor cores, and CTranslate2
-        # fp16 misbehaves there. int8 also cuts the model to well under the 4GB VRAM.
-        # aitower's dual GPUs did have tensor cores, which is why this was fine before.
+          value: "distil-medium.en"
         - name: COMPUTE_TYPE
           value: "float32"
         - name: BATCH_SIZE
