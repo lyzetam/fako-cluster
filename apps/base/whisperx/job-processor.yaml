@@ -12,7 +12,7 @@ spec:
       runtimeClassName: nvidia
       hostIPC: true
       nodeSelector:
-        kubernetes.io/hostname: aitower
+        nvidia.com/gpu.present: "true"   # was: kubernetes.io/hostname: aitower (node left 2026-08-11)
         nvidia.com/gpu.present: "true"
       tolerations:
       - effect: NoSchedule

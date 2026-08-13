@@ -107,8 +107,13 @@ resources:
   # Analytics
   - umami           # Privacy-focused website analytics
 
-  # WhisperX - Speaker diarization testing
-  # - whisperx        # Disabled - GPU slot freed for whisper-gpu (HA voice). Re-enable on-demand for Obsidian transcription.
+  # WhisperX - Obsidian transcription backend for voice-ingest (Pi/XIAO wearable).
+  # Re-enabled 2026-08-12 on thinkpad02's GTX 1650 (4GB). voice-ingest was left Running
+  # with WHISPERX_URL pointing at a namespace that no longer existed — healthy pod, every
+  # transcription failing silently. This is the only GPU consumer; the HA voice stack
+  # (whisper / parakeet / piper / openwakeword) stays retired and would contend for the
+  # single nvidia.com/gpu: 1 if revived.
+  - whisperx
 
   # Argo Workflows - Audio Processing Pipeline
   # - audio-workflows # Deactivated 2026-08-11 - no audio files being processed. audio-raw (50Gi) and

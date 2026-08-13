@@ -19,8 +19,9 @@ spec:
     spec:
       runtimeClassName: nvidia
       hostIPC: true
+      # Follow the GPU, not a hostname. aitower left the cluster 2026-08-11; pinning
+      # to a dead host is what stranded this workload. thinkpad02 carries the GPU now.
       nodeSelector:
-        kubernetes.io/hostname: aitower
         nvidia.com/gpu.present: "true"
       tolerations:
       - effect: NoSchedule
