@@ -6,6 +6,7 @@ resources:
   - aws-credentials-secret.yaml
   - secret-store.yaml
   - external-secret-hf.yaml
+  - external-secret-dockerhub.yaml   # lzetam/whisperx is private; deployment already references this secret
   - storage.yaml
   - deployment-api.yaml
   - service.yaml
