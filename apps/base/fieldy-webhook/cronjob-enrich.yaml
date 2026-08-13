@@ -22,8 +22,8 @@ spec:
   # Daily at 16:30 UTC — 30 min after the puller (16:00 UTC) so the day's
   # conversations + transcripts are already on disk via the Obsidian REST API.
   # Reads those sidecars and writes LLM enrichment back via the same REST API.
-  # LangGraph SQLite checkpointer lives on an emptyDir under FIELDY_STATE_DIR
-  # (see the volumes block for why it is not a PVC).
+  # LangGraph SQLite checkpointer lives on its own PVC under FIELDY_STATE_DIR
+  # (see the volumes block — the PV was re-provisioned 2026-08-12).
   # See lyzetam/fieldy scripts/enrich.py.
   schedule: "30 16 * * *"
   timeZone: "UTC"
@@ -55,14 +55,21 @@ spec:
           containers:
             - name: enrich
               image: lzetam/fieldy-webhook:v0.15.0
-              # --limit 200 is a per-run cost/time safety rail so the first runs
-              # chip through the ~3,500-conversation backlog gradually instead of
-              # all at once. Raise or remove it once the backlog is cleared.
+              # --limit is a per-run cost/time safety rail so runs chip through
+              # the backlog gradually instead of all at once. See the value below.
               command:
                 - python
                 - /app/scripts/enrich.py
                 - --limit
-                - "200"  # a bounded 200-run is proven reliable (completed cron 2026-06-04, 66m). Only the *unbounded* full sweep hit httpx PoolTimeout.
+                # 50, not 200. Measured 2026-08-12: ~13 min per conversation at
+                # concurrency 2 on gpt-oss:20b (planner + 4 subagents each), vs
+                # the 66m/200 this job saw on 2026-06-04. At that rate a 200-run
+                # cannot finish inside activeDeadlineSeconds (6h) and every run
+                # would die DeadlineExceeded -> Failed while still making real
+                # progress, making job status useless as a health signal.
+                # 50 fits the window, so Failed means failed again. Raise it if
+                # the backend gets faster.
+                - "50"
               env:
                 - name: FIELDY_VAULT_MODE
                   value: "obsidian-api"
@@ -129,17 +136,19 @@ spec:
                 - name: state
                   mountPath: /state
           volumes:
-            # emptyDir, NOT the fieldy-enrich-state PVC. The PVC uses local-path,
-            # so its PV carried a nodeAffinity pin to `aitower` — a node that no
-            # longer exists in the cluster. That made this job permanently
-            # unschedulable ("didn't match PersistentVolume's node affinity"),
-            # and it sat Pending from 2026-07-24 to 2026-08-12.
+            # Back on the PVC, re-provisioned onto a live node. The original PV
+            # was pinned by local-path to `aitower`, which was decommissioned —
+            # that pin left this job unschedulable from 2026-07-24 to 08-12.
+            # The stranded PVC was deleted on 2026-08-12 so local-path could
+            # bind a fresh volume wherever the pod actually runs.
             #
-            # Nothing is lost. FIELDY_STATE_DIR holds only the LangGraph SQLite
-            # checkpointer, and scripts/enrich.py generates a fresh timestamped
-            # thread_id per run — so the checkpoint never resumes across runs.
-            # Its useful lifetime is exactly one pod, which is what emptyDir is.
-            # Idempotency comes from the vault (enriched.exists), not from here.
+            # Worth knowing: local-path re-pins to whichever node binds it, so
+            # retiring THAT node reproduces the same failure. Nothing here is
+            # precious — FIELDY_STATE_DIR holds only the LangGraph SQLite
+            # checkpointer, and enrich.py uses a fresh thread_id per run, so it
+            # never resumes across runs; idempotency comes from the vault via
+            # enriched.exists(). If this pins you again, `emptyDir: {}` is a
+            # drop-in replacement and loses nothing.
             - name: state
-              emptyDir:
-                sizeLimit: 256Mi
+              persistentVolumeClaim:
+                claimName: fieldy-enrich-state
