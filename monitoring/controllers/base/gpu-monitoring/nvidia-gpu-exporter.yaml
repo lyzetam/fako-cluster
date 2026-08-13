@@ -35,6 +35,9 @@ spec:
         app: nvidia-gpu-exporter
     spec:
       serviceAccountName: dcgm-exporter  # Reuse the same service account
+      # Required — without it nvidia-smi cannot find libnvidia-ml.so and exits 12.
+      # See the note in monitoring/configs/base/gpu-monitoring/.
+      runtimeClassName: nvidia
       hostPID: true
       # Kept byte-identical to monitoring/configs/base/gpu-monitoring/. Both are
       # reconciled (monitoring-controllers and monitoring-configs both list gpu-monitoring),
@@ -52,8 +55,8 @@ spec:
         args:
         - "--web.listen-address=:9835"
         - "--nvidia-smi-command=nvidia-smi"
-        # NOT AUTO — see the note in monitoring/configs/base/gpu-monitoring/. AUTO makes
-        # nvidia-smi exit 12 on a consumer GTX 1650 and the whole scrape fails.
+        # Explicit list as defence-in-depth; the exit-12 failures were the missing
+        # driver libraries, not unsupported fields. See monitoring/configs/base/.
         - "--query-field-names=name,uuid,driver_version,pstate,count,index,memory.total,memory.used,memory.free,utilization.gpu,utilization.memory,temperature.gpu,power.draw,power.limit,fan.speed,clocks.current.sm,clocks.current.memory,clocks.current.graphics"
         ports:
         - name: metrics

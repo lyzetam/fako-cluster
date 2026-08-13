@@ -35,6 +35,15 @@ spec:
         app: nvidia-gpu-exporter
     spec:
       serviceAccountName: dcgm-exporter  # Reuse the same service account
+      # Required. Without it the bind-mounted /usr/bin/nvidia-smi has no driver
+      # libraries and every query dies with exit 12:
+      #   "NVIDIA-SMI couldn't find libnvidia-ml.so library in your system"
+      # The /usr/local/nvidia hostPath below only carries libraries when the GPU
+      # Operator's DRIVER CONTAINER installs there. thinkpad02's driver came from apt
+      # (linux-modules-nvidia-595-generic-hwe-24.04 + nvidia-driver-595), so the libs
+      # live in /usr/lib/x86_64-linux-gnu and only the nvidia runtime injects them.
+      # whisperx already sets this; the exporter never did.
+      runtimeClassName: nvidia
       hostPID: true
       # nvidia.com/gpu.present is what NFD/GFD actually sets. The old selector
       # (nvidia.com/gpu: "true") is a label nothing in this cluster ever applies, so this
@@ -55,13 +64,12 @@ spec:
         args:
         - "--web.listen-address=:9835"
         - "--nvidia-smi-command=nvidia-smi"
-        # NOT AUTO. AUTO asks nvidia-smi for every field it knows about, including ECC
-        # counters, accounting, retired_pages and driver_model — datacenter/Quadro
-        # features a consumer GTX 1650 does not implement. nvidia-smi then exits 12 and
-        # the WHOLE scrape fails: measured 2026-08-12 as nvidia_smi_command_exit_code 12
-        # with 39 failed scrapes and zero usable metrics.
-        # Every field below was verified to return exit 0 on thinkpad02's GTX 1650.
-        # power.limit and fan.speed report [N/A] on this card but do not fail the call.
+        # Explicit list rather than AUTO. To be clear about cause and effect: the exit-12
+        # failures were the missing libnvidia-ml.so above, NOT unsupported fields — AUTO
+        # was never the culprit. This list is kept as defence-in-depth, because AUTO also
+        # queries ECC counters, accounting and retired_pages, which a consumer GTX 1650
+        # does not implement. Every field here returned exit 0 on thinkpad02;
+        # power.limit and fan.speed report [N/A] but do not fail the call.
         - "--query-field-names=name,uuid,driver_version,pstate,count,index,memory.total,memory.used,memory.free,utilization.gpu,utilization.memory,temperature.gpu,power.draw,power.limit,fan.speed,clocks.current.sm,clocks.current.memory,clocks.current.graphics"
         ports:
         - name: metrics
