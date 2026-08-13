@@ -61,15 +61,18 @@ spec:
                 - python
                 - /app/scripts/enrich.py
                 - --limit
-                # 50, not 200. Measured 2026-08-12: ~13 min per conversation at
-                # concurrency 2 on gpt-oss:20b (planner + 4 subagents each), vs
-                # the 66m/200 this job saw on 2026-06-04. At that rate a 200-run
-                # cannot finish inside activeDeadlineSeconds (6h) and every run
-                # would die DeadlineExceeded -> Failed while still making real
-                # progress, making job status useless as a health signal.
-                # 50 fits the window, so Failed means failed again. Raise it if
-                # the backend gets faster.
-                - "50"
+                # 150. Sized against a measured steady-state rate: 33 notes in
+                # 40 min at concurrency 2 on gpt-oss:20b, i.e. ~1.2 min per
+                # conversation, so 150 lands near 3h — comfortably inside
+                # activeDeadlineSeconds (6h) with room for a slow day.
+                #
+                # An earlier reading of ~13 min/conversation was taken from the
+                # first minute of a cold run and was badly wrong; do not size
+                # this from a single observation at startup. What matters is
+                # that the run FINISHES inside the 6h cap, because a run killed
+                # DeadlineExceeded reports Failed while doing real work, which
+                # makes job status useless exactly where it is needed.
+                - "150"
               env:
                 - name: FIELDY_VAULT_MODE
                   value: "obsidian-api"
