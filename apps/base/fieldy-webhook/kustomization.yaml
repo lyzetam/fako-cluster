@@ -13,10 +13,13 @@ resources:
   - external-secret-fieldy-api.yaml
   - external-secret-anthropic.yaml
   - external-secret-langfuse.yaml
+  - external-secret-discord.yaml
   - networkpolicy.yaml
   - networkpolicy-enrich.yaml
+  - networkpolicy-healthcheck.yaml
   - cronjob-puller.yaml
   - cronjob-enrich.yaml
+  - cronjob-healthcheck.yaml
   # Uncomment + bump metadata.name + set BACKFILL_START/END in backfill-job.yaml
   # to trigger a one-off historical backfill via GitOps. Re-comment after it
   # completes (or leave it — the Job's ttlSecondsAfterFinished auto-cleans).

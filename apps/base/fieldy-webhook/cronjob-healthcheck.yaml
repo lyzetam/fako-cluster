@@ -1,32 +1,21 @@
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: fieldy-puller-state
-  namespace: fieldy-webhook
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 64Mi
----
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: fieldy-puller
+  name: fieldy-healthcheck
   namespace: fieldy-webhook
   labels:
-    app: fieldy-puller
+    app: fieldy-healthcheck
 spec:
-  # Daily at 16:00 UTC (11:00 CT in CDT, 10:00 CT in CST). The puller writes to
-  # the Obsidian Local REST API on a LAN host, so the schedule must land when
-  # that host is reliably awake — overnight (03:00 UTC = 22:00 CT) was failing
-  # repeatedly with "All connection attempts failed".
-  # Pulls the previous 24h delta (conversations + new tasks + transcripts) from
-  # Fieldy and persists to the Obsidian vault via REST.
-  # See lyzetam/fieldy scripts/daily.py.
-  schedule: "0 16 * * *"
+  # 18:00 UTC — two hours after the puller (16:00) and ninety minutes after
+  # enrich starts (16:30), so a slow-but-working run is never mistaken for a
+  # dead one.
+  #
+  # This exists because CronJob status has misreported this system three
+  # times: writes dropped for 7 days with no failed job at all, a puller
+  # happily running two-month-old code, and an enrich job exiting 0 in 3m24s
+  # having written nothing. Data landing in the vault is the one signal none
+  # of those could fake.
+  schedule: "0 18 * * *"
   timeZone: "UTC"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
@@ -34,12 +23,14 @@ spec:
   startingDeadlineSeconds: 600
   jobTemplate:
     spec:
-      backoffLimit: 1
+      # 0, not 1: a retry would post a duplicate alert to #sre-alerts.
+      backoffLimit: 0
       ttlSecondsAfterFinished: 86400
+      activeDeadlineSeconds: 600
       template:
         metadata:
           labels:
-            app: fieldy-puller
+            app: fieldy-healthcheck
         spec:
           restartPolicy: Never
           imagePullSecrets:
@@ -53,19 +44,14 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           containers:
-            - name: puller
+            - name: healthcheck
               image: lzetam/fieldy-webhook:v0.17.0
               command:
                 - python
-                - /app/scripts/daily.py
+                - /app/scripts/healthcheck.py
               env:
                 - name: FIELDY_VAULT_MODE
                   value: "obsidian-api"
-                - name: FIELDY_API_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: fieldy-api-key
-                      key: api_key
                 - name: OBSIDIAN_API_URL
                   valueFrom:
                     secretKeyRef:
@@ -80,16 +66,24 @@ spec:
                   value: "false"  # see CLAUDE.md
                 - name: FIELDY_VAULT_REL_ROOT
                   value: "fieldy"
-                - name: FIELDY_STATE_DIR
-                  value: "/state"
-                - name: FIELDY_MAX_TRANSCRIPT_PAGES
-                  value: "50"  # daily 24h window typically needs <30 pages
+                - name: FIELDY_HEALTH_AREAS
+                  value: "conversations,transcriptions"
+                # 2 days, not 1: Fieldy genuinely returned zero conversations
+                # for 2026-08-07, so a single quiet day must not page anyone.
+                # The 2026-08-05 outage reached 7 days before it was noticed.
+                - name: FIELDY_STALE_AFTER_DAYS
+                  value: "2"
+                - name: FIELDY_ALERT_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: fieldy-discord
+                      key: sre_alerts_webhook
               resources:
                 requests:
-                  cpu: 25m
-                  memory: 96Mi
+                  cpu: 50m
+                  memory: 64Mi
                 limits:
-                  cpu: 250m
+                  cpu: 200m
                   memory: 256Mi
               securityContext:
                 allowPrivilegeEscalation: false
@@ -97,10 +91,3 @@ spec:
                 capabilities:
                   drop:
                     - ALL
-              volumeMounts:
-                - name: state
-                  mountPath: /state
-          volumes:
-            - name: state
-              persistentVolumeClaim:
-                claimName: fieldy-puller-state

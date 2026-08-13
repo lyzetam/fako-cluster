@@ -1,0 +1,50 @@
+# fieldy-healthcheck CronJob: needs DNS, the Obsidian REST API (to read the
+# vault back), and public HTTPS to discord.com for the alert webhook.
+#
+# Keep this rule set honest. Twice in 2026-08 a stale egress policy silently
+# severed this namespace — the puller wrote nothing for 7 days against a
+# hardcoded IP, and enrich reached zero LLM calls because the APISIX port was
+# never opened. A watchdog that cannot reach Discord fails the same way, and
+# there is nothing left to watch the watchdog.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fieldy-healthcheck
+  namespace: fieldy-webhook
+spec:
+  podSelector:
+    matchLabels:
+      app: fieldy-healthcheck
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Obsidian REST API — subnet-scoped, not a /32. The host moved from
+    # 10.85.10.195 to .229 on 2026-08-05 and a /32 pin cost 7 days of writes.
+    - to:
+        - ipBlock:
+            cidr: 10.85.10.0/24
+      ports:
+        - protocol: TCP
+          port: 27124
+    # discord.com for the alert webhook. No documented IP range; allow public
+    # TCP/443 with private ranges excluded.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
