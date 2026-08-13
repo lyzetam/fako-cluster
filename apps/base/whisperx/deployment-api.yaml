@@ -39,8 +39,13 @@ spec:
         env:
         - name: WHISPER_MODEL
           value: "distil-large-v3"
+        # int8, NOT float16. Measured on thinkpad02's GTX 1650 (TU117, CC 7.5) on
+        # 2026-08-12: float16 returned "!!!!!!!!..." with language "pa" — the NaN-logit
+        # signature. TU117 is the one Turing die without tensor cores, and CTranslate2
+        # fp16 misbehaves there. int8 also cuts the model to well under the 4GB VRAM.
+        # aitower's dual GPUs did have tensor cores, which is why this was fine before.
         - name: COMPUTE_TYPE
-          value: "float16"
+          value: "int8"
         - name: BATCH_SIZE
           value: "4"
         - name: DEVICE
