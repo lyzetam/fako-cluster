@@ -45,7 +45,7 @@ spec:
         # fp16 misbehaves there. int8 also cuts the model to well under the 4GB VRAM.
         # aitower's dual GPUs did have tensor cores, which is why this was fine before.
         - name: COMPUTE_TYPE
-          value: "int8"
+          value: "float32"
         - name: BATCH_SIZE
           value: "4"
         - name: DEVICE
