@@ -299,6 +299,23 @@ Voice Input → OpenWakeWord → Whisper (STT) → LLM → Piper (TTS) → Audio
   `nvidia.com/gpu.present=true`. It has been `DESIRED: 0` since aitower left and stays that
   way. Fix the selector, or label the node, if GPU metrics are wanted.
 
+  **Sizing lesson — do not copy aitower's model configs onto this card.** TU117 has no
+  tensor cores and only 4GB. Measured with a real transcription on 2026-08-12:
+
+  | Config | Result |
+  |---|---|
+  | `distil-large-v3` + `float16` | NaN output — `"!!!!"`, language `pa` |
+  | `distil-large-v3` + `int8` | loads (1152 MiB) but hallucinates |
+  | `distil-large-v3` + `float32` | CUDA OOM at 3612/4096 MiB |
+  | **`distil-medium.en` + `float32`** | **correct, 2110/4096 MiB** |
+
+  The rule that fell out: on this card prefer a **smaller model at full precision** over a
+  cheaper precision on a big model. `float16` is effectively unusable here.
+
+  **GPU consumers:** `whisperx` only. There is no time-slicing configured, so
+  `nvidia.com/gpu: 1` admits exactly one pod — reviving `parakeet` would contend with the
+  Obsidian transcription path.
+
 ### Storage Architecture
 
 - **Primary**: UGREEN NAS with 12TB (4x3TB RAID5)
