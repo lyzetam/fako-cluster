@@ -9,6 +9,17 @@ spec:
     - ReadOnlyMany
   persistentVolumeReclaimPolicy: Retain
   storageClassName: nfs-backup
+  # Without these the client negotiates NFSv4 and no lock manager, and the mount
+  # fails twice over: "rpc.statd is not running but is required for remote
+  # locking", then "No such file or directory" — because /volume1/k8s-backups is
+  # not a valid path under the v4 pseudo-root. The share DOES exist; the
+  # pv-catalog job mounts it successfully with exactly these options. This pod
+  # sat in ContainerCreating for 27h+ (765 failed mounts) on that misleading
+  # "No such file or directory".
+  mountOptions:
+    - nfsvers=3
+    - nolock
+    - hard
   csi:
     driver: nfs.csi.k8s.io
     volumeHandle: postgres-backup-recovery-pv
