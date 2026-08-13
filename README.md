@@ -294,10 +294,26 @@ Voice Input → OpenWakeWord → Whisper (STT) → LLM → Piper (TTS) → Audio
   installing the pre-signed package first satisfies the alternative and skips DKMS entirely.
   `ubuntu-drivers devices` recommends the 595 branch for this GPU.
 
-  **Known gap:** the `nvidia-gpu-exporter` DaemonSet in `gpu-monitoring` selects on
-  `nvidia.com/gpu=true`, a label the GPU Operator does not set — GFD sets
-  `nvidia.com/gpu.present=true`. It has been `DESIRED: 0` since aitower left and stays that
-  way. Fix the selector, or label the node, if GPU metrics are wanted.
+  **GPU metrics — fixed 2026-08-12, after two independent bugs.** `nvidia-gpu-exporter` had
+  never worked. First, it selected on `nvidia.com/gpu=true`, a label nothing in this cluster
+  sets (NFD/GFD set `nvidia.com/gpu.present=true`), so it sat at `DESIRED: 0`. With that
+  corrected it scheduled and still emitted only `nvidia_smi_command_exit_code 12` — running
+  `nvidia-smi` inside the pod gave the real reason:
+
+  ```
+  NVIDIA-SMI couldn't find libnvidia-ml.so library in your system
+  ```
+
+  The DaemonSet bind-mounts the host `/usr/bin/nvidia-smi` but nothing supplied the driver
+  libraries. `/usr/local/nvidia` only carries them when the GPU Operator's *driver container*
+  installs there; a host/apt-installed driver puts them in `/usr/lib/x86_64-linux-gnu`, where
+  only the **nvidia container runtime** injects them. Adding `runtimeClassName: nvidia` —
+  which `whisperx` always had and the exporter never did — fixed it. Now `exit_code 0`,
+  17 series, Prometheus target `up`.
+
+  Note both `monitoring/configs/base/gpu-monitoring/` and
+  `monitoring/controllers/base/gpu-monitoring/` define this same DaemonSet and are **both**
+  reconciled, so any change must be applied to both or they fight.
 
   **Sizing lesson — do not copy aitower's model configs onto this card.** TU117 has no
   tensor cores and only 4GB. Measured with a real transcription on 2026-08-12:
