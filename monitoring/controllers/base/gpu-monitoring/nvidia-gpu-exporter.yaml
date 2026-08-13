@@ -52,7 +52,9 @@ spec:
         args:
         - "--web.listen-address=:9835"
         - "--nvidia-smi-command=nvidia-smi"
-        - "--query-field-names=AUTO"
+        # NOT AUTO — see the note in monitoring/configs/base/gpu-monitoring/. AUTO makes
+        # nvidia-smi exit 12 on a consumer GTX 1650 and the whole scrape fails.
+        - "--query-field-names=name,uuid,driver_version,pstate,count,index,memory.total,memory.used,memory.free,utilization.gpu,utilization.memory,temperature.gpu,power.draw,power.limit,fan.speed,clocks.current.sm,clocks.current.memory,clocks.current.graphics"
         ports:
         - name: metrics
           containerPort: 9835

@@ -55,7 +55,14 @@ spec:
         args:
         - "--web.listen-address=:9835"
         - "--nvidia-smi-command=nvidia-smi"
-        - "--query-field-names=AUTO"
+        # NOT AUTO. AUTO asks nvidia-smi for every field it knows about, including ECC
+        # counters, accounting, retired_pages and driver_model — datacenter/Quadro
+        # features a consumer GTX 1650 does not implement. nvidia-smi then exits 12 and
+        # the WHOLE scrape fails: measured 2026-08-12 as nvidia_smi_command_exit_code 12
+        # with 39 failed scrapes and zero usable metrics.
+        # Every field below was verified to return exit 0 on thinkpad02's GTX 1650.
+        # power.limit and fan.speed report [N/A] on this card but do not fail the call.
+        - "--query-field-names=name,uuid,driver_version,pstate,count,index,memory.total,memory.used,memory.free,utilization.gpu,utilization.memory,temperature.gpu,power.draw,power.limit,fan.speed,clocks.current.sm,clocks.current.memory,clocks.current.graphics"
         ports:
         - name: metrics
           containerPort: 9835
