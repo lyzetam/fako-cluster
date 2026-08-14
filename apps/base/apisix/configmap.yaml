@@ -1,14 +1,18 @@
 # APISIX AI gateway — standalone (no etcd), declarative config. LLM front door
-# for the Mac Studio Ollama fleet: one OpenAI-compatible endpoint that load-
-# balances ms1/ms2/ms3 and fails over on error/timeout. Proven in PoC (routes +
-# wedge-failover verified live). Wedge recovery is handled by the msctl watchdog
-# on the nodes (~2 min); this layer just routes around a failing node per request.
+# for the Mac Studio Ollama fleet.
+#
+# Routing is now model-aware: gpt-oss:20b is pinned to ms3 because ms1/ms2
+# cannot fit it alongside glm-4.7-flash. least_conn spreads load by active
+# connections and an api-breaker adds a coarse circuit breaker on top of the
+# upstream health checks.
 #
 # NOTE: config changes need a `kubectl rollout restart deployment/apisix -n apisix`
 # (subPath ConfigMap mounts don't hot-reload). That's a rollout trigger, allowed.
 #
-# TODO (fast-follow): add Ollama Cloud (priority 50) + Anthropic (priority 10)
-# tiers via an ExternalSecret + $ENV:// key refs; add key-auth for consumers.
+# NOTE: Converting an empty-body 200 from /api/chat into a 503 for passive health
+# checks cannot be done reliably with built-in plugins: nginx has already sent
+# response headers by the time the body is available in body_filter. A custom
+# subrequest-based plugin (or an Ollama-side fix) is required for that follow-up.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -28,19 +32,20 @@ data:
         export_addr:
           ip: 0.0.0.0
           port: 9091
+    nginx_config:
+      http:
+        # Add model/routing visibility to the access log so we can confirm
+        # gpt-oss:20b traffic lands on ms3 and see upstream failures quickly.
+        access_log_format: "$remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent $request_time \"$http_referer\" \"$http_user_agent\" $upstream_addr $upstream_status $upstream_response_time \"$upstream_scheme://$upstream_host$upstream_uri\" \"$http_x_ollama_model\""
+        access_log_format_escape: default
   apisix.yaml: |
     upstreams:
-      # Plain round-robin over the three Macs for Ollama-NATIVE traffic
-      # (/api/chat, /api/generate, /api/embed...). The ai-proxy-multi route below
-      # only speaks the OpenAI shape and rewrites the caller's model, which is
-      # wrong for callers that want gemma3/gpt-oss/nomic-embed-text — so those go
-      # here instead and keep their own request body untouched.
-      #
-      # Read timeout is 600s on purpose: with OLLAMA_NUM_PARALLEL=1 a 25k-token
-      # prompt can hold a node's single slot for minutes, and cutting it short is
-      # what made clients see 500s while the node was healthy and still decoding.
+      # Load-balance native Ollama traffic (/api/chat, /api/generate, /api/embed)
+      # by least active connections. With OLLAMA_NUM_PARALLEL=1 a busy node holds
+      # its slot for minutes; least_conn steers new requests toward idle nodes
+      # instead of round-robin piling onto the same busy one.
       - id: ollama-fleet
-        type: roundrobin
+        type: least_conn
         retries: 2
         timeout:
           connect: 5
@@ -77,6 +82,41 @@ data:
               http_statuses: [500, 502, 503, 504]
               http_failures: 2
               timeouts: 2
+
+      # Dedicated upstream for gpt-oss:20b. As of 2026-08 ms1/ms2 each have
+      # ~30-40 GB loaded with glm-4.7-flash and cannot also load the ~14 GB
+      # gpt-oss:20b in the remaining ~37 GB VRAM. ms3 can. This upstream is
+      # selected by the traffic-split plugin on the ollama-native route.
+      - id: ollama-gptoss
+        type: least_conn
+        retries: 2
+        timeout:
+          connect: 5
+          send: 600
+          read: 600
+        nodes:
+          "ms3.landryzetam.net:11434": 1
+        checks:
+          active:
+            type: http
+            http_path: /api/version
+            timeout: 15
+            healthy:
+              interval: 10
+              successes: 1
+            unhealthy:
+              interval: 15
+              http_failures: 3
+              timeouts: 3
+          passive:
+            healthy:
+              http_statuses: [200, 201]
+              successes: 1
+            unhealthy:
+              http_statuses: [500, 502, 503, 504]
+              http_failures: 2
+              timeouts: 2
+
     consumers:
       # key-auth is the standard API-key mechanism in APISIX: the consumer
       # presents `apikey: <key>` and the gateway resolves it to a named
@@ -117,13 +157,62 @@ data:
           # open /api/* is free inference on the Mac fleet for anyone who finds
           # the hostname.
           key-auth: {}
+          # Extract the model from the JSON body (e.g. /api/chat) so the
+          # traffic-split plugin below can route gpt-oss:20b to the only node
+          # that can load it. The header is also logged in the access log.
+          serverless-pre-function:
+            phase: rewrite
+            functions:
+              - |-
+                return function(conf, ctx)
+                  local core = require("apisix.core")
+                  local method = core.request.get_method(ctx)
+                  if method ~= "POST" and method ~= "PUT" then
+                    return
+                  end
+                  local body = core.request.get_body(nil, ctx)
+                  if not body or body == "" then
+                    return
+                  end
+                  local ok, data = pcall(core.json.decode, body)
+                  if not ok or type(data) ~= "table" then
+                    return
+                  end
+                  local model = data.model
+                  if model and type(model) == "string" then
+                    core.request.set_header(ctx, "X-Ollama-Model", model)
+                    core.log.info("ollama model detected: ", model)
+                  end
+                end
+          # Pin gpt-oss:20b to ms3. Non-matching requests fall through to the
+          # route's default upstream (ollama-fleet).
+          traffic-split:
+            rules:
+              - match:
+                  - vars:
+                      - ["http_x_ollama_model", "==", "gpt-oss:20b"]
+                weighted_upstreams:
+                  - upstream_id: ollama-gptoss
+                    weight: 1
+          # Coarse circuit breaker. Only trips after sustained 5xx/502-504
+          # failures; healthy again after two consecutive good responses.
+          api-breaker:
+            break_response_code: 503
+            max_breaker_sec: 60
+            unhealthy:
+              http_statuses: [500, 502, 503, 504]
+              failures: 5
+            healthy:
+              http_statuses: [200, 201]
+              successes: 2
+
       # OpenAI-shape passthrough that PRESERVES the caller's model. The
       # llm-chat route below runs ai-proxy-multi, which overrides the model
       # per instance (glm-4.7-flash local, glm-5.2 cloud) — correct for a
       # caller that just wants "a model", wrong for one that has measured a
       # specific model and needs that one. Ollama already serves the OpenAI
       # shape at /v1 on every node, so this is a plain proxy to the fleet:
-      # same round-robin, same health checks, no model rewriting.
+      # same least_conn, same health checks, no model rewriting.
       - id: ollama-openai-passthrough
         uri: /local/v1/*
         upstream_id: ollama-fleet
@@ -132,6 +221,15 @@ data:
           key-auth: {}
           proxy-rewrite:
             regex_uri: ["^/local(/v1/.*)$", "$1"]
+          api-breaker:
+            break_response_code: 503
+            max_breaker_sec: 60
+            unhealthy:
+              http_statuses: [500, 502, 503, 504]
+              failures: 5
+            healthy:
+              http_statuses: [200, 201]
+              successes: 2
 
       - id: llm-chat
         uri: /v1/chat/completions
