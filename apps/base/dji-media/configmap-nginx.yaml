@@ -16,6 +16,10 @@ metadata:
   namespace: dji-media
 data:
   default.conf.template: |
+    # The bearer-token key can be long; raise the bucket size so nginx can
+    # build the authorization map without an emergency config error.
+    map_hash_bucket_size 256;
+
     map $http_authorization $auth_basic {
         "Bearer ${BEARER_TOKEN}" off;
         default "Restricted";
