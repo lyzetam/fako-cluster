@@ -12,7 +12,7 @@
 #   `rpcinfo -p` advertises nfs v3 (tcp+udp) and v4 (tcp) — but NOT v4.1
 #   `showmount -e` reports this exact path as exported to the cluster nodes
 #
-# Both /var/nfs/shared/dji (documented in the UNAS UI) and this path FAIL under
+# Both /var/nfs/shared/content_inbox (documented in the UNAS UI) and this path FAIL under
 # nfsvers=4.1 with "No such file or directory" from the server — which reads
 # like a permissions error but is a protocol-version mismatch. Do not "upgrade"
 # to v4.x without re-testing; v3 is what showmount can actually prove.
@@ -44,7 +44,7 @@ spec:
     - retrans=2
   nfs:
     server: unas.landryzetam.net
-    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/dji/.data
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/content_inbox/.data
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
