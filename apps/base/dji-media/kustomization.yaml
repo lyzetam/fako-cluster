@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - secret-store.yaml
   - external-secret-tailscale.yaml
+  - external-secret-auth.yaml
   - tailscale-serve-configmap.yaml
   - configmap-nginx.yaml
   - nfs-storage.yaml

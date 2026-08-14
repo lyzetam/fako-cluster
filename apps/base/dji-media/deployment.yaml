@@ -40,6 +40,12 @@ spec:
       containers:
       - name: nginx
         image: nginxinc/nginx-unprivileged:1.27-alpine
+        env:
+        - name: BEARER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: dji-media-bearer-token
+              key: token
         ports:
         - containerPort: 8080
           name: http
@@ -72,8 +78,14 @@ spec:
         - name: archive
           mountPath: /srv/media
           readOnly: true                       # third layer of read-only enforcement
-        - name: nginx-conf
+        - name: nginx-conf-template
+          mountPath: /etc/nginx/templates/default.conf.template
+          subPath: default.conf.template
+          readOnly: true
+        - name: nginx-conf-out
           mountPath: /etc/nginx/conf.d
+        - name: nginx-auth
+          mountPath: /etc/nginx/auth
           readOnly: true
         - name: cache
           mountPath: /tmp
@@ -118,9 +130,14 @@ spec:
         persistentVolumeClaim:
           claimName: dji-media-archive
           readOnly: true
-      - name: nginx-conf
+      - name: nginx-conf-template
         configMap:
           name: dji-media-nginx
+      - name: nginx-conf-out
+        emptyDir: {}
+      - name: nginx-auth
+        secret:
+          secretName: dji-media-basic-auth
       - name: serve
         configMap:
           name: tailscale-serve
