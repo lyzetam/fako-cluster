@@ -28,11 +28,6 @@ spec:
       labels:
         app: dji-media
     spec:
-      # Temporary: only thinkpad02 has nfs-common installed and will be added to
-      # the content_inbox NFS allowlist. Remove this once all workers have NFS
-      # client support and are allowlisted.
-      nodeSelector:
-        kubernetes.io/hostname: thinkpad02
       securityContext:
         runAsNonRoot: true
         runAsUser: 101              # nginx-unprivileged runs as uid 101
