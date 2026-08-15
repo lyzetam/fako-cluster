@@ -24,6 +24,11 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9091"
         prometheus.io/path: "/apisix/prometheus/metrics"
+        # Rollout trigger: subPath ConfigMap mounts do not hot-reload. This
+        # checksum must be updated whenever apps/base/apisix/configmap.yaml
+        # changes so Flux recreates the pods with the new APISIX config.
+        # Compute: sha256sum apps/base/apisix/configmap.yaml
+        checksum/config: "64e72e69c7fcf2bff813421f12b8977367db093912bf8f887b25c544e4969241"
     spec:
       containers:
         - name: apisix
