@@ -1,0 +1,24 @@
+# Restrict in-cluster access to the nginx container.
+#
+# dji-media is meant to be reached through the Tailscale sidecar; the sidecar
+# talks to nginx over loopback inside the pod, so it is not affected by this
+# policy. The only ingress we need to allow is from the cluster nodes themselves
+# so kubelet health probes can reach /healthz.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dji-media-allow-node-probes
+  namespace: dji-media
+spec:
+  podSelector:
+    matchLabels:
+      app: dji-media
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 10.85.30.0/24
+    ports:
+    - protocol: TCP
+      port: 8080

@@ -9,4 +9,5 @@ resources:
   - tailscale-serve-configmap.yaml
   - configmap-nginx.yaml
   - nfs-storage.yaml
+  - networkpolicy.yaml
   - deployment.yaml
