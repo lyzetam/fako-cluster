@@ -97,6 +97,15 @@ spec:
       deploy: true
       nodeSelector:
         kubernetes.io/hostname: thinkpad02
+      # Default is "Always": a full recursive chown over NFS on every single
+      # pod start, regardless of whether ownership is already correct. That's
+      # what blew the 10m Deployment progressDeadlineSeconds during the
+      # thinkpad02 move (2026-08-17) and caused two failed/rolled-back
+      # upgrades. OnRootMismatch skips the walk once the root dir already has
+      # the right group ownership — still does the walk once for real change,
+      # never again after.
+      podSecurityContext:
+        fsGroupChangePolicy: OnRootMismatch
       shards: 1
       replicaCount: 1
       clusterEnabled: false
