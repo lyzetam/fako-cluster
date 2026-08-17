@@ -1,0 +1,47 @@
+# Egress to the Obsidian Local REST API, by hostname instead of a frozen IP.
+#
+# The plain NetworkPolicy in networkpolicy.yaml used to pin this to
+# 10.85.10.195/32. That address changed (DHCP renewal or a device swap) and
+# the rule never followed — the collector silently failed to write
+# Health/Oura Daily/*.md from 2026-07-15 until this was found on 2026-08-17,
+# because Postgres writes (allowed by namespace selector) kept succeeding and
+# nothing alerted on the vault-copy warning in its own logs.
+#
+# obsidian-api.landryzetam.net already tracks the live address correctly —
+# `dig` returns the current IP even though the old policy didn't use it. This
+# CiliumNetworkPolicy allows egress by that FQDN instead, so a future address
+# change requires no manifest edit.
+#
+# Requires a DNS-visibility rule: Cilium's DNS proxy has to see the query for
+# this exact name to learn which resolved IP the toFQDNs rule should permit.
+# Plain NetworkPolicy can't express toFQDNs at all, hence the separate CRD —
+# Cilium unions rules from both NetworkPolicy and CiliumNetworkPolicy for the
+# same pod (allow if either permits), so this only adds a path, it does not
+# replace the existing DNS/postgres/oura-agent/HTTPS rules in networkpolicy.yaml.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: oura-collector-obsidian-fqdn
+  namespace: oura-collector
+spec:
+  endpointSelector:
+    matchLabels:
+      app: oura-collector
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchName: "obsidian-api.landryzetam.net"
+    - toFQDNs:
+        - matchName: "obsidian-api.landryzetam.net"
+      toPorts:
+        - ports:
+            - port: "27124"
+              protocol: TCP

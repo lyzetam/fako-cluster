@@ -1,5 +1,8 @@
-# oura-collector egress: DNS, postgres, the oura-agent hand-off, the LAN Obsidian
-# REST API, and public HTTPS (Oura API, AWS Secrets Manager, Discord webhook).
+# oura-collector egress: DNS, postgres, the oura-agent hand-off, and public
+# HTTPS (Oura API, AWS Secrets Manager, Discord webhook). The Obsidian Local
+# REST API rule moved to networkpolicy-obsidian-fqdn.yaml (CiliumNetworkPolicy,
+# by hostname) — see that file for why. Plain NetworkPolicy can't express an
+# FQDN rule, so this file no longer carries that egress path at all.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -36,13 +39,6 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-    # Obsidian Local REST API (LAN host obsidian-api.landryzetam.net -> 10.85.10.195)
-    - to:
-        - ipBlock:
-            cidr: 10.85.10.195/32
-      ports:
-        - protocol: TCP
-          port: 27124
     # Public HTTPS — Oura API, AWS Secrets Manager, Discord webhook (no fixed range)
     - to:
         - ipBlock:
