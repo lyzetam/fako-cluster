@@ -13,7 +13,7 @@ resources:
   - dji-media          # read-only NAS media server for DJI footage (Tailscale-private)
   - social-media       # versitygw S3 gateway over the SocialMedia UNAS drive (IG pipeline storage)
   - selfheal-test     # PERMANENT self-heal fixture — 7 deliberately-broken workloads. DO NOT RETIRE.
-  - feed-cache        # In-memory render cache for the feed service
+  - selfheal-harness  # Self-heal OOM harness (was "feed-cache") — deliberately broken, DO NOT FIX
   # - oura-dashboard  # Deactivated - not in use
   # - wger
   # - donetick         # Task & chore management

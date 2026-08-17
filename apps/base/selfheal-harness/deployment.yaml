@@ -1,10 +1,24 @@
-# In-memory render cache for the feed service. Warms decoded feed assets on
-# startup and keeps them hot so the renderer serves reads without re-decoding.
+# SELF-HEAL HARNESS — deliberately broken. NOT a real workload.
+#
+# This is a test fixture for the autonomous self-heal path (Noor -> Sol). The
+# container allocates 16 MiB every 2 seconds and never frees it, so it OOMKills
+# at ANY memory limit — raising the limit only lengthens the interval. Do not
+# "fix" it. There is no feed service; nothing consumes this.
+#
+# Introduced as `feed-cache` by 3a0cc5db (2026-07-14) deliberately disguised as a
+# plausible app, because selfheal-test's overt "THROWAWAY/INTENTIONAL test" tells
+# made the autonomous path correctly defer. Renamed out of that disguise on
+# 2026-08-17 at the operator's request, after it twice consumed real triage time.
+#
+# TRADEOFF, on the record: naming the namespace restores the tell. The autonomous
+# Noor -> Sol loop is now expected to defer on this the way it defers on
+# selfheal-test. If you need an undisguised-to-humans but tell-free-to-agents
+# harness again, the note in private/feed-cache.md describes how that was done.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: feed-cache
-  namespace: feed-cache
+  namespace: selfheal-harness
   labels:
     app.kubernetes.io/name: feed-cache
     app.kubernetes.io/part-of: feed
