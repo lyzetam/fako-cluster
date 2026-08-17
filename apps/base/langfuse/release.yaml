@@ -14,7 +14,14 @@ spec:
         name: langfuse
         namespace: langfuse
   values:
+    # Pinned to thinkpad02 (32Gi) — the whole stack previously had no
+    # nodeSelector and the scheduler stacked it onto thinkpad01 (16Gi)
+    # alongside loki-stack/kubescape/2 postgres replicas, pushing that node
+    # to 91% memory requested / 262% limits overcommitted. That overcommit
+    # is what stalled systemd/dbus and wedged kubelet for ~32h on 2026-08-16.
     langfuse:
+      nodeSelector:
+        kubernetes.io/hostname: thinkpad02
       salt:
         secretKeyRef:
           name: langfuse-secrets
@@ -76,6 +83,8 @@ spec:
     # ClickHouse — single node for self-hosted
     clickhouse:
       deploy: true
+      nodeSelector:
+        kubernetes.io/hostname: thinkpad02
       shards: 1
       replicaCount: 1
       clusterEnabled: false
@@ -96,6 +105,8 @@ spec:
         storageClass: nfs-csi-v2
       # ClickHouse's bundled ZooKeeper had the same problem.
       zookeeper:
+        nodeSelector:
+          kubernetes.io/hostname: thinkpad02
         persistence:
           enabled: true
           storageClass: nfs-csi-v2
@@ -124,6 +135,8 @@ spec:
       auth:
         enabled: false
       primary:
+        nodeSelector:
+          kubernetes.io/hostname: thinkpad02
         persistence:
           enabled: true
           storageClass: nfs-csi-v2
@@ -131,6 +144,8 @@ spec:
     # MinIO — local S3-compatible object store
     s3:
       deploy: true
+      nodeSelector:
+        kubernetes.io/hostname: thinkpad02
       forcePathStyle: true
       # MinIO root creds come from the independent langfuse-s3 secret
       # (external-secret-minio.yaml ← AWS SM langfuse/minio). Using existingSecret
