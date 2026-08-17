@@ -5,6 +5,18 @@ metadata:
   namespace: langfuse
 spec:
   interval: 30m
+  # ClickHouse's PVC already holds real data; on every reschedule kubelet does a
+  # recursive chown across it over NFS before the container can start, which
+  # blows past Helm's default 5m wait (observed: still ContainerCreating at 8m
+  # during the thinkpad02 rebalance). Give upgrades headroom + retries, same
+  # pattern as kubescape-operator and kube-prometheus-stack.
+  timeout: 15m
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
   chart:
     spec:
       chart: langfuse
