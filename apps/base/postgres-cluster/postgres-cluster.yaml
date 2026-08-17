@@ -70,6 +70,24 @@ spec:
         connectionLimit: -1
         passwordSecret:
           name: app-user-secret
+      # Read-only login for the oura database — SELECT only, granted no CONNECT
+      # to any other database. Backs mcp-postgres and daily-kpi-report's health
+      # agent, replacing their use of the `app` (read/write) credential over a
+      # per-run kubectl port-forward. See oura-readonly-grants-job.yaml for the
+      # table-level GRANTs — CNPG's managed.roles only sets login attributes,
+      # not privileges.
+      - name: oura_readonly
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        inherit: true
+        replication: false
+        bypassrls: false
+        connectionLimit: 5
+        passwordSecret:
+          name: oura-readonly-secret
   
   storage:
     size: 50Gi

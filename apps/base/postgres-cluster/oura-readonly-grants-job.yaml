@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: oura-readonly-grants
+  namespace: postgres
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: grant-readonly
+        image: postgres:16
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PGHOST
+          value: postgres-cluster-rw.postgres.svc.cluster.local
+        - name: PGUSER
+          value: postgres
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-admin-secret
+              key: password
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "Granting oura_readonly SELECT-only access on the oura database..."
+
+          # CONNECT + USAGE: the minimum to open a connection and see the schema.
+          # Deliberately scoped to oura only — no CONNECT grant anywhere else,
+          # so this role cannot even see app/keycloak/n8n/paperless/backstage/langfuse.
+          psql -d oura -c "GRANT CONNECT ON DATABASE oura TO oura_readonly;"
+          psql -d oura -c "GRANT USAGE ON SCHEMA public TO oura_readonly;"
+
+          # SELECT on every table that exists today...
+          psql -d oura -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO oura_readonly;"
+
+          # ...and on every table created after this runs. Without this, a
+          # schema migration silently leaves oura_readonly unable to read a
+          # new table — the same class of bug diagnosed 2026-08-16 in the
+          # duplicate oura-collector-cron (permission denied for schema public).
+          psql -d oura -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO oura_readonly;"
+
+          # Explicitly no INSERT/UPDATE/DELETE/DDL grants of any kind, and no
+          # ALTER DEFAULT PRIVILEGES for sequences/functions. If oura_readonly
+          # ever needs more, add it here deliberately — don't widen by default.
+
+          echo "oura_readonly grants applied."
