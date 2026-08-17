@@ -23,4 +23,18 @@ resources:
   # route, only fronted the health endpoint. Left an LE HTTP-01 challenge stuck
   # 350d. Collector is an outbound pipeline; needs no ingress.
   # - backfill-job.yaml  # Removed: Should only be run manually when needed
-  - cronjob.yaml         # Added: Use CronJob for scheduled backfills instead
+  # - cronjob.yaml  Removed 2026-08-16: its own header called it an
+  #   "Alternative to deployment", but both shipped, so it duplicated the
+  #   collection the Deployment already does continuously. It had not completed
+  #   a run since 2025-10-20 while still being scheduled every 6h — 4 crash-loop
+  #   pods a day, and a frozen lastSuccessfulTime that masked real failures.
+  #   Two independent misconfigurations, either one fatal:
+  #     - POSTGRES_SECRETS_NAME=postgres/app-user lacks CREATE on schema public
+  #       (PG15 no longer grants it), so create_all() died with
+  #       "permission denied for schema public" → CrashLoopBackOff.
+  #     - DATABASE_NAME=app, but the health data lives in the `oura` database,
+  #       so even with privileges it wrote to the wrong place.
+  #   The Deployment is the real collector and is healthy (278 records / 17
+  #   endpoints / 0 failures, with its own freshness self-check), so this was
+  #   deleted rather than repaired — granting CREATE would have produced two
+  #   concurrent writers.
