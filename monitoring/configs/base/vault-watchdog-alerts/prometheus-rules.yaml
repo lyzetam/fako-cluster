@@ -1,0 +1,48 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: vault-watchdog-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: vault-watchdog
+    prometheus.io/rule: "true"
+spec:
+  groups:
+    - name: vault.watchdog.alerts
+      interval: 60s
+      rules:
+        # The watchdog job exits non-zero when any vault area has stopped
+        # receiving writes, so a failed job IS the alert. Measured 2026-08-18,
+        # before this existed: Health/Oura Daily had been dead 21 days,
+        # Health/Hume Daily 34 days, and Transcripts/argo 131 days — none of it
+        # visible anywhere, because 13 of 15 vault writers had no healthcheck
+        # and no alert rule mentioned the vault at all.
+        - alert: VaultWriterStale
+          expr: |
+            kube_job_failed{namespace="vault-watchdog", job_name=~"vault-watchdog-[0-9]+", condition="true"} > 0
+          for: 5m
+          labels:
+            severity: critical
+            component: vault-watchdog
+          annotations:
+            summary: "A vault area has stopped receiving writes"
+            description: "The vault watchdog failed. `kubectl logs -n vault-watchdog job/{{ $labels.job_name }}` names the area, its owning app, and how stale it is. Exit 2 means the vault API itself was unreachable, which is the whole-vault outage case."
+
+        # The watchdog going quiet is the failure that hides every other
+        # failure, so it is alerted on directly. Uses the CronJob-level metric,
+        # not the Job-level one: ttlSecondsAfterFinished garbage-collects Jobs
+        # and their metrics, so a Job-based staleness rule cannot fire above
+        # that TTL. absent_over_time covers the case where it has NEVER run.
+        - alert: VaultWatchdogNotRunning
+          expr: |
+            (time() - max_over_time(kube_cronjob_status_last_successful_time{namespace="vault-watchdog", cronjob="vault-watchdog"}[2h]) > 129600)
+            or absent_over_time(kube_cronjob_status_last_successful_time{namespace="vault-watchdog", cronjob="vault-watchdog"}[6h])
+          for: 30m
+          labels:
+            severity: critical
+            component: vault-watchdog
+          annotations:
+            summary: "Vault watchdog has not succeeded in 36h"
+            description: "The watchdog runs twice daily (08:00/20:00 cluster-local). While it is not running, every vault writer is unmonitored again — which is the state that let a 131-day outage go unnoticed."

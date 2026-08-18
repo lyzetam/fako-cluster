@@ -1,0 +1,155 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-watchdog-script
+  namespace: vault-watchdog
+data:
+  check.py: |
+    #!/usr/bin/env python3
+    """Fail loudly when a vault area stops receiving writes.
+
+    Stdlib only, so this runs on a stock python image with no build step.
+
+    Why a central checker rather than a healthcheck per app: 15 apps write to
+    the vault, 2 had a healthcheck, and no alert rule mentioned the vault at
+    all. An outage in Health/Oura Daily ran 21 days and one in Transcripts/argo
+    ran 131 days, both entirely unnoticed. Per-app checks did not scale; this
+    is one job reading one config.
+    """
+    import datetime
+    import json
+    import os
+    import re
+    import ssl
+    import sys
+    import urllib.parse
+    import urllib.request
+
+    API = os.environ["OBSIDIAN_API_URL"].rstrip("/")
+    KEY = os.environ["OBSIDIAN_API_KEY"]
+    CONFIG = os.environ.get("AREAS_CONFIG", "/config/areas.json")
+    MAX_DEPTH = int(os.environ.get("MAX_DEPTH", "3"))
+
+    # TLS is verified PROPERLY here — chain and hostname both checked — against
+    # a pinned copy of the endpoint's certificate. This deliberately does NOT
+    # follow the repo-wide OBSIDIAN_VERIFY_TLS=false pattern.
+    #
+    # That workaround, and CLAUDE.md's note that the cert carries only
+    # IP:127.0.0.1, describe the retired Obsidian Local REST API plugin. The
+    # endpoint now runs the self-hosted obsidian-vault-api with a certificate
+    # reissued 2026-08-05 carrying DNS:obsidian-api.landryzetam.net. Verified
+    # 2026-08-18: full verification against the live endpoint succeeds.
+    #
+    # A watchdog that skips verification cannot tell the real vault from
+    # anything that answers on that address, which would defeat the point of
+    # having it.
+    CA = os.environ.get("VAULT_CA", "/etc/vault-ca/ca.pem")
+    CTX = ssl.create_default_context(cafile=CA)
+
+    DATE_RE = re.compile(r"(20\d\d)-(\d\d)-(\d\d)")
+
+
+    def listing(path):
+        url = f"{API}/vault/{urllib.parse.quote(path)}"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {KEY}"})
+        with urllib.request.urlopen(req, timeout=30, context=CTX) as r:
+            return json.loads(r.read()).get("files", [])
+
+
+    def newest_date(area):
+        """Newest date found anywhere in the paths under `area`.
+
+        The date may be in the filename (oura-2026-08-17.md) or in a parent
+        folder (fieldy/conversations/2026-08-17/x.md), so the WHOLE path is
+        scanned and the last match wins. Missing this is why an early draft of
+        this check reported 516 healthy areas as 'undated'.
+        """
+        best, files = None, 0
+
+        def walk(prefix, depth):
+            nonlocal best, files
+            for item in listing(prefix):
+                full = prefix + item
+                if item.endswith("/"):
+                    if depth < MAX_DEPTH:
+                        walk(full, depth + 1)
+                    continue
+                files += 1
+                match = None
+                for match in DATE_RE.finditer(full):
+                    pass
+                if match:
+                    try:
+                        d = datetime.date(*map(int, match.groups()))
+                    except ValueError:
+                        continue
+                    if best is None or d > best:
+                        best = d
+
+        walk(area.rstrip("/") + "/", 0)
+        return best, files
+
+
+    def main():
+        today = datetime.date.today()
+        areas = json.load(open(CONFIG))
+
+        # An unreachable vault is itself the outage — fail before checking ages,
+        # so the alert says "cannot reach the vault" rather than reporting every
+        # area stale and burying the cause.
+        try:
+            roots = listing("")
+        except Exception as exc:  # noqa: BLE001 - any failure here is fatal
+            print(f"FATAL: cannot reach the vault API at {API}: "
+                  f"{type(exc).__name__}: {exc}", file=sys.stderr)
+            return 2
+        print(f"vault reachable, {len(roots)} root entries\n")
+
+        rows, breached = [], []
+        for spec in areas:
+            area, owner, limit = spec["area"], spec["owner"], spec["max_age_days"]
+            try:
+                newest, count = newest_date(area)
+            except Exception as exc:  # noqa: BLE001
+                rows.append((area, owner, "ERROR", "-", f"{type(exc).__name__}"))
+                breached.append(f"{area} ({owner}): listing failed - {exc}")
+                continue
+            if newest is None:
+                rows.append((area, owner, "none", str(count), "NO DATED FILES"))
+                breached.append(f"{area} ({owner}): no dated files found")
+                continue
+            # Future dates are legitimate here (fieldy/tasks carries due dates),
+            # so clamp rather than reporting a negative age.
+            age = max(0, (today - newest).days)
+            state = "ok" if age <= limit else "STALE"
+            rows.append((area, owner, str(newest), str(count), f"{age}d / {limit}d {state}"))
+            if age > limit:
+                breached.append(
+                    f"{area} ({owner}): newest write {newest}, {age}d old, limit {limit}d")
+
+        w = max(len(r[0]) for r in rows) + 2
+        print(f"{'area':<{w}}{'owner':<24}{'newest':<13}{'files':>7}  status")
+        print("-" * (w + 60))
+        for area, owner, newest, count, status in rows:
+            print(f"{area:<{w}}{owner:<24}{newest:<13}{count:>7}  {status}")
+
+        if breached:
+            # Flush stdout first: the table and the failure summary go to
+            # different streams, and without this the summary lands above the
+            # table in `kubectl logs`, which reads as though the tool crashed
+            # before printing anything.
+            sys.stdout.flush()
+            print("\n" + "=" * 60, file=sys.stderr)
+            print(f"FAIL: {len(breached)} vault area(s) have stopped receiving writes",
+                  file=sys.stderr)
+            for b in breached:
+                print(f"  - {b}", file=sys.stderr)
+            print("=" * 60, file=sys.stderr)
+            return 1
+
+        print(f"\nOK: all {len(rows)} vault areas fresh")
+        return 0
+
+
+    if __name__ == "__main__":
+        sys.exit(main())

@@ -178,3 +178,4 @@ resources:
 
   # Ginger HOA — Ollama Cloud-backed HOA assistant (ginger.lztechnology.io)
   - ginger-hoa
+  - vault-watchdog   # freshness alerting for every Obsidian vault writer

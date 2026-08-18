@@ -1,0 +1,49 @@
+# vault-watchdog egress: DNS, the vault API, and AWS Secrets Manager. Nothing else.
+#
+# The vault host sits on the client VLAN and is scoped to the /24 rather than a
+# /32 on purpose — the host moved from .195 to .229 on 2026-08-05 and every /32
+# pin in the cluster silently stopped working. A watchdog broken by the same
+# fault it exists to detect would be worse than useless.
+#
+# This rule is the one this component is expected to LOSE: once the planned
+# vault gateway is in place, this becomes a podSelector on the gateway and no
+# LAN topology appears here at all.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vault-watchdog-egress
+  namespace: vault-watchdog
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Obsidian vault REST API on the LAN
+    - to:
+        - ipBlock:
+            cidr: 10.85.10.0/24
+      ports:
+        - protocol: TCP
+          port: 27124
+    # AWS Secrets Manager (ExternalSecrets) — public HTTPS, no fixed range
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443

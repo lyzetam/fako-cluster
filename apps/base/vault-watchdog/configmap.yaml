@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-watchdog
+  namespace: vault-watchdog
+data:
+  # Which vault areas must keep receiving writes, and how long a gap is
+  # tolerable before it counts as an outage.
+  #
+  # Adding a new vault writer = one line here. That is the whole point: the
+  # previous arrangement needed a bespoke healthcheck per app, so 13 of 15
+  # writers had none and nothing noticed when they stopped.
+  #
+  # max_age_days is generous on purpose. This exists to catch "stopped for
+  # weeks", not "was an hour late" — a noisy watchdog gets muted, and a muted
+  # watchdog is worse than none.
+  areas.json: |
+    [
+      {"area": "Health/Oura Daily",            "owner": "oura-collector",       "max_age_days": 3},
+      {"area": "Health/Withings Daily",        "owner": "withings-collector",   "max_age_days": 3},
+      {"area": "Health/Hume Daily",            "owner": "hume-collector",       "max_age_days": 4},
+      {"area": "Cluster/Security",             "owner": "kube-bench/kubescape", "max_age_days": 3},
+      {"area": "fieldy/conversations",         "owner": "fieldy-webhook",       "max_age_days": 3},
+      {"area": "fieldy/transcriptions",        "owner": "fieldy-webhook",       "max_age_days": 3},
+      {"area": "fieldy/enriched-conversations","owner": "fieldy-webhook",       "max_age_days": 4},
+      {"area": "Reading/TLDR",                 "owner": "tldr-pipeline",        "max_age_days": 4},
+      {"area": "Plaud/recordings",             "owner": "plaud-collector",      "max_age_days": 4},
+      {"area": "trading",                      "owner": "quantum-trades",       "max_age_days": 5},
+      {"area": "Transcripts/argo",             "owner": "audio-workflows",      "max_age_days": 9}
+    ]
+
+  # Areas that exist in the vault but carry no date anywhere in their paths, so
+  # freshness cannot be inferred from a listing. They are recorded here rather
+  # than omitted, because an unmonitored writer that is silently absent from the
+  # config is exactly the failure this whole component exists to prevent.
+  #
+  #   remarkable-notes  (remarkable-ocr)  35 files, no dates
+  #   voice             (voice-ingest)     1 file,  no dates
+  #
+  # To cover these, either have the writer include a date in the filename or
+  # path, or extend the checker to compare file COUNT against a stored previous
+  # value. Not done in v1: a count-based check needs state, and state that is
+  # wrong is worse than a gap that is documented.
+  unmonitored.txt: |
+    remarkable-notes
+    voice

@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - gpu-monitoring
   - postgres-backup-alerts
+  - vault-watchdog-alerts
   - voice-monitoring
   - zi-alerts

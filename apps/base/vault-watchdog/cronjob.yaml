@@ -1,0 +1,92 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-watchdog
+  namespace: vault-watchdog
+  labels:
+    app: vault-watchdog
+spec:
+  # 08:00 and 20:00 local. Twice a day is deliberate: the failure this catches
+  # is "stopped for weeks" (21 days for Health/Oura Daily, 131 days for
+  # Transcripts/argo, both unnoticed), not "an hour late". Checking more often
+  # would add noise without shortening the detection window that matters.
+  schedule: "0 8,20 * * *"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  startingDeadlineSeconds: 3600
+  jobTemplate:
+    spec:
+      # 0, not 1+: a retry would just re-report the same stale areas. Staleness
+      # is not transient, so a retry adds a duplicate alert and nothing else.
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 172800
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels:
+            app: vault-watchdog
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: check
+              image: python:3.12-alpine3.21
+              imagePullPolicy: IfNotPresent
+              command: ["python3", "/script/check.py"]
+              env:
+                - name: OBSIDIAN_API_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: obsidian-api
+                      key: api_url
+                - name: OBSIDIAN_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: obsidian-api
+                      key: api_key
+                # No OBSIDIAN_VERIFY_TLS here on purpose — this verifies the
+                # chain and hostname against the pinned cert in configmap-ca.
+                - name: VAULT_CA
+                  value: /etc/vault-ca/ca.pem
+                - name: AREAS_CONFIG
+                  value: /config/areas.json
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: script
+                  mountPath: /script
+                  readOnly: true
+                - name: config
+                  mountPath: /config
+                  readOnly: true
+                - name: vault-ca
+                  mountPath: /etc/vault-ca
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+          volumes:
+            - name: script
+              configMap:
+                name: vault-watchdog-script
+            - name: config
+              configMap:
+                name: vault-watchdog
+            - name: vault-ca
+              configMap:
+                name: vault-ca
