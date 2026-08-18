@@ -16,7 +16,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: fieldy-postgres-publish-001
+  name: fieldy-postgres-publish-002
   namespace: fieldy-webhook
   labels:
     app: fieldy-postgres-publish
@@ -41,7 +41,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: postgres-publish
-          image: lzetam/fieldy-webhook:v0.20.0
+          image: lzetam/fieldy-webhook:v0.21.0
           command:
             - python
             - /app/scripts/publish_postgres.py
