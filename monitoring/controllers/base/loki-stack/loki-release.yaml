@@ -34,6 +34,28 @@ spec:
     deploymentMode: SingleBinary
     
     loki:
+      # Only chown the volume when the ROOT directory's ownership is wrong,
+      # instead of walking every file on every pod start.
+      #
+      # Without this the kubelet defaults to fsGroupChangePolicy: Always, which
+      # recursively chowns the entire PVC before the container may start. On
+      # 2026-08-18 loki-0 sat in ContainerCreating for 23 HOURS having processed
+      # 839,445 files and still climbing — a 100Gi NFS volume holding 30 days of
+      # chunks and index files. Log aggregation was down for the whole period,
+      # and the only symptom was a pod stuck ContainerCreating with a
+      # VolumePermissionChangeInProgress event repeating 1,410 times.
+      #
+      # OnRootMismatch is safe here: Loki creates these files as uid/gid 10001
+      # itself, so once the volume root matches there is nothing to fix below it.
+      # The values are the chart's own defaults, restated because setting
+      # podSecurityContext replaces the block rather than merging into it.
+      podSecurityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsUser: 10001
+        runAsNonRoot: true
+        fsGroupChangePolicy: OnRootMismatch
+
       # Disable auth
       auth_enabled: false
       
