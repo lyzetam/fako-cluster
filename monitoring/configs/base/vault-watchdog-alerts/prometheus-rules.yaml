@@ -31,15 +31,30 @@ spec:
             description: "The vault watchdog failed. `kubectl logs -n vault-watchdog job/{{ $labels.job_name }}` names the area, its owning app, and how stale it is. Exit 2 means the vault API itself was unreachable, which is the whole-vault outage case."
 
         # The watchdog going quiet is the failure that hides every other
-        # failure, so it is alerted on directly. Uses the CronJob-level metric,
-        # not the Job-level one: ttlSecondsAfterFinished garbage-collects Jobs
-        # and their metrics, so a Job-based staleness rule cannot fire above
-        # that TTL. absent_over_time covers the case where it has NEVER run.
+        # failure, so it is alerted on directly.
+        #
+        # This uses last_SCHEDULE_time, NOT last_successful_time, and the
+        # distinction is load-bearing. The watchdog is DESIGNED to exit non-zero
+        # whenever any area is stale, so while a real outage is open it never
+        # succeeds — a liveness rule built on last_successful_time would fire
+        # permanently alongside the genuine alert. A permanently-firing alert
+        # gets muted, and a muted watchdog is the state this component exists to
+        # prevent. last_schedule_time records when the controller last created a
+        # Job, regardless of how that Job exited, so liveness stays independent
+        # of findings.
+        #
+        # It is still a CronJob-level metric on purpose: ttlSecondsAfterFinished
+        # garbage-collects Jobs and their metrics, so any Job-level staleness
+        # rule cannot fire above that TTL.
+        #
+        # absent_over_time covers "has never been scheduled at all". Note this
+        # will fire once for a newly created CronJob until its first scheduled
+        # run lands; that is correct rather than noise, and it self-resolves.
         - alert: VaultWatchdogNotRunning
           expr: |
-            (time() - max_over_time(kube_cronjob_status_last_successful_time{namespace="vault-watchdog", cronjob="vault-watchdog"}[2h]) > 129600)
-            or absent_over_time(kube_cronjob_status_last_successful_time{namespace="vault-watchdog", cronjob="vault-watchdog"}[6h])
-          for: 30m
+            (time() - max_over_time(kube_cronjob_status_last_schedule_time{namespace="vault-watchdog", cronjob="vault-watchdog"}[24h]) > 129600)
+            or absent_over_time(kube_cronjob_status_last_schedule_time{namespace="vault-watchdog", cronjob="vault-watchdog"}[24h])
+          for: 1h
           labels:
             severity: critical
             component: vault-watchdog
