@@ -6,4 +6,3 @@ resources:
   - nfs-config
   - control-plane-taint
   - unifi-data
-  - network-topology
