@@ -54,7 +54,7 @@ because two of them are actively costing you protection you already own.
 
 | # | Item | Why now | Risk |
 |---|---|---|---|
-| 0.1 | **Delete the Cilium wreckage** — a Helm release stuck in `uninstalling` for **193 days** (cilium-1.19.0, since 2026-02-05), **12 CRDs**, **5 `CiliumNode` CRs** (347d), and the `cilium-operator-resource-lock` lease | This is the direct cause of the vault outage. While the CRDs exist, the API server accepts `CiliumNetworkPolicy` objects and nothing enforces them — a policy that *looks* applied and does nothing. It will happen again. There were **two** abandoned installs, not one. | Low. Nothing consumes them; the two ghost policies are already deleted. |
+| 0.1 | ~~**Delete the Cilium wreckage**~~ — **DONE 2026-08-18.** Removed: the Helm release stuck in `uninstalling` for 193 days (cilium-1.19.0), all 12 CRDs, 5 `CiliumNode` CRs, and the `cilium-operator-resource-lock` lease. Calico was never present — confirmed zero CRDs, namespaces, releases or pods. | Verified by the test that matters: the API server now **rejects** a `CiliumNetworkPolicy` with `could not find the requested resource`, where yesterday it accepted one and silently enforced nothing. The 19 real NetworkPolicies are untouched. | Done. |
 | 0.2 | **Enable `runtimeDetection`** + raise node-agent memory | The node-agent already runs on every node and has built 371 ApplicationProfiles. The detection engine that consumes them is off — you pay the eBPF cost and get none of the detection. | Low, but **memory is the real risk**: one node-agent is at 872Mi against a 1400Mi limit. Raise the limit in the same commit. |
 | 0.3 | **Fix kube-state-metrics** | It has restarted 4 times (most recent 4h ago, reason `Error`) and measured 74.8% scrape availability over 6h. *Every* KSM-based alert in the cluster is degraded, including the new backup alerts. | Low. Diagnostic first — find why it dies. |
 | 0.4 | **Block egress to 169.254.169.254** | `family-manager` and `meal-tracker` reach for the cloud metadata endpoint — an AWS SDK hunting for instance credentials that do not exist on-prem. Harmless today, classic SSRF target. | Trivial. |
@@ -178,6 +178,56 @@ k3s-unsupported migration that has already been abandoned twice here.
 
 If FQDN policy is ever genuinely wanted, `fqdn-controller` provides it without
 touching the CNI, and Retina provides flow observability the same way.
+
+---
+
+## Stage 2b — Keeping topology out of a public repo
+
+This repo is **public**, on a personal account, with 6,428 active code-scanning
+alerts. Netpols need CIDRs, Flux needs to read the manifests, so the naive
+answer is "commit the CIDRs" — which publishes the VLAN layout.
+
+**SOPS-everywhere is the wrong tool here**, despite being the documented pattern
+for secrets. Encrypting one allowlist (pv-browser) is fine. Encrypting ~50
+policy files means every one becomes an opaque blob: diffs unreadable, review
+impossible, and `grep` useless for answering "what can reach postgres?" It puts
+heavy recurring friction on the file you most want to read and change, in order
+to protect a low-sensitivity value (an RFC1918 subnet).
+
+Three real options were considered:
+
+| Option | Effect | Cost |
+|---|---|---|
+| **Make the repo private** | Total fix, nothing to mask | **Loses code scanning.** On a personal private repo it requires paid GitHub Advanced Security, so Trivy/Gitleaks SARIF upload and CodeQL all stop. 6,428 alerts of reporting surface. |
+| **Second private repo, Flux reads both** | Works — Flux supports multiple `GitRepository` sources natively | Two repos to keep in sync, two review flows |
+| **Remove the need for CIDRs** ← chosen | Netpols reference a label, not a subnet | One new component to run |
+
+### The chosen approach: an egress gateway for the vault
+
+The only genuinely revealing CIDR is `10.85.10.0/24` — the client VLAN — and
+**11 namespaces** need it, purely to reach the Obsidian API.
+
+Put a reverse proxy in front of it, in-cluster:
+
+- All 11 policies become `to: podSelector: {app: vault-gateway}` — a **label**.
+  Zero topology in any of them.
+- **One** manifest holds the real address. Encrypting a single value is
+  tolerable where encrypting 50 files is not; it can equally live in a private
+  repo or come from an ExternalSecret.
+- When DHCP moves the vault, one file changes instead of eleven — which is the
+  root cause of every incident in this family.
+- It also retires `OBSIDIAN_VERIFY_TLS=false`, since the proxy can terminate
+  properly and only the single hop to the plugin skips verification.
+
+**This is already the repo's own documented plan.** `CLAUDE.md` says the TLS
+workaround should be revisited "if the vault host moves off-LAN, the LAN admits
+untrusted devices, or a 6th+ consumer is added — at which point an in-cluster
+reverse proxy becomes worth the cost." There are 11 consumers. The threshold
+was passed some time ago.
+
+What remains in the clear afterwards is deliberately uninteresting:
+`10.85.30.0/24` (the cluster's own subnet, which any node listing reveals) and
+`0.0.0.0/0` minus RFC1918 (reveals nothing).
 
 ---
 
