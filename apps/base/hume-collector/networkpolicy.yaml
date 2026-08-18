@@ -1,5 +1,13 @@
-# Scoped egress: DNS, Postgres, and outbound HTTPS (Obsidian LAN API, AWS SM).
+# Scoped egress: DNS, Postgres, the vault gateway, and outbound HTTPS (AWS SM).
 # Ingress is unrestricted (Traefik → receiver).
+#
+# 2026-08-18: the rule below used to be labelled "Obsidian Local REST API + AWS
+# Secrets Manager" but only ever opened port 443. The vault API listens on
+# 27124, so hume-report's vault writes were refused from the day this policy
+# was written — Health/Hume Daily contains exactly one file, 34 days old, and
+# the job failed silently every night because the comment said it was covered.
+# The vault path is now a separate rule, through the gateway, and the header no
+# longer claims something the rules do not do.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -26,7 +34,19 @@ spec:
       ports:
         - protocol: TCP
           port: 5432
-    # Outbound HTTPS — Obsidian Local REST API + AWS Secrets Manager.
+    # Obsidian vault, via the gateway. No CIDR: the gateway is the only
+    # workload that knows the vault's address.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault-gateway
+          podSelector:
+            matchLabels:
+              app: vault-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Outbound HTTPS — AWS Secrets Manager.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

@@ -27,6 +27,14 @@ spec:
             image: lzetam/hume-collector:latest
             imagePullPolicy: Always
             command: ["python", "report.py"]
+            env:
+              # MIGRATED 2026-08-18. Explicit env wins over envFrom, so this
+              # overrides the OBSIDIAN_API_URL that obsidian-api-env supplies
+              # from the shared obsidian/api secret. Done per-app rather than by
+              # editing that secret, because 14 apps read it and changing it
+              # would migrate all of them at once.
+              - name: OBSIDIAN_API_URL
+                value: "http://vault-gateway.vault-gateway.svc.cluster.local:8080"
             envFrom:
             - configMapRef:
                 name: hume-collector-config

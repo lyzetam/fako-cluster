@@ -25,8 +25,7 @@ data:
       {"area": "fieldy/enriched-conversations","owner": "fieldy-webhook",       "max_age_days": 4},
       {"area": "Reading/TLDR",                 "owner": "tldr-pipeline",        "max_age_days": 4},
       {"area": "Plaud/recordings",             "owner": "plaud-collector",      "max_age_days": 4},
-      {"area": "trading",                      "owner": "quantum-trades",       "max_age_days": 5},
-      {"area": "Transcripts/argo",             "owner": "audio-workflows",      "max_age_days": 9}
+      {"area": "trading",                      "owner": "quantum-trades",       "max_age_days": 5}
     ]
 
   # Areas that exist in the vault but carry no date anywhere in their paths, so
@@ -36,6 +35,13 @@ data:
   #
   #   remarkable-notes  (remarkable-ocr)  35 files, no dates
   #   voice             (voice-ingest)     1 file,  no dates
+  #
+  # Transcripts/argo (audio-workflows) is NOT listed above and is not an
+  # oversight: that app was deliberately deactivated on 2026-08-11 ("no audio
+  # files being processed"; its PVs are Retain so the data survives on the NAS).
+  # Its newest file is 2026-04-09. Monitoring a decommissioned pipeline produces
+  # a permanent alert, and a permanent alert gets muted — which would defeat
+  # this whole component. If audio-workflows is ever re-enabled, add it back.
   #
   # To cover these, either have the writer include a date in the filename or
   # path, or extend the checker to compare file COUNT against a stored previous
