@@ -1,7 +1,8 @@
 # One-off Job: publish every conversation + its transcript segments from the
-# vault into the shared Postgres database (plaud database, source="fieldy").
-# See fieldy_puller.pgstore's module docstring for why this writes into
-# plaud's tables rather than a separate database.
+# vault into fieldy's own dedicated database (fieldy database, in the shared
+# CloudNativePG cluster — not shared with plaud or any other project's data).
+# Note: as of v0.21+ this ALSO happens automatically every day as steps 5-6 of
+# cronjob-puller.yaml — this Job is for catching up history, not steady state.
 #
 # How to run it again (e.g. after a future backfill fills in more history):
 #   1. Bump metadata.name (e.g. fieldy-postgres-publish-001 -> -002).
@@ -67,7 +68,7 @@ spec:
             - name: DATABASE_PORT
               value: "5432"
             - name: DATABASE_NAME
-              value: "plaud"
+              value: "fieldy"
             - name: DATABASE_USER
               valueFrom:
                 secretKeyRef:
