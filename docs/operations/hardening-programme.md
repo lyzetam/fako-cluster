@@ -54,14 +54,41 @@ because two of them are actively costing you protection you already own.
 
 | # | Item | Why now | Risk |
 |---|---|---|---|
-| 0.1 | **Delete the Cilium wreckage** — leftover CRDs (2025-09-04) and the stale `cilium-operator-resource-lock` lease | This is the direct cause of the vault outage. While the CRDs exist, the API server accepts `CiliumNetworkPolicy` objects and nothing enforces them — a policy that *looks* applied and does nothing. It will happen again. | Low. Nothing consumes them; the two ghost policies are already deleted. |
+| 0.1 | **Delete the Cilium wreckage** — a Helm release stuck in `uninstalling` for **193 days** (cilium-1.19.0, since 2026-02-05), **12 CRDs**, **5 `CiliumNode` CRs** (347d), and the `cilium-operator-resource-lock` lease | This is the direct cause of the vault outage. While the CRDs exist, the API server accepts `CiliumNetworkPolicy` objects and nothing enforces them — a policy that *looks* applied and does nothing. It will happen again. There were **two** abandoned installs, not one. | Low. Nothing consumes them; the two ghost policies are already deleted. |
 | 0.2 | **Enable `runtimeDetection`** + raise node-agent memory | The node-agent already runs on every node and has built 371 ApplicationProfiles. The detection engine that consumes them is off — you pay the eBPF cost and get none of the detection. | Low, but **memory is the real risk**: one node-agent is at 872Mi against a 1400Mi limit. Raise the limit in the same commit. |
 | 0.3 | **Fix kube-state-metrics** | It has restarted 4 times (most recent 4h ago, reason `Error`) and measured 74.8% scrape availability over 6h. *Every* KSM-based alert in the cluster is degraded, including the new backup alerts. | Low. Diagnostic first — find why it dies. |
 | 0.4 | **Block egress to 169.254.169.254** | `family-manager` and `meal-tracker` reach for the cloud metadata endpoint — an AWS SDK hunting for instance credentials that do not exist on-prem. Harmless today, classic SSRF target. | Trivial. |
 | 0.5 | **Set the three inert Kubescape capabilities to `disable`** | `httpDetection`, `networkEventsStreaming`, `nodeProfileService` are enabled but render false — the config claims coverage it does not deliver. | Trivial. |
+| 0.6 | **Vault write observability** — DHCP reservation for 10.85.10.229, plus a freshness watchdog and alert for every vault writer | **This is the highest-value item in the programme.** See below. | Low — additive only. |
 
-**Exit criteria:** no Cilium CRDs in the cluster; runtime detection producing
-alerts into Alertmanager; KSM stable for 24h.
+### 0.6 is the one that actually keeps biting
+
+**15 apps write to the Obsidian vault. Two of them have any watchdog. No alert
+rule anywhere in `monitoring/` mentions the vault at all.**
+
+| Writers | `alpha-scribe`, `audio-workflows`, `fieldy-webhook`, `hume-collector`, `kube-bench`, `kubescape-operator`, `oura-collector`, `plaud-collector`, `quantum-trades`, `remarkable-ocr`, `social-media`, `tldr-pipeline`, `voice-ingest`, `withings-collector`, `zi` |
+|---|---|
+| Have a watchdog | `fieldy-webhook`, `quantum-trades` |
+| Alerting on vault writes | none |
+
+That is why the July outage ran from 2026-07-15 to 2026-08-17 — **a month** —
+before anyone noticed, and why today's ran unseen until it was stumbled over.
+The apps log a warning and carry on; nothing escalates.
+
+Every network-layer fix in this programme reduces the *chance* of a vault
+outage. This one changes how long an outage lasts from a month to minutes, and
+it works no matter what causes the break — policy, DHCP, the host being off, the
+plugin crashing. Two things:
+
+1. **DHCP reservation** for the vault host (10.85.10.229). Its address moving is
+   the root cause of every incident in this family, twice over.
+2. **A freshness check per writer** — assert the expected file appeared, and
+   alert when it did not. `fieldy-webhook`'s existing healthcheck CronJob is the
+   working pattern to copy.
+
+**Exit criteria:** no Cilium CRDs, no stuck Helm release; runtime detection
+producing alerts into Alertmanager; KSM stable for 24h; a vault-freshness alert
+that fires when writes stop.
 
 ---
 
@@ -110,30 +137,47 @@ human agrees with, and the model file is committed.
 
 ---
 
-## Stage 2 — CNI decision (one gate, decided once)
+## Stage 2 — CNI decision: **RESOLVED — stay on flannel**
 
-This gates the *output format* of the generator, which is why it sits between
-building the generator and rolling it out.
+Decided 2026-08-18. The generator emits standard `NetworkPolicy` with subnets.
+Stage 3 is unblocked.
 
-The question is narrow and quantified: **230 of the observed flows are known by
-hostname, and plain NetworkPolicy cannot express a hostname.** Everything else
-about Cilium is secondary here.
+The question was narrow: **230 observed flows are known by hostname, and plain
+NetworkPolicy cannot express a hostname.** Three findings closed it.
 
-- **Stay on flannel** → generator emits standard `NetworkPolicy` with subnets.
-  The `/24` collapse already solves the DHCP brittleness, which is the actual
-  pain. Zero migration risk.
-- **Move to Cilium** → generator emits `CiliumNetworkPolicy` with `toFQDNs` for
-  those 230 flows, plus Hubble gives continuous flow visibility instead of a
-  learning window. But: k3s requires `--flannel-backend=none
-  --disable-network-policy`, which is a re-provision of every node, and Cilium
-  was already tried here once and abandoned with node-level iptables damage.
+**Calico cannot solve it at all.** DNS/FQDN policy is a Calico *Enterprise*
+feature. The open-source version would not deliver the one capability that
+motivated the question.
 
-Migration risk assessment is in flight. **Do not start Stage 3 before this is
-decided** — deciding late means rewriting the generator's output.
+**Cilium can, but a migration would silently break an existing policy — and we
+can name it.** Cilium's `ipBlock` rules do **not** match intra-cluster IPs
+(pod/node) by default, whereas k3s's kube-router does today.
+`apps/base/dji-media/networkpolicy.yaml` exists *precisely* to admit node IPs —
+its own comment says "the only ingress we need to allow is from the cluster
+nodes themselves so kubelet health probes can reach /healthz", implemented as
+`ipBlock: 10.85.30.0/24`, which is the node subnet. Under Cilium's default that
+rule stops matching, kubelet probes are denied, and dji-media CrashLoopBackOffs
+— while the policy file still reads as correct.
 
-Default if the assessment is inconclusive: **stay on flannel.** The `/24`
-collapse fixes the real-world failure, and a CNI migration is the highest-risk
-action available in this cluster.
+That is the same silent-failure class that started this investigation.
+
+And the fix has a sting: `policyCIDRMatchMode: nodes` is the same knob that
+regressed `0.0.0.0/0` handling in cilium#39656. **9 of the 14 policies here use
+`0.0.0.0/0`** for public-HTTPS egress — exactly the intersection that broke.
+
+**The problem was never at the CNI layer.** Verified from inside a running
+`oura-collector` pod: the app targets
+`https://obsidian-api.landryzetam.net:27124` and DNS resolves correctly to the
+current address. The clients re-resolve properly. **Only the policy layer was
+ever broken** — so an FQDN-capable CNI would fix something that is not the
+fault.
+
+The real fixes are cheap: a **DHCP reservation** for the vault host, and
+**freshness watchdogs** (Stage 0.6). Hours of work, versus a multi-day,
+k3s-unsupported migration that has already been abandoned twice here.
+
+If FQDN policy is ever genuinely wanted, `fqdn-controller` provides it without
+touching the CNI, and Retina provides flow observability the same way.
 
 ---
 
@@ -205,11 +249,24 @@ before any IoT rule is written.
 
 ## Order of value, if you only do part of it
 
-**Stage 0 alone** recovers protection you already own and have already paid for
-— runtime detection off, alerting degraded, and a ghost-CRD trap that has
-already caused one outage. It needs no design decisions and carries almost no
-risk.
+**Do 0.6 first, even before the rest of Stage 0.** A DHCP reservation and a
+freshness alert are a couple of hours of work, and they convert the recurring
+failure in this cluster from "silent for a month" to "paged in minutes" —
+regardless of cause. Every other item reduces the probability of an outage;
+this one bounds its duration. That is the better trade when the same class of
+incident has now happened three times.
+
+**Then the rest of Stage 0.** It recovers protection you already own and have
+already paid for — runtime detection switched off, alerting degraded by a
+crash-looping exporter, and a ghost-CRD trap that has already caused one outage
+and is still armed. No design decisions, almost no risk.
 
 **Stage 1 is the keystone.** Without a committed traffic model, Stages 3 and 4
 degrade back into hand-writing rules and guessing — which is how the `/32` pins
 got there in the first place.
+
+**And note what Stage 2 concluded:** the CNI migration that looked like the
+centrepiece of this work is now explicitly *not* being done. The evidence said
+the fault was never at the CNI layer, and that migrating would have broken a
+working policy in exactly the silent way that caused the original incident. That
+removes the largest and riskiest item from the programme.
