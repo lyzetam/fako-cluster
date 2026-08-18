@@ -1,0 +1,51 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: postgres-backup-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: postgres
+    prometheus.io/rule: "true"
+spec:
+  groups:
+    - name: postgres.backup.alerts
+      interval: 60s
+      rules:
+        # A backup that silently stops running is the failure mode that actually
+        # loses data — the job disappears and nothing complains until a restore
+        # is needed. These alerts fire on absence, not just on error.
+
+        - alert: PostgresLocalBackupFailed
+          expr: |
+            kube_job_failed{namespace="postgres", job_name=~"postgres-backup-.*"} > 0
+          for: 5m
+          labels:
+            severity: critical
+            component: postgres-backup
+          annotations:
+            summary: "Postgres backup job {{ $labels.job_name }} failed"
+            description: "Job {{ $labels.job_name }} in namespace postgres reported failure. Check `kubectl logs -n postgres job/{{ $labels.job_name }}`."
+
+        - alert: PostgresS3ArchiveStale
+          expr: |
+            time() - max(kube_job_status_completion_time{namespace="postgres", job_name=~"postgres-backup-s3-.*"}) > 129600
+          for: 30m
+          labels:
+            severity: critical
+            component: postgres-backup
+          annotations:
+            summary: "No successful Postgres S3 archive in over 36 hours"
+            description: "The postgres-backup-s3 CronJob has not completed successfully within 36h (it runs daily at 03:00 UTC). The off-site archive in s3://fako-cluster-postgres-backups is no longer current."
+
+        - alert: PostgresLocalBackupStale
+          expr: |
+            time() - max(kube_job_status_completion_time{namespace="postgres", job_name=~"postgres-backup-[0-9]+"}) > 129600
+          for: 30m
+          labels:
+            severity: critical
+            component: postgres-backup
+          annotations:
+            summary: "No successful local Postgres dump in over 36 hours"
+            description: "The postgres-backup CronJob (02:00 UTC, dumps to the NAS) has not completed successfully within 36h. The S3 archive job will refuse to upload a stale copy, so both tiers are now at risk."

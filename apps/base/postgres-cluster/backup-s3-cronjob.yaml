@@ -1,0 +1,118 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup-s3
+  namespace: postgres
+spec:
+  # 03:00 — one hour after the local pg_dump CronJob (backup-schedule.yaml, 02:00).
+  # This job never dumps the database itself: it archives what that job already
+  # wrote to the NAS, so the database takes no second read load and a failure
+  # here can never damage the local backup.
+  schedule: "0 3 * * *"
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  concurrencyPolicy: Forbid
+  # A missed window must surface as a failure, not be silently skipped.
+  startingDeadlineSeconds: 3600
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: s3-archive
+            image: amazon/aws-cli:2.36.25
+            imagePullPolicy: IfNotPresent
+            envFrom:
+            - secretRef:
+                name: s3-backup-secret
+            env:
+            - name: BACKUP_DIR
+              value: /backups
+            - name: S3_PREFIX
+              value: postgres
+            # The local dump runs at 02:00; anything older than 26h means that
+            # job did not run. Uploading it anyway would archive a stale copy
+            # while reporting success — the failure mode this guard exists for.
+            - name: MAX_AGE_MINUTES
+              value: "1560"
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+
+              echo "=== Postgres → S3 archive, $(date -u +%FT%TZ) ==="
+
+              # 1. Locate the newest local backup directory.
+              LATEST=$(ls -1d "${BACKUP_DIR}"/*/ 2>/dev/null | sort | tail -1 || true)
+              if [ -z "${LATEST}" ]; then
+                echo "FATAL: no backup directories under ${BACKUP_DIR} — the 02:00 dump job did not run" >&2
+                exit 1
+              fi
+              LATEST="${LATEST%/}"
+              STAMP=$(basename "${LATEST}")
+              echo "Newest local backup: ${STAMP}"
+
+              # 2. Staleness guard — a stale upload that reports success is worse
+              #    than a loud failure, because it hides that dumps have stopped.
+              if [ -z "$(find "${LATEST}" -maxdepth 0 -mmin "-${MAX_AGE_MINUTES}")" ]; then
+                echo "FATAL: newest backup ${STAMP} is older than ${MAX_AGE_MINUTES} minutes — refusing to archive a stale copy" >&2
+                exit 1
+              fi
+
+              # 3. Integrity gate — every custom-format dump must be non-empty and
+              #    carry the real pg_dump magic header. A truncated dump restores
+              #    to nothing, so it must never reach the archive.
+              DUMPS=0
+              for f in "${LATEST}"/*.dump; do
+                [ -e "${f}" ] || continue
+                if [ ! -s "${f}" ]; then
+                  echo "FATAL: ${f} is empty" >&2; exit 1
+                fi
+                if [ "$(head -c 5 "${f}")" != "PGDMP" ]; then
+                  echo "FATAL: ${f} is missing the PGDMP header — dump is corrupt or truncated" >&2; exit 1
+                fi
+                DUMPS=$((DUMPS + 1))
+              done
+              if [ "${DUMPS}" -eq 0 ]; then
+                echo "FATAL: ${STAMP} contains no .dump files" >&2; exit 1
+              fi
+              echo "Verified ${DUMPS} dump file(s) — all non-empty with valid PGDMP headers"
+
+              # 4. Upload. Partitioned by year/month so the bucket stays browsable
+              #    and the lifecycle rule (30d → Glacier IR, expire 365d) applies.
+              DEST="s3://${S3_BUCKET}/${S3_PREFIX}/$(date -u +%Y/%m)/${STAMP}"
+              echo "Uploading ${LATEST} → ${DEST}"
+              aws s3 cp "${LATEST}" "${DEST}/" --recursive --only-show-errors
+
+              # 5. Verify the archive from S3's side, not from the exit code alone.
+              LOCAL_COUNT=$(find "${LATEST}" -maxdepth 1 -type f | wc -l | tr -d ' ')
+              REMOTE_COUNT=$(aws s3 ls "${DEST}/" | grep -c . || true)
+              echo "Local files: ${LOCAL_COUNT}  Remote objects: ${REMOTE_COUNT}"
+              if [ "${REMOTE_COUNT}" -ne "${LOCAL_COUNT}" ]; then
+                echo "FATAL: uploaded ${REMOTE_COUNT} objects but expected ${LOCAL_COUNT}" >&2; exit 1
+              fi
+
+              BYTES=$(du -sh "${LATEST}" | cut -f1)
+              echo "=== Archive OK: ${DEST} (${LOCAL_COUNT} objects, ${BYTES}) at $(date -u +%FT%TZ) ==="
+            volumeMounts:
+            - name: backup-volume
+              mountPath: /backups
+              # Read-only: this job archives the local backups, it must never be
+              # able to modify or delete them.
+              readOnly: true
+            resources:
+              requests:
+                cpu: 200m
+                memory: 256Mi
+              limits:
+                cpu: "1"
+                memory: 1Gi
+          volumes:
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: postgres-backup
+              readOnly: true

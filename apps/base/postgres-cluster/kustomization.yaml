@@ -8,12 +8,14 @@ resources:
   - external-secret-admin.yaml
   - external-secret-app.yaml
   - external-secret-oura-readonly.yaml
+  - external-secret-s3-backup.yaml
   - aws-credentials-secret.yaml
   - postgres-cluster.yaml
   - database-init-job.yaml
   - oura-readonly-grants-job.yaml
   - backup-pvc.yaml
   - backup-schedule.yaml
+  - backup-s3-cronjob.yaml
 
   # - service.yaml
   # - pooler.yaml  # Uncomment if using PgBouncer
