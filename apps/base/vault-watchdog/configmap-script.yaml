@@ -21,6 +21,7 @@ data:
     import os
     import re
     import ssl
+    import time
     import sys
     import urllib.parse
     import urllib.request
@@ -52,11 +53,28 @@ data:
     DATE_RE = re.compile(r"(20\d\d)-(\d\d)-(\d\d)")
 
 
-    def listing(path):
+    def listing(path, attempts=4):
+        """List one vault directory, retrying transient network failures.
+
+        Every other vault client in this cluster retries; this one did not, so a
+        single blip marked an area ERROR and produced a false "writer is dead"
+        alert. A watchdog that cries wolf gets muted, which is the failure it
+        exists to prevent.
+        """
         url = f"{API}/vault/{urllib.parse.quote(path)}"
         req = urllib.request.Request(url, headers={"Authorization": f"Bearer {KEY}"})
-        with urllib.request.urlopen(req, timeout=30, context=CTX) as r:
-            return json.loads(r.read()).get("files", [])
+        last = None
+        for attempt in range(attempts):
+            try:
+                with urllib.request.urlopen(req, timeout=30, context=CTX) as r:
+                    return json.loads(r.read()).get("files", [])
+            except urllib.error.HTTPError:
+                raise                      # 401/404 are real; do not retry them
+            except Exception as exc:       # noqa: BLE001 - transient network
+                last = exc
+                if attempt < attempts - 1:
+                    time.sleep(2 ** attempt)
+        raise last
 
 
     def newest_date(area):
@@ -71,15 +89,14 @@ data:
 
         def walk(prefix, depth):
             nonlocal best, files
-            for item in listing(prefix):
-                full = prefix + item
-                if item.endswith("/"):
-                    if depth < MAX_DEPTH:
-                        walk(full, depth + 1)
-                    continue
+            items = listing(prefix)
+            dirs = [i for i in items if i.endswith("/")]
+            leaves = [i for i in items if not i.endswith("/")]
+
+            for item in leaves:
                 files += 1
                 match = None
-                for match in DATE_RE.finditer(full):
+                for match in DATE_RE.finditer(prefix + item):
                     pass
                 if match:
                     try:
@@ -88,6 +105,25 @@ data:
                         continue
                     if best is None or d > best:
                         best = d
+
+            if depth >= MAX_DEPTH or not dirs:
+                return
+
+            # Only the newest date-named subdirectory can contain the newest
+            # write, so descend into that one alone. Walking all of them made
+            # ~485 requests per run (fieldy/conversations alone is 12,458 files
+            # across a folder per day), which is both slow and enough
+            # connection churn to produce spurious failures. Directories with no
+            # date in the name are still walked — there is no ordering to
+            # exploit there.
+            dated = [(m.groups(), d) for d in dirs
+                     for m in [DATE_RE.search(d)] if m]
+            if dated:
+                newest_dir = max(dated, key=lambda t: t[0])[1]
+                walk(prefix + newest_dir, depth + 1)
+            else:
+                for d in dirs:
+                    walk(prefix + d, depth + 1)
 
         walk(area.rstrip("/") + "/", 0)
         return best, files
@@ -131,10 +167,14 @@ data:
                     f"{area} ({owner}): newest write {newest}, {age}d old, limit {limit}d")
 
         w = max(len(r[0]) for r in rows) + 2
-        print(f"{'area':<{w}}{'owner':<24}{'newest':<13}{'files':>7}  status")
+        # "seen" not "files": the walk descends only into the newest dated
+        # subdirectory, so this counts what was inspected, not what the area
+        # holds. Labelling it "files" invited the reading that an area had
+        # shrunk from 12,458 to 14.
+        print(f"{'area':<{w}}{'owner':<24}{'newest':<13}{'seen':>6}  status")
         print("-" * (w + 60))
         for area, owner, newest, count, status in rows:
-            print(f"{area:<{w}}{owner:<24}{newest:<13}{count:>7}  {status}")
+            print(f"{area:<{w}}{owner:<24}{newest:<13}{count:>6}  {status}")
 
         if breached:
             # Deliberately stdout, not stderr. stdout and stderr are separate
