@@ -3,6 +3,8 @@ kind: Namespace
 metadata:
   name: fieldy-webhook
   labels:
+    # admits this namespace through vault-gateway's ingress policy
+    vault-access: "true"
     app.kubernetes.io/name: fieldy-webhook
     app.kubernetes.io/part-of: fieldy
     pod-security.kubernetes.io/enforce: restricted

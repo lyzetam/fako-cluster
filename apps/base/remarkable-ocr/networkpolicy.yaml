@@ -22,19 +22,22 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Obsidian Local REST API (LAN host obsidian-api.landryzetam.net).
-    # Scoped to the /24, not a /32: this rule was pinned to 10.85.10.195/32 and
-    # the host moved to .229 on 2026-08-05, so every vault write from this job
-    # was refused from then until 2026-08-18. DNS is allowed above, so the name
-    # still resolved and only the TCP connect failed — which reads like a remote
-    # outage rather than a policy denial. Same rule as fieldy-webhook,
-    # plaud-collector and oura-collector.
+    # Obsidian vault, via the gateway. No CIDR here: the gateway is the only
+    # workload that knows the vault's address, so a DHCP move edits one file
+    # instead of eleven — this rule was pinned to a single-host /32, the host
+    # moved to a new address on 2026-08-05, and writes failed for a week because DNS
+    # still resolved and only the TCP connect was dropped, which reads like a
+    # remote outage rather than a policy denial.
     - to:
-        - ipBlock:
-            cidr: 10.85.10.0/24
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault-gateway
+          podSelector:
+            matchLabels:
+              app: vault-gateway
       ports:
         - protocol: TCP
-          port: 27124
+          port: 8080
     # reMarkable cloud (rmapi) + MyScript cloud — public HTTPS, no fixed IP range.
     - to:
         - ipBlock:

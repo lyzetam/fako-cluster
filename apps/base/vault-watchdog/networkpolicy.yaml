@@ -1,7 +1,7 @@
 # vault-watchdog egress: DNS, the vault gateway, and AWS Secrets Manager.
 #
 # MIGRATED 2026-08-18 to route through vault-gateway. This file previously
-# carried 10.85.10.0/24 — the client VLAN — purely to reach the vault host.
+# carried the client VLAN — the client VLAN — purely to reach the vault host.
 # It now names an in-cluster Service by label, so no network topology appears
 # here at all. That is the pattern the other consumers follow.
 apiVersion: networking.k8s.io/v1

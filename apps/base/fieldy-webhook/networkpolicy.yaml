@@ -21,19 +21,22 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Obsidian REST API (private host on the LAN client subnet, not in-cluster).
-    # Scoped to the subnet rather than a /32 on purpose: this was pinned to
-    # 10.85.10.195/32 until 2026-08-12, the host moved to .229 on 2026-08-05,
-    # and every write failed for a week with "All connection attempts failed" —
-    # DNS still resolved (port 53 is allowed), so only the TCP connect was
-    # dropped, which reads like a network outage rather than a policy denial.
-    # Port 27124 is the only thing opened here.
+    # Obsidian vault, via the gateway. No CIDR here: the gateway is the only
+    # workload that knows the vault's address, so a DHCP move edits one file
+    # instead of eleven — this rule was pinned to a single-host /32, the host
+    # moved to a new address on 2026-08-05, and writes failed for a week because DNS
+    # still resolved and only the TCP connect was dropped, which reads like a
+    # remote outage rather than a policy denial.
     - to:
-        - ipBlock:
-            cidr: 10.85.10.0/24
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault-gateway
+          podSelector:
+            matchLabels:
+              app: vault-gateway
       ports:
         - protocol: TCP
-          port: 27124
+          port: 8080
     # api.fieldy.ai (public). No documented IP range; allow all public TCP/443.
     - to:
         - ipBlock:

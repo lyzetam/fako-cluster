@@ -3,6 +3,8 @@ kind: Namespace
 metadata:
   name: remarkable-ocr
   labels:
+    # admits this namespace through vault-gateway's ingress policy
+    vault-access: "true"
     app.kubernetes.io/name: remarkable-ocr
     app.kubernetes.io/part-of: remarkable
     pod-security.kubernetes.io/enforce: restricted

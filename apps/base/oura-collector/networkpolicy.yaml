@@ -49,7 +49,7 @@ spec:
     # Obsidian vault, via the gateway. No CIDR here any more: the gateway is
     # the only workload that knows the vault's address, so a future DHCP move
     # edits one file instead of eleven. This rule previously carried
-    # 10.85.10.0/24 — the client VLAN — in a public repo.
+    # the client VLAN — the client VLAN — in a public repo.
     - to:
         - namespaceSelector:
             matchLabels:

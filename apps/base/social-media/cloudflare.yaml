@@ -109,11 +109,11 @@ data:
       - hostname: ig-inbox-api.landryzetam.net
         service: http://ig-inbox-uploader.ig-inbox-uploader.svc.cluster.local:8080
       # Public edge for obsidian-vault-api, so the cloud agent can file article
-      # notes into the vault. The origin runs on mm1 (10.85.10.229) — outside the
+      # notes into the vault. The origin runs on mm1 — outside the
       # cluster but on the same LAN — so cloudflared reaches it by the existing
       # private DNS name. Three controls survive this exposure:
-      #   1. mm1's OBSIDIAN_API_ALLOWED_NETWORKS still only admits 10.85.30.0/24
-      #      and 10.85.10.0/24. Traffic arrives SNAT'd as a cluster node, so the
+      #   1. mm1's OBSIDIAN_API_ALLOWED_NETWORKS still only admits the cluster
+      #      node and client VLANs. Traffic arrives SNAT'd as a cluster node, so the
       #      allowlist is untouched — the internet cannot reach the origin directly.
       #   2. The agent holds the `morning-brief` client key, scoped read+write to
       #      Reading/TLDR/** and nothing else. Verified 2026-08-05: in-scope PUT

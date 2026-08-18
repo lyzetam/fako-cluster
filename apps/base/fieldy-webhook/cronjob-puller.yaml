@@ -66,18 +66,14 @@ spec:
                     secretKeyRef:
                       name: fieldy-api-key
                       key: api_key
+                # MIGRATED 2026-08-18: via vault-gateway, not the LAN host.
                 - name: OBSIDIAN_API_URL
-                  valueFrom:
-                    secretKeyRef:
-                      name: obsidian-api
-                      key: api_url
+                  value: "http://vault-gateway.vault-gateway.svc.cluster.local:8080"
                 - name: OBSIDIAN_API_KEY
                   valueFrom:
                     secretKeyRef:
                       name: obsidian-api
                       key: api_key
-                - name: OBSIDIAN_VERIFY_TLS
-                  value: "false"  # see CLAUDE.md
                 - name: FIELDY_VAULT_REL_ROOT
                   value: "fieldy"
                 - name: FIELDY_STATE_DIR

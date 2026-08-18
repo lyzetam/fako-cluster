@@ -24,13 +24,22 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Obsidian REST API (private host on the LAN client subnet, not in-cluster).
+    # Obsidian vault, via the gateway. No CIDR here: the gateway is the only
+    # workload that knows the vault's address, so a DHCP move edits one file
+    # instead of eleven — this rule was pinned to a single-host /32, the host
+    # moved to a new address on 2026-08-05, and writes failed for a week because DNS
+    # still resolved and only the TCP connect was dropped, which reads like a
+    # remote outage rather than a policy denial.
     - to:
-        - ipBlock:
-            cidr: 10.85.10.0/24
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault-gateway
+          podSelector:
+            matchLabels:
+              app: vault-gateway
       ports:
         - protocol: TCP
-          port: 27124
+          port: 8080
     # PostgreSQL (in-cluster, the shared CloudNativePG cluster — same rule
     # plaud-collector's networkpolicy.yaml uses for the same service).
     - to:

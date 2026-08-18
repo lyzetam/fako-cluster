@@ -51,6 +51,12 @@ spec:
               command:
                 - python
                 - /app/scripts/daily.py
+              env:
+                # MIGRATED 2026-08-18: via vault-gateway, not the LAN host.
+                # Explicit env overrides the OBSIDIAN_API_URL that
+                # obsidian-api-env supplies from the shared obsidian/api secret.
+                - name: OBSIDIAN_API_URL
+                  value: "http://vault-gateway.vault-gateway.svc.cluster.local:8080"
               envFrom:
                 - configMapRef:
                     name: plaud-collector-config
