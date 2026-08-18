@@ -29,13 +29,28 @@ spec:
       ports:
         - protocol: TCP
           port: 5432
-    # Homelab Ollama nodes ms1/ms2/ms3 (embeddings + local chat)
+    # Ollama, via the APISIX gateway — which is what this app is actually
+    # configured to call: OLLAMA_BASE_URL and OLLAMA_CHAT_BASE_URLS both point
+    # at apisix.apisix.svc.cluster.local:9080 (configmap.yaml), and apisix
+    # load-balances the ms1/ms2/ms3 fleet upstream.
+    #
+    # 2026-08-18: this rule used to open the LAN node subnet on :11434 — the
+    # path NOTHING points at — while nothing permitted egress to apisix at all.
+    # So every LLM call this agent made was refused by its own policy, which is
+    # what surfaced to oura-collector as "Dr. Oura hand-off failed (500)".
+    # Verified from inside the pod: apisix:9080 was ConnectionRefused while
+    # ms3:11434 was open. The eBPF observation agrees — 24h of this agent's
+    # egress shows only discord.com and api.anthropic.com, never :11434.
+    #
+    # Same failure shape as hume-collector's: a rule whose comment described the
+    # intent while the rule opened the wrong destination.
     - to:
-        - ipBlock:
-            cidr: 10.85.30.0/24
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: apisix
       ports:
         - protocol: TCP
-          port: 11434
+          port: 9080
     # Public HTTPS — Anthropic API, AWS Secrets Manager, Discord (no fixed range)
     - to:
         - ipBlock:

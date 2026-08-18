@@ -55,14 +55,16 @@ spec:
       ports:
         - protocol: TCP
           port: 9080
-    # Direct ms3 Ollama on the homelab LAN — retained as the fallback path for
-    # when OLLAMA_BASE_URL is pointed straight at ms3 to bypass the gateway.
-    - to:
-        - ipBlock:
-            cidr: 10.85.0.0/16
-      ports:
-        - protocol: TCP
-          port: 11434
+    # The direct-to-ms3 Ollama fallback was REMOVED 2026-08-18. It granted
+    # egress to 10.85.0.0/16 — the entire home LAN — for a path nothing uses:
+    # OLLAMA_BASE_URL is apisix.apisix.svc.cluster.local:9080 (cronjob-enrich)
+    # and apisix load-balances the ms1/ms2/ms3 fleet upstream, which the rule
+    # above already permits. 24h of eBPF observation recorded no egress to
+    # :11434 from this namespace at all.
+    #
+    # A /16 kept "just in case" is a standing grant to every device in the house,
+    # and it published the LAN range in a public repo. If a direct path is ever
+    # genuinely needed, add it then, scoped to the hosts that need it.
     # api.anthropic.com (public). No documented IP range; allow all public TCP/443.
     - to:
         - ipBlock:
