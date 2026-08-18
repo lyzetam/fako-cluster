@@ -34,7 +34,12 @@ spec:
       # Forbid would then skip every subsequent night, silently, with no failed Job.
       # This also converts a pod stuck in CreateContainerConfigError (missing
       # s3-backup-secret) from an indefinite hang into a real Job failure.
-      activeDeadlineSeconds: 7200
+      #
+      # 4h, not 2h. Measured 2026-08-18: the home uplink sustains ~15 Mbps, so the
+      # deadline has to cover a full archive at that rate plus headroom for a bad
+      # night. A normal run is far shorter now that pg_dumpall is gzipped — this is
+      # the ceiling before "stuck", not the expected duration.
+      activeDeadlineSeconds: 14400
       template:
         spec:
           restartPolicy: OnFailure

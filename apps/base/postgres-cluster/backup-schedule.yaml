@@ -69,9 +69,17 @@ spec:
               pg_dumpall --roles-only > "${BACKUP_PATH}/roles.sql"
               
               # Backup complete cluster with pg_dumpall (includes globals, tablespaces, etc.)
-              echo "Backing up complete cluster (pg_dumpall)..."
-              pg_dumpall > "${BACKUP_PATH}/complete_cluster.sql"
-              echo "  ✓ Complete cluster backup created"
+              #
+              # gzip is not cosmetic here. pg_dumpall emits PLAIN SQL, so this file
+              # is an uncompressed copy of data the per-database `pg_dump -Fc` files
+              # above already hold compressed. Measured 2026-08-18: it was several
+              # GB and accounted for ~90% of both the archive size and the S3 upload
+              # time, at which point a single file dominated the entire off-site
+              # backup window. Compressed it costs little and stays worth keeping as
+              # the plain-SQL belt-and-braces restore path.
+              echo "Backing up complete cluster (pg_dumpall, gzipped)..."
+              pg_dumpall | gzip -6 > "${BACKUP_PATH}/complete_cluster.sql.gz"
+              echo "  ✓ Complete cluster backup created ($(du -h "${BACKUP_PATH}/complete_cluster.sql.gz" | cut -f1))"
               
               # Backup PostgreSQL configuration
               echo "Backing up PostgreSQL configuration..."
