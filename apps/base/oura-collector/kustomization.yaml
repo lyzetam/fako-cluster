@@ -14,7 +14,6 @@ resources:
   - external-secret-oura-api.yaml # Oura API token (env-first, removes app AWS need)
   - configmap-obsidian-ca.yaml    # pinned Obsidian TLS cert for verification
   - networkpolicy.yaml             # scoped egress (DNS, postgres, oura-agent, HTTPS)
-  - networkpolicy-obsidian-fqdn.yaml # CiliumNetworkPolicy: Obsidian API by hostname
   - configmap.yaml
   - storage.yaml
   - deployment.yaml
