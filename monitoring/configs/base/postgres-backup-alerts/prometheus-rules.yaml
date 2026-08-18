@@ -15,37 +15,74 @@ spec:
       rules:
         # A backup that silently stops running is the failure mode that actually
         # loses data — the job disappears and nothing complains until a restore
-        # is needed. These alerts fire on absence, not just on error.
+        # is needed. These alerts therefore fire on ABSENCE, not just on error.
+        #
+        # They deliberately use kube_cronjob_status_last_successful_time and NOT
+        # kube_job_status_completion_time. The Job-level metric only exists while
+        # the Job object exists, and both CronJobs set ttlSecondsAfterFinished:
+        # 86400 — so the series is garbage-collected at 24h and can never reach a
+        # 36h threshold. Measured on this cluster: 786 samples over 3 days, max
+        # observed value 24.0h. Any staleness rule built on the Job metric is
+        # mathematically incapable of firing. The CronJob-level metric is not
+        # tied to Job lifetime and keeps climbing.
+        #
+        # Each staleness rule carries an absent_over_time() clause, which is load
+        # bearing rather than defensive: kube_cronjob_status_last_successful_time
+        # does not exist at all until a CronJob has succeeded once, so a newly
+        # added archive job that has NEVER worked would otherwise be invisible.
+        #
+        # max_over_time / absent_over_time windows absorb kube-state-metrics
+        # scrape gaps. KSM availability was measured at 74.8% over 6h when these
+        # rules were written; with `for:` clauses alone a pending alert would keep
+        # resetting to Inactive and might never fire. That KSM instability is a
+        # separate pre-existing problem worth its own fix.
 
         - alert: PostgresLocalBackupFailed
           expr: |
-            kube_job_failed{namespace="postgres", job_name=~"postgres-backup-.*"} > 0
+            kube_job_failed{namespace="postgres", job_name=~"postgres-backup-[0-9]+", condition="true"} > 0
           for: 5m
           labels:
             severity: critical
             component: postgres-backup
           annotations:
-            summary: "Postgres backup job {{ $labels.job_name }} failed"
-            description: "Job {{ $labels.job_name }} in namespace postgres reported failure. Check `kubectl logs -n postgres job/{{ $labels.job_name }}`."
+            summary: "Local Postgres dump job {{ $labels.job_name }} failed"
+            description: "The 02:00 pg_dump to the NAS failed. Check `kubectl logs -n postgres job/{{ $labels.job_name }}`. The S3 archive will refuse to upload a partial or stale backup, so the off-site copy will also stop until this is fixed."
 
-        - alert: PostgresS3ArchiveStale
+        # Deliberately a separate rule from the one above. PromQL regexes are
+        # fully anchored but `.*` spans hyphens, so `postgres-backup-.*` also
+        # matches postgres-backup-s3-<ts> — an S3 failure would have paged as a
+        # local dump failure and sent whoever is on call to the wrong CronJob.
+        - alert: PostgresS3ArchiveFailed
           expr: |
-            time() - max(kube_job_status_completion_time{namespace="postgres", job_name=~"postgres-backup-s3-.*"}) > 129600
-          for: 30m
+            kube_job_failed{namespace="postgres", job_name=~"postgres-backup-s3-[0-9]+", condition="true"} > 0
+          for: 5m
           labels:
             severity: critical
             component: postgres-backup
           annotations:
-            summary: "No successful Postgres S3 archive in over 36 hours"
-            description: "The postgres-backup-s3 CronJob has not completed successfully within 36h (it runs daily at 03:00 UTC). The off-site archive in s3://fako-cluster-postgres-backups is no longer current."
+            summary: "Postgres S3 archive job {{ $labels.job_name }} failed"
+            description: "The off-site archive to s3://fako-cluster-postgres-backups failed. The local NAS backup is unaffected. Check `kubectl logs -n postgres job/{{ $labels.job_name }}` — a FATAL line naming the COMPLETE sentinel means the 02:00 dump did not finish, which is the real fault."
 
         - alert: PostgresLocalBackupStale
           expr: |
-            time() - max(kube_job_status_completion_time{namespace="postgres", job_name=~"postgres-backup-[0-9]+"}) > 129600
+            (time() - max_over_time(kube_cronjob_status_last_successful_time{namespace="postgres", cronjob="postgres-backup"}[1h]) > 129600)
+            or absent_over_time(kube_cronjob_status_last_successful_time{namespace="postgres", cronjob="postgres-backup"}[6h])
           for: 30m
           labels:
             severity: critical
             component: postgres-backup
           annotations:
             summary: "No successful local Postgres dump in over 36 hours"
-            description: "The postgres-backup CronJob (02:00 UTC, dumps to the NAS) has not completed successfully within 36h. The S3 archive job will refuse to upload a stale copy, so both tiers are now at risk."
+            description: "The postgres-backup CronJob (02:00 cluster-local, dumps every database to the NAS) has not succeeded within 36h. Both backup tiers are now at risk: the S3 archive refuses to upload a stale copy, so it will stop too."
+
+        - alert: PostgresS3ArchiveStale
+          expr: |
+            (time() - max_over_time(kube_cronjob_status_last_successful_time{namespace="postgres", cronjob="postgres-backup-s3"}[1h]) > 129600)
+            or absent_over_time(kube_cronjob_status_last_successful_time{namespace="postgres", cronjob="postgres-backup-s3"}[6h])
+          for: 30m
+          labels:
+            severity: critical
+            component: postgres-backup
+          annotations:
+            summary: "No successful Postgres S3 archive in over 36 hours"
+            description: "The postgres-backup-s3 CronJob (05:00 cluster-local) has not succeeded within 36h. The off-site copy in s3://fako-cluster-postgres-backups is no longer current — only the NAS copy exists, which is the single-site risk this archive was built to remove."

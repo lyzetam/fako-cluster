@@ -4,20 +4,37 @@ metadata:
   name: postgres-backup-s3
   namespace: postgres
 spec:
-  # 03:00 — one hour after the local pg_dump CronJob (backup-schedule.yaml, 02:00).
-  # This job never dumps the database itself: it archives what that job already
-  # wrote to the NAS, so the database takes no second read load and a failure
-  # here can never damage the local backup.
-  schedule: "0 3 * * *"
+  # 05:00 — three hours after the local pg_dump CronJob (backup-schedule.yaml,
+  # 02:00). This job never dumps the database itself: it archives what that job
+  # already wrote to the NAS, so the database takes no second read load and a
+  # failure here can never damage the local backup.
+  #
+  # The gap is 3h, not 1h, because the dump is not instant: it took 46m28s on
+  # 2026-08-18 for 8.6GB and grows with the data. Correctness does not depend on
+  # this gap though — the COMPLETE sentinel check below is what makes a race
+  # impossible. The wide schedule just keeps the sentinel check from failing on
+  # a normal slow night.
+  schedule: "0 5 * * *"
+  # Both CronJobs run on the controller's local clock. Stating it explicitly so
+  # the 3h gap is preserved across DST and so alert text can name a real time.
+  timeZone: "America/New_York"
   successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 5
   concurrencyPolicy: Forbid
-  # A missed window must surface as a failure, not be silently skipped.
+  # If the controller cannot start the Job within an hour of the scheduled time,
+  # the run is SKIPPED — no Job, so no failed Job to alert on. Detecting that is
+  # the job of PostgresS3ArchiveStale, which watches the CronJob's own
+  # last-successful-time rather than any individual Job object.
   startingDeadlineSeconds: 3600
   jobTemplate:
     spec:
       ttlSecondsAfterFinished: 86400
       backoffLimit: 2
+      # Without this a stalled upload keeps the Job Active forever; concurrencyPolicy
+      # Forbid would then skip every subsequent night, silently, with no failed Job.
+      # This also converts a pod stuck in CreateContainerConfigError (missing
+      # s3-backup-secret) from an indefinite hang into a real Job failure.
+      activeDeadlineSeconds: 7200
       template:
         spec:
           restartPolicy: OnFailure
@@ -33,11 +50,15 @@ spec:
               value: /backups
             - name: S3_PREFIX
               value: postgres
-            # The local dump runs at 02:00; anything older than 26h means that
-            # job did not run. Uploading it anyway would archive a stale copy
-            # while reporting success — the failure mode this guard exists for.
+            # 12h. This MUST stay below ~24h: if the 02:00 dump never runs, then
+            # at 05:00 the next day the newest directory is only 27h old, so a
+            # 26h threshold would have passed it, re-uploaded yesterday's backup
+            # under today's date, exited 0, and refreshed this CronJob's
+            # last-success time — hiding the very outage the guard exists to
+            # catch. 12h still tolerates a dump that starts at 02:00 and runs
+            # for hours, while failing loudly on a missed cycle.
             - name: MAX_AGE_MINUTES
-              value: "1560"
+              value: "720"
             command:
             - /bin/bash
             - -c
@@ -63,9 +84,29 @@ spec:
                 exit 1
               fi
 
-              # 3. Integrity gate — every custom-format dump must be non-empty and
-              #    carry the real pg_dump magic header. A truncated dump restores
-              #    to nothing, so it must never reach the archive.
+              # 3. Completion gate — the 02:00 job writes COMPLETE as its last act,
+              #    after every database, the roles, the cluster dump and the
+              #    manifest are on disk. Without this check the two failure modes
+              #    below both upload an incomplete backup and exit 0:
+              #      - the dump died partway (set -e) through its 17-database loop,
+              #        leaving a directory with only the first few dumps in it
+              #      - the dump is still running right now, and the files are
+              #        being written underneath us
+              #    Neither is detectable from the dump files themselves: a
+              #    half-written .dump still starts with a valid PGDMP header.
+              if [ ! -f "${LATEST}/COMPLETE" ]; then
+                echo "FATAL: ${STAMP} has no COMPLETE sentinel — the 02:00 dump either failed partway or is still running. Refusing to archive a partial backup." >&2
+                exit 1
+              fi
+              echo "Completion sentinel present — the local dump finished cleanly"
+
+              # 4. Integrity gate — every custom-format dump must be non-empty and
+              #    carry the real pg_dump magic header. Note this checks the magic
+              #    number only: it catches an empty or non-pg_dump file, not a
+              #    dump truncated after its first 5 bytes. Real verification needs
+              #    `pg_restore -l`, and pg_restore is not present in this image.
+              #    The COMPLETE sentinel above is what actually rules out
+              #    truncation, by proving the writer ran to completion.
               DUMPS=0
               for f in "${LATEST}"/*.dump; do
                 [ -e "${f}" ] || continue
@@ -82,14 +123,14 @@ spec:
               fi
               echo "Verified ${DUMPS} dump file(s) — all non-empty with valid PGDMP headers"
 
-              # 4. Upload. Partitioned by year/month so the bucket stays browsable
+              # 5. Upload. Partitioned by year/month so the bucket stays browsable
               #    and the lifecycle rule (30d → Glacier IR, expire 365d) applies.
               DEST="s3://${S3_BUCKET}/${S3_PREFIX}/$(date -u +%Y/%m)/${STAMP}"
               echo "Uploading ${LATEST} → ${DEST}"
               aws s3 cp "${LATEST}" "${DEST}/" --recursive --only-show-errors
 
-              # 5. Verify the archive from S3's side, not from the exit code alone.
-              LOCAL_COUNT=$(find "${LATEST}" -maxdepth 1 -type f | wc -l | tr -d ' ')
+              # 6. Verify the archive from S3's side, not from the exit code alone.
+              LOCAL_COUNT=$(find "${LATEST}" -type f | wc -l | tr -d ' ')
               REMOTE_COUNT=$(aws s3 ls "${DEST}/" | grep -c . || true)
               echo "Local files: ${LOCAL_COUNT}  Remote objects: ${REMOTE_COUNT}"
               if [ "${REMOTE_COUNT}" -ne "${LOCAL_COUNT}" ]; then
@@ -107,7 +148,7 @@ spec:
             resources:
               requests:
                 cpu: 200m
-                memory: 256Mi
+                memory: 512Mi
               limits:
                 cpu: "1"
                 memory: 1Gi

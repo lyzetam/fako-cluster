@@ -82,6 +82,18 @@ spec:
               Backup Format: Custom (pg_dump -Fc)
               EOF
               
+              # Completion sentinel — written ONLY after every database, the roles,
+              # the full cluster dump and the manifest are on disk. `set -e` means
+              # reaching this line is proof the whole run succeeded.
+              #
+              # postgres-backup-s3 refuses to archive a directory without this file.
+              # Without the sentinel that job could not tell a finished backup from
+              # one still being written (this job took 46m28s on 2026-08-18, and the
+              # archive job runs on a fixed schedule, not on completion) or from one
+              # that died partway through — in both cases it would have uploaded an
+              # incomplete set of dumps and reported success.
+              touch "${BACKUP_PATH}/COMPLETE"
+
               # Calculate backup size
               BACKUP_SIZE=$(du -sh "${BACKUP_PATH}" | cut -f1)
               echo "Backup completed. Size: ${BACKUP_SIZE}"
