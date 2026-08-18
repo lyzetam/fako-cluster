@@ -5,6 +5,11 @@ metadata:
   namespace: postgres
 spec:
   schedule: "0 2 * * *"  # Daily at 2 AM
+  # Explicit, and identical to postgres-backup-s3's. Both jobs previously ran on
+  # the controller's local clock, which happens to be this zone — so this changes
+  # no timing today. It is stated so the 3h gap between the dump and the archive
+  # cannot silently become 3h ± an offset if the controller's zone ever changes.
+  timeZone: "America/New_York"
   successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 5
   concurrencyPolicy: Forbid
