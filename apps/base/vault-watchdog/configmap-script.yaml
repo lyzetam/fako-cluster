@@ -101,7 +101,7 @@ data:
             roots = listing("")
         except Exception as exc:  # noqa: BLE001 - any failure here is fatal
             print(f"FATAL: cannot reach the vault API at {API}: "
-                  f"{type(exc).__name__}: {exc}", file=sys.stderr)
+                  f"{type(exc).__name__}: {exc}")
             return 2
         print(f"vault reachable, {len(roots)} root entries\n")
 
@@ -134,17 +134,17 @@ data:
             print(f"{area:<{w}}{owner:<24}{newest:<13}{count:>7}  {status}")
 
         if breached:
-            # Flush stdout first: the table and the failure summary go to
-            # different streams, and without this the summary lands above the
-            # table in `kubectl logs`, which reads as though the tool crashed
-            # before printing anything.
-            sys.stdout.flush()
-            print("\n" + "=" * 60, file=sys.stderr)
-            print(f"FAIL: {len(breached)} vault area(s) have stopped receiving writes",
-                  file=sys.stderr)
+            # Deliberately stdout, not stderr. stdout and stderr are separate
+            # pipes and the container runtime interleaves them by arrival, so a
+            # summary on stderr lands ABOVE the table in `kubectl logs` and reads
+            # as though the tool crashed before printing anything. Flushing does
+            # not fix that — only using one stream does. The exit code is what
+            # signals failure; the stream carries no extra meaning.
+            print("\n" + "=" * 60)
+            print(f"FAIL: {len(breached)} vault area(s) have stopped receiving writes")
             for b in breached:
-                print(f"  - {b}", file=sys.stderr)
-            print("=" * 60, file=sys.stderr)
+                print(f"  - {b}")
+            print("=" * 60)
             return 1
 
         print(f"\nOK: all {len(rows)} vault areas fresh")
