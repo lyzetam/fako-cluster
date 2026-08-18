@@ -178,4 +178,5 @@ resources:
 
   # Ginger HOA — Ollama Cloud-backed HOA assistant (ginger.lztechnology.io)
   - ginger-hoa
+  - vault-gateway    # single verified crossing point to the Obsidian vault
   - vault-watchdog   # freshness alerting for every Obsidian vault writer

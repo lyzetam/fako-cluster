@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-ca
+  namespace: vault-gateway
+data:
+  # Same pinned certificate as apps/base/vault-watchdog/configmap-ca.yaml.
+  # CN=obsidian-api.landryzetam.net, reissued 2026-08-05, valid to 2031-08-04.
+  #
+  # Duplicated rather than shared because a ConfigMap cannot cross namespaces.
+  # When it is renewed, BOTH copies change — that is the cost of this approach
+  # and it is cheaper than the alternative of not verifying at all.
+  ca.pem: |
+    -----BEGIN CERTIFICATE-----
+    MIIDdjCCAl6gAwIBAgIUJnR1k6wL6o3ZlLR/ndwm6XRT4IwwDQYJKoZIhvcNAQEL
+    BQAwJzElMCMGA1UEAwwcb2JzaWRpYW4tYXBpLmxhbmRyeXpldGFtLm5ldDAeFw0y
+    NjA4MDUwMzE1NDBaFw0zMTA4MDQwMzE1NDBaMCcxJTAjBgNVBAMMHG9ic2lkaWFu
+    LWFwaS5sYW5kcnl6ZXRhbS5uZXQwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+    AoIBAQDYetc4qZPi+uaV5tNcdfDZkzDuoVAcIHsqBpSHMEzHQDCHLtBTLxY9hv6C
+    ZH67rip9kTljhivMXiEPJDCw3Fp414KdTk/OW2AJQsoF5643f7qvZOukzXYSqzvj
+    c9ilQIZXMnif7BTTfgztrC55NZ6Hi+8ww0l68MvYzHouEfej35iMmSRLDBaZ/YmD
+    W7mKwqDCwlqhWwiE0amDPXmpxb/3ItuY9kXDSgwFcT9rJ/yxNV3kERIwkj2GPgJP
+    hXvpYP6Hd/inkOTLhspEzJZr91Wym37QaeBKlLNSSEkzySeyY20p/B8GdG3Af+t+
+    AJ0/Nwhgx9CBOQutWSGi+w2hRT2XAgMBAAGjgZkwgZYwHQYDVR0OBBYEFKyA3UPg
+    F4oJvwufoWk3pjj5IP79MB8GA1UdIwQYMBaAFKyA3UPgF4oJvwufoWk3pjj5IP79
+    MA8GA1UdEwEB/wQFMAMBAf8wQwYDVR0RBDwwOoIcb2JzaWRpYW4tYXBpLmxhbmRy
+    eXpldGFtLm5ldIIDbW0xgglsb2NhbGhvc3SHBApVCuWHBH8AAAEwDQYJKoZIhvcN
+    AQELBQADggEBABXTYapW5SIJF+Uqf8KUZp/7v01KRFrcVeYh1YFNvznrGsX3BtZP
+    QaX4X4WUGL6gAPdOOX6Y9C/tJGmptpxtoEQdTSuWSWpSJElmK7SaBxGN4NzdbkYf
+    dCrrV+ZZVJtkkKlgxKlNrY4SnYyqJy55MfJUIBuGM9PX9f3ANuFxbFy4a5bMl8a3
+    lF+hGQYKbemkpvy+mNu9hiWwD4DoxAmhCyMoY5r7iwaDWA+zQpMetPoQCpLzHOMa
+    B6hAVb0cuYI+mB+MXLBudCFVZ1VkJ6XGjDhKBg3+juG8P09gJaKPP7Pmj2X/g7OY
+    WvbfP/cvWT8PiBKJq3O3tqTomsuqSBwujdQ=
+    -----END CERTIFICATE-----

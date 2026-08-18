@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-gateway
+  namespace: vault-gateway
+  labels:
+    app: vault-gateway
+spec:
+  # 2, not 1. Every vault writer in the cluster goes through this once migrated,
+  # so a single replica turns any node drain into a cluster-wide vault outage —
+  # which is the failure class this whole component exists to shorten.
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: vault-gateway
+  template:
+    metadata:
+      labels:
+        app: vault-gateway
+    spec:
+      automountServiceAccountToken: false
+      # Keep the two replicas off the same node, or the drain problem above
+      # comes back with extra steps.
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app: vault-gateway
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.31-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # The vault's real address, and the only place it exists in the
+            # cluster. envsubst renders it into the nginx config at start.
+            - name: OBSIDIAN_UPSTREAM
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-upstream
+                  key: api_url
+            # Restrict envsubst to this one variable so nginx's own $vars
+            # (e.g. $http_authorization) survive templating.
+            - name: NGINX_ENVSUBST_FILTER
+              value: "OBSIDIAN_UPSTREAM"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: nginx-template
+              mountPath: /etc/nginx/templates
+              readOnly: true
+            - name: vault-ca
+              mountPath: /etc/vault-ca
+              readOnly: true
+            # readOnlyRootFilesystem means nginx needs writable scratch for its
+            # rendered config, pid and temp bodies.
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+      volumes:
+        - name: nginx-template
+          configMap:
+            name: vault-gateway-nginx
+        - name: vault-ca
+          configMap:
+            name: vault-ca
+        - name: nginx-conf
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}

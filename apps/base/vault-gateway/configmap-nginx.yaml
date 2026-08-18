@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-gateway-nginx
+  namespace: vault-gateway
+data:
+  # Processed by the nginx entrypoint's envsubst at container start, so the
+  # upstream address arrives from the ExternalSecret as an env var and is never
+  # written into a manifest. Only ${OBSIDIAN_UPSTREAM} is substituted — the
+  # explicit list stops envsubst eating nginx's own $variables.
+  default.conf.template: |
+    server {
+        listen 8080;
+        server_name _;
+
+        # Vault notes can be large; the default 1m would truncate a long
+        # transcript write with a 413 that reads like an app bug.
+        client_max_body_size 32m;
+
+        # These timeouts are generous on purpose. The upstream is a laptop-class
+        # host on the LAN serving a filesystem walk, not a datacentre service —
+        # a listing of fieldy/conversations covers 12,458 files.
+        proxy_connect_timeout 15s;
+        proxy_send_timeout    120s;
+        proxy_read_timeout    120s;
+
+        location = /healthz {
+            access_log off;
+            return 200 "ok\n";
+        }
+
+        location / {
+            proxy_pass ${OBSIDIAN_UPSTREAM};
+
+            # Upstream TLS is VERIFIED — chain and hostname both. This is the
+            # point of the gateway: consumers were each doing the LAN hop with
+            # verification disabled, because CLAUDE.md recorded that the cert
+            # carried only IP:127.0.0.1. That describes the retired Obsidian
+            # Local REST API plugin. The endpoint now runs the self-hosted
+            # obsidian-vault-api and reissued its certificate on 2026-08-05 as
+            # CN=obsidian-api.landryzetam.net with proper hostname SANs, valid
+            # to 2031. Verified 2026-08-18: full verification succeeds.
+            proxy_ssl_verify              on;
+            proxy_ssl_verify_depth        2;
+            proxy_ssl_trusted_certificate /etc/vault-ca/ca.pem;
+            proxy_ssl_name                obsidian-api.landryzetam.net;
+            proxy_ssl_server_name         on;
+            proxy_ssl_protocols           TLSv1.2 TLSv1.3;
+
+            # The caller's Authorization header is passed straight through, so
+            # the gateway is not a credential store and cannot be used to reach
+            # the vault without the API key. Centralising the key here would
+            # remove it from 15 apps and is worth doing later, but it is a
+            # bigger behavioural change than this migration should carry.
+            proxy_set_header Authorization $http_authorization;
+            proxy_set_header Host          obsidian-api.landryzetam.net;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+            proxy_http_version 1.1;
+            proxy_buffering off;
+        }
+    }

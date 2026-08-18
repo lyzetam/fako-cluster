@@ -1,0 +1,51 @@
+# vault-gateway is the single crossing point between the cluster and the vault
+# host on the client VLAN.
+#
+# Ingress is restricted to namespaces explicitly labelled vault-access=true, so
+# migration is incremental: label a namespace when you move it, and nothing else
+# in the cluster can reach the vault through here. The gateway also passes the
+# caller's Authorization header straight through, so the API key is still
+# required — the label controls reachability, not authority.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vault-gateway
+  namespace: vault-gateway
+spec:
+  podSelector:
+    matchLabels:
+      app: vault-gateway
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              vault-access: "true"
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # The vault host on the client VLAN. This is the ONLY manifest in the repo
+    # that needs to carry this range once migration completes — the 11 consumer
+    # policies that carry it today all lose it.
+    #
+    # Scoped to the /24, not a /32: the host moved from .195 to .229 on
+    # 2026-08-05 and every /32 pin in the cluster silently stopped working.
+    - to:
+        - ipBlock:
+            cidr: 10.85.10.0/24
+      ports:
+        - protocol: TCP
+          port: 27124
