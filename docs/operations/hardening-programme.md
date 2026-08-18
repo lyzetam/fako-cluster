@@ -202,6 +202,58 @@ Three real options were considered:
 | **Second private repo, Flux reads both** | Works — Flux supports multiple `GitRepository` sources natively | Two repos to keep in sync, two review flows |
 | **Remove the need for CIDRs** ← chosen | Netpols reference a label, not a subnet | One new component to run |
 
+### Rejected: Flux postBuild variable substitution
+
+Investigated and abandoned 2026-08-18. It looked like the clean answer — keep
+`${VAULT_SUBNET}` in Git, supply the real value from a Secret at reconcile time —
+and it is unsafe on this repo.
+
+`postBuild.substituteFrom` rewrites **every** `${VAR}` pattern in every manifest
+of the Kustomization, and undefined variables become an **empty string,
+silently**. kustomize-controller here runs with no feature-gates, so
+`StrictPostBuildSubstitutions` is off and nothing errors.
+
+**37 manifests under `apps/` contain shell-style `${VAR}`; none carry the
+`kustomize.toolkit.fluxcd.io/substitute: disabled` annotation.** The worst case
+is not a broken script:
+
+```bash
+# backup-schedule.yaml, as written
+find "${BACKUP_DIR}" -mindepth 1 -maxdepth 1 -type d -mtime +${RETENTION_DAYS} -exec rm -rf {} \;
+# after substitution
+find ""              -mindepth 1 -maxdepth 1 -type d -mtime +          -exec rm -rf {} \;
+```
+
+Annotating all 37 would work but leaves a permanent trap: every future manifest
+with a shell variable corrupts silently unless someone remembers.
+
+Worth noting the goal was unreachable anyway. `substituteFrom` requires the
+Secret in the Kustomization's own namespace (`flux-system`), and creating it
+there with an ExternalSecret needs `aws-credentials` in `flux-system` — which is
+SOPS-encrypted in all 24 namespaces that have it. **There is no SOPS-free path.**
+
+### What remains exposed, and the honest options
+
+Two CIDR rules, both deliberate:
+
+| File | CIDR | What it is |
+|---|---|---|
+| `vault-gateway/networkpolicy.yaml` | `10.85.10.0/24` | client VLAN — the one worth hiding |
+| `dji-media/networkpolicy.yaml` | `10.85.30.0/24` | node subnet; plain NetworkPolicy cannot express "the nodes" any other way |
+
+Options, none free:
+
+1. **Accept it.** Two RFC1918 ranges, one of which is the cluster's own subnet.
+2. **Make the repo private.** Total fix; costs code scanning (personal private
+   repos need paid GitHub Advanced Security), so Trivy SARIF, Gitleaks and
+   CodeQL all stop. 6,428 alerts of reporting surface.
+3. **A separate Flux Kustomization** for just those two files, with substitution
+   enabled and the main `apps` Kustomization left alone. Avoids the footgun by
+   scoping it, at the cost of a second Kustomization for two files.
+
+Current recommendation: **(1)**, revisited if a third topology-carrying rule ever
+appears. The vault gateway already removed the eleven that mattered.
+
 ### The chosen approach: an egress gateway for the vault
 
 The only genuinely revealing CIDR is `10.85.10.0/24` — the client VLAN — and
