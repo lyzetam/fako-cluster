@@ -13,6 +13,7 @@ resources:
   - external-secret-obsidian.yaml       # obsidian/api -> vault REST URL + key
   - external-secret-plaud-oauth.yaml    # plaud/oauth-tokens -> PLAUD_REFRESH_TOKEN
   - external-secret-plaud-aws.yaml      # plaud/aws-credentials -> scoped AWS creds
+  - external-secret-dockerhub.yaml      # dockerhub/credentials -> anonymous-pull-limit workaround
   - networkpolicy.yaml                  # scoped egress (DNS, postgres, Obsidian, HTTPS)
   - networkpolicy-obsidian-fqdn.yaml     # Obsidian by hostname, not a frozen IP (see file header)
   - migration-job.yaml                  # alembic upgrade head — REQUIRED, see file header

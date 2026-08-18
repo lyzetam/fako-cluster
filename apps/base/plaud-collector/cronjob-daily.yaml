@@ -35,6 +35,8 @@ spec:
         spec:
           serviceAccountName: plaud-collector
           restartPolicy: Never
+          imagePullSecrets:
+            - name: dockerhub-secret
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
