@@ -40,7 +40,8 @@ resources:
   # above — MUST be re-commented once `kubectl get jobs -l
   # app=fieldy-postgres-publish` shows Complete, or Flux will recreate it
   # forever every time its 24h TTL fires.
-  - postgres-publish-job.yaml
+  # postgres-publish-002 completed 2026-08-18 (dedup fix) — re-commented.
+  # - postgres-publish-job.yaml
 
 labels:
   - pairs:
