@@ -27,11 +27,6 @@ spec:
             secretKeyRef:
               name: postgres-admin-secret
               key: password
-        - name: ADMIN_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: app-user-secret
-              key: password
         command:
         - /bin/bash
         - -c
@@ -39,9 +34,28 @@ spec:
           set -e
           echo "Initializing databases and permissions..."
 
-          # Create admin user if it doesn't exist, always sync password
-          psql -c "CREATE USER admin" 2>/dev/null || echo "User admin already exists"
-          psql -c "ALTER USER admin WITH PASSWORD '${ADMIN_PASSWORD}'"
+          # The admin role's EXISTENCE and PASSWORD are owned by CNPG
+          # managed.roles in postgres-cluster.yaml. This job must not touch
+          # them.
+          #
+          # It used to run:
+          #   CREATE USER admin
+          #   ALTER USER admin WITH PASSWORD '${ADMIN_PASSWORD}'
+          #
+          # Two controllers writing one role's password is a drift generator,
+          # and it drifted: on 2026-08-18 this job re-ran during a Flux apply,
+          # and afterwards the admin role's stored SCRAM verifier matched
+          # neither app-user-secret nor postgres/admin-credentials. Every app
+          # authenticating as admin failed on its next restart —
+          # oura-collector crash-looped on "password authentication failed for
+          # user admin" while its old pod kept serving, so nothing alerted.
+          # That is the second time this exact drift has been diagnosed.
+          #
+          # managed.roles reconciles continuously; this job runs on apply. The
+          # job is the one that has to yield.
+          #
+          # GRANTs below stay here on purpose: managed.roles sets login
+          # attributes only, never privileges.
 
           # Create databases if they don't exist
           psql -c "CREATE DATABASE oura OWNER app" 2>/dev/null || echo "Database oura already exists"
