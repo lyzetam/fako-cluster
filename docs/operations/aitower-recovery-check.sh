@@ -4,7 +4,15 @@
 set -uo pipefail
 
 NODE=aitower
-IP=10.85.30.58
+# Resolved rather than hardcoded: this repo is public, and a literal address is
+# both a disclosure and a future outage — the vault host's pinned address moved
+# on 2026-08-05 and silently broke writes in two apps for a week.
+# Override with IP=<addr> if DNS is the thing that is broken.
+IP=${IP:-$(getent hosts "$NODE" 2>/dev/null | awk '{print $1; exit}')}
+if [ -z "$IP" ]; then
+  echo "FATAL: could not resolve $NODE, and no IP= override was given" >&2
+  exit 1
+fi
 
 echo "=== 1. host reachable? ==="
 ping -c 2 -t 4 "$IP" >/dev/null 2>&1 && echo "PING OK" || echo "PING FAIL - still down"
