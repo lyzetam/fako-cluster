@@ -15,7 +15,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: fieldy-backfill-004  # bump on each new run
+  name: fieldy-backfill-005  # bump on each new run
   namespace: fieldy-webhook
   labels:
     app: fieldy-backfill
@@ -40,16 +40,16 @@ spec:
           type: RuntimeDefault
       containers:
         - name: backfill
-          image: lzetam/fieldy-webhook:v0.7.0
+          image: lzetam/fieldy-webhook:v0.19.0
           command:
             - python
             - /app/scripts/backfill.py
           env:
             # --- date window — EDIT THESE ---
             - name: BACKFILL_START
-              value: "2024-01-01"
+              value: "2026-04-06"
             - name: BACKFILL_END
-              value: "2026-06-01"
+              value: "2026-08-17"
             # --- vault + API config ---
             - name: FIELDY_VAULT_MODE
               value: "obsidian-api"

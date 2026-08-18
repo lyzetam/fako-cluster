@@ -23,7 +23,7 @@ resources:
   # Uncomment + bump metadata.name + set BACKFILL_START/END in backfill-job.yaml
   # to trigger a one-off historical backfill via GitOps. Re-comment after it
   # completes (or leave it — the Job's ttlSecondsAfterFinished auto-cleans).
-  # - backfill-job.yaml
+  - backfill-job.yaml
   # Full one-time enrichment backlog sweep — one-off, NOT a standing resource.
   # DISABLED: it was left uncommented after backfill-005, and with
   # ttlSecondsAfterFinished the completed Job kept getting TTL-deleted and
