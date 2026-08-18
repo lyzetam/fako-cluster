@@ -26,6 +26,13 @@ spec:
         - containerPort: 8080
           name: health
           protocol: TCP
+        env:
+          # MIGRATED 2026-08-18: routed through vault-gateway instead of straight
+          # to the LAN host. Explicit env overrides the OBSIDIAN_API_URL that
+          # obsidian-api-env supplies, done per-app rather than by editing the
+          # shared obsidian/api secret, which 14 apps read.
+          - name: OBSIDIAN_API_URL
+            value: "http://vault-gateway.vault-gateway.svc.cluster.local:8080"
         envFrom:
         - configMapRef:
             name: oura-collector-config
@@ -79,8 +86,6 @@ spec:
           mountPath: /data
         - name: tmp
           mountPath: /tmp
-        - name: obsidian-ca
-          mountPath: /etc/obsidian-ca
           readOnly: true
 
       volumes:
@@ -89,6 +94,3 @@ spec:
           claimName: oura-collector-data
       - name: tmp
         emptyDir: {}
-      - name: obsidian-ca
-        configMap:
-          name: obsidian-ca

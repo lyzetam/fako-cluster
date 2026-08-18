@@ -3,5 +3,7 @@ kind: Namespace
 metadata:
   name: oura-collector
   labels:
+    # admits this namespace through vault-gateway's ingress policy
+    vault-access: "true"
     pod-security.kubernetes.io/warn: baseline
     pod-security.kubernetes.io/audit: baseline

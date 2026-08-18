@@ -46,20 +46,20 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-    # Obsidian Local REST API (private host on the LAN client subnet, not
-    # in-cluster). Scoped to the /24 rather than a /32 on purpose: the host was
-    # pinned to 10.85.10.195/32, moved to .229 on 2026-08-05, and a /32 pin
-    # silently cost a week of vault writes. DNS is allowed above, so the name
-    # keeps resolving and only the TCP connect is refused — which reads like a
-    # remote outage rather than a policy denial. Port 27124 is the only thing
-    # opened here. Same rule and rationale as plaud-collector and
-    # fieldy-webhook.
+    # Obsidian vault, via the gateway. No CIDR here any more: the gateway is
+    # the only workload that knows the vault's address, so a future DHCP move
+    # edits one file instead of eleven. This rule previously carried
+    # 10.85.10.0/24 — the client VLAN — in a public repo.
     - to:
-        - ipBlock:
-            cidr: 10.85.10.0/24
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault-gateway
+          podSelector:
+            matchLabels:
+              app: vault-gateway
       ports:
         - protocol: TCP
-          port: 27124
+          port: 8080
     # Public HTTPS — Oura API, AWS Secrets Manager, Discord webhook (no fixed range)
     - to:
         - ipBlock:
