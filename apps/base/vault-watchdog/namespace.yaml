@@ -5,6 +5,8 @@ metadata:
   labels:
     name: vault-watchdog
     purpose: observability
+    # admits this namespace through vault-gateway's ingress policy
+    vault-access: "true"
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted

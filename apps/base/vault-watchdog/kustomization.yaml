@@ -7,6 +7,5 @@ resources:
   - external-secret-obsidian.yaml
   - configmap.yaml
   - configmap-script.yaml
-  - configmap-ca.yaml
   - networkpolicy.yaml
   - cronjob.yaml

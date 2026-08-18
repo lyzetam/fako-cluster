@@ -42,20 +42,21 @@ spec:
               imagePullPolicy: IfNotPresent
               command: ["python3", "/script/check.py"]
               env:
+                # MIGRATED 2026-08-18: routed through vault-gateway instead of
+                # straight to the LAN host. A literal in-cluster Service name,
+                # not a secret — the gateway is the only workload that knows the
+                # vault's real address, and this namespace's NetworkPolicy no
+                # longer carries any LAN topology as a result.
                 - name: OBSIDIAN_API_URL
-                  valueFrom:
-                    secretKeyRef:
-                      name: obsidian-api
-                      key: api_url
+                  value: "http://vault-gateway.vault-gateway.svc.cluster.local:8080"
                 - name: OBSIDIAN_API_KEY
                   valueFrom:
                     secretKeyRef:
                       name: obsidian-api
                       key: api_key
-                # No OBSIDIAN_VERIFY_TLS here on purpose — this verifies the
-                # chain and hostname against the pinned cert in configmap-ca.
-                - name: VAULT_CA
-                  value: /etc/vault-ca/ca.pem
+                # No VAULT_CA and no OBSIDIAN_VERIFY_TLS: the hop from here is
+                # plain http inside the pod network, and the gateway performs
+                # verified TLS on the hop that actually leaves the cluster.
                 - name: AREAS_CONFIG
                   value: /config/areas.json
               securityContext:
@@ -69,9 +70,6 @@ spec:
                   readOnly: true
                 - name: config
                   mountPath: /config
-                  readOnly: true
-                - name: vault-ca
-                  mountPath: /etc/vault-ca
                   readOnly: true
               resources:
                 requests:
@@ -87,6 +85,3 @@ spec:
             - name: config
               configMap:
                 name: vault-watchdog
-            - name: vault-ca
-              configMap:
-                name: vault-ca

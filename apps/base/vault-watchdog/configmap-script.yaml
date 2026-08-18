@@ -43,8 +43,11 @@ data:
     # A watchdog that skips verification cannot tell the real vault from
     # anything that answers on that address, which would defeat the point of
     # having it.
-    CA = os.environ.get("VAULT_CA", "/etc/vault-ca/ca.pem")
-    CTX = ssl.create_default_context(cafile=CA)
+    # Only needed when talking to the vault directly over https. Once routed
+    # through vault-gateway the URL is plain http inside the cluster and the
+    # gateway owns TLS verification, so no CA is mounted and CTX stays None.
+    CA = os.environ.get("VAULT_CA")
+    CTX = ssl.create_default_context(cafile=CA) if CA else None
 
     DATE_RE = re.compile(r"(20\d\d)-(\d\d)-(\d\d)")
 
