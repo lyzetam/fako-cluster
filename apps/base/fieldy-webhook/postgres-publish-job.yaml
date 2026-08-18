@@ -1,0 +1,93 @@
+# One-off Job: publish every conversation + its transcript segments from the
+# vault into the shared Postgres database (plaud database, source="fieldy").
+# See fieldy_puller.pgstore's module docstring for why this writes into
+# plaud's tables rather than a separate database.
+#
+# How to run it again (e.g. after a future backfill fills in more history):
+#   1. Bump metadata.name (e.g. fieldy-postgres-publish-001 -> -002).
+#   2. git add + commit + push. Flux reconciles within ~10m (or run
+#      `flux reconcile kustomization apps --with-source`).
+#   3. Watch: `kubectl logs -f -n fieldy-webhook -l job-name=<name>`
+#   4. After it succeeds (ttl: 24h auto-cleans), leave or remove from
+#      kustomization.yaml — it does no harm sitting completed.
+#
+# upsert_conversation is idempotent, so re-running this with no date window
+# (the default — publishes everything in the vault) is always safe.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fieldy-postgres-publish-001
+  namespace: fieldy-webhook
+  labels:
+    app: fieldy-postgres-publish
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: fieldy-postgres-publish
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: dockerhub-secret
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres-publish
+          image: lzetam/fieldy-webhook:v0.20.0
+          command:
+            - python
+            - /app/scripts/publish_postgres.py
+          env:
+            - name: FIELDY_VAULT_MODE
+              value: "obsidian-api"
+            - name: OBSIDIAN_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_url
+            - name: OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_key
+            - name: OBSIDIAN_VERIFY_TLS
+              value: "false"
+            - name: FIELDY_VAULT_REL_ROOT
+              value: "fieldy"
+            - name: DATABASE_HOST
+              value: "postgres-cluster-rw.postgres.svc.cluster.local"
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_NAME
+              value: "plaud"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials-env
+                  key: DATABASE_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials-env
+                  key: DATABASE_PASSWORD
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

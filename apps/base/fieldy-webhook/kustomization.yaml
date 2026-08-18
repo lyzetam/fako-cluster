@@ -9,6 +9,7 @@ resources:
   - aws-credentials-secret.yaml
   - secretstore.yaml
   - external-secret-obsidian.yaml
+  - external-secret-postgres.yaml
   - external-secret-dockerhub.yaml
   - external-secret-fieldy-api.yaml
   - external-secret-anthropic.yaml
@@ -17,13 +18,15 @@ resources:
   - networkpolicy.yaml
   - networkpolicy-enrich.yaml
   - networkpolicy-healthcheck.yaml
+  - networkpolicy-postgres-publish.yaml
   - cronjob-puller.yaml
   - cronjob-enrich.yaml
   - cronjob-healthcheck.yaml
   # Uncomment + bump metadata.name + set BACKFILL_START/END in backfill-job.yaml
   # to trigger a one-off historical backfill via GitOps. Re-comment after it
   # completes (or leave it — the Job's ttlSecondsAfterFinished auto-cleans).
-  - backfill-job.yaml
+  # backfill-005 completed 2026-08-18 — re-commented per that note.
+  # - backfill-job.yaml
   # Full one-time enrichment backlog sweep — one-off, NOT a standing resource.
   # DISABLED: it was left uncommented after backfill-005, and with
   # ttlSecondsAfterFinished the completed Job kept getting TTL-deleted and
@@ -32,6 +35,12 @@ resources:
   # To run a deliberate one-off: uncomment, bump metadata.name, push, then
   # RE-COMMENT after it completes.
   # - enrich-backfill-job.yaml
+  # One-off Job: publish every conversation to the shared Postgres database
+  # (see postgres-publish-job.yaml). SAME resurrection trap as the two Jobs
+  # above — MUST be re-commented once `kubectl get jobs -l
+  # app=fieldy-postgres-publish` shows Complete, or Flux will recreate it
+  # forever every time its 24h TTL fires.
+  - postgres-publish-job.yaml
 
 labels:
   - pairs:

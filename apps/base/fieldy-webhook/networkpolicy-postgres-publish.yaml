@@ -1,0 +1,42 @@
+# fieldy-postgres-publish Job: needs DNS, the Obsidian REST API on the LAN
+# (to read conversations/transcripts back out of the vault), and the shared
+# CloudNativePG Postgres cluster (to write recordings/transcript_segments).
+# No api.fieldy.ai egress — this job never calls the Fieldy API, it only
+# reads what daily.py/backfill.py already pulled into the vault.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fieldy-postgres-publish
+  namespace: fieldy-webhook
+spec:
+  podSelector:
+    matchLabels:
+      app: fieldy-postgres-publish
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Obsidian REST API (private host on the LAN client subnet, not in-cluster).
+    - to:
+        - ipBlock:
+            cidr: 10.85.10.0/24
+      ports:
+        - protocol: TCP
+          port: 27124
+    # PostgreSQL (in-cluster, the shared CloudNativePG cluster — same rule
+    # plaud-collector's networkpolicy.yaml uses for the same service).
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
