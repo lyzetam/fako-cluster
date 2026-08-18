@@ -3,6 +3,10 @@
 Status: **plan. Nothing in Stages 1–5 is applied.** Stage 0 items are small,
 independently reversible fixes to things that are already broken or inert.
 
+> **Addresses, VLAN numbers and host placements are deliberately absent.** This
+> repo is public. The plaintext reference is `private/network-topology.md`,
+> which is gitignored — the pattern CLAUDE.md prescribes for "what sits where".
+
 ---
 
 ## The single idea
@@ -59,7 +63,7 @@ because two of them are actively costing you protection you already own.
 | 0.3 | **Fix kube-state-metrics** | It has restarted 4 times (most recent 4h ago, reason `Error`) and measured 74.8% scrape availability over 6h. *Every* KSM-based alert in the cluster is degraded, including the new backup alerts. | Low. Diagnostic first — find why it dies. |
 | 0.4 | **Block egress to 169.254.169.254** | `family-manager` and `meal-tracker` reach for the cloud metadata endpoint — an AWS SDK hunting for instance credentials that do not exist on-prem. Harmless today, classic SSRF target. | Trivial. |
 | 0.5 | **Set the three inert Kubescape capabilities to `disable`** | `httpDetection`, `networkEventsStreaming`, `nodeProfileService` are enabled but render false — the config claims coverage it does not deliver. | Trivial. |
-| 0.6 | **Vault write observability** — DHCP reservation for 10.85.10.229, plus a freshness watchdog and alert for every vault writer | **This is the highest-value item in the programme.** See below. | Low — additive only. |
+| 0.6 | **Vault write observability** — DHCP reservation for the vault host, plus a freshness watchdog and alert for every vault writer | **This is the highest-value item in the programme.** See below. | Low — additive only. |
 
 ### 0.6 is the one that actually keeps biting
 
@@ -80,7 +84,7 @@ outage. This one changes how long an outage lasts from a month to minutes, and
 it works no matter what causes the break — policy, DHCP, the host being off, the
 plugin crashing. Two things:
 
-1. **DHCP reservation** for the vault host (10.85.10.229). Its address moving is
+1. **DHCP reservation** for the vault host (the vault host). Its address moving is
    the root cause of every incident in this family, twice over.
 2. **A freshness check per writer** — assert the expected file appeared, and
    alert when it did not. `fieldy-webhook`'s existing healthcheck CronJob is the
@@ -123,14 +127,8 @@ would be worse than what you have.
 address, its VLAN, and the flows that reach it. Both the netpol generator and
 the UniFi rules read from this. Today that inventory is:
 
-| Host | Address | VLAN | Reached by |
-|---|---|---|---|
-| Obsidian REST API | 10.85.10.229 | Main (10) | 11 namespaces, :27124 |
-| ms1/ms2/ms3 (Ollama) | 10.85.30.15/.20/.185 | Servers (30) | 4 namespaces, :11434 |
-| UGREEN NAS | 10.85.30.127 | Servers (30) | NFS |
-| 6 k8s nodes | 10.85.30.x | Servers (30) | intra-VLAN |
-| Home Assistant | 10.85.40.102 | **IoT (40)** | → cluster :30080 |
-| UNAS Pro | 10.85.0.168 | Default (1) | UNVR |
+See `private/network-topology.md` for the host/VLAN inventory and the
+required cross-VLAN flows.
 
 **Exit criteria:** generator produces a policy for a chosen namespace that a
 human agrees with, and the model file is committed.
@@ -155,7 +153,7 @@ can name it.** Cilium's `ipBlock` rules do **not** match intra-cluster IPs
 `apps/base/dji-media/networkpolicy.yaml` exists *precisely* to admit node IPs —
 its own comment says "the only ingress we need to allow is from the cluster
 nodes themselves so kubelet health probes can reach /healthz", implemented as
-`ipBlock: 10.85.30.0/24`, which is the node subnet. Under Cilium's default that
+`ipBlock: the node subnet`, which is the node subnet. Under Cilium's default that
 rule stops matching, kubelet probes are denied, and dji-media CrashLoopBackOffs
 — while the policy file still reads as correct.
 
@@ -238,8 +236,8 @@ Two CIDR rules, both deliberate:
 
 | File | CIDR | What it is |
 |---|---|---|
-| `vault-gateway/networkpolicy.yaml` | `10.85.10.0/24` | client VLAN — the one worth hiding |
-| `dji-media/networkpolicy.yaml` | `10.85.30.0/24` | node subnet; plain NetworkPolicy cannot express "the nodes" any other way |
+| `vault-gateway/networkpolicy.yaml` | `the client VLAN` | client VLAN — the one worth hiding |
+| `dji-media/networkpolicy.yaml` | `the node subnet` | node subnet; plain NetworkPolicy cannot express "the nodes" any other way |
 
 Options, none free:
 
@@ -256,7 +254,7 @@ appears. The vault gateway already removed the eleven that mattered.
 
 ### The chosen approach: an egress gateway for the vault
 
-The only genuinely revealing CIDR is `10.85.10.0/24` — the client VLAN — and
+The only genuinely revealing CIDR is `the client VLAN` — the client VLAN — and
 **11 namespaces** need it, purely to reach the Obsidian API.
 
 Put a reverse proxy in front of it, in-cluster:
@@ -278,7 +276,7 @@ reverse proxy becomes worth the cost." There are 11 consumers. The threshold
 was passed some time ago.
 
 What remains in the clear afterwards is deliberately uninteresting:
-`10.85.30.0/24` (the cluster's own subnet, which any node listing reveals) and
+`the node subnet` (the cluster's own subnet, which any node listing reveals) and
 `0.0.0.0/0` minus RFC1918 (reveals nothing).
 
 ---
@@ -315,7 +313,7 @@ IoT → default-deny) run after Stage 3, so that if something breaks you are not
 debugging two enforcement layers at once.
 
 The single most important constraint, repeated here because it is the thing most
-likely to cause an outage: **Home Assistant is at 10.85.40.102, inside the IoT
+likely to cause an outage: **Home Assistant is at its reserved address, inside the IoT
 VLAN**, and it drives the cluster's voice pipeline. Give it a DHCP reservation
 before any IoT rule is written.
 
