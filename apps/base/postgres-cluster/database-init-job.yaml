@@ -50,7 +50,8 @@ spec:
           psql -c "CREATE DATABASE paperless OWNER app" 2>/dev/null || echo "Database paperless already exists"
           psql -c "CREATE DATABASE backstage OWNER app" 2>/dev/null || echo "Database backstage already exists"
           psql -c "CREATE DATABASE langfuse OWNER app" 2>/dev/null || echo "Database langfuse already exists"
-          
+          psql -c "CREATE DATABASE plaud OWNER app" 2>/dev/null || echo "Database plaud already exists"
+
           # Set schema ownership and permissions for oura database
           psql -d oura -c "ALTER SCHEMA public OWNER TO app;"
           psql -d oura -c "GRANT ALL ON SCHEMA public TO admin;"
@@ -58,7 +59,15 @@ spec:
           psql -d oura -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO admin;"
           psql -d oura -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO admin;"
           psql -d oura -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO admin;"
-          
+
+          # Set schema ownership and permissions for plaud database (same pattern as oura)
+          psql -d plaud -c "ALTER SCHEMA public OWNER TO app;"
+          psql -d plaud -c "GRANT ALL ON SCHEMA public TO admin;"
+          psql -d plaud -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO admin;"
+          psql -d plaud -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO admin;"
+          psql -d plaud -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO admin;"
+          psql -d plaud -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO admin;"
+
           psql -d keycloak -c "GRANT ALL ON SCHEMA public TO admin;"
           psql -d keycloak -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO admin;"
           psql -d keycloak -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO admin;"

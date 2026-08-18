@@ -1,0 +1,88 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: plaud-collector-daily
+  namespace: plaud-collector
+  labels:
+    app: plaud-collector
+spec:
+  # 15:00 UTC daily (10:00 CT in CDT, 09:00 CT in CST). The hour is arbitrary
+  # and off-peak by design, with two constraints behind the specific choice:
+  # it must land while the LAN host running the Obsidian Local REST API is
+  # reliably awake (fieldy-puller's overnight 03:00 UTC slot failed repeatedly
+  # with "All connection attempts failed"), and it is offset an hour from
+  # fieldy-puller's 16:00 UTC so the two don't hit that host at once.
+  schedule: "0 15 * * *"
+  timeZone: "UTC"
+  # NEVER run two instances concurrently. The Plaud OAuth refresh_token rotates
+  # on every use — Plaud issues a new token and invalidates the old one on each
+  # refresh — so two concurrent runs would race: whichever refreshed second
+  # would invalidate the first's token, and the loser's write-back to AWS
+  # Secrets Manager would leave a dead token there, breaking every later run
+  # until it is repaired by hand.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app: plaud-collector
+        spec:
+          serviceAccountName: plaud-collector
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: puller
+              image: lzetam/plaud-puller:latest
+              imagePullPolicy: Always
+              command:
+                - python
+                - /app/scripts/daily.py
+              envFrom:
+                - configMapRef:
+                    name: plaud-collector-config
+                - secretRef:
+                    name: postgres-credentials-env
+                - secretRef:
+                    name: obsidian-api-env
+                - secretRef:
+                    name: plaud-oauth-env
+                # Scoped AWS credential — GetSecretValue + PutSecretValue on
+                # plaud/oauth-tokens only. Required because this app writes the
+                # rotated refresh token back itself; see
+                # external-secret-plaud-aws.yaml.
+                - secretRef:
+                    name: plaud-aws-env
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+                seccompProfile:
+                  type: RuntimeDefault
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            # readOnlyRootFilesystem is on; /tmp is the only writable path the
+            # container needs (httpx/boto3 scratch).
+            - name: tmp
+              emptyDir: {}

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: plaud-collector-config
+  namespace: plaud-collector
+data:
+  # Storage configuration
+  DATABASE_HOST: "postgres-cluster-rw.postgres.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "plaud"
+
+  # AWS Secrets Manager configuration
+  # This is the secret the app WRITES BACK to after every OAuth token refresh
+  # (plaud_puller.pipeline._persist_rotated_token_to_secrets_manager). Unlike
+  # oura-collector, which only ever reads AWS via the external-secrets
+  # controller, this app calls AWS itself from inside the pod — see
+  # external-secret-plaud-aws.yaml for the scoped credential that allows it.
+  # AWS_DEFAULT_REGION is deliberately NOT set here: it arrives with that same
+  # credential secret, so there is exactly one source for it.
+  AWS_SECRETS_PLAUD_TOKEN_ID: "plaud/oauth-tokens"
+
+  # Collection configuration
+  # 48h trailing window against a 24h schedule, on purpose: one missed or
+  # failed run doesn't drop recordings, and the DB writes are idempotent.
+  PLAUD_HOURS_BACK: "48"
+
+  # Obsidian vault copy (URL + key come from the obsidian-api-env secret —
+  # same secret/vault oura-collector writes to; only the folder differs).
+  PLAUD_VAULT_MODE: "obsidian-api"
+  PLAUD_VAULT_REL_ROOT: "Plaud"
+  # oura-collector pins the plugin's self-signed cert via OBSIDIAN_CA_CERT and
+  # a configmap-obsidian-ca.yaml. plaud-puller has no CA-path option — its
+  # vault.make_vault() only reads the boolean OBSIDIAN_VERIFY_TLS — so this
+  # follows fieldy-webhook's approach for the same host instead.
+  OBSIDIAN_VERIFY_TLS: "false"

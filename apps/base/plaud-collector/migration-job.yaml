@@ -1,0 +1,96 @@
+# Alembic schema migration. NOT optional.
+#
+# apps/base/postgres-cluster/database-init-job.yaml creates an EMPTY `plaud`
+# database — it creates no tables. Nothing else in this app runs migrations
+# (plaud_puller.db raises SchemaNotInitializedError rather than calling
+# create_all, deliberately, so there is never a second writer creating schema).
+# Without this Job the daily CronJob fails on every single run.
+#
+# Re-run after any migration is added: delete the completed Job and let Flux
+# recreate it, or bump metadata.name.
+#
+# Structure mirrors apps/base/oura-collector/migration-job.yaml with two
+# deliberate differences, both noted inline below.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: plaud-collector-migrate
+  namespace: plaud-collector
+  labels:
+    app: plaud-collector-migrate
+spec:
+  ttlSecondsAfterFinished: 86400
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: plaud-collector-migrate
+    spec:
+      serviceAccountName: plaud-collector
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: migrate
+        image: lzetam/plaud-puller:latest
+        imagePullPolicy: Always
+        workingDir: /app
+        command:
+          - alembic
+          - upgrade
+          - head
+        env:
+        # Database configuration. DATABASE_NAME is "plaud", not "app" —
+        # oura-collector's migration Job says "app", and its own
+        # kustomization.yaml documents that pointing at the wrong database is
+        # exactly how its retired CronJob silently wrote nowhere.
+        - name: DATABASE_HOST
+          value: "postgres-cluster-rw.postgres.svc.cluster.local"
+        - name: DATABASE_PORT
+          value: "5432"
+        - name: DATABASE_NAME
+          value: "plaud"
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials-env
+              key: DATABASE_USER
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials-env
+              key: DATABASE_PASSWORD
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+          seccompProfile:
+            type: RuntimeDefault
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+
+      # oura-collector's migration Job mounts an emptyDir at /app. That is NOT
+      # copied here: this image ships alembic.ini and migrations/ inside /app
+      # (see the plaud Dockerfile), and an emptyDir there would shadow both, so
+      # `alembic upgrade head` would fail with "No config file 'alembic.ini'".
+      # Only /tmp needs to be writable, because readOnlyRootFilesystem is on.
+      volumes:
+      - name: tmp
+        emptyDir: {}

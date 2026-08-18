@@ -136,6 +136,16 @@ resources:
   # Wearable AI notetaker — Compass transcription webhook → Obsidian vault
   - fieldy-webhook
 
+  # Wearable AI notetaker (Plaud) → Obsidian vault + Postgres
+  # BLOCKED: apps/staging/plaud-collector/aws-credentials-secret.yaml can't be
+  # produced yet (pre-existing SOPS "MAC mismatch" issue reproduces on other
+  # apps' already-committed secrets too — not caused by this change). Do NOT
+  # uncomment until that file exists, or `apps/staging` fails to build for
+  # EVERY app under it, not just this one (confirmed: `kubectl kustomize
+  # apps/staging` fails end-to-end with this line active and the file
+  # missing).
+  # - plaud-collector
+
   # reMarkable handwritten notes → MyScript OCR → Obsidian vault (daily CronJob)
   - remarkable-ocr
 

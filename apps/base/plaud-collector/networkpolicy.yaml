@@ -1,0 +1,64 @@
+# plaud-collector egress: DNS, postgres, the Obsidian Local REST API on the LAN,
+# and public HTTPS (platform.plaud.ai + AWS Secrets Manager).
+#
+# Applies to every pod in the namespace (podSelector: {}) — the daily CronJob,
+# the migration Job, and the one-off backfill Job all need the same paths, and
+# an empty selector cannot leave one of them uncovered by a label typo.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: plaud-collector-egress
+  namespace: plaud-collector
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # PostgreSQL (in-cluster, the shared CloudNativePG cluster)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Obsidian REST API (private host on the LAN client subnet, not in-cluster).
+    # Scoped to the /24 rather than a /32 on purpose: fieldy-webhook pinned this
+    # to 10.85.10.195/32, the host moved to .229 on 2026-08-05, and every write
+    # failed for a week with "All connection attempts failed" — DNS still
+    # resolved (port 53 is allowed), so only the TCP connect was dropped, which
+    # reads like a network outage rather than a policy denial. See the same
+    # comment in apps/base/fieldy-webhook/networkpolicy.yaml. Port 27124 is the
+    # only thing opened here.
+    - to:
+        - ipBlock:
+            cidr: 10.85.10.0/24
+      ports:
+        - protocol: TCP
+          port: 27124
+    # Public HTTPS — platform.plaud.ai and AWS Secrets Manager (the token
+    # write-back). Neither publishes a fixed IP range, so this is the same
+    # allow-public-443-minus-private-ranges rule every other app in this repo
+    # uses for AWS SM egress (oura-collector, oura-agent, hume-collector); there
+    # is no narrower AWS endpoint rule anywhere in the repo to mirror.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443

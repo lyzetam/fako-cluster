@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: plaud-collector
+
+# Self-contained on purpose: every entry is a file in this same directory, so
+# `kustomize build apps/base/plaud-collector` validates standalone.
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - configmap.yaml
+  - external-secret-postgres.yaml       # postgres/app-user -> DB creds
+  - external-secret-obsidian.yaml       # obsidian/api -> vault REST URL + key
+  - external-secret-plaud-oauth.yaml    # plaud/oauth-tokens -> PLAUD_REFRESH_TOKEN
+  - external-secret-plaud-aws.yaml      # plaud/aws-credentials -> scoped AWS creds
+  - networkpolicy.yaml                  # scoped egress (DNS, postgres, Obsidian, HTTPS)
+  - networkpolicy-obsidian-fqdn.yaml     # Obsidian by hostname, not a frozen IP (see file header)
+  - migration-job.yaml                  # alembic upgrade head — REQUIRED, see file header
+  - cronjob-daily.yaml
+  # Uncomment + bump metadata.name + set BACKFILL_START/END in backfill-job.yaml
+  # to trigger a one-off historical backfill via GitOps. RE-COMMENT after it
+  # completes — leaving it on turns ttlSecondsAfterFinished into a daily
+  # resurrection loop (see the header in backfill-job.yaml).
+  # - backfill-job.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: plaud-collector
+      app.kubernetes.io/instance: production
+      app.kubernetes.io/component: collector
+      app.kubernetes.io/part-of: plaud
