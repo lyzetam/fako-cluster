@@ -54,7 +54,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: enrich
-              image: lzetam/fieldy-webhook:v0.23.0
+              image: lzetam/fieldy-webhook:v0.24.0
               # --limit is a per-run cost/time safety rail so runs chip through
               # the backlog gradually instead of all at once. See the value below.
               command:

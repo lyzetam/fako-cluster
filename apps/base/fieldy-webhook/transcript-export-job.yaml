@@ -1,0 +1,75 @@
+# One-off Job: write transcripts_export/<day>/<stem>.json + .md for every
+# conversation already in the vault (scripts/export_transcripts.py). Reads only
+# what daily.py/backfill.py have already pulled — no Fieldy API calls.
+#
+# Why it exists: as of v0.24.0 the daily run writes both files for each fresh
+# conversation, but the ~6.2K conversations exported before that have a .json
+# and no .md. This Job backfills the missing markdown twins.
+#
+# How to run it again:
+#   1. Bump metadata.name (e.g. -001 -> -002).
+#   2. git add + commit + push, then `flux reconcile kustomization apps --with-source`.
+#   3. Watch: `kubectl logs -f -n fieldy-webhook -l job-name=<name>`
+#   4. RE-COMMENT it in kustomization.yaml once Complete — with
+#      ttlSecondsAfterFinished, Flux otherwise recreates it forever (the same
+#      resurrection trap documented on backfill-job/postgres-publish-job).
+#
+# Every export file is fully overwritten from current vault data on each run,
+# never appended to, so re-running with no date window is always safe.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fieldy-transcript-export-001
+  namespace: fieldy-webhook
+  labels:
+    app: fieldy-transcript-export
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: fieldy-transcript-export
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: dockerhub-secret
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: transcript-export
+          image: lzetam/fieldy-webhook:v0.24.0
+          command:
+            - python
+            - /app/scripts/export_transcripts.py
+          env:
+            - name: FIELDY_VAULT_MODE
+              value: "obsidian-api"
+            - name: OBSIDIAN_API_URL
+              value: "http://vault-gateway.vault-gateway.svc.cluster.local:8080"
+            - name: OBSIDIAN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obsidian-api
+                  key: api_key
+            - name: FIELDY_VAULT_REL_ROOT
+              value: "fieldy"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

@@ -19,6 +19,7 @@ resources:
   - networkpolicy-enrich.yaml
   - networkpolicy-healthcheck.yaml
   - networkpolicy-postgres-publish.yaml
+  - networkpolicy-transcript-export.yaml
   - cronjob-puller.yaml
   - cronjob-enrich.yaml
   - cronjob-healthcheck.yaml
@@ -42,6 +43,11 @@ resources:
   # forever every time its 24h TTL fires.
   # postgres-publish-002 completed 2026-08-18 (dedup fix) — re-commented.
   # - postgres-publish-job.yaml
+  # One-off Job: backfill transcripts_export/<day>/<stem>.md for the ~6.2K
+  # conversations exported before v0.24.0 (json only). SAME resurrection trap
+  # as the Jobs above — MUST be re-commented once `kubectl get jobs -l
+  # app=fieldy-transcript-export` shows Complete.
+  - transcript-export-job.yaml
 
 labels:
   - pairs:

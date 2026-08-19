@@ -1,0 +1,36 @@
+# fieldy-transcript-export Job: needs DNS and the Obsidian vault via the
+# gateway, nothing else. It never calls api.fieldy.ai (it only re-reads what is
+# already in the vault) and never touches Postgres.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fieldy-transcript-export
+  namespace: fieldy-webhook
+spec:
+  podSelector:
+    matchLabels:
+      app: fieldy-transcript-export
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Obsidian vault, via the gateway. No CIDR — see networkpolicy.yaml for why
+    # pinning the vault host's address here cost a week of dropped writes.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault-gateway
+          podSelector:
+            matchLabels:
+              app: vault-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
