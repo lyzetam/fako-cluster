@@ -15,6 +15,20 @@ spec:
   primaryUpdateStrategy: unsupervised
   startDelay: 300
   stopDelay: 300
+
+  # The 50Gi PGDATA volumes live on NFS. kubelet's default fsGroup policy
+  # ("Always") does a recursive chown across the whole volume before postgres
+  # can start — every single reschedule, whether or not ownership is already
+  # correct. Over NFS that is minutes of stat/chown per file: after the
+  # thinkpad02 power loss on 2026-08-24, postgres-cluster-8 sat in Init:0/1
+  # working through the tree (1895 files, then 5747 a minute later) while
+  # kubelet emitted VolumePermissionChangeInProgress and named this exact fix.
+  #
+  # OnRootMismatch checks the root directory's ownership first and skips the
+  # walk when it already matches — one real walk on first use, none afterwards.
+  # Same fix already applied to langfuse's ClickHouse PVC for the same reason.
+  podSecurityContext:
+    fsGroupChangePolicy: OnRootMismatch
   
   # PostgreSQL configuration
   postgresql:
