@@ -24,7 +24,7 @@ spec:
         app: orchestrator-qt
         component: autonomous-agents
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-08-25T21:23:07Z"  # 3 new dashboard-widget endpoints (health/broker, daily-pnl-breakdown, market/context)
+        kubectl.kubernetes.io/restartedAt: "2026-08-25T21:37:18Z"  # /trading/positions live-price enrichment (Open Positions card was showing undefined P&L)
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
