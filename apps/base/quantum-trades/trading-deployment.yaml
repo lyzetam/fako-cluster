@@ -16,6 +16,8 @@ spec:
       labels:
         app: quantum-trades
         component: trading
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2026-08-25T17:54:47Z"
     spec:
       imagePullSecrets:
         - name: dockerhub-registry
