@@ -24,7 +24,7 @@ spec:
         app: orchestrator-qt
         component: autonomous-agents
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-06-12T19:30:00Z"  # dead-code + single capital writer (PR #124)
+        kubectl.kubernetes.io/restartedAt: "2026-08-25T21:23:07Z"  # 3 new dashboard-widget endpoints (health/broker, daily-pnl-breakdown, market/context)
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
