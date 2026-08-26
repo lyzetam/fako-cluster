@@ -1,0 +1,70 @@
+# Self-hosted runner scale set for thornus-platform-products/aeonhq.
+#
+# WHY: aeonhq consumed $79.71 of $86.66 gross GitHub Actions spend in Aug 2026
+# (92%), after the org's 3,000 included minutes were exhausted on ~Aug 5.
+# A measured run is 18.2 job-minutes across 15 jobs. Self-hosted runners are
+# not metered for private repos, so migrating the test jobs removes that spend.
+#
+# SCOPE: test jobs only. "Build & Push Docker Images" is 1.6m of the 18.2
+# (9%) and stays on GitHub-hosted, which is why containerMode is left off —
+# no Docker-in-Docker, so no privileged pods on this cluster.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: arc-runner-aeonhq
+  namespace: arc-runners
+spec:
+  interval: 30m
+  timeout: 10m
+  dependsOn:
+    - name: arc
+      namespace: arc-systems
+  chart:
+    spec:
+      chart: gha-runner-scale-set
+      version: "0.14.2"
+      sourceRef:
+        kind: HelmRepository
+        name: actions-runner-controller
+        namespace: arc-systems
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  # Chart default names the scale set after the release; pinned explicitly so
+  # `runs-on:` in the workflows has a stable label that does not drift.
+  releaseName: fako
+  values:
+    githubConfigUrl: https://github.com/thornus-platform-products/aeonhq
+    githubConfigSecret: arc-github-app
+
+    # Scale to zero when idle — runners cost cluster capacity, not GitHub
+    # minutes, so there is no reason to keep warm pods.
+    minRunners: 0
+    # aeonhq bursts 15 parallel jobs. The cluster has 44 vCPU across 6 nodes
+    # already running at 25-78%, so jobs queue past 6 rather than starving
+    # existing workloads. A 7-minute wall clock becomes roughly 20 — which is
+    # irrelevant for a nightly scheduled run and acceptable on push.
+    maxRunners: 6
+
+    template:
+      spec:
+        containers:
+          - name: runner
+            image: ghcr.io/actions/actions-runner:2.336.0
+            command: ["/home/runner/run.sh"]
+            # Root is required: test-marketing and the Fayson E2E job run
+            # `npx playwright install --with-deps`, which apt-installs browser
+            # libraries. The stock runner image has no sudo. These are the
+            # org's own private repos on the org's own hardware.
+            securityContext:
+              runAsUser: 0
+            resources:
+              requests:
+                cpu: 500m
+                memory: 1Gi
+              limits:
+                cpu: "2"
+                memory: 4Gi

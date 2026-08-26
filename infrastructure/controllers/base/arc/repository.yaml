@@ -1,0 +1,11 @@
+# First OCI HelmRepository in this repo. ARC is published only as an OCI
+# artifact — there is no classic HTTP chart repo for gha-runner-scale-set.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: actions-runner-controller
+  namespace: arc-systems
+spec:
+  interval: 24h
+  type: oci
+  url: oci://ghcr.io/actions/actions-runner-controller-charts
