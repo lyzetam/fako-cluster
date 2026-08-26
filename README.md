@@ -271,11 +271,31 @@ Voice Input → OpenWakeWord → Whisper (STT) → LLM → Piper (TTS) → Audio
 #### thinkpad02 — added 2026-08-12
 
 - **Hardware:** ThinkPad X1 Extreme 2nd Gen (20QV000DUS), Ubuntu 24.04, kernel 7.0.0-28
-- **Network:** `10.85.30.8` over **WiFi** (`wlp82s0`) — this laptop has no Ethernet port.
-  Joined via the `Fingerweg-Servers` SSID, created specifically to put VLAN 30 (Servers)
-  on the air; it is 5 GHz / WPA2 / PMF-disabled and broadcasts on 5 of 6 APs (AP Upstairs
-  was at its per-AP SSID limit). Config lives in `/etc/netplan/50-cloud-init.yaml`, with
-  cloud-init network regeneration disabled.
+- **Network:** `10.85.30.80` over **wired USB-C Ethernet** (`enx9c69d3bdbfe6`, ASIX
+  AX88179 gigabit) since 2026-08-26, on USW Flex 2.5G #2 Port 4. DHCP with a fixed-IP
+  reservation on the UniFi controller, route-metric 100. Config lives in
+  `/etc/netplan/60-wired-usb.yaml`.
+  - The built-in Ethernet port (`enp0s31f6`) exists but has **no cable run to it**
+    (`carrier=0`) — the earlier note that this laptop "has no Ethernet port" was wrong.
+  - **WiFi is retained as fallback** at route-metric 600 (`wlp82s0`, `10.85.30.8`, SSID
+    `Fingerweg-Servers` — 5 GHz / WPA2 / PMF-disabled, broadcast on 5 of 6 APs; AP
+    Upstairs was at its per-AP SSID limit). Config in `/etc/netplan/50-cloud-init.yaml`,
+    cloud-init network regeneration disabled.
+  - Why the move: this was the only node in the cluster not wired, and its WiFi was
+    associating to the **U7 Outdoor** AP. A WiFi drop is indistinguishable from a power
+    loss from the cluster's side — node NotReady, metrics stop — so wireless was an
+    unbounded source of outages that could not be told apart from the real ones.
+
+- **Power:** originally run from a 60W USB-C PD adapter (`20V x 3A`, drawing its full
+  3A ceiling) while `BAT0` reported `power_now=0` — a healthy 99% / 87%-health battery
+  that was contributing nothing. With no buffer, any dip in supply killed the machine
+  instantly: two hard cuts (2026-08-24, 2026-08-26), neither leaving a `shutdown system
+  down` record in wtmp, both losing the entire boot's journal, and both with 23 GiB free,
+  6.6% CPU and 52-65 °C at the moment of death. Moved to the mains/barrel supply, which
+  takes USB-C PD negotiation out of the path entirely.
+  - **Still unverified:** whether the battery will carry the load if input power drops.
+    Test by unplugging while running — instant death at 99% means the charging board or
+    battery connector has failed, and a UPS is the only real mitigation.
 - **Power:** lid-close and all sleep/suspend/hibernate targets are masked, so the node
   survives the lid being shut.
 - **GPU:** GTX 1650 Mobile / Max-Q (TU117M, 4GB), driver **595.84**, CUDA runtime 13.2.
