@@ -30,9 +30,7 @@ resources:
   - gitleaks
 
   # CI
-  # - arc-runners     # Self-hosted GitHub Actions runners for aeonhq (label: fako).
-  #                   # HELD until AWS SM secret `arc/github-app` exists — without it the
-  #                   # ExternalSecret reports SecretSyncedError and no runner registers.
+  - arc-runners       # Self-hosted GitHub Actions runners for aeonhq (runs-on: fako)
   - kube-bench
   - kubescape-operator  # Changed from kubescape to use the operator
   
