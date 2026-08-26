@@ -59,8 +59,16 @@ spec:
             # `npx playwright install --with-deps`, which apt-installs browser
             # libraries. The stock runner image has no sudo. These are the
             # org's own private repos on the org's own hardware.
+            #
+            # RUNNER_ALLOW_RUNASROOT is NOT optional alongside runAsUser: 0.
+            # run.sh refuses to start as uid 0 without it, exiting with
+            # "Must not run interactively with sudo" — which surfaces as a
+            # pod crash-loop and jobs that queue forever, not as a clear error.
             securityContext:
               runAsUser: 0
+            env:
+              - name: RUNNER_ALLOW_RUNASROOT
+                value: "1"
             resources:
               requests:
                 cpu: 500m
