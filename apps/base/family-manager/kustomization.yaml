@@ -9,17 +9,8 @@ resources:
   - external-secret.yaml
   - external-secret-dockerhub.yaml
   - redis.yaml
-  # DISABLED 2026-08-27 — family-manager-webhook scaled to zero pending
-  # modernization of its build pipeline. The `apps` Kustomization runs with
-  # prune: true, so removing it here DELETES the Deployment object; the pods
-  # go away and so does the object. Restore by uncommenting this line — Flux
-  # recreates it from deployment.yaml, which is untouched.
-  #
-  # Still declared and still applied: service.yaml, ingress.yaml and
-  # cloudflare.yaml all target family-manager-webhook, so the Service will
-  # have no endpoints and family-webhook.landryzetam.net will return 503
-  # until this comes back. That is expected, not a second fault.
-  # - deployment.yaml
+  # - deployment.yaml   # family-manager-webhook DISABLED 2026-08-27 pending
+                       # modernization. Uncomment to bring it back.
   - deployment-bot.yaml
   - cronjob-email.yaml
   - service.yaml
