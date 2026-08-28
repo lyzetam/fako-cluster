@@ -9,8 +9,8 @@ resources:
   - external-secret.yaml
   - external-secret-dockerhub.yaml
   - redis.yaml
-  # - deployment.yaml   # family-manager-webhook DISABLED 2026-08-27 pending
-                       # modernization. Uncomment to bring it back.
+  - deployment.yaml   # family-manager-webhook DISABLED 2026-08-27 pending
+                      #  modernization. Uncomment to bring it back.
   - deployment-bot.yaml
   - cronjob-email.yaml
   - service.yaml
