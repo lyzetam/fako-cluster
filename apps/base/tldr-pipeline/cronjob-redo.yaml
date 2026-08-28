@@ -1,0 +1,88 @@
+# Redo: re-run the digest pass over notes that are ALREADY enriched.
+#
+# Suspended on purpose — this is not a schedule, it is a declarative template for a
+# one-off. Fire it with:
+#
+#   kubectl create job --from=cronjob/tldr-redo tldr-redo-$(date +%s) -n tldr-pipeline
+#
+# It exists as a manifest rather than a hand-typed `kubectl run` because the arguments
+# below are the load-bearing part: --redo rewrites history, and getting --no-remail
+# wrong mails the entire vault.
+#
+# Why a separate object from tldr-enrich rather than a flag on it: the nightly must
+# never acquire --redo by accident. On 2026-08-12 a run that treated legacy notes as
+# unprocessed rewrote 260 of them before it was stopped.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tldr-redo
+  namespace: tldr-pipeline
+  labels:
+    app.kubernetes.io/name: tldr-pipeline
+    app.kubernetes.io/component: redo
+    app.kubernetes.io/part-of: tldr-pipeline
+    app.kubernetes.io/managed-by: flux
+spec:
+  # Never runs on its own. 29 Feb on a non-leap year, and suspended besides.
+  schedule: "0 0 29 2 *"
+  timeZone: Etc/UTC
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      # ~940 notes at two model calls each. The digest pass generates far more than the
+      # old summarize call — a briefing plus 2-5 carousels of slide beats — so budget
+      # hours, not the nightly's three. Anything unfinished stays enriched and is simply
+      # re-run; --redo is idempotent.
+      activeDeadlineSeconds: 57600   # 16h
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: tldr-pipeline
+            app.kubernetes.io/component: redo
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: redo
+              image: lzetam/tldr-pipeline:latest
+              imagePullPolicy: Always
+              command: ["tldr-enrich"]
+              # --no-remail: a redo changes text that is already in the inbox and
+              # already ingested downstream. Re-mailing 940 notes would republish the
+              # whole archive to the content engine as fresh candidates.
+              args: ["--apply", "--redo", "--no-remail", "-v"]
+              envFrom:
+                - secretRef:
+                    name: tldr-pipeline-secrets
+              env:
+                - name: HOME
+                  value: /tmp
+                - name: TLDR_OLLAMA_BASE
+                  value: "http://apisix.apisix.svc.cluster.local:9080"
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}
