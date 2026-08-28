@@ -132,7 +132,7 @@ resources:
   - voice-ingest    # Wearable voice recorder ingest service (Pi/XIAO → WhisperX → Obsidian)
 
   # Family Management
-  - family-manager  # Family Manager webhook for Discord bot, Twilio voice, Nylas email
+  # - family-manager  # Family Manager webhook for Discord bot, Twilio voice, Nylas email
   - meal-tracker    # Meal tracker Discord bot + dashboard
   - sermon-engine   # Weekly sermon generator (Sunday 6am ET)
 
