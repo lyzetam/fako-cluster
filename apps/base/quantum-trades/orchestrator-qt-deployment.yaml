@@ -64,8 +64,16 @@ spec:
       # Containers
       containers:
         - name: orchestrator-qt-service
-          image: lzetam/quantum-trades-orchestrator-qt:latest
-          imagePullPolicy: Always
+          # LIVE IS PINNED, ON PURPOSE. Paper tracks :latest and receives every
+          # merge to main automatically; live moves only when a human edits the
+          # SHA below. That is the promotion gate — code proven on paper is
+          # promoted to live by changing this one line, committing, and letting
+          # Flux reconcile. It is auditable in git and reversible by reverting
+          # the commit.
+          #
+          # Promoted quantum-trades 3d53b0f05a3f on 2026-09-01.
+          image: lzetam/quantum-trades-orchestrator-qt:3d53b0f05a3faefeabb899b3d3cb6aae6fc94d00
+          imagePullPolicy: IfNotPresent
 
           ports:
             - name: http
@@ -144,12 +152,11 @@ spec:
             # All trading parameters (capital, limits, position sizing) are in
             # config.py defaults. Do NOT override them here — config.py is the
             # single source of truth for trading logic.
-            # OFF until a human throws the switch. Everything else about this
-            # deployment is ready for live: the pod runs, syncs positions,
-            # reconciles the ledger and answers health — it just places no
-            # orders. Flip to "true" to start trading the real $211.
+            # LIVE TRADING IS ON (2026-09-01, zz: "I want live trade to go live
+            # now, as the account is small, and I am willing to put that $200
+            # budget at risk"). Real money, $211.40, one position at a time.
             - name: AUTONOMOUS_LOOP_ENABLED
-              value: "false"
+              value: "true"
 
             # === Paper / Live trading toggle ===
             # Single source of truth for which Tradier environment to use.
@@ -169,6 +176,15 @@ spec:
             # daily-loss circuit breaker reads.
             - name: SUPABASE_SCHEMA
               value: "public"
+
+            # The executor's deployable ceiling. The default (12000) is 57x this
+            # account, which would let position sizing reason about money that
+            # is not there. Broker cash still binds first; this makes the
+            # intent explicit rather than incidental.
+            - name: INITIAL_CAPITAL
+              value: "211"
+            - name: DRAWDOWN_BASELINE
+              value: "211"
 
             # Paper-only: Tradier sandbox returns OI=0 for options, so the
             # fail-closed open-interest floor would reject every paper trade and

@@ -79,6 +79,10 @@ spec:
       # Containers
       containers:
         - name: orchestrator-qt-service
+          # PAPER TRACKS :latest. Every merge to main lands here on the next
+          # pod restart, with no manifest change — this is the dev tier, and
+          # that is the point. Live is pinned to a SHA and is unaffected until
+          # someone promotes.
           image: lzetam/quantum-trades-orchestrator-qt:latest
           imagePullPolicy: Always
 

@@ -61,6 +61,13 @@ spec:
                 # Service DNS, not localhost — this runs in its own pod.
                 - name: TRADING_STATUS_URL
                   value: "http://orchestrator-qt:8006/trading/status"
+                # The write probe follows TRADING_MODE (validation/watchdog.py
+                # resolves credentials the same way the loop does). Without this
+                # it defaults to paper and would watch the SANDBOX while the
+                # live account holds the money — silent through the one outage
+                # that matters. Watches the same environment it reports on.
+                - name: TRADING_MODE
+                  value: "live"
                 - name: PYTHONUNBUFFERED
                   value: "1"
               # AGENTS_API_KEY and the Discord webhook come from the secret the
