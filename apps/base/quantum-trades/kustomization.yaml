@@ -22,6 +22,9 @@ resources:
   # profile). Added 2026-09-01. Deleting this file is a clean rollback; the
   # live deployment does not depend on it.
   - orchestrator-qt-paper-deployment.yaml
+  # Paper-tier exit validation — same checks, its own broker and book.
+  - cronjob-exit-validation-preopen-paper.yaml
+  - cronjob-exit-validation-postclose-paper.yaml
   - ingress.yaml
   # WebSocket IngressRoute with extended timeouts
   - middleware-websocket.yaml

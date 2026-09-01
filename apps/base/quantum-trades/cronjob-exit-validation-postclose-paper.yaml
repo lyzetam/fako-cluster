@@ -14,16 +14,16 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: exit-validation-postclose
+  name: exit-validation-postclose-paper
   namespace: quantum-trades
   labels:
-    app.kubernetes.io/name: exit-validation-postclose
+    app.kubernetes.io/name: exit-validation-postclose-paper
     app.kubernetes.io/part-of: quantum-trades
     app.kubernetes.io/managed-by: flux
 spec:
   # 16:30 ET weekdays — 30 min after the close, so the last cycle's tape rows
   # and any late broker fills have settled before we diff against them.
-  schedule: "30 16 * * 1-5"
+  schedule: "35 16 * * 1-5"
   timeZone: "America/New_York"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 5
@@ -45,7 +45,7 @@ spec:
           imagePullSecrets:
             - name: dockerhub-registry
           containers:
-            - name: exit-validation-postclose
+            - name: exit-validation-postclose-paper
               image: lzetam/quantum-trades-orchestrator-qt:latest
               imagePullPolicy: Always
               command: ["python", "-m", "validation.run", "--mode", "post_close"]
@@ -57,19 +57,12 @@ spec:
               env:
                 - name: PYTHONUNBUFFERED
                   value: "1"
-                # PIN THE ENVIRONMENT EXPLICITLY. Neither variable is in the
-                # secret, so without these the job inherits config.py defaults:
-                # TRADING_MODE -> "paper" (SANDBOX order tape) and
-                # SUPABASE_SCHEMA -> "public" (the LIVE book). It would compare
-                # sandbox fills against live trades, and validation/run.py
-                # WRITES to closed_trades — re-injecting paper fills into the
-                # live ledger the daily-loss breaker reads. Harmless until
-                # 2026-09-01, when live moved to TRADING_MODE=live and the two
-                # defaults stopped agreeing.
+                # Paper tier. Both pinned for the same reason as the live job:
+                # the defaults point at two different environments.
                 - name: TRADING_MODE
-                  value: "live"
+                  value: "paper"
                 - name: SUPABASE_SCHEMA
-                  value: "public"
+                  value: "paper"
               resources:
                 requests:
                   cpu: 100m
