@@ -17,6 +17,11 @@ resources:
   - services.yaml
   # Tier 3 data aggregator — adopted into GitOps 2026-07-22 (was cluster-only, 13 manual revisions)
   - market-data-api.yaml
+  # PAPER tier — same image, same pipeline, its own execution layer
+  # (sandbox broker + `paper` Supabase schema + its own leader lock and risk
+  # profile). Added 2026-09-01. Deleting this file is a clean rollback; the
+  # live deployment does not depend on it.
+  - orchestrator-qt-paper-deployment.yaml
   - ingress.yaml
   # WebSocket IngressRoute with extended timeouts
   - middleware-websocket.yaml
