@@ -1,30 +1,45 @@
-# Orchestrator-QT Deployment (LangGraph Trading Coordinator)
-# Replaces: agents-coordinator-deployment.yaml + deployment-trading-loop.yaml
-# Source: quantum-trades/orchestrator-qt with conservative capital limits
+# Orchestrator-QT PAPER Deployment — the dev tier of the trading system.
+#
+# SAME IMAGE, SAME PIPELINE, DIFFERENT EXECUTION LAYER. This runs beside the
+# live deployment and differs in exactly four ways:
+#   1. TRADING_MODE=paper      -> sandbox.tradier.com + TRADIER_SANDBOX_* creds
+#   2. SUPABASE_SCHEMA=paper   -> its own book (positions, trades, capital,
+#                                 halts, decision tape, risk profile)
+#   3. risk profile            -> paper.active_profile = aggressive, while
+#                                 public.active_profile = conservative
+#   4. its own leader lock     -> quantum:trading:leader:paper
+#
+# The PIPELINE IS SHARED on purpose: prequalification CronJobs build ONE
+# universe in public, and paper reads it through read-only views
+# (paper.watchlist / paper.universe_meta). Both environments therefore evaluate
+# the identical opportunity set and differ only in how they execute it.
+#
+# The image is deliberately NOT forked. Two images drift, and you end up
+# testing code you do not run.
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: orchestrator-qt
+  name: orchestrator-qt-paper
   namespace: quantum-trades
   labels:
-    app: orchestrator-qt
-    component: autonomous-agents
+    app: orchestrator-qt-paper
+    component: autonomous-agents-paper
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: orchestrator-qt
-      component: autonomous-agents
+      app: orchestrator-qt-paper
+      component: autonomous-agents-paper
   template:
     metadata:
       labels:
-        app: orchestrator-qt
-        component: autonomous-agents
+        app: orchestrator-qt-paper
+        component: autonomous-agents-paper
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-08-25T23:23:36Z"  # /trading/universe-status + /trading/profile endpoints for dashboard
+        kubectl.kubernetes.io/restartedAt: "2026-09-01T14:30:00Z"  # paper tier created
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
@@ -93,20 +108,8 @@ spec:
             # (the same outage that froze the stop ratchet), so the limit became
             # $50 and any losing day tripped it. Raising the pct leaves that
             # collapse-to-floor path untouched.
-            # === $211 LIVE ACCOUNT ENVELOPE (2026-09-01) ===
-            # Probed, not assumed: total_equity 211.40, CASH account (T+1
-            # settlement), option_level 2 (long calls/puts approved — verified
-            # by a live order preview returning status ok, cost $74.00).
-            #
-            # 25%, not the 10% used when this account was ~$94k. A scan of the
-            # live 26-name universe found 9 affordable contracts at $1.02-$1.89,
-            # so a worst-case position is ~$189 and a -25% zone stop loses ~$47.
-            # At 10% ($21) EVERY stop-out would halt the day. At 25% ($53)
-            # exactly one full stop-out passes and two always halt.
             - name: MAX_DAILY_LOSS_PCT
-              value: "0.25"
-            - name: MAX_DAILY_LOSS_DOLLARS
-              value: "40"
+              value: "0.10"
 
             # Weekly cap = 2x the daily limit (zz, 2026-08-06): losing a full
             # daily limit twice ends the week. 2 x (10% of ~$94k) = ~$18.8k.
@@ -116,10 +119,8 @@ spec:
             # NOTE this is still a flat dollar amount and will drift as the
             # account grows; the derivation (weekly = 2 x effective daily) is
             # shipping separately so it tracks automatically.
-            # 2x the daily limit, same derivation as before — just against $211
-            # instead of $94k. 18800 was 89x this account.
             - name: MAX_WEEKLY_LOSS_DOLLARS
-              value: "106"
+              value: "18800"
 
             # Service URLs
             - name: HOST
@@ -144,12 +145,8 @@ spec:
             # All trading parameters (capital, limits, position sizing) are in
             # config.py defaults. Do NOT override them here — config.py is the
             # single source of truth for trading logic.
-            # OFF until a human throws the switch. Everything else about this
-            # deployment is ready for live: the pod runs, syncs positions,
-            # reconciles the ledger and answers health — it just places no
-            # orders. Flip to "true" to start trading the real $211.
             - name: AUTONOMOUS_LOOP_ENABLED
-              value: "false"
+              value: "true"
 
             # === Paper / Live trading toggle ===
             # Single source of truth for which Tradier environment to use.
@@ -160,15 +157,14 @@ spec:
             # `resolved_tradier_credentials`) picks the active set based on
             # this env var. Switching is a one-line edit + flux reconcile.
             - name: TRADING_MODE
-              value: "live"
+              value: "paper"
 
-            # This deployment IS the live book. The startup guard
-            # (config.assert_environment_isolation) refuses to boot on any other
-            # value here — a live loop writing a paper schema, or a paper loop
-            # writing this one, are both silent corruptions of the ledger the
-            # daily-loss circuit breaker reads.
+            # Its own book. The startup guard (config.assert_environment_isolation)
+            # REFUSES TO BOOT if this is "public" while TRADING_MODE is paper —
+            # that pairing would write sandbox fills into the live ledger, which
+            # is what the daily-loss circuit breaker reads.
             - name: SUPABASE_SCHEMA
-              value: "public"
+              value: "paper"
 
             # Paper-only: Tradier sandbox returns OI=0 for options, so the
             # fail-closed open-interest floor would reject every paper trade and
@@ -246,11 +242,11 @@ spec:
           # Resource Limits and Requests
           resources:
             requests:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "250m"
+              memory: "384Mi"
             limits:
-              cpu: "2000m"
-              memory: "2Gi"
+              cpu: "1000m"
+              memory: "1Gi"
 
           # Probes
           startupProbe:
@@ -289,9 +285,11 @@ spec:
 
       # Volumes - Use shared PVC with CronJob for consistent state
       volumes:
+        # Paper does NOT share the live memories PVC. Supabase is the real
+        # store; /app/memories is legacy file state and sharing it would be a
+        # second, undeclared channel between the two environments.
         - name: memory-store
-          persistentVolumeClaim:
-            claimName: trading-memories-pvc
+          emptyDir: {}
         - name: config
           configMap:
             name: orchestrator-qt-config
@@ -336,7 +334,7 @@ spec:
                     - key: app
                       operator: In
                       values:
-                        - orchestrator-qt
+                        - orchestrator-qt-paper
                 topologyKey: kubernetes.io/hostname
 
       # Restart Policy
@@ -348,14 +346,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: orchestrator-qt
+  name: orchestrator-qt-paper
   namespace: quantum-trades
   labels:
-    app: orchestrator-qt
+    app: orchestrator-qt-paper
 spec:
   type: ClusterIP
   selector:
-    app: orchestrator-qt
+    app: orchestrator-qt-paper
   ports:
     - name: http
       port: 8006
@@ -367,62 +365,7 @@ spec:
       protocol: TCP
   sessionAffinity: None
 
----
-# ServiceAccount for pod authentication
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: orchestrator-qt-service-account
-  namespace: quantum-trades
-
----
-# ClusterRole for pod permissions
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: orchestrator-qt-role
-rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list"]
-  - apiGroups: ["batch"]
-    resources: ["cronjobs", "jobs"]
-    verbs: ["get", "list", "watch"]
-
----
-# ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: orchestrator-qt-role-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: orchestrator-qt-role
-subjects:
-  - kind: ServiceAccount
-    name: orchestrator-qt-service-account
-    namespace: quantum-trades
-
----
-# PVC for persistent agent memory (moved from deployment-trading-loop.yaml)
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: trading-memories-pvc
-  namespace: quantum-trades
-  labels:
-    app: orchestrator-qt
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: nfs-csi-v2
-  resources:
-    requests:
-      storage: 10Gi
+# NOTE: ServiceAccount, ClusterRole, ClusterRoleBinding and the memories PVC
+# are NOT redeclared here — they live in orchestrator-qt-deployment.yaml and are
+# shared. Duplicating them would make kustomize build fail on colliding names.
+# This file owns exactly two objects: the paper Deployment and its Service.
