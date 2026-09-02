@@ -25,6 +25,10 @@ resources:
   # Paper-tier exit validation — same checks, its own broker and book.
   - cronjob-exit-validation-preopen-paper.yaml
   - cronjob-exit-validation-postclose-paper.yaml
+  # Nightly paper refresh — :latest only pulls on pod start, so without this the
+  # dev tier silently falls behind prod (caught 2026-09-02, paper a full commit
+  # behind live).
+  - cronjob-paper-refresh.yaml
   - ingress.yaml
   # WebSocket IngressRoute with extended timeouts
   - middleware-websocket.yaml
