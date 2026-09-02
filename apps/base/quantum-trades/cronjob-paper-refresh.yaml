@@ -1,0 +1,105 @@
+# Nightly refresh of the PAPER tier so the dev tier is never behind prod.
+#
+# WHY THIS EXISTS (2026-09-02)
+#
+# Paper tracks `:latest` with imagePullPolicy: Always — but Always only pulls
+# when a POD STARTS. Live restarts every time its pinned SHA is bumped; paper
+# had been running untouched, so it never re-pulled. Caught with digests:
+#
+#   live  ...@sha256:dede966de1fe...   (4c95d755, published 15:03 Sep 2)
+#   paper ...@sha256:71f7a608fbf4...   (3d53b0f0, published 16:12 Sep 1)
+#
+# The dev tier was a full commit BEHIND production. That is worse than having
+# no dev tier, because you trust it: you would validate a change on paper
+# against code production had already superseded.
+#
+# 07:30 ET, ahead of the 08:00 prequalification funnel and the 09:30 open, so
+# paper starts each session on the same code paper is meant to be testing.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paper-refresher
+  namespace: quantum-trades
+  labels:
+    app.kubernetes.io/name: paper-refresher
+    app.kubernetes.io/part-of: quantum-trades
+---
+# Namespaced Role, and resourceNames pins it to the PAPER deployment alone.
+# This identity must never be able to restart the LIVE trading loop: a restart
+# drops the leader lock and interrupts exit monitoring on real money.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: paper-refresher
+  namespace: quantum-trades
+rules:
+  - apiGroups: ["apps"]
+    resources: [deployments]
+    resourceNames: [orchestrator-qt-paper]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: paper-refresher
+  namespace: quantum-trades
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: paper-refresher
+subjects:
+  - kind: ServiceAccount
+    name: paper-refresher
+    namespace: quantum-trades
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: paper-refresh
+  namespace: quantum-trades
+  labels:
+    app.kubernetes.io/name: paper-refresh
+    app.kubernetes.io/part-of: quantum-trades
+spec:
+  schedule: "30 7 * * 1-5"
+  timeZone: "America/New_York"
+  # A missed slot must not fire hours later into a live session — a restart
+  # mid-session drops paper's leader lock and its exit monitoring with it.
+  startingDeadlineSeconds: 600
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: paper-refresher
+          containers:
+            - name: paper-refresh
+              image: bitnami/kubectl:1.33
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  echo "Refreshing paper tier so it picks up :latest ..."
+                  kubectl -n quantum-trades rollout restart deployment/orchestrator-qt-paper
+                  kubectl -n quantum-trades rollout status deployment/orchestrator-qt-paper --timeout=300s
+                  echo "paper now running:"
+                  kubectl -n quantum-trades get pods -l app=orchestrator-qt-paper \
+                    -o jsonpath='{range .items[*]}{.metadata.name}{"  "}{.status.containerStatuses[0].imageID}{"\n"}{end}'
+              resources:
+                requests:
+                  cpu: 20m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1001
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: [ALL]
