@@ -71,8 +71,8 @@ spec:
           # Flux reconcile. It is auditable in git and reversible by reverting
           # the commit.
           #
-          # Promoted quantum-trades 4c95d755ff05 on 2026-09-02 (entry_premium = broker fill).
-          image: lzetam/quantum-trades-orchestrator-qt:4c95d755ff05f3d9d457a7e3a4ad87f0eb7950e9
+          # Promoted quantum-trades 7d3d61f3d5d4 on 2026-09-02 (daily gain cap 10% -> 100%).
+          image: lzetam/quantum-trades-orchestrator-qt:7d3d61f3d5d4c63b574c86445a0d532400d424ff
           imagePullPolicy: IfNotPresent
 
           ports:
