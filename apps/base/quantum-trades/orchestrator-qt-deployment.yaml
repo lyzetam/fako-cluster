@@ -181,6 +181,32 @@ spec:
             # account, which would let position sizing reason about money that
             # is not there. Broker cash still binds first; this makes the
             # intent explicit rather than incidental.
+            # === PROFIT TAKING: BANK AT +30% (2026-09-02, zz: "for live
+            # trading, 30% profit is good profit and should be banked") ===
+            #
+            # BOTH vars are required and they do different jobs. The cap decides
+            # WHEN a runner gets a target; the price comes from the TRIGGERS
+            # list. Setting the cap to 30 while triggers stayed [25, 90] would
+            # have priced the target off the +90 rung (entry x 1.90) — a target
+            # that almost never fills. Verified in-pod before shipping.
+            #
+            # Measured on 145 trades since 2026-07-23 (earlier peaks are
+            # corrupted by the ensure_pnl_percent 100x bug):
+            #   +90% cap  reached by  4.8% of trades  <- the old target
+            #   +30% cap  reached by 23.4% of trades
+            # and trades that peak >= 30% currently CLOSE at a median of +26.5%
+            # after giving back ~31 points to the trailing stop. Banking 30
+            # beats that by ~3.5 points and does not depend on the ratchet,
+            # which was dead for four days last week.
+            #
+            # Every position on a $211 account is a 1-lot, so the scale-out
+            # ladder can never fire and this cap is the ONLY profit mechanism.
+            # Paper keeps [25, 90] / cap 90 — its job is to test the tail.
+            - name: SCALEOUT_GAIN_TRIGGERS
+              value: "[30.0]"
+            - name: SCALEOUT_RUNNER_CAP_PCT
+              value: "30"
+
             - name: INITIAL_CAPITAL
               value: "211"
             - name: DRAWDOWN_BASELINE
