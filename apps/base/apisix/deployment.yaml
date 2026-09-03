@@ -55,6 +55,15 @@ spec:
                 secretKeyRef:
                   name: apisix-provider-keys
                   key: APISIX_KEY_CLUSTER
+            # The Katikaa prediction agent calls in from the Hostinger VPS, so it
+            # gets its own consumer rather than borrowing social_media_content's
+            # (whose 600/hour is sized for the tunnel client) or cluster_internal's
+            # (which is, by name, for in-cluster callers).
+            - name: APISIX_KEY_KATIKAA
+              valueFrom:
+                secretKeyRef:
+                  name: apisix-provider-keys
+                  key: APISIX_KEY_KATIKAA
           ports:
             - name: proxy
               containerPort: 9080
