@@ -139,6 +139,21 @@ data:
             time_window: 3600
             rejected_code: 429
             policy: local
+      - username: katikaa_predict_agent
+        plugins:
+          key-auth:
+            key: "${{APISIX_KEY_KATIKAA}}"
+          limit-count:
+            # The agent's whole job is one call per unpredicted fixture, once a
+            # day. A full weekend card across five leagues is ~45, and a retry
+            # storm is the only way that becomes hundreds — so 300/hour leaves
+            # generous headroom while still bounding a loop. It had been running
+            # on Ollama Cloud instead and exhausted a weekly quota; a named
+            # consumer means that failure is visible and revocable here.
+            count: 300
+            time_window: 3600
+            rejected_code: 429
+            policy: local
       - username: cluster_internal
         plugins:
           key-auth:
