@@ -74,7 +74,8 @@ spec:
           # Promoted quantum-trades 7d3d61f3d5d4 on 2026-09-02 (daily gain cap 10% -> 100%).
           # Promoted quantum-trades 48d3874e62e7 on 2026-09-03 (research-scan observability).
           # Promoted quantum-trades 22000cb65286 on 2026-09-03 ($2.00 per-contract premium ceiling).
-          image: lzetam/quantum-trades-orchestrator-qt:22000cb6528605ebadb0f309e0b356846192dbc0
+          # Promoted quantum-trades 2f8f285eba95 on 2026-09-03 (stale-universe watchdog alert).
+          image: lzetam/quantum-trades-orchestrator-qt:2f8f285eba95cb40d344f6c2a19540793ad9fb19
           imagePullPolicy: IfNotPresent
 
           ports:
