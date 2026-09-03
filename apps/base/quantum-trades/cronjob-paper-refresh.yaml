@@ -84,12 +84,36 @@ spec:
                 - -c
                 - |
                   set -e
+                  D=orchestrator-qt-paper
+                  G() { kubectl -n quantum-trades get deployment "$D" -o jsonpath="{$1}"; }
+
                   echo "Refreshing paper tier so it picks up :latest ..."
-                  kubectl -n quantum-trades rollout restart deployment/orchestrator-qt-paper
-                  kubectl -n quantum-trades rollout status deployment/orchestrator-qt-paper --timeout=300s
-                  echo "paper now running:"
-                  kubectl -n quantum-trades get pods -l app=orchestrator-qt-paper \
-                    -o jsonpath='{range .items[*]}{.metadata.name}{"  "}{.status.containerStatuses[0].imageID}{"\n"}{end}'
+                  kubectl -n quantum-trades rollout restart "deployment/$D"
+
+                  # NOT `kubectl rollout status`, and NOT `get pods -l`: both need
+                  # list/watch, and RBAC cannot grant list/watch alongside the
+                  # resourceNames restriction that keeps this identity away from the
+                  # LIVE deployment. Probed 2026-09-03 — the restart succeeded and
+                  # then the job died on
+                  #   deployments.apps "orchestrator-qt-paper" is forbidden:
+                  #   ... cannot list resource "deployments"
+                  # which would have bounced paper up to backoffLimit times every
+                  # morning. Poll the named deployment with `get` instead.
+                  echo "waiting for the new generation to become available ..."
+                  for _ in $(seq 1 60); do
+                    if [ "$(G .status.observedGeneration)" = "$(G .metadata.generation)" ] \
+                       && [ "$(G .status.updatedReplicas)" = "$(G .spec.replicas)" ] \
+                       && [ "$(G .status.readyReplicas)"   = "$(G .spec.replicas)" ]; then
+                      echo "paper is up: generation $(G .metadata.generation), $(G .status.readyReplicas)/$(G .spec.replicas) ready"
+                      echo "image: $(G .spec.template.spec.containers[0].image)"
+                      exit 0
+                    fi
+                    sleep 5
+                  done
+                  # Loud, not silent: a paper tier that restarted but never came
+                  # back must page, not exit 0.
+                  echo "FATAL: $D did not become ready within 300s" >&2
+                  exit 1
               resources:
                 requests:
                   cpu: 20m
