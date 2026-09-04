@@ -257,7 +257,13 @@ data:
             fallback_strategy:
               - http_5xx
               - http_429
-            timeout: 180000
+            # Under Cloudflare's ~100s origin limit, deliberately. At 180000 a
+            # slow local node produced a 524 at ~125s — Cloudflare killed the
+            # request before APISIX gave up, so the Ollama Cloud tier below was
+            # never reached and the caller got an HTML error page instead of a
+            # completion. A tier that only engages after the proxy has already
+            # been cut off is not a fallback.
+            timeout: 60000
             instances:
               - name: ms1
                 provider: openai-compatible
