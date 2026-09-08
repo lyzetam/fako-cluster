@@ -285,6 +285,47 @@ Voice Input → OpenWakeWord → Whisper (STT) → LLM → Piper (TTS) → Audio
     associating to the **U7 Outdoor** AP. A WiFi drop is indistinguishable from a power
     loss from the cluster's side — node NotReady, metrics stop — so wireless was an
     unbounded source of outages that could not be told apart from the real ones.
+  - **The USB adapter wedges, and the node stays `Ready` while doing it (2026-09-05).**
+    At 16:35:33 UTC systemd-networkd logged `enx9c69d3bdbfe6: DHCP lease lost` and never
+    reacquired. The AX88179B stopped answering USB control requests — its receive path
+    died while transmit kept working — so `10.85.30.80` vanished from the host and every
+    DHCP OFFER was destroyed on arrival. Measured mid-failure: **1983 `rx_errors` and 0
+    `rx_packets` in 10 seconds**, against a switch port reporting zero errors. The kernel
+    named it on the first rebind attempt: `cdc_ncm 4-2:2.0: failed GET_NTB_PARAMETERS`.
+    - **This failure is silent for three days.** k3s keeps its agent tunnel up over the
+      WiFi fallback, so the node reports `Ready` and the API server can still serve
+      `logs`/`exec` for its pods — but nothing can reach `.80`, so flannel's VXLAN to the
+      node is dead and its pods can talk only to each other. Not even cluster DNS. What
+      actually surfaced it: langfuse crashlooping on `Can't reach database server at
+      postgres-cluster-rw` (833/1290/1219 restarts), `postgres-recovery-0` wedged in
+      ContainerCreating, `kubectl top node thinkpad02` blank, and metrics-server logging
+      `no route to host` to `.80` every 14 seconds. UniFi is no help — it still showed the
+      client connected at `.80` with `use_fixedip=True`, last seen 14 seconds ago, because
+      the host's transmit path was fine.
+    - **Recovery, without physical access** — everything below runs through
+      `kubectl debug node/thinkpad02 --profile=sysadmin` + `chroot /host`, which works
+      because the k3s tunnel is outbound. A driver rebind alone is NOT enough; the chip
+      needs a real port reset first:
+      ```bash
+      # 1. USBDEVFS_RESET on the device node (0x5514) — /sys authorized toggle does not work
+      python3 -c 'import fcntl,os; fd=os.open("/dev/bus/usb/004/002",os.O_WRONLY); fcntl.ioctl(fd,0x5514,0)'
+      # 2. rebind the driver, which now succeeds
+      echo 4-2:2.0 > /sys/bus/usb/drivers/cdc_ncm/bind
+      networkctl reconfigure enx9c69d3bdbfe6      # lease returns as 10.85.30.80 metric 100
+      # 3. flannel.1 does NOT survive step 2 — networkd deletes it, and flannel then spins
+      #    forever on "external interface  not found". Restart the agent to rebuild the VXLAN:
+      systemd-run --no-block systemctl restart k3s-agent
+      ```
+      Then `kubectl uncordon thinkpad02` and delete the crashlooped pods to skip their
+      5-minute backoff. Verify with `rx_errors` holding at 0 while `rx_packets` climbs, a
+      ping to `.80` from off-node, and a cross-node socket test from a pod on thinkpad02.
+    - **The adapter is on borrowed time.** It re-enumerated on its own on 2026-08-28,
+      09-01 and 09-02 before failing outright on 09-05, and it hangs off the Thunderbolt
+      xHCI (`0000:2c:00.0`) rather than a native port. `nvidia.com/gpu` and 32 GiB of
+      workload sit behind it. A replacement adapter is the real fix.
+    - **No alert covers this.** A node that is `Ready` but unreachable at its own
+      `InternalIP` fires nothing today. The cheap detector is metrics-server's
+      `no route to host`, or alerting on any node absent from `kubectl top nodes`.
 
 - **Power:** originally run from a 60W USB-C PD adapter (`20V x 3A`, drawing its full
   3A ceiling) while `BAT0` reported `power_now=0` — a healthy 99% / 87%-health battery
