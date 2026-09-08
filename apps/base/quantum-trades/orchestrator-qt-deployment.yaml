@@ -114,10 +114,19 @@ spec:
             # so a worst-case position is ~$189 and a -25% zone stop loses ~$47.
             # At 10% ($21) EVERY stop-out would halt the day. At 25% ($53)
             # exactly one full stop-out passes and two always halt.
+            #
+            # 2026-09-08 (zz): dollar floor 40 -> 100, so the FLOOR binds again
+            # rather than the pct arm. At $203.44 equity the 25% arm computes
+            # $50.86, and a single stopped-out contract loses $35-60 — so the
+            # effective limit was tripping on one ordinary losing trade. It did:
+            # 2026-09-04 closed FCX -$52.24 and NFLX -$36.24 (-$88.48, broker-
+            # confirmed) and halted. Halts never auto-resume, so Fri 09-05 and
+            # Mon 09-08 took ZERO entries before anyone noticed.
+            # 100 absorbs one worst-case stop-out; two still end the day.
             - name: MAX_DAILY_LOSS_PCT
               value: "0.25"
             - name: MAX_DAILY_LOSS_DOLLARS
-              value: "40"
+              value: "100"
 
             # Weekly cap = 2x the daily limit (zz, 2026-08-06): losing a full
             # daily limit twice ends the week. 2 x (10% of ~$94k) = ~$18.8k.
