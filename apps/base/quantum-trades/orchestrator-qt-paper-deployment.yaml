@@ -180,6 +180,34 @@ spec:
             - name: MIN_OPEN_INTEREST_OVERRIDE
               value: "0"
 
+            # PAPER ONLY: two-way entry. "conjunction" replaces
+            # direction-by-weighted-average with five gates that flip cleanly
+            # (ADX+rising, +DI/-DI, price vs EMA21, price vs VWAP,
+            # time-adjusted participation), demotes RSI to a per-direction
+            # range check, and adds the IV/realized richness gate at 1.55.
+            #
+            # WHY THIS IS THE ONLY WAY TO LEARN: the live tier stays on
+            # "composite" (its deployment does not set this, so the config.py
+            # default applies). Measured 2026-09-09, the composite produced
+            # ZERO bearish readings across 65 recorded signals INCLUDING the
+            # rejected ones — so no threshold value could ever have produced a
+            # put, and the only open question is whether the conjunction fires
+            # at all. A universe replay that day admitted 0, but with gate
+            # failures spread evenly and BOTH directions reaching 4-of-5 on two
+            # names each: strict but unbiased.
+            #
+            # A conjunction that never fires is indistinguishable from one
+            # merely waiting for its setup. Running it in paper, where the
+            # money is sandbox money and [direction-mix] logs the shape of
+            # every scan, is how that gets settled.
+            #
+            # TO REVERT: set this to "composite" and flux reconcile. It is a
+            # config change, not a code revert — which is what makes "roll
+            # forward, never back" workable for a change that replaces entry
+            # selection wholesale.
+            - name: ENTRY_DIRECTION_MODE
+              value: "conjunction"
+
             # Logging
             - name: LOG_LEVEL
               value: "INFO"
