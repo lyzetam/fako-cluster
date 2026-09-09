@@ -75,7 +75,14 @@ spec:
           # Promoted quantum-trades 48d3874e62e7 on 2026-09-03 (research-scan observability).
           # Promoted quantum-trades 22000cb65286 on 2026-09-03 ($2.00 per-contract premium ceiling).
           # Promoted quantum-trades 2f8f285eba95 on 2026-09-03 (stale-universe watchdog alert).
-          image: lzetam/quantum-trades-orchestrator-qt:2f8f285eba95cb40d344f6c2a19540793ad9fb19
+          # Promoted quantum-trades d28154e59dab on 2026-09-09 (Phase 1 data +
+          #   delta-based strike selection + real-theta gate). Two changes here
+          #   alter LIVE behavior and are NOT behind a flag: strikes are ranked
+          #   by |delta| against 0.30 instead of percent-OTM, and the theta gate
+          #   reads the real greek instead of the premium/DTE proxy.
+          #   Two-way entry is NOT enabled here — ENTRY_DIRECTION_MODE is unset,
+          #   so config.py's 'composite' default applies. Puts stay paper-only.
+          image: lzetam/quantum-trades-orchestrator-qt:d28154e59dabf80d002de7addd911fda37903ef7
           imagePullPolicy: IfNotPresent
 
           ports:
