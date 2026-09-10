@@ -82,7 +82,7 @@ spec:
           #   reads the real greek instead of the premium/DTE proxy.
           #   Two-way entry is NOT enabled here — ENTRY_DIRECTION_MODE is unset,
           #   so config.py's 'composite' default applies. Puts stay paper-only.
-          image: lzetam/quantum-trades-orchestrator-qt:37194c1b4039f244d97f3d163b7e4719578c56df
+          image: lzetam/quantum-trades-orchestrator-qt:9eae13742782d69559918e83822efb3387ff7b11
           imagePullPolicy: IfNotPresent
 
           ports:
