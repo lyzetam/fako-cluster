@@ -24,7 +24,7 @@ spec:
           - name: dockerhub-registry
           containers:
           - name: kube-bench
-            image: aquasec/kube-bench:v0.15.6
+            image: aquasec/kube-bench:v0.16.0
             command:
             - /bin/sh
             - -c
