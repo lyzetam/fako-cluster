@@ -20,12 +20,13 @@ spec:
       - name: dockerhub-registry
       containers:
       - name: hugo
-        # Pinned to an immutable commit-SHA tag. `:latest` never changes the
-        # pod spec, so Flux never triggered a rollout when a new image was
-        # pushed — the site froze on whatever image the pod first cached.
-        # Bump this tag on each release (or add Flux image automation).
-        image: lzetam/hugo:22ba7e4a5fdddd92d30caf30f09def92ca51ca71
-        imagePullPolicy: IfNotPresent
+        # Stable :latest + imagePullPolicy: Always — the homelab convention.
+        # CI only builds and pushes the image; it never writes to this repo.
+        # Deploy = `kubectl delete pod -n blog -l app.kubernetes.io/name=hugo-blog`
+        # (the replacement pod repulls :latest). Each build also pushes a
+        # :<git-sha> tag as a rollback archive.
+        image: lzetam/hugo:latest
+        imagePullPolicy: Always
         # Remove command override to let the image run its default nginx entrypoint
         ports:
         - containerPort: 80
