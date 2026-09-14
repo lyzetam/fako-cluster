@@ -102,6 +102,11 @@ spec:
                 configMapKeyRef:
                   name: zeroed-config
                   key: PLAID_REDIRECT_URI
+            - name: MCP_PUBLIC_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: zeroed-config
+                  key: MCP_PUBLIC_URL
             - name: HOST
               value: "0.0.0.0"
             - name: PORT

@@ -126,3 +126,17 @@ spec:
                 name: backend-service
                 port:
                   number: 8000
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 8000
+          - path: /.well-known/oauth-protected-resource
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 8000
