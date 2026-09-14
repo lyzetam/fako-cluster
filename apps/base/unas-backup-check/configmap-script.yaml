@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unas-backup-check-script
+  namespace: unas-backup-check
+data:
+  check.sh: |
+    #!/bin/bash
+    # Is the UNAS Pro's own Offsite Backup task still landing data in S3?
+    #
+    # The backup itself is NOT in this repo. It is a native UniFi Drive task
+    # (Drive > Backup Tasks on unas.landryzetam.net) that pushes straight from
+    # the NAS to S3 on the 1st of each month. The k8s CronJob that used to do
+    # this was deleted on 2026-08-08 (6a90779a). What was left behind was a
+    # fire-and-forget task with no monitoring: on 2026-09-14 it was found
+    # "Partially Successful" (a source drive that no longer existed), the
+    # personal-drive task "Failed" (encrypted drive locked at run time), and
+    # ~955 GB of camera footage on content_inbox was not in the task at all.
+    # Nothing had said a word. This check is the word.
+    #
+    # Two checks, two different questions:
+    #
+    #   content_inbox — "is the footage on the NAS in S3 yet?" The drive is
+    #     mounted read-only here, so this compares the NAS side (newest file
+    #     to LAND, by ctime — dji-offload backdates mtime to the shoot date)
+    #     against the newest S3 object under the drive's prefix. Alerts when
+    #     S3 is more than MAX_AGE_DAYS behind the NAS. A quiet month with no
+    #     new footage does NOT alert, because the NAS side does not move.
+    #
+    #   monthly-task — "does the task run at all?" S3-side only: the newest
+    #     object under the whole task prefix. UNVRBackup (Protect clips) grows
+    #     every day, so every run uploads something and refreshes this.
+    #
+    # The personal-drive task is deliberately NOT checked. Its drive is
+    # encrypted and not exported, so there is no NAS side to compare against,
+    # and an S3-only age check would fire permanently on a drive whose
+    # content rarely changes (its 2,663 objects have been unchanged since
+    # 2026-08-08 through a successful run). Its known failure mode — the drive
+    # locked at 00:00 on the 1st — is a human step: unlock it before the run.
+    set -uo pipefail
+
+    : "${S3_BUCKET:?S3_BUCKET is required}"
+    MAX_AGE_DAYS="${MAX_AGE_DAYS:-35}"
+    NAS_DIR="${NAS_DIR:-/mnt/content_inbox}"
+    MONTHLY='UniFi Drive_UNAS Pro/UNAS Pro_Monthly S3 Offsite Backup/'
+    limit=$(( MAX_AGE_DAYS * 86400 ))
+    now=$(date -u +%s)
+    stale=0
+    errors=0
+
+    iso() { date -u -d "@$1" +%FT%TZ; }
+    days() { echo $(( $1 / 86400 )); }
+
+    # Newest LastModified under a prefix, as epoch seconds; empty if no objects.
+    # Collect every stamp and take the max here: a --query max_by() is applied
+    # per 1000-key page by the CLI, so it would return a page maximum.
+    s3_newest() {
+      local stamps
+      stamps=$(aws s3api list-objects-v2 --bucket "$S3_BUCKET" --prefix "$1" \
+                 --query 'Contents[].LastModified' --output text 2>&1) || {
+        echo "ERROR  listing s3://${S3_BUCKET}/$1 failed: ${stamps}" >&2
+        return 1
+      }
+      local newest
+      newest=$(printf '%s' "$stamps" | tr '\t' '\n' | grep -v '^None$' | sort | tail -1)
+      [ -n "$newest" ] && date -u -d "$newest" +%s
+      return 0
+    }
+
+    # --- content_inbox: NAS vs S3 -------------------------------------------
+    # ctime, not mtime: dji-offload sets mtime to the shoot date, so mtime says
+    # when the footage was filmed; ctime says when it landed here. *.part is a
+    # copy still in flight, and dotfiles are Finder litter (.DS_Store).
+    nas_newest=$(find "$NAS_DIR" -type f -not -name '*.part' -not -name '.*' \
+                   -printf '%C@\n' 2>/dev/null | sort -n | tail -1 | cut -d. -f1)
+    if [ -z "$nas_newest" ]; then
+      # An empty listing on a 1.4 TB drive is the mount having failed, not the
+      # drive being empty. Treat it as "could not look".
+      echo "ERROR  content_inbox: nothing readable under ${NAS_DIR} — NFS mount missing or empty" >&2
+      errors=1
+    elif s3_ci=$(s3_newest "${MONTHLY}content_inbox/"); then
+      if [ -z "$s3_ci" ]; then
+        echo "STALE  content_inbox: NAS newest landed $(iso "$nas_newest"), nothing in S3 yet — never backed up"
+        stale=1
+      else
+        lag=$(( nas_newest - s3_ci ))
+        if [ "$lag" -gt "$limit" ]; then
+          echo "STALE  content_inbox: S3 is $(days "$lag")d behind the NAS (NAS newest $(iso "$nas_newest"), S3 newest $(iso "$s3_ci"), limit ${MAX_AGE_DAYS}d)"
+          stale=1
+        else
+          echo "OK     content_inbox: S3 newest $(iso "$s3_ci"), NAS newest $(iso "$nas_newest") ($(days "$lag")d behind, limit ${MAX_AGE_DAYS}d)"
+        fi
+      fi
+    else
+      errors=1
+    fi
+
+    # --- monthly-task: S3 only -----------------------------------------------
+    if s3_mt=$(s3_newest "$MONTHLY"); then
+      if [ -z "$s3_mt" ]; then
+        echo "STALE  monthly-task: no objects under s3://${S3_BUCKET}/${MONTHLY} — has the task been renamed?"
+        stale=1
+      else
+        age=$(( now - s3_mt ))
+        if [ "$age" -gt "$limit" ]; then
+          echo "STALE  monthly-task: newest object $(iso "$s3_mt") is $(days "$age")d old (limit ${MAX_AGE_DAYS}d) — the task has stopped uploading"
+          stale=1
+        else
+          echo "OK     monthly-task: newest object $(iso "$s3_mt") ($(days "$age")d old)"
+        fi
+      fi
+    else
+      errors=1
+    fi
+
+    # Exit codes are read by the alert text: 2 = could not look, 1 = looked and
+    # found a gap. Both fail the Job, which is what fires the alert.
+    if [ "$errors" -ne 0 ]; then
+      echo "FATAL: could not complete the check — S3 unreachable, list-only keys revoked, or the NFS mount failed" >&2
+      exit 2
+    fi
+    if [ "$stale" -ne 0 ]; then
+      echo "FATAL: the UNAS offsite backup is stale — open Drive > Backup Tasks on the UNAS" >&2
+      exit 1
+    fi
+    echo "UNAS offsite backup fresh (limit ${MAX_AGE_DAYS}d)"

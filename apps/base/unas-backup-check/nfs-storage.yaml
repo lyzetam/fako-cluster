@@ -1,0 +1,45 @@
+# content_inbox on the UNAS Pro, mounted READ-ONLY so the check can see what
+# the NAS actually holds — the side the S3 listing cannot show.
+#
+# Copied from apps/base/dji-media/nfs-storage.yaml, which is the only mount of
+# this export proven in production; see that file for why it is NFSv3 on the
+# physical export path and why readOnly is enforced at every layer. The UNAS
+# export is host-IP allowlisted: all six cluster nodes were on it as of
+# 2026-09-14 (thinkpad02 / 10.85.30.80 added that day — it was the one missing).
+# A pod on an unlisted node sits in ContainerCreating until the Job deadline.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: unas-backup-check-content-inbox
+  labels:
+    app.kubernetes.io/name: unas-backup-check
+spec:
+  capacity:
+    storage: 1Ti          # informational only for NFS; not enforced
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/content_inbox/.data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unas-backup-check-content-inbox
+  namespace: unas-backup-check
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: unas-backup-check-content-inbox
+  resources:
+    requests:
+      storage: 1Ti
