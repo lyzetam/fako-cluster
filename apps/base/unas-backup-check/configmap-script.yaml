@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unas-backup-check-script
+  namespace: unas-backup-check
+data:
+  check.sh: |
+    #!/bin/bash
+    # Is the UNAS Pro's own Offsite Backup task still landing data in S3?
+    #
+    # The backup itself is NOT in this repo. It is a native UniFi Drive task
+    # (Drive > Backup Tasks on unas.landryzetam.net) that pushes straight from
+    # the NAS to S3 on the 1st of each month. The k8s CronJob that used to do
+    # this was deleted on 2026-08-08 (6a90779a). What was left behind was a
+    # fire-and-forget task with no monitoring: on 2026-09-14 it was found
+    # "Partially Successful" (a source drive that no longer existed) and the
+    # personal-drive task "Failed" (encrypted drive locked at run time) — and
+    # ~955 GB of camera footage on content_inbox was not in the task at all.
+    # Nothing had said a word. This check is the word.
+    #
+    # It reads the S3 side only. It cannot see the NAS, so "fresh" here means
+    # "new objects landed recently", a proxy: a drive with no new files for a
+    # month will read as stale even though nothing is wrong. That is accepted —
+    # a false alarm on a quiet month costs one look; a silent gap costs the data.
+    set -uo pipefail
+
+    : "${S3_BUCKET:?S3_BUCKET is required}"
+    MAX_AGE_DAYS="${MAX_AGE_DAYS:-35}"
+    MONTHLY='UniFi Drive_UNAS Pro/UNAS Pro_Monthly S3 Offsite Backup/'
+    PERSONAL='UniFi Drive_UNAS Pro/UNAS Pro_Personal Drive S3 Offsite Backup/'
+
+    # name|prefix, one per line. The prefixes are the task names as the UNAS
+    # writes them; rename a task in the console and the check goes blind, so
+    # every check treats an empty prefix as STALE rather than as "nothing to do".
+    #
+    #   content_inbox  — the camera-offload drive (dji-offload writes here).
+    #                    Added to the monthly task 2026-09-14; the reason this
+    #                    check exists.
+    #   monthly-task   — the whole monthly task. UNVRBackup (Protect clips)
+    #                    grows every day, so this refreshes on every run and is
+    #                    the "task still runs at all" signal.
+    #   personal-drive — the separate task for the encrypted personal drive,
+    #                    which fails whenever the drive is locked at 00:00.
+    CHECKS="content_inbox|${MONTHLY}content_inbox/
+    monthly-task|${MONTHLY}
+    personal-drive|${PERSONAL}"
+
+    now=$(date -u +%s)
+    stale=0
+    errors=0
+    while IFS='|' read -r name prefix; do
+      [ -n "$name" ] || continue
+      # Collect every LastModified and take the max here. A --query max_by()
+      # is applied per 1000-key page by the CLI, so it would return a page
+      # maximum, not the prefix maximum.
+      if ! stamps=$(aws s3api list-objects-v2 --bucket "$S3_BUCKET" --prefix "$prefix" \
+                      --query 'Contents[].LastModified' --output text 2>&1); then
+        echo "ERROR  ${name}: listing failed: ${stamps}" >&2
+        errors=1
+        continue
+      fi
+      newest=$(printf '%s' "$stamps" | tr '\t' '\n' | grep -v '^None$' | sort | tail -1)
+      if [ -z "$newest" ]; then
+        echo "STALE  ${name}: no objects under s3://${S3_BUCKET}/${prefix} — never backed up"
+        stale=1
+        continue
+      fi
+      age_days=$(( (now - $(date -u -d "$newest" +%s)) / 86400 ))
+      if [ "$age_days" -gt "$MAX_AGE_DAYS" ]; then
+        echo "STALE  ${name}: newest object ${newest} is ${age_days}d old (limit ${MAX_AGE_DAYS}d)"
+        stale=1
+      else
+        echo "OK     ${name}: newest object ${newest} (${age_days}d old)"
+      fi
+    done <<< "$CHECKS"
+
+    # Exit codes are read by the alert text: 2 = could not look, 1 = looked and
+    # found a gap. Both fail the Job, which is what fires the alert.
+    if [ "$errors" -ne 0 ]; then
+      echo "FATAL: could not list s3://${S3_BUCKET} — S3 unreachable or the list-only keys were revoked" >&2
+      exit 2
+    fi
+    if [ "$stale" -ne 0 ]; then
+      echo "FATAL: at least one UNAS offsite backup target is stale — open Drive > Backup Tasks on the UNAS" >&2
+      exit 1
+    fi
+    echo "All UNAS offsite backup targets fresh (limit ${MAX_AGE_DAYS}d)"

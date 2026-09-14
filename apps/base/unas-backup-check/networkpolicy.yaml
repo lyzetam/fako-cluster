@@ -1,0 +1,35 @@
+# unas-backup-check egress: DNS and public HTTPS (S3 + AWS Secrets Manager).
+# Nothing on the LAN — the check reads the S3 side only. It never talks to the
+# NAS, so no network topology appears here.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: unas-backup-check-egress
+  namespace: unas-backup-check
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # S3 and AWS Secrets Manager — public HTTPS, no fixed range
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443

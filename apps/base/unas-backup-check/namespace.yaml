@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: unas-backup-check
+  labels:
+    app.kubernetes.io/name: unas-backup-check
+    app.kubernetes.io/part-of: unas-backup-check
