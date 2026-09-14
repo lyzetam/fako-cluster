@@ -13,6 +13,8 @@ spec:
       component: backend
   template:
     metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2026-09-14T18:24:58Z"
       labels:
         app: zeroed
         component: backend
