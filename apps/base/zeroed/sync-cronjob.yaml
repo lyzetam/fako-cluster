@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: zeroed-sync
+  namespace: zeroed
+  labels:
+    app: zeroed
+    component: sync
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1500
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: zeroed
+            component: sync
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: dockerhub-registry
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          containers:
+            - name: sync
+              image: lzetam/zeroed-backend:latest
+              imagePullPolicy: Always
+              command: ["python", "-m", "app.jobs.sync_all"]
+              envFrom:
+                - secretRef:
+                    name: zeroed-secrets
+                - secretRef:
+                    name: zeroed-plaid-secrets
+                    optional: true
+                - configMapRef:
+                    name: zeroed-config
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi

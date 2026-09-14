@@ -6,7 +6,10 @@ resources:
   - configmap.yaml
   - secret-store.yaml
   - external-secret.yaml
+  - plaid-external-secret.yaml
+  - method-webhook-external-secret.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - services.yaml
   - ingress.yaml
+  - sync-cronjob.yaml

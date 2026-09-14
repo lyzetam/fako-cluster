@@ -24,7 +24,7 @@ spec:
         runAsUser: 1000
       containers:
         - name: backend
-          image: lzetam/zeroed-backend:v1.0.5
+          image: lzetam/zeroed-backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
@@ -45,6 +45,12 @@ spec:
                 secretKeyRef:
                   name: zeroed-secrets
                   key: METHOD_API_KEY
+            - name: METHOD_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: zeroed-method-webhook-secret
+                  key: METHOD_WEBHOOK_SECRET
+                  optional: true
             - name: METHOD_ENVIRONMENT
               valueFrom:
                 configMapKeyRef:
@@ -55,6 +61,45 @@ spec:
                 configMapKeyRef:
                   name: zeroed-config
                   key: CORS_ORIGINS_STR
+            - name: PLAID_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: zeroed-plaid-secrets
+                  key: PLAID_CLIENT_ID
+                  optional: true
+            - name: PLAID_SECRET_SANDBOX
+              valueFrom:
+                secretKeyRef:
+                  name: zeroed-plaid-secrets
+                  key: PLAID_SECRET_SANDBOX
+                  optional: true
+            - name: PLAID_SECRET_PRODUCTION
+              valueFrom:
+                secretKeyRef:
+                  name: zeroed-plaid-secrets
+                  key: PLAID_SECRET_PRODUCTION
+                  optional: true
+            - name: PLAID_TOKEN_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: zeroed-plaid-secrets
+                  key: PLAID_TOKEN_ENCRYPTION_KEY
+                  optional: true
+            - name: PLAID_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: zeroed-config
+                  key: PLAID_ENVIRONMENT
+            - name: PLAID_WEBHOOK_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: zeroed-config
+                  key: PLAID_WEBHOOK_URL
+            - name: PLAID_REDIRECT_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: zeroed-config
+                  key: PLAID_REDIRECT_URI
             - name: HOST
               value: "0.0.0.0"
             - name: PORT
