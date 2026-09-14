@@ -5,7 +5,7 @@ metadata:
   namespace: zeroed
 data:
   CORS_ORIGINS_STR: "https://zeroed.landryzetam.net,http://localhost:3000"
-  METHOD_ENVIRONMENT: "production"
+  METHOD_ENVIRONMENT: "dev"
   LOG_LEVEL: "info"
   PLAID_ENVIRONMENT: "sandbox"
   PLAID_WEBHOOK_URL: "https://zeroed.landryzetam.net/webhooks/plaid"

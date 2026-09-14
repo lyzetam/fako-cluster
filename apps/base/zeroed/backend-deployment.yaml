@@ -45,6 +45,12 @@ spec:
                 secretKeyRef:
                   name: zeroed-secrets
                   key: METHOD_API_KEY
+            - name: METHOD_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: zeroed-method-webhook-secret
+                  key: METHOD_WEBHOOK_SECRET
+                  optional: true
             - name: METHOD_ENVIRONMENT
               valueFrom:
                 configMapKeyRef:
