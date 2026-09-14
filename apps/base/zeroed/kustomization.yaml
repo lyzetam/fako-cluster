@@ -8,6 +8,8 @@ resources:
   - external-secret.yaml
   - plaid-external-secret.yaml
   - method-webhook-external-secret.yaml
+  - external-secret-tunnel.yaml
+  - cloudflare.yaml
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - services.yaml
