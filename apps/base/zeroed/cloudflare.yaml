@@ -1,0 +1,87 @@
+# Public edge for https://zeroed.landryzetam.net via a Cloudflare Tunnel.
+#
+# WHY: the hostname used to be an A record to the Traefik LAN IP (10.85.30.214), so nothing
+# outside the LAN could reach it — Claude.ai's MCP connector probe, Plaid and Method webhooks,
+# and the Supabase OAuth consent redirect all need a public origin. The tunnel exposes the origin
+# without opening a port; DNS is a proxied CNAME to <tunnel-id>.cfargotunnel.com.
+#
+# WHAT PROTECTS IT: every app route needs a Supabase session or a verified webhook signature;
+# /mcp needs an OAuth client token. The tunnel points at Traefik (not the pods) so the existing
+# Ingress rules — path routing, the /api prefix strip — apply unchanged (thornus pattern).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: zeroed
+  labels:
+    app: zeroed
+    component: cloudflared
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: zeroed
+      component: cloudflared
+  template:
+    metadata:
+      labels:
+        app: zeroed
+        component: cloudflared
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.9.1
+          args: ["tunnel", "--config", "/etc/cloudflared/config/config.yaml", "run"]
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared/config
+              readOnly: true
+            - name: creds
+              mountPath: /etc/cloudflared/creds
+              readOnly: true
+      volumes:
+        - name: creds
+          secret:
+            secretName: tunnel-credentials
+        - name: config
+          configMap:
+            name: cloudflared
+            items:
+              - key: config.yaml
+                path: config.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared
+  namespace: zeroed
+data:
+  config.yaml: |
+    tunnel: a242db2e-cb7c-4212-a0a4-2bae79b8a1c8
+    credentials-file: /etc/cloudflared/creds/credentials.json
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+    ingress:
+      - hostname: zeroed.landryzetam.net
+        service: https://traefik.kube-system.svc.cluster.local:443
+        originRequest:
+          noTLSVerify: true
+          httpHostHeader: zeroed.landryzetam.net
+      - service: http_status:404
