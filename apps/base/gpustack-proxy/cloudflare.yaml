@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: cloudflared
-        image: cloudflare/cloudflared:2025.11.1
+        image: cloudflare/cloudflared:2026.9.1
         args:
         - tunnel
 
@@ -38,7 +38,7 @@ spec:
             # it has an active connection to the edge.
             path: /ready
             port: 2000
-          failureThreshold: 1
+          failureThreshold: 3
           initialDelaySeconds: 10
           periodSeconds: 10
         volumeMounts:
