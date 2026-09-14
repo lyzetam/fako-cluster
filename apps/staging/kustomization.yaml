@@ -178,6 +178,7 @@ resources:
   - soccer-banter
   - sports-bets
   - tldr-pipeline      # TLDR newsletters → full-text article notes (replaces the paused managed agent)
+  - lzt-lead-agent     # lztechnology.io contact-form leads → model triage → Discord #leads
 
   # Ginger HOA — Ollama Cloud-backed HOA assistant (ginger.lztechnology.io)
   - ginger-hoa

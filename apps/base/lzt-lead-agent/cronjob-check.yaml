@@ -1,0 +1,76 @@
+# Lead triage: every 10 minutes, read the lzt-leads@agentmail.to inbox, ask the model
+# whether each new message is a prospective client, post prospects to Discord #leads,
+# label the message so it is never posted twice.
+#
+# State is AgentMail labels — there is no database. A run that cannot post leaves the
+# message unlabelled and exits non-zero so the Job shows red and the next tick retries.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: lzt-leads-check
+  namespace: lzt-lead-agent
+  labels:
+    app.kubernetes.io/name: lzt-lead-agent
+    app.kubernetes.io/component: triage
+    app.kubernetes.io/part-of: lztechnology
+    app.kubernetes.io/managed-by: flux
+spec:
+  schedule: "*/10 * * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      # One inbox list, a handful of model calls at most. Minutes, not hours.
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: lzt-lead-agent
+            app.kubernetes.io/component: triage
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          imagePullSecrets:
+            - name: dockerhub-registry
+          containers:
+            - name: check
+              image: lzetam/lzt-lead-agent:latest
+              imagePullPolicy: Always
+              args: ["--apply"]
+              envFrom:
+                - secretRef:
+                    name: lzt-lead-agent-secrets
+              env:
+                - name: HOME
+                  value: /tmp
+                # The APISIX gateway fronts the Mac fleet (ms1-3) with health checks.
+                # Ollama Cloud is tried automatically if this fails.
+                - name: OLLAMA_BASE
+                  value: "http://apisix.apisix.svc.cluster.local:9080"
+                - name: OLLAMA_MODEL
+                  value: "gpt-oss:20b"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}

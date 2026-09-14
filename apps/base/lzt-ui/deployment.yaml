@@ -48,8 +48,11 @@ spec:
           value: "noreply@lztechnology.io"
         - name: MAIL_FROM_NAME
           value: "LZ Technology"
+        # Comma-separated. The human inbox plus the lead-agent inbox (see
+        # apps/base/lzt-lead-agent). SES is in sandbox mode: every address here must
+        # be a verified identity in us-east-2.
         - name: MAIL_TO_ADDRESS
-          value: "info@lztechnology.io"
+          value: "info@lztechnology.io,lzt-leads@agentmail.to"
         - name: TWILIO_SECRET_NAME
           value: "lzt-ui/twilio"
         resources:
