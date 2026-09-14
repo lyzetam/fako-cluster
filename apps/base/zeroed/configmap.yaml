@@ -10,3 +10,4 @@ data:
   PLAID_ENVIRONMENT: "sandbox"
   PLAID_WEBHOOK_URL: "https://zeroed.landryzetam.net/webhooks/plaid"
   PLAID_REDIRECT_URI: "https://zeroed.landryzetam.net/accounts/oauth"
+  MCP_PUBLIC_URL: "https://zeroed.landryzetam.net/mcp"
