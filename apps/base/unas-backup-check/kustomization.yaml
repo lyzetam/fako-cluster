@@ -6,5 +6,6 @@ resources:
   - secret-store.yaml
   - external-secret.yaml
   - configmap-script.yaml
+  - nfs-storage.yaml
   - networkpolicy.yaml
   - cronjob.yaml

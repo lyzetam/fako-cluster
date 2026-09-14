@@ -22,8 +22,11 @@ spec:
       backoffLimit: 0
       ttlSecondsAfterFinished: 172800
       # Listing the whole monthly prefix is ~150k keys (measured 2026-09-14,
-      # 151,718 objects / 6.66 TB) — about two minutes from a Mac. 15 min is
-      # the ceiling before "stuck", not the expected duration.
+      # 151,718 objects / 6.66 TB) — about two minutes from a Mac — and the
+      # NFS find walks ~1.1k files. 15 min is the ceiling before "stuck", not
+      # the expected duration. It also converts a pod stuck in
+      # ContainerCreating (node not on the UNAS export allowlist) into a
+      # failed Job instead of an indefinite hang.
       activeDeadlineSeconds: 900
       template:
         metadata:
@@ -51,6 +54,8 @@ spec:
               env:
                 - name: MAX_AGE_DAYS
                   value: "35"
+                - name: NAS_DIR
+                  value: /mnt/content_inbox
                 # The CLI wants a writable HOME even with env-var credentials;
                 # /tmp is the only writable path with readOnlyRootFilesystem.
                 - name: HOME
@@ -66,6 +71,9 @@ spec:
                   readOnly: true
                 - name: tmp
                   mountPath: /tmp
+                - name: content-inbox
+                  mountPath: /mnt/content_inbox
+                  readOnly: true
               resources:
                 requests:
                   cpu: 50m
@@ -80,3 +88,7 @@ spec:
                 defaultMode: 0555
             - name: tmp
               emptyDir: {}
+            - name: content-inbox
+              persistentVolumeClaim:
+                claimName: unas-backup-check-content-inbox
+                readOnly: true

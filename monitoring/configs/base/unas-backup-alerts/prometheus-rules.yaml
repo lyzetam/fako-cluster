@@ -13,8 +13,10 @@ spec:
     - name: unas.backup.alerts
       interval: 60s
       rules:
-        # The check job exits non-zero when any UNAS offsite backup target has
-        # not received new objects within 35 days, so a failed job IS the alert.
+        # The check job exits non-zero when S3 is more than 35 days behind the
+        # NAS for content_inbox (NFS-mounted, compared by landing time), or the
+        # monthly task has uploaded nothing in 35 days — so a failed job IS the
+        # alert.
         # Found 2026-09-14, before this existed: the personal-drive task had
         # failed on Sep 1 (drive locked), the monthly task was "Partially
         # Successful" against a drive that no longer existed, and ~955 GB of
@@ -29,7 +31,7 @@ spec:
             component: unas-backup-check
           annotations:
             summary: "A UNAS offsite backup target has gone stale in S3"
-            description: "The unas-backup-check job failed. `kubectl logs -n unas-backup-check job/{{ $labels.job_name }}` names the target (content_inbox / monthly-task / personal-drive) and how old its newest S3 object is. Exit 2 means the bucket could not be listed at all. The fix is on the UNAS console (Drive > Backup Tasks), not in this cluster."
+            description: "The unas-backup-check job failed. `kubectl logs -n unas-backup-check job/{{ $labels.job_name }}` names the target (content_inbox: NAS vs S3 lag; monthly-task: newest S3 object age) with both timestamps. Exit 2 means it could not look — S3 unlistable or the content_inbox NFS mount failed; a pod that never started means its node is not on the UNAS export allowlist. The fix is on the UNAS console (Drive > Backup Tasks), not in this cluster."
 
         # The check going quiet is the failure that hides every other failure.
         # last_SCHEDULE_time, not last_successful_time: the check is designed to
