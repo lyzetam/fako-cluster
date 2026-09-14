@@ -24,7 +24,7 @@ spec:
         runAsUser: 1001
       containers:
         - name: frontend
-          image: lzetam/zeroed-frontend:v1.0.6
+          image: lzetam/zeroed-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
