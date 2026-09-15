@@ -15,7 +15,7 @@ spec:
     metadata:
       annotations:
         # Bump to repull :latest (Flux reverts imperative rollout restarts on this app).
-        kubectl.kubernetes.io/restartedAt: "2026-09-15T02:06:51Z"
+        kubectl.kubernetes.io/restartedAt: "2026-09-15T06:18:04Z"
       labels:
         app: zeroed
         component: frontend
