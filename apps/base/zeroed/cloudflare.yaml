@@ -5,8 +5,9 @@
 # and the Supabase OAuth consent redirect all need a public origin. The tunnel exposes the origin
 # without opening a port; DNS is a proxied CNAME to <tunnel-id>.cfargotunnel.com.
 #
-# WHAT PROTECTS IT: every app route needs a Supabase session or a verified webhook signature;
-# /mcp needs an OAuth client token. The tunnel points at Traefik (not the pods) so the existing
+# WHAT PROTECTS IT: every app route needs a Supabase session or a verified webhook signature,
+# except /api/public/views/<token> (read-only shared views behind a 192-bit capability token —
+# rate-limit it at the Cloudflare edge); /mcp needs an OAuth client token. The tunnel points at Traefik (not the pods) so the existing
 # Ingress rules — path routing, the /api prefix strip — apply unchanged (thornus pattern).
 apiVersion: apps/v1
 kind: Deployment

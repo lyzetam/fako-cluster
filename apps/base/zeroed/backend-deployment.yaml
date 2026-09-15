@@ -14,7 +14,7 @@ spec:
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-09-15T02:06:51Z"
+        kubectl.kubernetes.io/restartedAt: "2026-09-15T06:18:04Z"
       labels:
         app: zeroed
         component: backend
@@ -107,6 +107,16 @@ spec:
                 configMapKeyRef:
                   name: zeroed-config
                   key: MCP_PUBLIC_URL
+            - name: FRONTEND_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: zeroed-config
+                  key: FRONTEND_BASE_URL
+            - name: PLAID_TRANSFER_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: zeroed-config
+                  key: PLAID_TRANSFER_ENABLED
             - name: HOST
               value: "0.0.0.0"
             - name: PORT

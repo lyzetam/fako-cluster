@@ -11,3 +11,5 @@ data:
   PLAID_WEBHOOK_URL: "https://zeroed.landryzetam.net/webhooks/plaid"
   PLAID_REDIRECT_URI: "https://zeroed.landryzetam.net/accounts/oauth"
   MCP_PUBLIC_URL: "https://zeroed.landryzetam.net/mcp"
+  FRONTEND_BASE_URL: "https://zeroed.landryzetam.net"
+  PLAID_TRANSFER_ENABLED: "false"
