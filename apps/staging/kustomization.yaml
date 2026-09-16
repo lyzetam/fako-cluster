@@ -14,6 +14,7 @@ resources:
   - social-media       # versitygw S3 gateway over the SocialMedia UNAS drive (IG pipeline storage)
   - selfheal-test     # PERMANENT self-heal fixture — 7 deliberately-broken workloads. DO NOT RETIRE.
   - selfheal-harness  # Self-heal OOM harness (was "feed-cache") — deliberately broken, DO NOT FIX
+  - schwab-callback   # Static OAuth callback page for the Schwab developer app (decisions.landryzetam.net)
   # - oura-dashboard  # Deactivated - not in use
   # - wger
   # - donetick         # Task & chore management
