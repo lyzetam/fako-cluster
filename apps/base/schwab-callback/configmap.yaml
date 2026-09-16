@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: schwab-callback-html
+  namespace: schwab-callback
+data:
+  index.html: |
+    <!doctype html>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Schwab OAuth callback</title>
+    <style>
+      :root { color-scheme: light dark; --bg:#fbfbfa; --fg:#1a1a18; --mut:#6b6b66; --line:#e3e3df; --accent:#1d6f42; }
+      @media (prefers-color-scheme: dark) { :root { --bg:#16181d; --fg:#e8e8e6; --mut:#9a9a94; --line:#2c2f36; --accent:#4ade80; } }
+      body { margin:0; background:var(--bg); color:var(--fg);
+             font:15px/1.6 ui-sans-serif,-apple-system,system-ui,"Segoe UI",sans-serif; }
+      main { max-width:720px; margin:0 auto; padding:48px 20px; }
+      h1 { font-size:1.35rem; margin:0 0 4px; }
+      p.sub { color:var(--mut); margin:0 0 28px; }
+      .box { border:1px solid var(--line); border-radius:10px; padding:18px; margin:0 0 18px; }
+      .label { font-size:.75rem; text-transform:uppercase; letter-spacing:.08em; color:var(--mut); margin-bottom:8px; }
+      code { font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; word-break:break-all; display:block; }
+      button { font:inherit; padding:9px 16px; border:1px solid var(--line); border-radius:7px;
+               background:var(--accent); color:#fff; cursor:pointer; }
+      button:disabled { opacity:.55; cursor:default; }
+      .warn { border-left:3px solid #d97706; padding-left:12px; color:var(--mut); font-size:.9rem; }
+      .err { color:#b91c1c; }
+    </style>
+    <main>
+      <h1>Schwab OAuth callback</h1>
+      <p class="sub">This page only reads the URL in your address bar. Nothing is sent anywhere or stored on the server.</p>
+      <div id="out"></div>
+      <p class="warn">The authorization code is single-use and expires in about 30 seconds &mdash;
+         paste it into the waiting terminal prompt now. If it expires, just run the login again.</p>
+    </main>
+    <script>
+      const q = new URLSearchParams(location.search);
+      const code = q.get("code"), err = q.get("error"), out = document.getElementById("out");
+      const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+      if (err) {
+        out.innerHTML = '<div class="box"><div class="label err">Authorization failed</div><code>'
+          + esc(err) + (q.get("error_description") ? " &mdash; " + esc(q.get("error_description")) : "")
+          + '</code></div>';
+      } else if (code) {
+        const full = location.href;
+        out.innerHTML = '<div class="box"><div class="label">Authorization code</div><code id="c">'
+          + esc(code) + '</code></div>'
+          + '<div class="box"><div class="label">Full redirect URL (paste this if the tool asks for the whole URL)</div><code>'
+          + esc(full) + '</code></div>'
+          + '<button id="b">Copy code</button>';
+        document.getElementById("b").onclick = async e => {
+          try { await navigator.clipboard.writeText(code); e.target.textContent = "Copied"; e.target.disabled = true; }
+          catch { e.target.textContent = "Select the code above and copy manually"; }
+        };
+      } else {
+        out.innerHTML = '<div class="box"><div class="label">Waiting</div><code>No <b>code</b> parameter in this URL. '
+          + 'Start the login from the CLI: <b>python3 scripts/schwab_auth.py --login</b></code></div>';
+      }
+    </script>

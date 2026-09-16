@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: schwab-callback
+  namespace: schwab-callback
+  labels:
+    app.kubernetes.io/name: schwab-callback
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-dns01"
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - decisions.landryzetam.net
+      secretName: schwab-callback-tls-cert
+  rules:
+    - host: decisions.landryzetam.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: schwab-callback
+                port:
+                  number: 80
