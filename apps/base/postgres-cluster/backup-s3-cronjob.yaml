@@ -45,7 +45,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: s3-archive
-            image: amazon/aws-cli:2.36.25
+            image: amazon/aws-cli:2.36.49
             imagePullPolicy: IfNotPresent
             envFrom:
             - secretRef:
