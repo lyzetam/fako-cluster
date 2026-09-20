@@ -1,0 +1,61 @@
+# One-off Deep Archive retrieval request. This never analyzes or writes
+# sidecars; it only makes archived source objects readable for the processor.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: content-inbox-video-restore-001
+  namespace: content-inbox-video
+  labels:
+    app: content-inbox-video-restore
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  activeDeadlineSeconds: 86400
+  template:
+    metadata:
+      labels:
+        app: content-inbox-video-restore
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: dockerhub-secret
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: restore
+          image: lzetam/reel-studio-content-inbox:sha-9f18415
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/content_inbox_processor.py"]
+          args: ["--mode", "full", "--request-restore", "--restore-days", "7", "--restore-tier", "Bulk"]
+          envFrom:
+            - secretRef:
+                name: content-inbox-video-secret
+          env:
+            - name: SOURCE_S3_PREFIX
+              value: "UniFi Drive_UNAS Pro/UNAS Pro_Monthly S3 Offsite Backup/content_inbox/"
+            - name: HOME
+              value: "/tmp/home"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: home
+              mountPath: /tmp/home
+      volumes:
+        - name: home
+          emptyDir:
+            sizeLimit: 128Mi
