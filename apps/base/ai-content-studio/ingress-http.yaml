@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-content-studio-http
+  namespace: ai-content-studio
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.middlewares: https-redirect@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: content.landryzetam.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-content-studio
+                port:
+                  name: http

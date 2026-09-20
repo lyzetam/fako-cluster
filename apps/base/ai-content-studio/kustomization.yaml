@@ -11,4 +11,6 @@ resources:
   - networkpolicy.yaml
   - deployment.yaml
   - service.yaml
+  - https-redirect-middleware.yaml
+  - ingress-http.yaml
   - ingress.yaml
