@@ -8,7 +8,8 @@ Deployment sequence:
 1. Merge `claude-social-media`; GitHub Actions publishes
    `lzetam/reel-studio-content-inbox:sha-<commit>`.
 2. Replace `sha-REPLACE_AFTER_CI` in `backfill-job.yaml` with that exact tag.
-3. Run the read-only coverage repair Job if the S3 copy is incomplete.
+3. Run the read-only coverage repair Job if the S3 copy is incomplete; bump
+   its name when rerunning it.
 4. Review the processor dry-run inventory, then enable `backfill-job.yaml` in
    the Kustomization for the one-off full analysis run.
 

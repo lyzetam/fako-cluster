@@ -33,8 +33,8 @@ data:
         echo "ERROR upload failed: ${file}" >&2
         failures=$((failures + 1))
       fi
-    done < <(find "$NAS_DIR" -type f -not -name '*.part' -not -name '.*' \(
-      -iname '*.mp4' -o -iname '*.mov' -o -iname '*.m4v' -o -iname '*.avi' -o \
+done < <(find "$NAS_DIR" -type f -not -name '*.part' -not -name '.*' \( \
+  -iname '*.mp4' -o -iname '*.mov' -o -iname '*.m4v' -o -iname '*.avi' -o \
       -iname '*.mkv' -o -iname '*.mts' -o -iname '*.m2ts' -o -iname '*.3gp' -o \
       -iname '*.webm' -o -iname '*.360' \
     \) -print0)
