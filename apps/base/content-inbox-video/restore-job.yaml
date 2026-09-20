@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: content-inbox-video-restore-001
+  name: content-inbox-video-restore-002
   namespace: content-inbox-video
   labels:
     app: content-inbox-video-restore
