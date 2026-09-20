@@ -6,12 +6,17 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: content-inbox-video-backfill-009
+  name: content-inbox-video-backfill-010
   namespace: content-inbox-video
   labels:
     app: content-inbox-video
 spec:
-  backoffLimit: 0
+  completionMode: Indexed
+  completions: 4
+  parallelism: 4
+  backoffLimit: 4
+  backoffLimitPerIndex: 0
+  maxFailedIndexes: 4
   ttlSecondsAfterFinished: 604800
   activeDeadlineSeconds: 604800
   template:
@@ -33,10 +38,13 @@ spec:
         - name: processor
           # Replace with the exact sha-$GITHUB_SHA tag published by
           # claude-social-media/.github/workflows/content-inbox-image.yml.
-          image: lzetam/reel-studio-content-inbox:sha-07de2d9
+          image: lzetam/reel-studio-content-inbox:sha-e85667f
           imagePullPolicy: IfNotPresent
-          command: ["python", "/app/content_inbox_processor.py"]
-          args: ["--mode", "full", "--execute", "--skip-oversized"]
+          command: ["sh", "-c"]
+          args:
+            - >-
+              exec python /app/content_inbox_processor.py --mode full --execute
+              --skip-oversized --shard-index "$JOB_COMPLETION_INDEX" --shard-count 4
           envFrom:
             - secretRef:
                 name: content-inbox-video-secret
