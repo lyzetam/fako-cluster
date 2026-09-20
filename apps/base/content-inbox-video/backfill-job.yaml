@@ -6,7 +6,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: content-inbox-video-backfill-008
+  name: content-inbox-video-backfill-009
   namespace: content-inbox-video
   labels:
     app: content-inbox-video
@@ -33,7 +33,7 @@ spec:
         - name: processor
           # Replace with the exact sha-$GITHUB_SHA tag published by
           # claude-social-media/.github/workflows/content-inbox-image.yml.
-          image: lzetam/reel-studio-content-inbox:sha-f85ccc5
+          image: lzetam/reel-studio-content-inbox:sha-07de2d9
           imagePullPolicy: IfNotPresent
           command: ["python", "/app/content_inbox_processor.py"]
           args: ["--mode", "full", "--execute", "--skip-oversized"]
