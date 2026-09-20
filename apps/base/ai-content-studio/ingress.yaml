@@ -5,7 +5,7 @@ metadata:
   namespace: ai-content-studio
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    cert-manager.io/cluster-issuer: letsencrypt-production
+    cert-manager.io/cluster-issuer: letsencrypt-dns01
 spec:
   ingressClassName: traefik
   rules:
