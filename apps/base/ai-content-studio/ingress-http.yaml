@@ -5,7 +5,7 @@ metadata:
   namespace: ai-content-studio
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
-    traefik.ingress.kubernetes.io/router.middlewares: https-redirect@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: ai-content-studio-https-redirect@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:
