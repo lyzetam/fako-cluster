@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: content-inbox-video-sync-script
+  namespace: content-inbox-video
+data:
+  sync.sh: |
+    #!/bin/bash
+    # Coverage repair only: originals are read from the NAS, and only objects
+    # absent from the existing offsite prefix are uploaded. No NAS writes and
+    # no S3 deletes. The processor reads S3 after this job completes.
+    set -euo pipefail
+
+    : "${SOURCE_S3_BUCKET:?SOURCE_S3_BUCKET is required}"
+    : "${NAS_DIR:?NAS_DIR is required}"
+    : "${S3_PREFIX:?S3_PREFIX is required}"
+    export AWS_PAGER=""
+    uploaded=0
+    existing=0
+    failures=0
+
+    while IFS= read -r -d '' file; do
+      relative="${file#"${NAS_DIR%/}/"}"
+      key="${S3_PREFIX%/}/${relative}"
+      if aws s3api head-object --bucket "$SOURCE_S3_BUCKET" --key "$key" >/dev/null 2>&1; then
+        existing=$((existing + 1))
+        continue
+      fi
+      echo "UPLOAD s3://${SOURCE_S3_BUCKET}/${key}"
+      if aws s3 cp "$file" "s3://${SOURCE_S3_BUCKET}/${key}" --only-show-errors; then
+        uploaded=$((uploaded + 1))
+      else
+        echo "ERROR upload failed: ${file}" >&2
+        failures=$((failures + 1))
+      fi
+    done < <(find "$NAS_DIR" -type f -not -name '*.part' -not -name '.*' \(
+      -iname '*.mp4' -o -iname '*.mov' -o -iname '*.m4v' -o -iname '*.avi' -o \
+      -iname '*.mkv' -o -iname '*.mts' -o -iname '*.m2ts' -o -iname '*.3gp' -o \
+      -iname '*.webm' -o -iname '*.360' \
+    \) -print0)
+
+    echo "coverage repair complete: existing=${existing} uploaded=${uploaded} failures=${failures}"
+    test "$failures" -eq 0

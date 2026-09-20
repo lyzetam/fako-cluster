@@ -11,6 +11,8 @@ resources:
   - withings-collector # Withings OAuth2 pull → Postgres + daily vault report
   - ig-inbox-uploader  # IG inbox → Dropbox/Supabase uploader (Tailscale-private)
   - dji-media          # read-only NAS media server for DJI footage (Tailscale-private)
+  - ai-content-studio # read-only S3 content-inbox browser
+  - content-inbox-video # S3 coverage repair; Twelve Labs backfill remains gated
   - social-media       # versitygw S3 gateway over the SocialMedia UNAS drive (IG pipeline storage)
   - selfheal-test     # PERMANENT self-heal fixture — 7 deliberately-broken workloads. DO NOT RETIRE.
   - selfheal-harness  # Self-heal OOM harness (was "feed-cache") — deliberately broken, DO NOT FIX

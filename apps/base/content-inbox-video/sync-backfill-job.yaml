@@ -1,0 +1,75 @@
+# One-off repair for the 148 primary videos currently on the NAS but absent
+# from the native offsite prefix. The source PVC is read-only. Do not leave a
+# completed Job in a standing Kustomization; bump the name for a new run.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: content-inbox-video-sync-001
+  namespace: content-inbox-video
+  labels:
+    app: content-inbox-video-sync
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  activeDeadlineSeconds: 604800
+  template:
+    metadata:
+      labels:
+        app: content-inbox-video-sync
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sync
+          image: amazon/aws-cli:2.36.25
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "/script/sync.sh"]
+          envFrom:
+            - secretRef:
+                name: content-inbox-video-sync-secret
+          env:
+            - name: NAS_DIR
+              value: /mnt/content_inbox
+            - name: S3_PREFIX
+              value: "UniFi Drive_UNAS Pro/UNAS Pro_Monthly S3 Offsite Backup/content_inbox"
+            - name: HOME
+              value: /tmp/home
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: script
+              mountPath: /script
+              readOnly: true
+            - name: content-inbox
+              mountPath: /mnt/content_inbox
+              readOnly: true
+            - name: home
+              mountPath: /tmp/home
+      volumes:
+        - name: script
+          configMap:
+            name: content-inbox-video-sync-script
+            defaultMode: 0555
+        - name: content-inbox
+          persistentVolumeClaim:
+            claimName: content-inbox-video-content-inbox
+            readOnly: true
+        - name: home
+          emptyDir:
+            sizeLimit: 128Mi

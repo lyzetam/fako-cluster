@@ -1,0 +1,38 @@
+# Read-only content_inbox mount used only by the one-off coverage repair Job.
+# The Twelve Labs processor does not mount the NAS.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: content-inbox-video-content-inbox
+  labels:
+    app.kubernetes.io/name: content-inbox-video
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - nfsvers=3
+    - hard
+    - timeo=600
+    - retrans=2
+  nfs:
+    server: unas.landryzetam.net
+    path: /volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/content_inbox/.data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: content-inbox-video-content-inbox
+  namespace: content-inbox-video
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: content-inbox-video-content-inbox
+  resources:
+    requests:
+      storage: 1Ti

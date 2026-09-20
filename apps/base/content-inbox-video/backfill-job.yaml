@@ -1,0 +1,75 @@
+# Deliberate one-off backfill. It writes sidecars into the offsite S3 prefix;
+# the native UniFi backup is one-way, so this Job does not write the NAS.
+# Do not leave this enabled in a standing
+# Kustomization: a completed Job with a TTL is recreated by Flux whenever the
+# manifest remains present. Bump the name for a new run after a dry inventory.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: content-inbox-video-backfill-001
+  namespace: content-inbox-video
+  labels:
+    app: content-inbox-video
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  activeDeadlineSeconds: 604800
+  template:
+    metadata:
+      labels:
+        app: content-inbox-video
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: dockerhub-secret
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: processor
+          # Replace with the exact sha-$GITHUB_SHA tag published by
+          # claude-social-media/.github/workflows/content-inbox-image.yml.
+          image: lzetam/reel-studio-content-inbox:sha-9f18415
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/content_inbox_processor.py"]
+          args: ["--mode", "full", "--execute"]
+          envFrom:
+            - secretRef:
+                name: content-inbox-video-secret
+          env:
+            - name: SOURCE_S3_PREFIX
+              value: "UniFi Drive_UNAS Pro/UNAS Pro_Monthly S3 Offsite Backup/content_inbox/"
+            - name: WINDOW_SECONDS
+              value: "30"
+            - name: TEMP_ROOT
+              value: "/tmp/work"
+            - name: HOME
+              value: "/tmp/home"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: work
+              mountPath: /tmp/work
+            - name: home
+              mountPath: /tmp/home
+      volumes:
+        - name: work
+          emptyDir:
+            sizeLimit: 32Gi
+        - name: home
+          emptyDir:
+            sizeLimit: 128Mi
