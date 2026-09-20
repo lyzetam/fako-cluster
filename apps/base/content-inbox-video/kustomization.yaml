@@ -11,6 +11,7 @@ resources:
   - nfs-storage.yaml
   - configmap-sync-script.yaml
   - sync-backfill-job.yaml
+  - restore-job.yaml
   # One-off, cost-bearing backfill. Enable only after the image is published
   # and the dry-run inventory has been reviewed:
   # - sync-backfill-job.yaml
