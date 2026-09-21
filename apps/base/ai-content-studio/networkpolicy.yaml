@@ -13,6 +13,10 @@ spec:
         - namespaceSelector:
             matchLabels:
               app.kubernetes.io/name: cloudflare-tunnel
+        # k3s may SNAT cross-node Service traffic to the cluster pod CIDR
+        # before the packet reaches this policy.
+        - ipBlock:
+            cidr: 10.42.0.0/16
   egress:
     - to:
         - namespaceSelector:
