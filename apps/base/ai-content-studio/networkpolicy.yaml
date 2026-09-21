@@ -12,7 +12,10 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              app.kubernetes.io/name: cloudflare-tunnel
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
         # k3s may SNAT cross-node Service traffic to the cluster pod CIDR
         # before the packet reaches this policy.
         - ipBlock:

@@ -11,5 +11,6 @@ resources:
   - networkpolicy.yaml
   - deployment.yaml
   - service.yaml
-  # The dashboard is reachable only through the shared Cloudflare tunnel.
-  # Do not re-add a direct Traefik Ingress without also changing the access model.
+  - https-redirect-middleware.yaml
+  - ingress.yaml
+  - ingress-http.yaml

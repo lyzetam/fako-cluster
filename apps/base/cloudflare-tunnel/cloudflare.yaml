@@ -14,7 +14,7 @@ spec:
         app: cloudflared
       annotations:
         # Restart the connectors when the GitOps-managed ingress map changes.
-        config-revision: "content-landryzetam-v2"
+        config-revision: "content-landryzetam-v3"
     spec:
       containers:
       - name: cloudflared
@@ -96,13 +96,6 @@ data:
     # Market Replay Gateway - Options data recording and replay
     - hostname: market-replay.landryzetam.net
       service: http://market-replay-gateway.market-replay.svc.cluster.local:8000
-      originRequest:
-        connectTimeout: 30s
-        keepAliveTimeout: 90s
-
-    # AI Content Studio - private dashboard and Supabase-authenticated UI
-    - hostname: content.landryzetam.net
-      service: http://ai-content-studio.ai-content-studio.svc.cluster.local:80
       originRequest:
         connectTimeout: 30s
         keepAliveTimeout: 90s
