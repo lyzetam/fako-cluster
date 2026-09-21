@@ -5,7 +5,8 @@ kind: Kustomization
 # other namespaces. Distinct from the per-app cloudflared deployments in
 # social-media, autobots, ginger-hoa, sports-bets and soccer-banter.
 #
-# Currently routes: n8n, family-manager webhook, market-replay.
+# Currently routes: MCP, n8n, family-manager webhook, market-replay, and
+# AI Content Studio.
 # Previously lived in the `mcp-gateway` namespace; moved 2026-08-11 when the
 # MCP gateway was retired and the name stopped matching the contents.
 

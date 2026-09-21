@@ -14,7 +14,7 @@ spec:
         app: cloudflared
       annotations:
         # Restart the connectors when the GitOps-managed ingress map changes.
-        config-revision: "content-landryzetam-v1"
+        config-revision: "content-landryzetam-v2"
     spec:
       containers:
       - name: cloudflared
@@ -72,6 +72,13 @@ data:
     no-autoupdate: true
 
     ingress:
+    # MCP gateway routes retained from the remote tunnel configuration.
+    - hostname: mcp.landryzetam.net
+      service: http://mcp-gateway:8811
+
+    - hostname: mcp-stream.landryzetam.net
+      service: http://mcp-gateway:8812
+
     # n8n - route to n8n namespace service
     - hostname: n8n.landryzetam.net
       service: http://n8n.n8n.svc.cluster.local:5678
