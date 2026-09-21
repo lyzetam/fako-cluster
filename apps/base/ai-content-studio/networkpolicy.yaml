@@ -12,7 +12,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: cloudflare-tunnel
+              app.kubernetes.io/name: cloudflare-tunnel
       ports:
         - protocol: TCP
           port: 8000
