@@ -6,11 +6,10 @@ It does not analyze, render, publish, or write media. The processor in
 
 ## Network exposure
 
-The dashboard is LAN-only. `content.landryzetam.net` is a DNS-only Cloudflare
-A record pointing at the cluster's Traefik address (`10.85.30.214`); Traefik
-terminates TLS and routes to the ClusterIP service. The hostname is not served
-by the shared Cloudflare Tunnel. Keep WAN port-forwarding disabled for the
-Traefik address and retain Supabase authentication at the application layer.
+The dashboard is intended for private network access through the cluster's
+internal ingress. Keep WAN port-forwarding disabled and retain Supabase
+authentication at the application layer. Deployment-specific addresses and
+routing details belong in private infrastructure notes, not this repository.
 
 Deployment sequence:
 
