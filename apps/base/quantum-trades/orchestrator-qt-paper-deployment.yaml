@@ -205,8 +205,68 @@ spec:
             # config change, not a code revert — which is what makes "roll
             # forward, never back" workable for a change that replaces entry
             # selection wholesale.
+            # === ENTRY REDESIGN (2026-09-22 study; quantum-trades
+            # docs/superpowers/specs/2026-09-22-entry-edge-study-and-horizon-redesign.md)
+            #
+            # Measured on 344,956 symbol-days, 484 names, 3 years:
+            #   conjunction gates: zero edge at every horizon (-0.05..-0.12 vs base)
+            #   composite >= 69:   +0.78% at 10 days, +1.71% at 20 (t=13-19), both regimes
+            #   any put path:      -8.2% at 20 days signed short; -13.4% when SPY < 200d
+            #   composite <= 30 LONG: best bucket in the study (+6.27% at 20 days)
+            #
+            # So: composite mode, puts off, the low-score tail traded as a long.
             - name: ENTRY_DIRECTION_MODE
-              value: "conjunction"
+              value: "composite"
+            - name: BEARISH_ENTRIES_ENABLED
+              value: "false"
+            - name: CONTRARIAN_LONG_ENABLED
+              value: "true"
+            - name: CONTRARIAN_LONG_MAX_SCORE
+              value: "30"
+
+            # The signal is a 10-20 day signal. Buy participation, not lottery
+            # tickets: 45-75 DTE, at-or-in the money, 0.55-0.78 delta. Theta
+            # ~1%/day instead of 3-5%; a -20% premium move is a ~-2% stock move
+            # instead of -1%. Negative moneyness = in the money.
+            - name: ENTRY_DTE_MIN
+              value: "45"
+            - name: ENTRY_DTE_MAX
+              value: "75"
+            - name: CHAIN_MAX_DTE_HORIZON
+              value: "80"
+            - name: ENTRY_OTM_MIN_PCT
+              value: "-6.0"
+            - name: ENTRY_OTM_MAX_PCT
+              value: "2.0"
+            - name: ENTRY_DELTA_MIN
+              value: "0.55"
+            - name: ENTRY_DELTA_MAX
+              value: "0.78"
+            - name: ENTRY_DELTA_IDEAL
+              value: "0.62"
+
+            # A 60-DTE 0.6-delta call on a $100 name is $5-8. The $2 ceiling
+            # and $350 position were sized for the $211 live account; paper is
+            # $74k, and 1500 is ~2% of it — one to two contracts at this tenor.
+            # ENTRY_* on purpose: the plain MAX_OPTION_PREMIUM / MAX_POSITION_SIZE
+            # env vars lose to the active profile ("aggressive" here) and would
+            # be silent no-ops. These win over the profile.
+            - name: ENTRY_MAX_OPTION_PREMIUM
+              value: "12.00"
+            - name: ENTRY_MAX_POSITION_SIZE
+              value: "1500"
+
+            # Hold to the horizon. Loss exit on the STOCK at entry - 1.5 x ATR(14)
+            # (about -3% on a typical name, i.e. a real adverse move, not one
+            # day's wiggle) and on the CLOCK at 12 trading days. Time-decay
+            # (-20% premium) and stagnation (48h) stand down under this regime;
+            # the profit ladder and the Layer-1 resting stop are unchanged.
+            - name: EXIT_REGIME
+              value: "horizon"
+            - name: STOP_ATR_MULTIPLE
+              value: "1.5"
+            - name: MAX_HOLD_TRADING_DAYS
+              value: "12"
 
             # Logging
             - name: LOG_LEVEL
