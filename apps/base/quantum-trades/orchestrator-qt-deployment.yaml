@@ -82,7 +82,11 @@ spec:
           #   reads the real greek instead of the premium/DTE proxy.
           #   Two-way entry is NOT enabled here — ENTRY_DIRECTION_MODE is unset,
           #   so config.py's 'composite' default applies. Puts stay paper-only.
-          image: lzetam/quantum-trades-orchestrator-qt:1d68723f37e94dc3a31de7971b0140b155cb4dac
+          # Promoted quantum-trades 596bd9b99bc0 on 2026-09-22 (ENTRIES_ENABLED owner
+          #   switch — stop live). The env var above is read by THIS build and
+          #   later; the 1d68723 image ignored it, so the pin had to move for
+          #   the switch to exist in the container (verified by grep in-pod).
+          image: lzetam/quantum-trades-orchestrator-qt:596bd9b99bc03e910edbbf3612137a4bfe3a43f0
           imagePullPolicy: IfNotPresent
 
           ports:
