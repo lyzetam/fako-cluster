@@ -188,6 +188,17 @@ spec:
             - name: TRADING_MODE
               value: "live"
 
+            # === LIVE ENTRIES OFF (2026-09-22, zz: "stop live") ===
+            # The account went $211 -> $118 with no demonstrated entry edge
+            # (68% of positions never went green; -$36 expectancy per trade in
+            # paper). The loop keeps running so the open position is managed to
+            # its exit; it opens nothing new. Independent of the Supabase halt
+            # row, which /trading/resume can clear — this cannot be cleared
+            # from the API. Flip to "true" only after the entry signal is
+            # re-validated offline (docs/superpowers/specs, 2026-09-22 study).
+            - name: ENTRIES_ENABLED
+              value: "false"
+
             # This deployment IS the live book. The startup guard
             # (config.assert_environment_isolation) refuses to boot on any other
             # value here — a live loop writing a paper schema, or a paper loop
