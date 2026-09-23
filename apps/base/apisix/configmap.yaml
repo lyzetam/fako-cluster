@@ -83,10 +83,10 @@ data:
               http_failures: 2
               timeouts: 2
 
-      # Dedicated upstream for gpt-oss:20b. As of 2026-08 ms1/ms2 each have
-      # ~30-40 GB loaded with glm-4.7-flash and cannot also load the ~14 GB
-      # gpt-oss:20b in the remaining ~37 GB VRAM. ms3 can. This upstream is
-      # selected by the traffic-split plugin on the ollama-native route.
+      # ms3-only upstream (the id predates gemma3 joining it). As of 2026-08
+      # ms1/ms2 each have ~30-40 GB loaded with glm-4.7-flash and cannot also
+      # load gpt-oss:20b or gemma3:27b. ms3 can. This upstream is selected by
+      # the traffic-split plugin on the ollama-native route.
       - id: ollama-gptoss
         type: least_conn
         retries: 2
@@ -199,13 +199,25 @@ data:
                     core.log.info("ollama model detected: ", model)
                   end
                 end
-          # Pin gpt-oss:20b to ms3. Non-matching requests fall through to the
-          # route's default upstream (ollama-fleet).
+          # Pin the models only ms3 can hold. Non-matching requests fall through
+          # to the route's default upstream (ollama-fleet).
+          #
+          # gemma3:27b was not pinned and least_conn kept handing it to ms1/ms2,
+          # which hold glm-4.7-flash and cannot also load a 27B model: on
+          # 2026-09-23 they answered 66 of 66 gemma3 calls with 503 in ~0.2s,
+          # while ms3 answered 19 of 20. The api-breaker then counted those 503s
+          # against the whole route.
           traffic-split:
             rules:
               - match:
                   - vars:
                       - ["http_x_ollama_model", "==", "gpt-oss:20b"]
+                weighted_upstreams:
+                  - upstream_id: ollama-gptoss
+                    weight: 1
+              - match:
+                  - vars:
+                      - ["http_x_ollama_model", "==", "gemma3:27b"]
                 weighted_upstreams:
                   - upstream_id: ollama-gptoss
                     weight: 1
@@ -246,8 +258,15 @@ data:
               http_statuses: [200, 201]
               successes: 2
 
+      # Public door: requests arriving through the Cloudflare tunnel
+      # (llm.landryzetam.net, the social pipeline on the Hostinger VPS).
+      # Cloudflare cuts an origin off at ~100s, so this route keeps the short
+      # per-instance timeout that lets the cloud tier answer inside that window.
       - id: llm-chat
         uri: /v1/chat/completions
+        hosts: ["llm.landryzetam.net"]
+        # Checked before llm-chat-internal, which has no host filter.
+        priority: 10
         plugins:
           prometheus: {}
           key-auth: {}
@@ -264,6 +283,88 @@ data:
             # completion. A tier that only engages after the proxy has already
             # been cut off is not a fallback.
             timeout: 60000
+            instances:
+              - name: ms1
+                provider: openai-compatible
+                weight: 1
+                priority: 100
+                auth:
+                  header:
+                    Authorization: "Bearer ollama"
+                options:
+                  model: glm-4.7-flash
+                override:
+                  endpoint: "http://ms1.landryzetam.net:11434/v1/chat/completions"
+              - name: ms2
+                provider: openai-compatible
+                weight: 1
+                priority: 100
+                auth:
+                  header:
+                    Authorization: "Bearer ollama"
+                options:
+                  model: glm-4.7-flash
+                override:
+                  endpoint: "http://ms2.landryzetam.net:11434/v1/chat/completions"
+              - name: ms3
+                provider: openai-compatible
+                weight: 1
+                priority: 100
+                auth:
+                  header:
+                    Authorization: "Bearer ollama"
+                options:
+                  model: glm-4.7-flash
+                override:
+                  endpoint: "http://ms3.landryzetam.net:11434/v1/chat/completions"
+              # Tier 2: Ollama Cloud — only used when all 3 local nodes fail
+              # (lower priority). Bearer key injected from the SOPS secret.
+              - name: ollama-cloud
+                provider: openai-compatible
+                weight: 1
+                priority: 50
+                auth:
+                  header:
+                    Authorization: "${{OLLAMA_CLOUD_AUTH}}"
+                options:
+                  # Cloud model (APISIX overrides the client's model per-instance).
+                  # glm-4.x retired on Ollama Cloud 2026-07-15; glm-5.2 is current.
+                  model: glm-5.2
+                override:
+                  endpoint: "https://ollama.com/v1/chat/completions"
+      # In-cluster door: everything that dials apisix.apisix.svc (every zi
+      # agent). Two changes from the public route, both measured on 2026-09-23
+      # over 973 calls, all in-cluster:
+      #
+      #  * Sticky, not round-robin. zi prompts run ~89K tokens (p50). A Mac
+      #    that already holds the conversation in its prompt cache processes
+      #    only the new turn (4,765 tokens in 12s on ms1); a Mac that does not
+      #    has to process all of it at ~270 tok/s, about 5 minutes. Round-robin
+      #    sent each turn to a Mac that had not seen the conversation.
+      #    Hashing on the caller's pod IP keeps each agent on one Mac.
+      #
+      #  * Patient. At 60s per instance a cold prompt could never finish: the
+      #    call was cut, Ollama cancelled the work, and the next Mac started the
+      #    same prompt from zero. Result: 33% answered by the first Mac, 34%
+      #    only after all three Macs timed out (~180s, Ollama Cloud), 16%
+      #    failed outright. 390s fits a cold ~89K-token prompt and stays under
+      #    zi's 400s client timeout (zi/src/zi/agents/executor/agent.py), so
+      #    zi never abandons a call the gateway is still waiting on. Fast
+      #    failures (5xx, 429, refused) still fail over immediately.
+      - id: llm-chat-internal
+        uri: /v1/chat/completions
+        plugins:
+          prometheus: {}
+          key-auth: {}
+          ai-proxy-multi:
+            balancer:
+              algorithm: chash
+              hash_on: vars
+              key: remote_addr
+            fallback_strategy:
+              - http_5xx
+              - http_429
+            timeout: 390000
             instances:
               - name: ms1
                 provider: openai-compatible
