@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: oura-collector
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2026-09-23T15:10:00Z"  # repull :latest with 600s briefing timeout (fakocluster-apps #39)
     spec:
       serviceAccountName: oura-collector
       securityContext:
