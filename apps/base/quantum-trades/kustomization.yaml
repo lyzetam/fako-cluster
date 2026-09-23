@@ -21,6 +21,7 @@ resources:
   # (sandbox broker + `paper` Supabase schema + its own leader lock and risk
   # profile). Added 2026-09-01. Deleting this file is a clean rollback; the
   # live deployment does not depend on it.
+  - configmap-orchestrator-qt-paper-regime.yaml
   - orchestrator-qt-paper-deployment.yaml
   # Paper-tier exit validation — same checks, its own broker and book.
   - cronjob-exit-validation-preopen-paper.yaml

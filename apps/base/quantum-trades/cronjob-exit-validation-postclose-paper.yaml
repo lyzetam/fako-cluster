@@ -54,6 +54,8 @@ spec:
               envFrom:
                 - secretRef:
                     name: orchestrator-qt-secrets
+                - configMapRef:
+                    name: orchestrator-qt-paper-regime
               env:
                 - name: PYTHONUNBUFFERED
                   value: "1"

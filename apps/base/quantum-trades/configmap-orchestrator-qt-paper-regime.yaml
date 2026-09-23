@@ -1,0 +1,56 @@
+# Paper's strategy regime, in ONE place.
+#
+# Every process that reads paper's decision tape must run the SAME regime the
+# loop ran — the exit-validation CronJobs replay the coordinator against the
+# tape, and on 2026-09-23 they carried none of these flags, replayed the
+# premium regime against a horizon-regime tape, and reported "divergent" for
+# a day that was not. Inline env on the Deployment would drift from the
+# CronJobs again; a shared ConfigMap cannot.
+#
+# Values and their reasons: quantum-trades
+# docs/superpowers/specs/2026-09-22-entry-edge-study-and-horizon-redesign.md
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orchestrator-qt-paper-regime
+  namespace: quantum-trades
+  labels:
+    app.kubernetes.io/name: orchestrator-qt-paper
+    app.kubernetes.io/part-of: quantum-trades
+data:
+  ENTRY_DIRECTION_MODE: "composite"
+  BEARISH_ENTRIES_ENABLED: "true"
+  CONTRARIAN_LONG_ENABLED: "true"
+  CONTRARIAN_LONG_MAX_SCORE: "30"
+  ENTRY_DTE_MIN: "45"
+  ENTRY_DTE_MAX: "75"
+  CHAIN_MAX_DTE_HORIZON: "80"
+  ENTRY_OTM_MIN_PCT: "-6.0"
+  ENTRY_OTM_MAX_PCT: "2.0"
+  ENTRY_DELTA_MIN: "0.55"
+  ENTRY_DELTA_MAX: "0.78"
+  ENTRY_DELTA_IDEAL: "0.62"
+  ENTRY_MAX_OPTION_PREMIUM: "12.00"
+  ENTRY_MAX_POSITION_SIZE: "1500"
+  EXIT_REGIME: "horizon"
+  STOP_ATR_MULTIPLE: "1.5"
+  MAX_HOLD_TRADING_DAYS: "12"
+
+  # --- Exits under the horizon regime, set from the 2026-09-23 backtest
+  # (7,320 regime trades over three years, spec §Backtest):
+  #   breakeven ratchet ON (arm +12, trail 15 pts):  +0.7% of premium / trade
+  #   no premium-based profit rule, floor -50%:       +3.9%
+  #   no premium-based profit rule, floor -65%:       +5.7%   <- this
+  #   floor -80%:                                     +5.9%   (not worth the crash exposure)
+  # The floor is what fires (a third of trades intraday at -50); the stock
+  # stop's width barely matters. Every premium-based profit rule sells the
+  # winners early: the regime's winners finish at ~+50-80% of premium.
+  # STOP_RATCHET_ARM_PCT is a "never" value: the field must be > 0 and the
+  # ratchet arms at peak >= it.
+  HORIZON_LAYER1_LOSS_PCT: "65"
+  PROFIT_LADDER_ENABLED: "false"
+  SCALEOUT_RUNNER_CAP_PCT: "0"
+  STOP_RATCHET_ARM_PCT: "100000"
+  # Premium as a share of spot at entry: at ~8% the regime pays, at ~12% it
+  # does not (theta over an 8-day hold). Refuses SOXS 20%, HIMS 15%, RKT 13%.
+  MAX_PREMIUM_PCT_OF_UNDERLYING: "11"
