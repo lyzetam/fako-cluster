@@ -28,7 +28,7 @@ spec:
         # checksum must be updated whenever apps/base/apisix/configmap.yaml
         # changes so Flux recreates the pods with the new APISIX config.
         # Compute: sha256sum apps/base/apisix/configmap.yaml
-        checksum/config: "01296bdb23745c6d94d14a3b964fa8cc26bde67169a96b3c7a12c14e1fff92a8"
+        checksum/config: "17f071b64c4a357965223b51cf9954ee0460a5f5fcb4f249ea127fa5928aca14"
     spec:
       containers:
         - name: apisix

@@ -340,21 +340,29 @@ data:
       #  * Sticky, not round-robin. zi prompts run ~89K tokens (p50). A Mac
       #    that already holds the conversation in its prompt cache processes
       #    only the new turn (4,765 tokens in 12s on ms1); a Mac that does not
-      #    has to process all of it at ~270 tok/s, about 5 minutes. Round-robin
-      #    sent each turn to a Mac that had not seen the conversation.
+      #    has to process all of it, which does not finish (see below).
+      #    Round-robin sent each turn to a Mac that had not seen the conversation.
       #    Hashing on the caller's pod IP keeps each agent on one Mac.
       #    Trade-off, accepted: a pod's concurrent calls share its Mac. Each Mac
       #    runs 3-4 slots (OLLAMA_NUM_PARALLEL), each with its own prompt cache,
       #    so up to 3-4 conversations per pod run side by side before queueing.
       #
-      #  * Patient. At 60s per instance a cold prompt could never finish: the
-      #    call was cut, Ollama cancelled the work, and the next Mac started the
-      #    same prompt from zero. Result: 33% answered by the first Mac, 34%
-      #    only after all three Macs timed out (~180s, Ollama Cloud), 16%
-      #    failed outright. 390s fits a cold ~89K-token prompt and stays under
-      #    zi's 400s client timeout (zi/src/zi/agents/executor/agent.py), so
-      #    zi never abandons a call the gateway is still waiting on. Fast
-      #    failures (5xx, 429, refused) still fail over immediately.
+      #  * 100s per instance, not 60s. Fitted to measurements, not guessed:
+      #    a cached turn on its own Mac processes 2K-17K new tokens at 270-500
+      #    tok/s, the slowest seen being 17,403 tokens in 64s, so 60s cut off
+      #    real cached work. A COLD ~90K-token prompt never completes on these
+      #    Macs at all (41 tok/s observed at depth; ms2 had done 47,831 of
+      #    91,521 tokens after 19.5 min), so waiting longer for one only burns
+      #    slots. 3 x 100s + the cloud tier fits inside zi's 400s client
+      #    timeout (zi/src/zi/agents/executor/agent.py), so a cold prompt still
+      #    reaches Ollama Cloud before zi gives up.
+      #
+      #    Why not longer: ai-proxy-multi does not close the connection to an
+      #    instance it timed out on (openai-base.lua returns 504 without
+      #    httpc:close()), and a 504 counts as http_5xx, so the request moves
+      #    on while the abandoned Mac keeps computing until the whole request
+      #    ends. At 390s one cold request held a slot on all three Macs for
+      #    19.5 min (2026-09-23 17:37-17:56) and still failed.
       - id: llm-chat-internal
         uri: /v1/chat/completions
         plugins:
@@ -368,7 +376,7 @@ data:
             fallback_strategy:
               - http_5xx
               - http_429
-            timeout: 390000
+            timeout: 100000
             instances:
               - name: ms1
                 provider: openai-compatible
