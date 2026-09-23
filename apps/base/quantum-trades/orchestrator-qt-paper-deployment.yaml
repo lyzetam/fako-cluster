@@ -217,8 +217,16 @@ spec:
             # So: composite mode, puts off, the low-score tail traded as a long.
             - name: ENTRY_DIRECTION_MODE
               value: "composite"
+            # Puts (2026-09-22 evening, zz: "I want to be able to trade both puts
+            # and calls"). BEARISH_ENTRIES_ENABLED now means the TREND-SHORT
+            # setup (price < 50d < 200d, -DI > +DI, ADX >= 24, not oversold) may
+            # trade when the INDEX REGIME GATE is open: SPY below a falling
+            # 200-day, 50-day below 200-day, persisted 10 days. The put-signal
+            # study found no put setup that made money in three years and no
+            # bear market to learn from; that gate would have opened 6 days in
+            # the sample. The old low-score put stays off (LEGACY_LOW_SCORE_PUTS_ENABLED).
             - name: BEARISH_ENTRIES_ENABLED
-              value: "false"
+              value: "true"
             - name: CONTRARIAN_LONG_ENABLED
               value: "true"
             - name: CONTRARIAN_LONG_MAX_SCORE
