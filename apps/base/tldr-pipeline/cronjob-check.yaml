@@ -30,7 +30,11 @@ spec:
   startingDeadlineSeconds: 600
   jobTemplate:
     spec:
-      backoffLimit: 1
+      # Once. The check exits 1 when it finds a problem — that is its verdict, not a
+      # crash — and OnFailure + backoffLimit 1 re-ran it after every verdict, so every
+      # alert landed in Discord twice (2026-09-18/21/22, 16:15:24 and 16:15:47 UTC).
+      # A genuine crash is not retried either; it runs again tomorrow.
+      backoffLimit: 0
       # Reads the vault and lists the inbox. Seconds, not minutes.
       activeDeadlineSeconds: 600
       template:
@@ -39,7 +43,7 @@ spec:
             app.kubernetes.io/name: tldr-pipeline
             app.kubernetes.io/component: watchdog
         spec:
-          restartPolicy: OnFailure
+          restartPolicy: Never
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
