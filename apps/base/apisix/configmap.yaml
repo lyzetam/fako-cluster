@@ -6,8 +6,9 @@
 # connections and an api-breaker adds a coarse circuit breaker on top of the
 # upstream health checks.
 #
-# NOTE: config changes need a `kubectl rollout restart deployment/apisix -n apisix`
-# (subPath ConfigMap mounts don't hot-reload). That's a rollout trigger, allowed.
+# NOTE: subPath ConfigMap mounts don't hot-reload. Every change to this file
+# must also update checksum/config in deployment.yaml (sha256 of this file);
+# that annotation is what makes Flux roll the pods.
 #
 # NOTE: Converting an empty-body 200 from /api/chat into a 503 for passive health
 # checks cannot be done reliably with built-in plugins: nginx has already sent
@@ -342,6 +343,9 @@ data:
       #    has to process all of it at ~270 tok/s, about 5 minutes. Round-robin
       #    sent each turn to a Mac that had not seen the conversation.
       #    Hashing on the caller's pod IP keeps each agent on one Mac.
+      #    Trade-off, accepted: a pod's concurrent calls share its Mac. Each Mac
+      #    runs 3-4 slots (OLLAMA_NUM_PARALLEL), each with its own prompt cache,
+      #    so up to 3-4 conversations per pod run side by side before queueing.
       #
       #  * Patient. At 60s per instance a cold prompt could never finish: the
       #    call was cut, Ollama cancelled the work, and the next Mac started the
