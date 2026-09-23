@@ -18,7 +18,7 @@ data:
   # LLM configuration
   # LLM_PROVIDER: "anthropic" (Claude) or "ollama" (local homelab models).
   # Flip to "ollama" to keep all health-data inference on the ms nodes.
-  LLM_PROVIDER: "anthropic"
+  LLM_PROVIDER: "ollama"
   LLM_MODEL: "claude-sonnet-4-5-20250929"      # used when provider=anthropic
   OLLAMA_CHAT_MODEL: "glm-4.7-flash:latest"    # used when provider=ollama (via the APISIX gateway)
   OLLAMA_CHAT_BASE_URLS: "http://apisix.apisix.svc.cluster.local:9080"

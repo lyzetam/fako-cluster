@@ -15,7 +15,7 @@ spec:
       labels:
         app: oura-agent
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-09-23T14:30:00Z"  # repull :latest with pooled checkpointer (fakocluster-apps fix)
+        kubectl.kubernetes.io/restartedAt: "2026-09-23T15:00:00Z"  # pick up LLM_PROVIDER=ollama (configmap is not hash-suffixed)
     spec:
       serviceAccountName: oura-agent
       imagePullSecrets:
