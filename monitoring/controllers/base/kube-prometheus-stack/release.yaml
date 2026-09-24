@@ -149,6 +149,19 @@ spec:
           repeat_interval: 4h
           receiver: 'default'
           routes:
+            # selfheal-test holds deployments that are broken ON PURPOSE
+            # (configerror, crashloop, imagepull, notready, unschedulable,
+            # oomkill). They fire forever, and every batch reaching zI starts a
+            # platform-sre triage run on the Mac Studio fleet: 36 runs in 6h on
+            # 2026-09-24, one every ~10 min, each 10-50 min long, so they
+            # overlapped and crowded out real work. zI's CLAUDE.md prescribed
+            # this exact route on 2026-09-14. First, and continue: false, so
+            # neither zi route below sees them; `default` keeps them visible.
+            - matchers:
+                - namespace="selfheal-test"
+              receiver: 'default'
+              continue: false
+
             # Pod alerts with agent label go to zI for investigation
             - matchers:
                 - agent=~"k8s-engineer|platform-sre"
