@@ -43,7 +43,7 @@ spec:
         - name: api
           # Replace with the exact sha-$GITHUB_SHA tag produced by the
           # ai-content-studio GitHub Actions workflow before enabling staging.
-          image: lzetam/ai-content-studio:sha-b9f7dd1b11dc09a0ed0c5f40a5cb0e141e971f47
+          image: lzetam/ai-content-studio:sha-96dcebee221006d8881b380508f9644b3287b9c7
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
