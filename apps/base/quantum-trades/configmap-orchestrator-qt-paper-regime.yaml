@@ -32,6 +32,11 @@ data:
   ENTRY_DELTA_IDEAL: "0.62"
   ENTRY_MAX_OPTION_PREMIUM: "12.00"
   ENTRY_MAX_POSITION_SIZE: "1500"
+  # Per-UNDERLYING value cap (executor_tools validate: existing value + new cost).
+  # Was the 1000 default while ENTRY_MAX_POSITION_SIZE sized fresh names to 1500:
+  # 2026-09-24 WFC sized to 2 x 5.05 = $1,010 and the $1,000 cap refused it. The
+  # two caps must agree — the tighter one silently wins.
+  MAX_POSITION_VALUE_DOLLARS: "1500"
   EXIT_REGIME: "horizon"
   STOP_ATR_MULTIPLE: "1.5"
   MAX_HOLD_TRADING_DAYS: "12"
