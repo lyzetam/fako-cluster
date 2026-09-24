@@ -153,10 +153,10 @@ spec:
   template:
     metadata:
       annotations:
-        # Repull :latest for zi #71 (20K ceiling, 12K summary input).
+        # Repull :latest for zi #72 (one run per agent, cancel on disconnect).
         # An imperative `rollout restart` is reverted by Flux before the
         # new agent pod is ready, so the repull has to be declared here.
-        kubectl.kubernetes.io/restartedAt: "2026-09-24T13:20:00Z"
+        kubectl.kubernetes.io/restartedAt: "2026-09-24T21:15:00Z"
       labels:
         app: agent-code-reviewer
         app.kubernetes.io/name: agent-code-reviewer
@@ -315,10 +315,10 @@ spec:
   template:
     metadata:
       annotations:
-        # Repull :latest for zi #71 (20K ceiling, 12K summary input).
+        # Repull :latest for zi #72 (one run per agent, cancel on disconnect).
         # An imperative `rollout restart` is reverted by Flux before the
         # new agent pod is ready, so the repull has to be declared here.
-        kubectl.kubernetes.io/restartedAt: "2026-09-24T13:20:00Z"
+        kubectl.kubernetes.io/restartedAt: "2026-09-24T21:15:00Z"
       labels:
         app: agent-devops-engineer
         app.kubernetes.io/name: agent-devops-engineer
@@ -454,10 +454,10 @@ spec:
   template:
     metadata:
       annotations:
-        # Repull :latest for zi #71 (20K ceiling, 12K summary input).
+        # Repull :latest for zi #72 (one run per agent, cancel on disconnect).
         # An imperative `rollout restart` is reverted by Flux before the
         # new agent pod is ready, so the repull has to be declared here.
-        kubectl.kubernetes.io/restartedAt: "2026-09-24T13:20:00Z"
+        kubectl.kubernetes.io/restartedAt: "2026-09-24T21:15:00Z"
       labels:
         app: agent-k8s-engineer
         app.kubernetes.io/name: agent-k8s-engineer
@@ -610,10 +610,10 @@ spec:
   template:
     metadata:
       annotations:
-        # Repull :latest for zi #71 (20K ceiling, 12K summary input).
+        # Repull :latest for zi #72 (one run per agent, cancel on disconnect).
         # An imperative `rollout restart` is reverted by Flux before the
         # new agent pod is ready, so the repull has to be declared here.
-        kubectl.kubernetes.io/restartedAt: "2026-09-24T13:20:00Z"
+        kubectl.kubernetes.io/restartedAt: "2026-09-24T21:15:00Z"
       labels:
         app: agent-platform-sre
         app.kubernetes.io/name: agent-platform-sre
