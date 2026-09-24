@@ -152,6 +152,11 @@ spec:
       app: agent-code-reviewer
   template:
     metadata:
+      annotations:
+        # Repull :latest for zi #70 (context compacted at 30K tokens).
+        # An imperative `rollout restart` is reverted by Flux before the
+        # new agent pod is ready, so the repull has to be declared here.
+        kubectl.kubernetes.io/restartedAt: "2026-09-24T11:50:00Z"
       labels:
         app: agent-code-reviewer
         app.kubernetes.io/name: agent-code-reviewer
@@ -309,6 +314,11 @@ spec:
       app: agent-devops-engineer
   template:
     metadata:
+      annotations:
+        # Repull :latest for zi #70 (context compacted at 30K tokens).
+        # An imperative `rollout restart` is reverted by Flux before the
+        # new agent pod is ready, so the repull has to be declared here.
+        kubectl.kubernetes.io/restartedAt: "2026-09-24T11:50:00Z"
       labels:
         app: agent-devops-engineer
         app.kubernetes.io/name: agent-devops-engineer
@@ -443,6 +453,11 @@ spec:
       app: agent-k8s-engineer
   template:
     metadata:
+      annotations:
+        # Repull :latest for zi #70 (context compacted at 30K tokens).
+        # An imperative `rollout restart` is reverted by Flux before the
+        # new agent pod is ready, so the repull has to be declared here.
+        kubectl.kubernetes.io/restartedAt: "2026-09-24T11:50:00Z"
       labels:
         app: agent-k8s-engineer
         app.kubernetes.io/name: agent-k8s-engineer
@@ -594,6 +609,11 @@ spec:
       app: agent-platform-sre
   template:
     metadata:
+      annotations:
+        # Repull :latest for zi #70 (context compacted at 30K tokens).
+        # An imperative `rollout restart` is reverted by Flux before the
+        # new agent pod is ready, so the repull has to be declared here.
+        kubectl.kubernetes.io/restartedAt: "2026-09-24T11:50:00Z"
       labels:
         app: agent-platform-sre
         app.kubernetes.io/name: agent-platform-sre
