@@ -178,7 +178,8 @@ resources:
   # - amig-erp
 
   # Soccer Banter — 3 World Cup analyst deep-agents (Sportmonks + Ollama Cloud)
-  - soccer-banter
+  # Paused 2026-09-27: World Cup over, data volume empty. Re-enable by uncommenting.
+  # - soccer-banter
   # Paused 2026-09-27: web down, cronjobs suspended since World Cup ended, data volume empty.
   # Re-enable by uncommenting.
   # - sports-bets
