@@ -179,7 +179,9 @@ resources:
 
   # Soccer Banter — 3 World Cup analyst deep-agents (Sportmonks + Ollama Cloud)
   - soccer-banter
-  - sports-bets
+  # Paused 2026-09-27: web down, cronjobs suspended since World Cup ended, data volume empty.
+  # Re-enable by uncommenting.
+  # - sports-bets
   - tldr-pipeline      # TLDR newsletters → full-text article notes (replaces the paused managed agent)
   - lzt-lead-agent     # lztechnology.io contact-form leads → model triage → Discord #leads
 
