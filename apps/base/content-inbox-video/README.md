@@ -16,3 +16,13 @@ Deployment sequence:
 The Job is intentionally not a Deployment or CronJob: it is a resumable,
 cost-bearing backfill. Keep it out of the standing Kustomization after it
 completes, and bump the Job name for any later run.
+
+## Live handoff — 2026-09-28
+
+- `content-inbox-video-sync-002` is still running and copying missing originals from the read-only
+  NAS mount to offsite S3.
+- `content-inbox-video-restore-002` completed.
+- `content-inbox-video-backfill-010` failed all four shards (`0/4`, indexes 0–3). Do not rerun it
+  until the failure is diagnosed and the expected Twelve Labs spend is approved.
+- Source keys use `year/camera/date/file`. The dashboard's camera-filter issue is in its catalog
+  parser, not in this worker.
