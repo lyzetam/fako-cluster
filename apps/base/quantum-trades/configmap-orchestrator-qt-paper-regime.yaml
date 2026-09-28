@@ -54,6 +54,12 @@ data:
   # ratchet arms at peak >= it.
   HORIZON_LAYER1_LOSS_PCT: "65"
   PROFIT_LADDER_ENABLED: "false"
+  # PROFIT_LADDER_ENABLED=false only removes the BROKER-resident slice limits;
+  # the loop's own scale-out (_profit_lifecycle) still sells one contract at
+  # each rung on a multi-lot. The regime has no premium-based profit rule, so
+  # the rungs get a "never" value, like STOP_RATCHET_ARM_PCT (2026-09-28,
+  # PR #217 review). JSON list: pydantic parses list[float] from the env.
+  SCALEOUT_GAIN_TRIGGERS: "[100000.0]"
   SCALEOUT_RUNNER_CAP_PCT: "0"
   STOP_RATCHET_ARM_PCT: "100000"
   # Premium as a share of spot at entry: at ~8% the regime pays, at ~12% it
