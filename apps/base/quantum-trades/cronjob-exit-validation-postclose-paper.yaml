@@ -46,8 +46,10 @@ spec:
             - name: dockerhub-registry
           containers:
             - name: exit-validation-postclose-paper
-              image: lzetam/quantum-trades-orchestrator-qt:latest
-              imagePullPolicy: Always
+              # Same pin as orchestrator-qt-paper-deployment.yaml — the replay must
+              # run the code the loop ran. Bump both together.
+              image: lzetam/quantum-trades-orchestrator-qt:ffffd42fececaae187e2c77a643ad98872379d6c
+              imagePullPolicy: IfNotPresent
               command: ["python", "-m", "validation.run", "--mode", "post_close"]
               # SUPABASE_URL/KEY, Tradier creds and the Discord webhook all come
               # from the secret the live orchestrator-qt deployment already uses.
