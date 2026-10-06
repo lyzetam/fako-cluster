@@ -48,7 +48,7 @@ spec:
             - name: exit-validation-postclose-paper
               # Same pin as orchestrator-qt-paper-deployment.yaml — the replay must
               # run the code the loop ran. Bump both together.
-              image: lzetam/quantum-trades-orchestrator-qt:ffffd42fececaae187e2c77a643ad98872379d6c
+              image: lzetam/quantum-trades-orchestrator-qt:0c3de97a28eff10035808d255a2a4884044811e8
               imagePullPolicy: IfNotPresent
               command: ["python", "-m", "validation.run", "--mode", "post_close"]
               # SUPABASE_URL/KEY, Tradier creds and the Discord webhook all come

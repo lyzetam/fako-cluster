@@ -92,7 +92,9 @@ spec:
           #
           # Pinned quantum-trades ffffd42fecec on 2026-10-06 (bank-and-runner, PR #229;
           #   same digest the pod was already running — 75c75ab02759).
-          image: lzetam/quantum-trades-orchestrator-qt:ffffd42fececaae187e2c77a643ad98872379d6c
+          # Pinned quantum-trades 0c3de97a28ef on 2026-10-06 (loop-ladder sales are
+          #   decision-tape rows; replay compares per position, PR #233).
+          image: lzetam/quantum-trades-orchestrator-qt:0c3de97a28eff10035808d255a2a4884044811e8
           imagePullPolicy: IfNotPresent
 
           ports:
