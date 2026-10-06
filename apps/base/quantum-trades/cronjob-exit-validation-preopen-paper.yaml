@@ -40,8 +40,10 @@ spec:
             - name: dockerhub-registry
           containers:
             - name: exit-validation-preopen-paper
-              image: lzetam/quantum-trades-orchestrator-qt:latest
-              imagePullPolicy: Always
+              # Same pin as orchestrator-qt-paper-deployment.yaml — the replay must
+              # run the code the loop ran. Bump both together.
+              image: lzetam/quantum-trades-orchestrator-qt:ffffd42fececaae187e2c77a643ad98872379d6c
+              imagePullPolicy: IfNotPresent
               command: ["python", "-m", "validation.run", "--mode", "pre_open"]
               envFrom:
                 - secretRef:
