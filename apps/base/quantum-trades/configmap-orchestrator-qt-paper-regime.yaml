@@ -45,23 +45,28 @@ data:
   # (7,320 regime trades over three years, spec §Backtest):
   #   breakeven ratchet ON (arm +12, trail 15 pts):  +0.7% of premium / trade
   #   no premium-based profit rule, floor -50%:       +3.9%
-  #   no premium-based profit rule, floor -65%:       +5.7%   <- this
+  #   no premium-based profit rule, floor -65%:       +5.7%
   #   floor -80%:                                     +5.9%   (not worth the crash exposure)
   # The floor is what fires (a third of trades intraday at -50); the stock
-  # stop's width barely matters. Every premium-based profit rule sells the
-  # winners early: the regime's winners finish at ~+50-80% of premium.
-  # STOP_RATCHET_ARM_PCT is a "never" value: the field must be > 0 and the
-  # ratchet arms at peak >= it.
+  # stop's width barely matters.
   HORIZON_LAYER1_LOSS_PCT: "65"
   PROFIT_LADDER_ENABLED: "false"
-  # PROFIT_LADDER_ENABLED=false only removes the BROKER-resident slice limits;
-  # the loop's own scale-out (_profit_lifecycle) still sells one contract at
-  # each rung on a multi-lot. The regime has no premium-based profit rule, so
-  # the rungs get a "never" value, like STOP_RATCHET_ARM_PCT (2026-09-28,
-  # PR #217 review). JSON list: pydantic parses list[float] from the env.
-  SCALEOUT_GAIN_TRIGGERS: "[100000.0]"
-  SCALEOUT_RUNNER_CAP_PCT: "0"
-  STOP_RATCHET_ARM_PCT: "100000"
+  # --- Bank profit, keep a runner (owner, 2026-10-05: "we should take
+  # profit, and keep a small runner!!!", with NU +150%, EWZ +125%, GME +41%
+  # open under no profit rule). The loop's own scale-out (_profit_lifecycle;
+  # PROFIT_LADDER_ENABLED=false only removes the BROKER-resident slices)
+  # sells SCALEOUT_SELL_FRACTION of what is still held at each rung, rounded
+  # up, never below the one-contract runner: a 10-lot banks 5 at +75% and 3
+  # of the remaining 5 at +150%, keeping 2. A one-lot that never banked is
+  # sold whole at SCALEOUT_RUNNER_CAP_PCT (it cannot be split); a runner
+  # that banked is never capped. Once the peak crosses STOP_RATCHET_ARM_PCT
+  # the broker stop moves to BREAKEVEN (horizon: never the peak-15 trail);
+  # the runner's exits are that stop, the stock stop and the 12-day clock.
+  # JSON list: pydantic parses list[float] from the env.
+  SCALEOUT_GAIN_TRIGGERS: "[75.0, 150.0]"
+  SCALEOUT_SELL_FRACTION: "0.5"
+  SCALEOUT_RUNNER_CAP_PCT: "150"
+  STOP_RATCHET_ARM_PCT: "75"
   # Premium as a share of spot at entry: at ~8% the regime pays, at ~12% it
   # does not (theta over an 8-day hold). Refuses SOXS 20%, HIMS 15%, RKT 13%.
   MAX_PREMIUM_PCT_OF_UNDERLYING: "11"
