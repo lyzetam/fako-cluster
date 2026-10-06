@@ -29,7 +29,6 @@ resources:
   # Nightly paper refresh — :latest only pulls on pod start, so without this the
   # dev tier silently falls behind prod (caught 2026-09-02, paper a full commit
   # behind live).
-  - cronjob-paper-refresh.yaml
   - ingress.yaml
   # WebSocket IngressRoute with extended timeouts
   - middleware-websocket.yaml
