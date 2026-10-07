@@ -94,7 +94,9 @@ spec:
           #   same digest the pod was already running — 75c75ab02759).
           # Pinned quantum-trades 0c3de97a28ef on 2026-10-06 (loop-ladder sales are
           #   decision-tape rows; replay compares per position, PR #233).
-          image: lzetam/quantum-trades-orchestrator-qt:0c3de97a28eff10035808d255a2a4884044811e8
+          # Pinned quantum-trades 211545106292 on 2026-10-07 (pre-open check says EMPTY,
+          #   not PASS, when the golden corpus is empty, PR #235).
+          image: lzetam/quantum-trades-orchestrator-qt:211545106292151c2849f678a9cbdbd84d188177
           imagePullPolicy: IfNotPresent
 
           ports:
