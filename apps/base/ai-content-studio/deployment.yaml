@@ -30,6 +30,19 @@ spec:
         app.kubernetes.io/managed-by: kustomize
     spec:
       serviceAccountName: ai-content-studio
+      # The UNAS SocialMedia NFS export does not list thinkpad02 (10.85.30.80)
+      # yet — `showmount -e unas.landryzetam.net`, 2026-10-08 — so a pod there
+      # fails to mount it ("access denied by server"). Remove this once the node
+      # is added to that export (unifi-drive-admin skill: "Adding a new host to
+      # an NFS export"); content_inbox already allows it.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: ["thinkpad02"]
       automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
@@ -37,29 +50,39 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
+        # Group 988 owns the content_inbox and SocialMedia trees on the UNAS.
+        supplementalGroups: [988]
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: api
           # Replace with the exact sha-$GITHUB_SHA tag produced by the
           # ai-content-studio GitHub Actions workflow before enabling staging.
-          image: lzetam/ai-content-studio:sha-96dcebee221006d8881b380508f9644b3287b9c7
+          image: lzetam/ai-content-studio:sha-58da4380bab186bcfc1abcd9eee61c77d9a5f5a5
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8000
+          env:
+            - name: CONTENT_INBOX_MEDIA_ROOT
+              value: /media/content_inbox
+            - name: PREVIEW_MEDIA_ROOT
+              value: /media/social-media/buckets/social-media
           envFrom:
             - configMapRef:
                 name: ai-content-studio-config
             - secretRef:
                 name: ai-content-studio-library-secrets
+          # The SigLIP text tower for /api/v1/library/moments is loaded lazily
+          # on first search; the process sits at ~1.2 GB RSS afterwards.
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
               cpu: 500m
-              memory: 512Mi
+              memory: 1Gi
+            limits:
+              # Search embeds a query on CPU; at 1 CPU it took 0.6-0.8 s live.
+              cpu: "2"
+              memory: 2Gi
           livenessProbe:
             httpGet:
               path: /health
@@ -82,7 +105,23 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: content-inbox
+              mountPath: /media/content_inbox
+              readOnly: true
+            - name: social-media
+              mountPath: /media/social-media
+              readOnly: true
       volumes:
+        # Scene clips are cut into /tmp before download: two concurrent
+        # originals of up to 120 s of 4K (~12 MB/s) fit with headroom.
         - name: tmp
           emptyDir:
-            sizeLimit: 256Mi
+            sizeLimit: 4Gi
+        - name: content-inbox
+          persistentVolumeClaim:
+            claimName: content-inbox-media
+            readOnly: true
+        - name: social-media
+          persistentVolumeClaim:
+            claimName: social-media-media
+            readOnly: true

@@ -8,5 +8,8 @@ data:
   S3_PREFIX: ""
   LEGACY_PROCESSING_ENABLED: "false"
   CONTENT_INBOX_PREFIX: "UniFi Drive_UNAS Pro/UNAS Pro_Monthly S3 Offsite Backup/content_inbox/"
+  # Sidecars live in the social-media bucket since 2026-10-06: the UniFi
+  # offsite mirror deletes anything written beside the originals.
+  ANALYSIS_S3_PREFIX: "content-inbox-analysis/"
   CORS_ORIGINS: "https://content.landryzetam.net"
   LOG_LEVEL: "info"

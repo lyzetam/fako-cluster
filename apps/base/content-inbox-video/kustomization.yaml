@@ -10,10 +10,12 @@ resources:
   - networkpolicy.yaml
   - nfs-storage.yaml
   - configmap-sync-script.yaml
-  - sync-backfill-job.yaml
-  - restore-job.yaml
-  - backfill-job.yaml
-  # One-off, cost-bearing backfill. Enable only after the image is published
-  # and the dry-run inventory has been reviewed:
+  # One-off Jobs are NOT listed here. Each has a 7-day TTL: when the TTL
+  # deletes a finished Job, Flux recreates it from this list — backfill-010
+  # came back on 2026-10-05 and would have spent at the old settings, writing
+  # sidecars beside the originals, once the Twelve Labs plan is funded.
+  # To run one, add it for that run only, then remove it again (see
+  # reel-studio/CONTENT_INBOX_PROCESSING.md for the funded runbook):
   # - sync-backfill-job.yaml
+  # - restore-job.yaml
   # - backfill-job.yaml
