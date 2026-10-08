@@ -1,0 +1,94 @@
+# Read-only NAS mounts for the dashboard's scene downloads and thumbnails.
+#
+# content_inbox: the 4K originals, so a scene downloads losslessly (ffmpeg
+#   stream copy) instead of from S3, where 95% of originals sit in Deep Archive.
+# SocialMedia:   the bucket behind versitygw; the 720p preview copies live at
+#   buckets/social-media/content-inbox-previews/. Reading them here avoids a
+#   cold first read through Cloudflare (measured ~28 s vs ~1 s).
+#
+# Same exports as dji-media / social-media-storage, through nfs.csi.k8s.io
+# (the in-tree nfs driver only works on pglenovo01) and NFSv3 (the UNAS has no
+# v4.1). Both trees are group 988; the pod adds it as a supplemental group.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ai-content-studio-content-inbox
+  labels:
+    app.kubernetes.io/name: ai-content-studio
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=3
+    - nolock
+    - ro
+    - hard
+    - timeo=600
+    - retrans=2
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ai-content-studio-content-inbox
+    readOnly: true
+    volumeAttributes:
+      server: "unas.landryzetam.net"
+      share: "/volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/content_inbox/.data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: content-inbox-media
+  namespace: ai-content-studio
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: ai-content-studio-content-inbox
+  resources:
+    requests:
+      storage: 2Ti
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ai-content-studio-social-media
+  labels:
+    app.kubernetes.io/name: ai-content-studio
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=3
+    - nolock
+    - ro
+    - hard
+    - timeo=600
+    - retrans=2
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: ai-content-studio-social-media
+    readOnly: true
+    volumeAttributes:
+      server: "unas.landryzetam.net"
+      share: "/volume/535b39d4-5df9-48cf-9971-da0c32603790/.srv/.unifi-drive/SocialMedia/.data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: social-media-media
+  namespace: ai-content-studio
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: ""
+  volumeName: ai-content-studio-social-media
+  resources:
+    requests:
+      storage: 2Ti
