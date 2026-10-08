@@ -67,8 +67,11 @@ data:
   # at entry x (1 + 0.5 x peak), and the loop sells a position whose gain has
   # already fallen there. HPE 10-08: peak +56%, back to +28% with only the
   # -65% floor under it. Was a breakeven-only arm at +75%.
-  STOP_RATCHET_ARM_PCT: "25"
-  PROFIT_LOCK_FRACTION: "0.5"
+  # DISARMED 2026-10-08 14:45 ET: a position that armed (peak >= 25) and then
+  # went red (HIMS: peak +25.6%, now -29%) had its stop walked up half the gap
+  # to the bid every cycle (1.50 -> 2.95 in 3 minutes, bid 3.05) — a loss exit.
+  # Re-arm once the code never raises a stop toward the bid below entry.
+  STOP_RATCHET_ARM_PCT: "100000"
   # Not moving ("if its not moving after 1 trading day") needs peak
   # timestamps and ships separately.
   # Premium as a share of spot at entry: at ~8% the regime pays, at ~12% it
