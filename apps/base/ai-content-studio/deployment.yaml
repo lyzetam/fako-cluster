@@ -58,7 +58,7 @@ spec:
         - name: api
           # Replace with the exact sha-$GITHUB_SHA tag produced by the
           # ai-content-studio GitHub Actions workflow before enabling staging.
-          image: lzetam/ai-content-studio:sha-7c3189f0bee7f433f82a6b4ae91b53245aa26c3d
+          image: lzetam/ai-content-studio:sha-58da4380bab186bcfc1abcd9eee61c77d9a5f5a5
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -77,10 +77,11 @@ spec:
           # on first search; the process sits at ~1.2 GB RSS afterwards.
           resources:
             requests:
-              cpu: 250m
+              cpu: 500m
               memory: 1Gi
             limits:
-              cpu: "1"
+              # Search embeds a query on CPU; at 1 CPU it took 0.6-0.8 s live.
+              cpu: "2"
               memory: 2Gi
           livenessProbe:
             httpGet:
