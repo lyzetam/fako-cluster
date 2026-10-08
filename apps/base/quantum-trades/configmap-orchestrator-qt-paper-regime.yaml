@@ -73,8 +73,10 @@ data:
   # sold HPE at +32% (intended) and HIMS at -29% (the bug).
   STOP_RATCHET_ARM_PCT: "25"
   PROFIT_LOCK_FRACTION: "0.5"
-  # Not moving ("if its not moving after 1 trading day") needs peak
-  # timestamps and ships separately.
+  # Not moving: a position whose peak reached the arm, green now, with no
+  # new peak for 1 NYSE session is sold ("if its not moving after 1 trading
+  # day" — owner, 2026-10-08).
+  PROFIT_STALL_TRADING_DAYS: "1"
   # Premium as a share of spot at entry: at ~8% the regime pays, at ~12% it
   # does not (theta over an 8-day hold). Refuses SOXS 20%, HIMS 15%, RKT 13%.
   MAX_PREMIUM_PCT_OF_UNDERLYING: "11"
