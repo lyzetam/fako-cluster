@@ -43,7 +43,7 @@ spec:
         - name: api
           # Replace with the exact sha-$GITHUB_SHA tag produced by the
           # ai-content-studio GitHub Actions workflow before enabling staging.
-          image: lzetam/ai-content-studio:sha-0b030dde99bf78fbaa8e16fb8bc8dcbf8dc17654
+          image: lzetam/ai-content-studio:sha-ce933cfa9328b60a1092ff91d0ab52104cd7c3fd
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -53,13 +53,15 @@ spec:
                 name: ai-content-studio-config
             - secretRef:
                 name: ai-content-studio-library-secrets
+          # The SigLIP text tower for /api/v1/library/moments is loaded lazily
+          # on first search; the process sits at ~1.2 GB RSS afterwards.
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
+              cpu: 250m
+              memory: 1Gi
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: "1"
+              memory: 2Gi
           livenessProbe:
             httpGet:
               path: /health
