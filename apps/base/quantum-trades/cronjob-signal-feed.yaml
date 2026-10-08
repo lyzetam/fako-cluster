@@ -56,7 +56,11 @@ spec:
                     secretKeyRef:
                       name: alpha-scribe-secrets
                       key: DISCORD_WEBHOOK_DAY_OPTIONS
-                # LEAP falls back to the swing channel until #leap-options exists.
+                - name: DISCORD_WEBHOOK_LEAP_OPTIONS
+                  valueFrom:
+                    secretKeyRef:
+                      name: alpha-scribe-secrets
+                      key: DISCORD_WEBHOOK_LEAP_OPTIONS
                 - name: DISCORD_WEBHOOK_SWING_OPTIONS
                   valueFrom:
                     secretKeyRef:
