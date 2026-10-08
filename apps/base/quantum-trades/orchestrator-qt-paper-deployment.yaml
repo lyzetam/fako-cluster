@@ -39,6 +39,9 @@ spec:
         app: orchestrator-qt-paper
         component: autonomous-agents-paper
       annotations:
+        # Bump to roll the pod when ONLY the regime ConfigMap changes (a ConfigMap
+        # edit rolls nothing; the image pin covers code changes).
+        quantum-trades/regime-config-rev: "2026-10-08-disarm"
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
