@@ -66,6 +66,10 @@ spec:
                 runAsNonRoot: true
                 runAsUser: 1000
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+                seccompProfile:
+                  type: RuntimeDefault
 ---
 # Signal feed — SWING. Posts up to 5 swing option signals to Discord, built
 # from the trading system's own rules (quantum-trades orchestrator-qt
@@ -135,6 +139,10 @@ spec:
                 runAsNonRoot: true
                 runAsUser: 1000
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+                seccompProfile:
+                  type: RuntimeDefault
 ---
 # Signal feed — LEAP. Posts up to 5 LEAP option signals to Discord, built
 # from the trading system's own rules (quantum-trades orchestrator-qt
@@ -204,3 +212,7 @@ spec:
                 runAsNonRoot: true
                 runAsUser: 1000
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+                seccompProfile:
+                  type: RuntimeDefault
