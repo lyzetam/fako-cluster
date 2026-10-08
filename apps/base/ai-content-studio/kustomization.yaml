@@ -9,6 +9,7 @@ resources:
   - configmap.yaml
   - serviceaccount.yaml
   - networkpolicy.yaml
+  - media-volumes.yaml
   - deployment.yaml
   - service.yaml
   - https-redirect-middleware.yaml

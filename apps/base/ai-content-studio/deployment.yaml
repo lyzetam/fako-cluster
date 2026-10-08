@@ -37,17 +37,24 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
+        # Group 988 owns the content_inbox and SocialMedia trees on the UNAS.
+        supplementalGroups: [988]
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: api
           # Replace with the exact sha-$GITHUB_SHA tag produced by the
           # ai-content-studio GitHub Actions workflow before enabling staging.
-          image: lzetam/ai-content-studio:sha-63abb6b5e14df5285cf9cf30f2fac116c5214369
+          image: lzetam/ai-content-studio:sha-7c3189f0bee7f433f82a6b4ae91b53245aa26c3d
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8000
+          env:
+            - name: CONTENT_INBOX_MEDIA_ROOT
+              value: /media/content_inbox
+            - name: PREVIEW_MEDIA_ROOT
+              value: /media/social-media/buckets/social-media
           envFrom:
             - configMapRef:
                 name: ai-content-studio-config
@@ -84,7 +91,23 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: content-inbox
+              mountPath: /media/content_inbox
+              readOnly: true
+            - name: social-media
+              mountPath: /media/social-media
+              readOnly: true
       volumes:
+        # Scene clips are cut into /tmp before download: two concurrent
+        # originals of up to 120 s of 4K (~12 MB/s) fit with headroom.
         - name: tmp
           emptyDir:
-            sizeLimit: 256Mi
+            sizeLimit: 4Gi
+        - name: content-inbox
+          persistentVolumeClaim:
+            claimName: content-inbox-media
+            readOnly: true
+        - name: social-media
+          persistentVolumeClaim:
+            claimName: social-media-media
+            readOnly: true
