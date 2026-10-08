@@ -42,7 +42,7 @@ spec:
             - name: exit-validation-preopen-paper
               # Same pin as orchestrator-qt-paper-deployment.yaml — the replay must
               # run the code the loop ran. Bump both together.
-              image: lzetam/quantum-trades-orchestrator-qt:fb12e74ae1a14eda71a41e7af039ea64743d6f1a
+              image: lzetam/quantum-trades-orchestrator-qt:78a7511682079e6f5a0ce514c3ecc5c701f3430b
               imagePullPolicy: IfNotPresent
               command: ["python", "-m", "validation.run", "--mode", "pre_open"]
               envFrom:
