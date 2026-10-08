@@ -96,7 +96,9 @@ spec:
           #   decision-tape rows; replay compares per position, PR #233).
           # Pinned quantum-trades 211545106292 on 2026-10-07 (pre-open check says EMPTY,
           #   not PASS, when the golden corpus is empty, PR #235).
-          image: lzetam/quantum-trades-orchestrator-qt:211545106292151c2849f678a9cbdbd84d188177
+          # Pinned quantum-trades fb12e74ae1a1 on 2026-10-08 (validator reads the whole
+          #   day's tape, not the first 1,000 rows, PR #237).
+          image: lzetam/quantum-trades-orchestrator-qt:fb12e74ae1a14eda71a41e7af039ea64743d6f1a
           imagePullPolicy: IfNotPresent
 
           ports:
