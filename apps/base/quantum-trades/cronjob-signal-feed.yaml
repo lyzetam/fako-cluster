@@ -1,4 +1,5 @@
-# Signal feed — DAY. Posts up to 5 day option signals to Discord, built
+# Signal feed — DAY, SWING and LEAP in one job. Posts up to 5 signals per
+# horizon (overlap allowed, marked "Also posted as") to Discord, built
 # from the trading system's own rules (quantum-trades orchestrator-qt
 # signal_feed/). Reads the paper universe, the signals service and Tradier
 # sandbox quotes/chains; places no orders; never talks to a trading pod
@@ -6,10 +7,10 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: signal-feed-day
+  name: signal-feed
   namespace: quantum-trades
   labels:
-    app.kubernetes.io/name: signal-feed-day
+    app.kubernetes.io/name: signal-feed
     app.kubernetes.io/part-of: quantum-trades
     app.kubernetes.io/managed-by: flux
 spec:
@@ -24,20 +25,20 @@ spec:
     spec:
       ttlSecondsAfterFinished: 86400
       backoffLimit: 0
-      activeDeadlineSeconds: 900
+      activeDeadlineSeconds: 1500
       template:
         spec:
           restartPolicy: Never
           imagePullSecrets:
             - name: dockerhub-registry
           containers:
-            - name: signal-feed-day
+            - name: signal-feed
               # Pinned by git SHA like paper (never :latest). The entry rule and
               # stock-stop math come from the same modules paper trades with;
               # bump this pin whenever paper's pin moves.
-              image: lzetam/quantum-trades-orchestrator-qt:995d6916ea08f2ec46b0108de4266fcb52656abf
+              image: lzetam/quantum-trades-orchestrator-qt:4881d6de468776e4505f3459cd36ca34d465eb22
               imagePullPolicy: IfNotPresent
-              command: ["python", "-m", "signal_feed", "--horizon", "day"]
+              command: ["python", "-m", "signal_feed", "--horizon", "all"]
               envFrom:
                 - secretRef:
                     name: orchestrator-qt-secrets
@@ -55,147 +56,7 @@ spec:
                     secretKeyRef:
                       name: alpha-scribe-secrets
                       key: DISCORD_WEBHOOK_DAY_OPTIONS
-              resources:
-                requests:
-                  cpu: 100m
-                  memory: 192Mi
-                limits:
-                  cpu: 500m
-                  memory: 512Mi
-              securityContext:
-                runAsNonRoot: true
-                runAsUser: 1000
-                allowPrivilegeEscalation: false
-                capabilities:
-                  drop: ["ALL"]
-                seccompProfile:
-                  type: RuntimeDefault
----
-# Signal feed — SWING. Posts up to 5 swing option signals to Discord, built
-# from the trading system's own rules (quantum-trades orchestrator-qt
-# signal_feed/). Reads the paper universe, the signals service and Tradier
-# sandbox quotes/chains; places no orders; never talks to a trading pod
-# (2026-10-08: an in-pod probe OOM-killed the paper trading process).
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: signal-feed-swing
-  namespace: quantum-trades
-  labels:
-    app.kubernetes.io/name: signal-feed-swing
-    app.kubernetes.io/part-of: quantum-trades
-    app.kubernetes.io/managed-by: flux
-spec:
-  schedule: "15 10 * * 1-5"
-  timeZone: "America/New_York"
-  # A late signal is worse than none: never back-fill a missed slot.
-  startingDeadlineSeconds: 600
-  concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
-  jobTemplate:
-    spec:
-      ttlSecondsAfterFinished: 86400
-      backoffLimit: 0
-      activeDeadlineSeconds: 900
-      template:
-        spec:
-          restartPolicy: Never
-          imagePullSecrets:
-            - name: dockerhub-registry
-          containers:
-            - name: signal-feed-swing
-              # Pinned by git SHA like paper (never :latest). The entry rule and
-              # stock-stop math come from the same modules paper trades with;
-              # bump this pin whenever paper's pin moves.
-              image: lzetam/quantum-trades-orchestrator-qt:995d6916ea08f2ec46b0108de4266fcb52656abf
-              imagePullPolicy: IfNotPresent
-              command: ["python", "-m", "signal_feed", "--horizon", "swing"]
-              envFrom:
-                - secretRef:
-                    name: orchestrator-qt-secrets
-              env:
-                - name: PYTHONUNBUFFERED
-                  value: "1"
-                - name: TRADING_MODE
-                  value: "paper"
-                - name: SUPABASE_SCHEMA
-                  value: "paper"
-                - name: SIGNALS_SERVICE_URL
-                  value: "http://signals-service:8002"
-                - name: DISCORD_WEBHOOK_SWING_OPTIONS
-                  valueFrom:
-                    secretKeyRef:
-                      name: alpha-scribe-secrets
-                      key: DISCORD_WEBHOOK_SWING_OPTIONS
-              resources:
-                requests:
-                  cpu: 100m
-                  memory: 192Mi
-                limits:
-                  cpu: 500m
-                  memory: 512Mi
-              securityContext:
-                runAsNonRoot: true
-                runAsUser: 1000
-                allowPrivilegeEscalation: false
-                capabilities:
-                  drop: ["ALL"]
-                seccompProfile:
-                  type: RuntimeDefault
----
-# Signal feed — LEAP. Posts up to 5 LEAP option signals to Discord, built
-# from the trading system's own rules (quantum-trades orchestrator-qt
-# signal_feed/). Reads the paper universe, the signals service and Tradier
-# sandbox quotes/chains; places no orders; never talks to a trading pod
-# (2026-10-08: an in-pod probe OOM-killed the paper trading process).
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: signal-feed-leap
-  namespace: quantum-trades
-  labels:
-    app.kubernetes.io/name: signal-feed-leap
-    app.kubernetes.io/part-of: quantum-trades
-    app.kubernetes.io/managed-by: flux
-spec:
-  schedule: "25 10 * * 1-5"
-  timeZone: "America/New_York"
-  # A late signal is worse than none: never back-fill a missed slot.
-  startingDeadlineSeconds: 600
-  concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
-  jobTemplate:
-    spec:
-      ttlSecondsAfterFinished: 86400
-      backoffLimit: 0
-      activeDeadlineSeconds: 900
-      template:
-        spec:
-          restartPolicy: Never
-          imagePullSecrets:
-            - name: dockerhub-registry
-          containers:
-            - name: signal-feed-leap
-              # Pinned by git SHA like paper (never :latest). The entry rule and
-              # stock-stop math come from the same modules paper trades with;
-              # bump this pin whenever paper's pin moves.
-              image: lzetam/quantum-trades-orchestrator-qt:995d6916ea08f2ec46b0108de4266fcb52656abf
-              imagePullPolicy: IfNotPresent
-              command: ["python", "-m", "signal_feed", "--horizon", "leap"]
-              envFrom:
-                - secretRef:
-                    name: orchestrator-qt-secrets
-              env:
-                - name: PYTHONUNBUFFERED
-                  value: "1"
-                - name: TRADING_MODE
-                  value: "paper"
-                - name: SUPABASE_SCHEMA
-                  value: "paper"
-                - name: SIGNALS_SERVICE_URL
-                  value: "http://signals-service:8002"
+                # LEAP falls back to the swing channel until #leap-options exists.
                 - name: DISCORD_WEBHOOK_SWING_OPTIONS
                   valueFrom:
                     secretKeyRef:
