@@ -41,7 +41,7 @@ spec:
       annotations:
         # Bump to roll the pod when ONLY the regime ConfigMap changes (a ConfigMap
         # edit rolls nothing; the image pin covers code changes).
-        quantum-trades/regime-config-rev: "2026-10-08-disarm"
+        quantum-trades/regime-config-rev: "2026-10-08-rearm"
         prometheus.io/scrape: "true"
         prometheus.io/port: "8086"
         prometheus.io/path: "/metrics"
@@ -104,7 +104,9 @@ spec:
           # Pinned quantum-trades 78a751168207 on 2026-10-08 (profit lock: keep half
           #   the peak gain from +25%; runners sold at +180%, PR #240; also carries
           #   signal_feed #239 and the scanner-independent fixes #238).
-          image: lzetam/quantum-trades-orchestrator-qt:78a7511682079e6f5a0ce514c3ecc5c701f3430b
+          # Pinned quantum-trades 995d6916ea08 on 2026-10-08 (the lock never walks a
+          #   losing position's stop toward the bid — HIMS -29%, PR #241).
+          image: lzetam/quantum-trades-orchestrator-qt:995d6916ea08f2ec46b0108de4266fcb52656abf
           imagePullPolicy: IfNotPresent
 
           ports:
