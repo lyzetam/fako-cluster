@@ -4,8 +4,10 @@
 # the Macs; `kubectl kustomize` is the same renderer.
 #
 #   VERIFY_SERVER=1 make verify   # also server-side dry-run against the current
-#                                 # kube context (slow; Flux postBuild ${VARS}
-#                                 # are NOT substituted, so expect some rejects)
+#                                 # kube context (~2 min). SOPS-encrypted Secrets
+#                                 # are skipped: kubectl's strict validation
+#                                 # rejects their top-level `sops:` block, which
+#                                 # Flux strips after decrypting.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -33,10 +35,16 @@ if [[ "${VERIFY_SERVER:-0}" == "1" ]]; then
   for r in "${ROOTS[@]}"; do
     out="$tmp/$(echo "$r" | tr / _).yaml"
     [[ -s "$out" ]] || continue
-    if kubectl apply --dry-run=server -f "$out" >/dev/null 2>"$tmp/err"; then
-      echo "ok    server dry-run $r"
+    # Drop SOPS documents (top-level `sops:` key); everything else goes to the API.
+    awk 'BEGIN{RS="\n---\n"; ORS="\n---\n"} !/(^|\n)sops:\n/' "$out" >"$tmp/plain.yaml"
+    if kubectl --request-timeout=120s apply --dry-run=server -f "$tmp/plain.yaml" >/dev/null 2>"$tmp/err"; then
+      printf 'ok    server dry-run %-20s %4d objects (%d SOPS secrets skipped)\n' "$r" \
+        "$(grep -c '^kind:' "$tmp/plain.yaml")" "$(( $(grep -c '^kind:' "$out") - $(grep -c '^kind:' "$tmp/plain.yaml") ))"
     else
-      echo "FAIL  server dry-run $r"; sed 's/^/      /' "$tmp/err" | head -20; fail=1
+      echo "FAIL  server dry-run $r"; fail=1
+      # First 20 real errors; the apply also warns about every object's missing
+      # last-applied annotation (owned by kustomize-controller), which is noise.
+      grep -m20 -v '^Warning:' "$tmp/err" | sed 's/^/      /' || true
     fi
   done
 fi
