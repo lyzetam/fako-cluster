@@ -98,7 +98,10 @@ spec:
           #   not PASS, when the golden corpus is empty, PR #235).
           # Pinned quantum-trades fb12e74ae1a1 on 2026-10-08 (validator reads the whole
           #   day's tape, not the first 1,000 rows, PR #237).
-          image: lzetam/quantum-trades-orchestrator-qt:fb12e74ae1a14eda71a41e7af039ea64743d6f1a
+          # Pinned quantum-trades 78a751168207 on 2026-10-08 (profit lock: keep half
+          #   the peak gain from +25%; runners sold at +180%, PR #240; also carries
+          #   signal_feed #239 and the scanner-independent fixes #238).
+          image: lzetam/quantum-trades-orchestrator-qt:78a7511682079e6f5a0ce514c3ecc5c701f3430b
           imagePullPolicy: IfNotPresent
 
           ports:
@@ -138,8 +141,10 @@ spec:
             # NOTE this is still a flat dollar amount and will drift as the
             # account grows; the derivation (weekly = 2 x effective daily) is
             # shipping separately so it tracks automatically.
+            # ~7% of the ~$71k paper account (owner, 2026-10-08). Was 18,800 —
+            # 26% of the account could go before the week stopped.
             - name: MAX_WEEKLY_LOSS_DOLLARS
-              value: "18800"
+              value: "5000"
 
             # Service URLs
             - name: HOST

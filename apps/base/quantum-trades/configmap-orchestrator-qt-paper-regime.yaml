@@ -51,22 +51,26 @@ data:
   # stop's width barely matters.
   HORIZON_LAYER1_LOSS_PCT: "65"
   PROFIT_LADDER_ENABLED: "false"
-  # --- Bank profit, keep a runner (owner, 2026-10-05: "we should take
-  # profit, and keep a small runner!!!", with NU +150%, EWZ +125%, GME +41%
-  # open under no profit rule). The loop's own scale-out (_profit_lifecycle;
-  # PROFIT_LADDER_ENABLED=false only removes the BROKER-resident slices)
-  # sells SCALEOUT_SELL_FRACTION of what is still held at each rung, rounded
-  # up, never below the one-contract runner: a 10-lot banks 5 at +75% and 3
-  # of the remaining 5 at +150%, keeping 2. A one-lot that never banked is
-  # sold whole at SCALEOUT_RUNNER_CAP_PCT (it cannot be split); a runner
-  # that banked is never capped. Once the peak crosses STOP_RATCHET_ARM_PCT
-  # the broker stop moves to BREAKEVEN (horizon: never the peak-15 trail);
-  # the runner's exits are that stop, the stock stop and the 12-day clock.
+  # --- Take profit and protect it (owner, 2026-10-05 and 2026-10-08).
+  # The loop's own scale-out (_profit_lifecycle; PROFIT_LADDER_ENABLED=false
+  # only removes the BROKER-resident slices) sells SCALEOUT_SELL_FRACTION of
+  # what is still held at each rung, rounded up, never below one contract: a
+  # 10-lot sells 5 at +75% and 3 of the remaining 5 at +150%, keeping 2.
   # JSON list: pydantic parses list[float] from the env.
   SCALEOUT_GAIN_TRIGGERS: "[75.0, 150.0]"
   SCALEOUT_SELL_FRACTION: "0.5"
-  SCALEOUT_RUNNER_CAP_PCT: "150"
-  STOP_RATCHET_ARM_PCT: "75"
+  # Rising: "180% is enough" — anything left after a sale is sold in full
+  # at +180% (a never-banked one-lot too).
+  SCALEOUT_RUNNER_CAP_PCT: "180"
+  # Dropping: "i should have been able to lock in those profits" — once a
+  # position's PEAK gain reaches +25%, keep half of it: the broker stop sits
+  # at entry x (1 + 0.5 x peak), and the loop sells a position whose gain has
+  # already fallen there. HPE 10-08: peak +56%, back to +28% with only the
+  # -65% floor under it. Was a breakeven-only arm at +75%.
+  STOP_RATCHET_ARM_PCT: "25"
+  PROFIT_LOCK_FRACTION: "0.5"
+  # Not moving ("if its not moving after 1 trading day") needs peak
+  # timestamps and ships separately.
   # Premium as a share of spot at entry: at ~8% the regime pays, at ~12% it
   # does not (theta over an 8-day hold). Refuses SOXS 20%, HIMS 15%, RKT 13%.
   MAX_PREMIUM_PCT_OF_UNDERLYING: "11"
