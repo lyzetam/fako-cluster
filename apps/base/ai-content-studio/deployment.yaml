@@ -30,6 +30,19 @@ spec:
         app.kubernetes.io/managed-by: kustomize
     spec:
       serviceAccountName: ai-content-studio
+      # The UNAS SocialMedia NFS export does not list thinkpad02 (10.85.30.80)
+      # yet — `showmount -e unas.landryzetam.net`, 2026-10-08 — so a pod there
+      # fails to mount it ("access denied by server"). Remove this once the node
+      # is added to that export (unifi-drive-admin skill: "Adding a new host to
+      # an NFS export"); content_inbox already allows it.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: ["thinkpad02"]
       automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
