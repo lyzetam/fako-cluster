@@ -49,6 +49,14 @@ spec:
       checkpoint_completion_target: "0.9"
     
     pg_hba:
+      # health_ro (nightly health export) may reach ONLY oura/withings/hume; every
+      # other database is rejected for this role. First match wins, so these lines
+      # must stay ABOVE the generic `all all` lines. Only affects health_ro.
+      - host oura,withings,hume health_ro 10.0.0.0/8 md5
+      - host oura,withings,hume health_ro 172.16.0.0/12 md5
+      - host oura,withings,hume health_ro 192.168.0.0/16 md5
+      - host all health_ro 0.0.0.0/0 reject
+      - host all health_ro ::/0 reject
       - host all all 10.0.0.0/8 md5
       - host all all 172.16.0.0/12 md5
       - host all all 192.168.0.0/16 md5
@@ -102,6 +110,31 @@ spec:
         connectionLimit: 5
         passwordSecret:
           name: oura-readonly-secret
+      # Read-only login for the nightly health export (oura + withings + hume views).
+      # Attributes only; privileges come from health-ro-grants-cronjob.yaml.
+      # No inRoles (pg_read_all_data would expose every database), no bypassrls.
+      - name: health_ro
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        inherit: false
+        replication: false
+        bypassrls: false
+        connectionLimit: 5
+        passwordSecret:
+          name: health-readonly-secret
+      # NOLOGIN owner of the views in hume.health.*; can SELECT only the two hume base tables.
+      - name: health_views_owner
+        ensure: present
+        login: false
+        superuser: false
+        createdb: false
+        createrole: false
+        inherit: false
+        replication: false
+        bypassrls: false
   
   storage:
     size: 50Gi

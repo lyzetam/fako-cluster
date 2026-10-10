@@ -1,0 +1,132 @@
+# Converges the privileges of the `health_ro` role (read-only, used ONLY by the
+# nightly health export; see health-export-cronjob.yaml).
+#
+# Design: explicit allowlist, fail-closed. NO default privileges are granted to
+# health_ro anywhere, so a table created tomorrow is invisible to it until it is
+# added here. Runs daily at 05:45 ET (15 min before the 06:00 export) and is
+# idempotent. Run once by hand after merge:
+#   kubectl -n postgres create job --from=cronjob/health-ro-grants health-ro-grants-manual-1
+#
+# Exposed:   oura (23 oura_* tables, NOT oura_personal_info), withings
+#            (withings_measures only, NOT withings_tokens), hume (two views in
+#            schema `health` with explicit columns; `source` column dropped).
+# Never:     oura_personal_info, withings_tokens, hume base tables, any write.
+# Logs contain relation names only, never data.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: health-ro-grants
+  namespace: postgres
+spec:
+  schedule: "45 5 * * *"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: grants
+            image: postgres:16
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: PGHOST
+              value: postgres-cluster-rw.postgres.svc.cluster.local
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-admin-secret
+                  key: password
+            # Role that owns/creates the collector tables (value is never printed).
+            - name: COLLECTOR_ROLE
+              valueFrom:
+                secretKeyRef:
+                  name: app-user-secret
+                  key: username
+            resources:
+              requests: { cpu: 50m, memory: 64Mi }
+              limits: { cpu: 200m, memory: 128Mi }
+            command: ["/bin/bash", "-c"]
+            args:
+            - |
+              set -euo pipefail
+              ro=health_ro
+              psql -X -At -c "SELECT 1 FROM pg_roles WHERE rolname='${ro}'" | grep -q 1 \
+                || { echo "FATAL: role ${ro} does not exist yet (CNPG managed role not reconciled / secret health-readonly-secret missing)"; exit 1; }
+
+              # ---- role settings (guardrails; CNPG managed.roles cannot set these) ----
+              psql -X -v ON_ERROR_STOP=1 -c "ALTER ROLE ${ro} SET statement_timeout = '30s';"
+              psql -X -v ON_ERROR_STOP=1 -c "ALTER ROLE ${ro} SET default_transaction_read_only = on;"
+              psql -X -v ON_ERROR_STOP=1 -c "ALTER ROLE ${ro} SET idle_in_transaction_session_timeout = '60s';"
+
+              # ---- oura: explicit allowlist (every oura_* table EXCEPT oura_personal_info) ----
+              OURA_TABLES=$(tr -s ' \n' ' ' <<'LIST'
+              oura_sleep_periods oura_daily_sleep oura_activity oura_readiness oura_workouts oura_stress
+              oura_heart_rate oura_sessions oura_vo2_max oura_cardiovascular_age oura_resilience oura_spo2 oura_tags
+              oura_sleep_time oura_rest_mode_periods oura_ring_configuration oura_sleep_phase_timeseries
+              oura_activity_met_timeseries oura_daily_summaries oura_daily_health_composite oura_weekly_health_trends
+              oura_ring_battery_level oura_collection_logs
+              LIST
+              )
+              psql -X -v ON_ERROR_STOP=1 -d oura -c "GRANT CONNECT ON DATABASE oura TO ${ro};"
+              psql -X -v ON_ERROR_STOP=1 -d oura -c "GRANT USAGE ON SCHEMA public TO ${ro};"
+              psql -X -v ON_ERROR_STOP=1 -d oura -c "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${ro};"   # converge: drop stale grants first
+              for t in ${OURA_TABLES}; do
+                if [ "$(psql -X -d oura -Atc "SELECT to_regclass('public.${t}') IS NOT NULL")" = "t" ]; then
+                  psql -X -v ON_ERROR_STOP=1 -d oura -c "GRANT SELECT ON public.${t} TO ${ro};"
+                else
+                  echo "WARN: oura.${t} does not exist (skipped)"
+                fi
+              done
+              # drift report: oura_* tables that exist but are neither allowlisted nor the PII table
+              psql -X -d oura -Atc "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'oura\_%' AND tablename <> 'oura_personal_info'" \
+                | while read -r t; do case " ${OURA_TABLES} " in *" ${t} "*) ;; *) echo "WARN: NEW oura table not granted (review): ${t}";; esac; done
+              psql -X -d oura -c "REVOKE ALL ON public.oura_personal_info FROM ${ro};" || true   # belt and braces (PII)
+
+              # ---- withings: ONE table ----
+              psql -X -v ON_ERROR_STOP=1 -d withings -c "GRANT CONNECT ON DATABASE withings TO ${ro};"
+              psql -X -v ON_ERROR_STOP=1 -d withings -c "GRANT USAGE ON SCHEMA public TO ${ro};"
+              psql -X -v ON_ERROR_STOP=1 -d withings -c "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${ro};"
+              psql -X -v ON_ERROR_STOP=1 -d withings -c "GRANT SELECT ON public.withings_measures TO ${ro};"
+              psql -X -d withings -c "REVOKE ALL ON public.withings_tokens FROM ${ro};" || true   # never granted; explicit for clarity
+
+              # ---- hume: views only (schema `health`), explicit columns, `source` dropped ----
+              psql -X -v ON_ERROR_STOP=1 -d hume -c "GRANT CONNECT ON DATABASE hume TO ${ro};"
+              HAVE=$(psql -X -d hume -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('health_samples','hume_body_composition')")
+              if [ "${HAVE}" != "2" ]; then
+                echo "WARN: hume base tables not both present yet (found ${HAVE}); the receiver creates them on first ingest. Skipping views; the next daily run converges."
+              else
+                psql -X -v ON_ERROR_STOP=1 -d hume -v collector="${COLLECTOR_ROLE}" -f /dev/stdin <<'SQL'
+              BEGIN;
+              CREATE SCHEMA IF NOT EXISTS health AUTHORIZATION health_views_owner;
+              REVOKE ALL ON SCHEMA health FROM PUBLIC;
+              -- views owner can read ONLY these two base tables
+              GRANT USAGE ON SCHEMA public TO health_views_owner;
+              GRANT SELECT ON public.health_samples, public.hume_body_composition TO health_views_owner;
+              -- tables later (re)created by the collector role are readable by the OWNER only, never by health_ro
+              ALTER DEFAULT PRIVILEGES FOR ROLE :"collector" IN SCHEMA public GRANT SELECT ON TABLES TO health_views_owner;
+              SET LOCAL ROLE health_views_owner;
+              DROP VIEW IF EXISTS health.v_health_samples;
+              CREATE VIEW health.v_health_samples AS
+                SELECT type, value, unit, start_ts, end_ts          -- explicit columns; `source` dropped; never SELECT *
+                FROM public.health_samples;
+              DROP VIEW IF EXISTS health.v_hume_body_composition;
+              CREATE VIEW health.v_hume_body_composition AS
+                SELECT date, body_fat_pct, weight_kg, lean_mass_kg, bmi, updated_at   -- `source` dropped
+                FROM public.hume_body_composition;
+              RESET ROLE;
+              REVOKE ALL ON ALL TABLES IN SCHEMA public FROM health_ro;     -- no direct access to hume base tables
+              GRANT USAGE ON SCHEMA health TO health_ro;
+              GRANT SELECT ON health.v_health_samples, health.v_hume_body_composition TO health_ro;   -- explicit names
+              COMMIT;
+              SQL
+              fi
+              echo "health_ro grants converged."
