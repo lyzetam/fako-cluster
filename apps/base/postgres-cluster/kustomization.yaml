@@ -16,6 +16,8 @@ resources:
   - backup-pvc.yaml
   - backup-schedule.yaml
   - backup-s3-cronjob.yaml
+  - external-secret-health-export.yaml
+  - health-export-cronjob.yaml
 
   # - service.yaml
   # - pooler.yaml  # Uncomment if using PgBouncer
