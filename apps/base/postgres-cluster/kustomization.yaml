@@ -8,11 +8,13 @@ resources:
   - external-secret-admin.yaml
   - external-secret-app.yaml
   - external-secret-oura-readonly.yaml
+  - external-secret-health-readonly.yaml
   - external-secret-s3-backup.yaml
   - aws-credentials-secret.yaml
   - postgres-cluster.yaml
   - database-init-job.yaml
   - oura-readonly-grants-job.yaml
+  - health-ro-grants-cronjob.yaml
   - backup-pvc.yaml
   - backup-schedule.yaml
   - backup-s3-cronjob.yaml
