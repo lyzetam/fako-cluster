@@ -1,0 +1,137 @@
+# Nightly export of the health_ro-readable relations to a private S3 bucket.
+# SHIPS SUSPENDED. Unsuspend only after (a) PR "health_ro role + grants" is
+# merged and its verification passed, and (b) a manual test run succeeded:
+#   kubectl -n postgres create job --from=cronjob/health-export health-export-manual-1
+# Reads as `health_ro` (never the superuser); writes with an IAM user that can
+# only PutObject under health/. Logs contain relation names only, never data.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: health-export
+  namespace: postgres
+spec:
+  suspend: true                       # flipped to false only after the manual test run is verified
+  schedule: "0 6 * * *"               # 06:00 ET (10:00 UTC EDT / 11:00 UTC EST); after 02:00 dump, 05:00 S3 archive, 05:45 grants
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      backoffLimit: 2
+      activeDeadlineSeconds: 7200     # hard ceiling: a stuck run becomes a failed Job instead of silently blocking tomorrow
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 999              # emptyDir writable by the postgres user
+          volumes:
+          - name: export
+            emptyDir:
+              sizeLimit: 3Gi
+          initContainers:
+          # 1) dump allowed relations to CSV.gz as health_ro
+          - name: export
+            image: postgres:16
+            imagePullPolicy: IfNotPresent
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 999
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+            env:
+            - name: PGHOST
+              value: postgres-cluster-rw.postgres.svc.cluster.local   # -rw on purpose: long COPY on a hot standby can be cancelled by WAL replay conflicts
+            - name: PGSSLMODE
+              value: require
+            - name: PGOPTIONS
+              value: "-c statement_timeout=1200000 -c default_transaction_read_only=on"   # 20 min for this session only (role default is 30s)
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: health-readonly-secret
+                  key: username
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: health-readonly-secret
+                  key: password
+            volumeMounts:
+            - name: export
+              mountPath: /export
+            resources:
+              requests: { cpu: 100m, memory: 128Mi }
+              limits: { cpu: "1", memory: 512Mi }
+            command: ["/bin/bash", "-c"]
+            args:
+            - |
+              set -euo pipefail
+              DT=$(TZ=America/New_York date +%F)
+              OUT=/export/dt=${DT}; mkdir -p "${OUT}"
+              # Interlock: never export these, even if grants drift.
+              DENY=" oura_personal_info withings_tokens health_samples hume_body_composition "
+              list() {   # relations health_ro can SELECT in this DB: tables in public, views in health
+                psql -X -At -d "$1" -c "SELECT n.nspname||'.'||c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                  WHERE c.relkind IN ('r','v') AND n.nspname IN ('public','health') AND has_table_privilege(current_user, c.oid, 'SELECT') ORDER BY 1"
+              }
+              : > "${OUT}/_tables.tsv"
+              for db in oura withings hume; do
+                mkdir -p "${OUT}/${db}"
+                rels=$(list "${db}")
+                [ -n "${rels}" ] || { echo "FATAL: no readable relations in ${db}" >&2; exit 1; }
+                for r in ${rels}; do
+                  name=${r#*.}
+                  case "${DENY}" in *" ${name} "*) echo "FATAL: ${db}.${name} is on the deny list but readable" >&2; exit 1;; esac
+                  if [ "${db}" = hume ] && [ "${r%%.*}" != health ]; then echo "FATAL: hume base table readable: ${r}" >&2; exit 1; fi
+                  cols=$(psql -X -At -d "${db}" -c "SELECT string_agg(column_name,',' ORDER BY ordinal_position) FROM information_schema.columns WHERE table_schema='${r%%.*}' AND table_name='${name}'")
+                  case ",${cols}," in *,source,*) if [ "${db}" = hume ]; then echo "FATAL: ${r} exposes a source column" >&2; exit 1; fi;; esac
+                  rows=$(psql -X -At -d "${db}" -c "SELECT count(*) FROM ${r}")      # approximate; tables keep changing
+                  psql -X -q -d "${db}" -v ON_ERROR_STOP=1 -c "\copy (SELECT * FROM ${r}) TO STDOUT WITH (FORMAT csv, HEADER true)" \
+                    | gzip -6 > "${OUT}/${db}/${name}.csv.gz"
+                  gzip -t "${OUT}/${db}/${name}.csv.gz"
+                  printf '%s\t%s\t%s\t%s\t%s\n' "${db}" "${name}" "${rows}" "$(sha256sum "${OUT}/${db}/${name}.csv.gz" | cut -d' ' -f1)" "${cols}" >> "${OUT}/_tables.tsv"
+                  echo "exported ${db}.${name}"          # names only; never log data
+                done
+              done
+              echo "${DT}" > /export/_dt
+          # 2) upload + verify + manifest last
+          - name: upload
+            image: amazon/aws-cli:2.36.25
+            imagePullPolicy: IfNotPresent
+            envFrom:
+            - secretRef:
+                name: health-export-secret
+            volumeMounts:
+            - name: export
+              mountPath: /export
+            resources:
+              requests: { cpu: 100m, memory: 256Mi }
+              limits: { cpu: "1", memory: 512Mi }
+            command: ["/bin/bash", "-c"]
+            args:
+            - |
+              set -euo pipefail
+              DT=$(cat /export/_dt); SRC=/export/dt=${DT}; DEST=s3://${S3_BUCKET}/health/dt=${DT}
+              aws s3 cp "${SRC}" "${DEST}/" --recursive --exclude "_tables.tsv" --sse AES256 --only-show-errors
+              LOCAL=$(find "${SRC}" -name '*.csv.gz' | wc -l | tr -d ' ')
+              REMOTE=$(aws s3 ls "${DEST}/" --recursive | grep -c '\.csv\.gz$' || true)
+              [ "${LOCAL}" = "${REMOTE}" ] || { echo "FATAL: uploaded ${REMOTE} of ${LOCAL}" >&2; exit 1; }
+              # manifest = TSV built by the export step (db, relation, approx rows, sha256, column names; no data); written LAST
+              aws s3 cp "${SRC}/_tables.tsv" "${DEST}/_manifest.tsv" --sse AES256 --only-show-errors
+              printf '{"dt":"%s","manifest":"health/dt=%s/_manifest.tsv"}' "${DT}" "${DT}" > /export/_LATEST.json
+              aws s3 cp /export/_LATEST.json "s3://${S3_BUCKET}/health/_LATEST.json" --sse AES256 --only-show-errors
+              echo "upload OK ${DT} (${LOCAL} objects)"
+          containers:
+          # 3) success ping (dead-man switch)
+          - name: ping
+            image: curlimages/curl:8.11.1
+            envFrom:
+            - secretRef:
+                name: health-export-secret
+            resources:
+              requests: { cpu: 10m, memory: 16Mi }
+              limits: { cpu: 100m, memory: 32Mi }
+            command: ["/bin/sh", "-c", "curl -fsS -m 10 --retry 3 \"$PING_URL\" >/dev/null && echo pinged"]
