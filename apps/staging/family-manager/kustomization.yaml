@@ -1,5 +1,25 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# Currently NOT included by apps/staging/kustomization.yaml (commented out).
+# If it is ever re-included, the app still comes up inert: the bot has 0
+# replicas and the email CronJob is suspended. Remove these patches only as
+# part of a reviewed re-enable.
 resources:
   - ../../base/family-manager
+
+patches:
+  - target:
+      kind: Deployment
+      name: family-manager-bot
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 0
+  - target:
+      kind: CronJob
+      name: family-manager-email-processor
+    patch: |-
+      - op: add
+        path: /spec/suspend
+        value: true
