@@ -1,0 +1,62 @@
+# Ingress allow-list for the CNPG instances (Norbert must-fix 6 on #359).
+# Client namespaces = apps in this repo that reference postgres-cluster-* AND exist
+# live (Oct 12 2026), cross-checked against pg_stat_activity on the primary.
+# kubectl port-forward enters the pod's netns via kubelet and is not affected.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-cluster-ingress
+  namespace: postgres
+spec:
+  podSelector:
+    matchLabels: { cnpg.io/cluster: postgres-cluster }
+  policyTypes: [Ingress]
+  ingress:
+  # Postgres clients
+  - ports: [{ port: 5432, protocol: TCP }]
+    from:
+    - podSelector: {}   # same namespace: replicas, backup/init/grants jobs, tailnet relay
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: fieldy-webhook } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: hume-collector } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: keycloak } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: langfuse } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: market-replay } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: meal-tracker } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: n8n } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: oura-agent } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: oura-collector } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: pgadmin } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: plaud-collector } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: quantum-trades } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: umami } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: withings-collector } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: postgres-recovery } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: backup-system } }
+  # CNPG operator: instance status API + postgres
+  - ports: [{ port: 8000, protocol: TCP }, { port: 5432, protocol: TCP }]
+    from:
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: cnpg-system } }
+  # Metrics scrape
+  - ports: [{ port: 9187, protocol: TCP }]
+    from:
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: monitoring } }
+---
+# Tailnet relay egress: only the -ro replica, DNS, and Tailscale (direct UDP + DERP/control 443).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-ro-tailnet-egress
+  namespace: postgres
+spec:
+  podSelector:
+    matchLabels: { app: postgres-ro-tailnet }
+  policyTypes: [Egress]
+  egress:
+  - to:
+    - podSelector: { matchLabels: { cnpg.io/cluster: postgres-cluster } }
+    ports: [{ port: 5432, protocol: TCP }]
+  - to:
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
+      podSelector: { matchLabels: { k8s-app: kube-dns } }
+    ports: [{ port: 53, protocol: UDP }, { port: 53, protocol: TCP }]
+  - ports: [{ port: 41641, protocol: UDP }, { port: 3478, protocol: UDP }, { port: 443, protocol: TCP }, { port: 80, protocol: TCP }]

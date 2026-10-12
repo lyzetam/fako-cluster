@@ -16,6 +16,7 @@ resources:
   - oura-readonly-grants-job.yaml
   - health-ro-grants-cronjob.yaml
   - tailnet-postgres-ro.yaml
+  - networkpolicy.yaml
   - backup-pvc.yaml
   - backup-schedule.yaml
   - backup-s3-cronjob.yaml
