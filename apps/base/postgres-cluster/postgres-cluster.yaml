@@ -55,6 +55,9 @@ spec:
       - host oura,withings,hume health_ro 10.0.0.0/8 md5
       - host oura,withings,hume health_ro 172.16.0.0/12 md5
       - host oura,withings,hume health_ro 192.168.0.0/16 md5
+      # kubectl port-forward sessions arrive from 127.0.0.1 inside the pod; allow
+      # health_ro there (TLS + scram; its password is stored as SCRAM) for the 3 health DBs only.
+      - hostssl oura,withings,hume health_ro 127.0.0.1/32 scram-sha-256
       - host all health_ro 0.0.0.0/0 reject
       - host all health_ro ::/0 reject
       - host all all 10.0.0.0/8 md5
