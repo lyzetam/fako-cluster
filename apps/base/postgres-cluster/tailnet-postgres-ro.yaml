@@ -38,28 +38,32 @@ spec:
     spec:
       serviceAccountName: postgres-ro-tailnet
       automountServiceAccountToken: false
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+        fsGroup: 1000
       containers:
       - name: relay
-        image: alpine/socat:1.8.0.1
+        image: alpine/socat:1.8.0.1@sha256:87d88ff79bf42ca723fb360e9585c40e2923a2f4df9b9d148b127568ef6b99e7
         args: ["TCP-LISTEN:5432,bind=127.0.0.1,fork,reuseaddr", "TCP:postgres-cluster-ro.postgres.svc.cluster.local:5432"]
         securityContext: { runAsNonRoot: true, runAsUser: 1000, allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: ["ALL"] } }
         resources:
           requests: { cpu: 10m, memory: 16Mi }
           limits: { cpu: 200m, memory: 64Mi }
       - name: tailscale
-        image: tailscale/tailscale:v1.80.0
+        image: tailscale/tailscale:v1.102.5@sha256:c507f3a2a6ab1cabd8d809b98edeb41edbd5c3fb6ad9632ffd098b4c7d0b4065
         env:
         - name: TS_AUTHKEY
           valueFrom: { secretKeyRef: { name: postgres-ro-tailscale-authkey, key: TS_AUTHKEY } }
         - { name: TS_HOSTNAME, value: postgres-ro }
-        - { name: TS_EXTRA_ARGS, value: "--advertise-tags=tag:k8s" }
+        - { name: TS_EXTRA_ARGS, value: "--advertise-tags=tag:postgres-ro" }
         - { name: TS_USERSPACE, value: "true" }
-        # Empty = no kube Secret state (we use the PVC); same as hume. Without it containerboot needs an SA token.
+        # Kube client OFF: empty TS_KUBE_SECRET = state on the PVC, so containerboot never
+        # needs an SA token (automount stays false; no RBAC granted).
         - { name: TS_KUBE_SECRET, value: "" }
         - { name: TS_STATE_DIR, value: /tmp/tsstate }
         - { name: TS_SOCKET, value: /tmp/tsstate/tailscaled.sock }
         - { name: TS_SERVE_CONFIG, value: /etc/tailscale/serve.json }
-        securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: ["ALL"] } }
+        securityContext: { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, allowPrivilegeEscalation: false, capabilities: { drop: ["ALL"] } }
         volumeMounts:
         - { name: serve, mountPath: /etc/tailscale }
         - { name: tsstate, mountPath: /tmp/tsstate }
@@ -83,7 +87,7 @@ spec:
   resources:
     requests: { storage: 64Mi }
 ---
-# Auth key (reusable=false, tag:k8s) stored in AWS SM as tailscale/postgres-ro-authkey (plain string).
+# Auth key (reusable=false, pre-authorized, tag:postgres-ro; the old tag:k8s key was revoked 2026-10-12) stored in AWS SM as tailscale/postgres-ro-authkey (plain string).
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
