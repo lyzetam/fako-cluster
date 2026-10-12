@@ -19,6 +19,7 @@ resources:
   - networkpolicy.yaml
   - backup-pvc.yaml
   - backup-schedule.yaml
+  - scheduled-backup.yaml
   - backup-s3-cronjob.yaml
 
   # - service.yaml

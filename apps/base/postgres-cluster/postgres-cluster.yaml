@@ -161,6 +161,31 @@ spec:
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
   
+  # Continuous WAL archive + base backups to S3 (in-tree barmanObjectStore;
+  # the barman-cloud plugin is not installed in this cluster). Reuses the
+  # existing bucket and s3-backup-secret. The pg_dump CronJobs stay as the
+  # logical-backup path.
+  backup:
+    retentionPolicy: "14d"
+    barmanObjectStore:
+      destinationPath: s3://fako-cluster-postgres-backups/cnpg/
+      serverName: postgres-cluster
+      s3Credentials:
+        accessKeyId:
+          name: s3-backup-secret
+          key: AWS_ACCESS_KEY_ID
+        secretAccessKey:
+          name: s3-backup-secret
+          key: AWS_SECRET_ACCESS_KEY
+        region:
+          name: s3-backup-secret
+          key: AWS_DEFAULT_REGION
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+        jobs: 2
   # Backup configuration via CronJob (see backup-schedule.yaml)
   # Using NFS-based backups instead of cloud object storage
   
