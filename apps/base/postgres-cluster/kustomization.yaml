@@ -15,6 +15,7 @@ resources:
   - database-init-job.yaml
   - oura-readonly-grants-job.yaml
   - health-ro-grants-cronjob.yaml
+  - tailnet-postgres-ro.yaml
   - backup-pvc.yaml
   - backup-schedule.yaml
   - backup-s3-cronjob.yaml
