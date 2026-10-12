@@ -59,17 +59,8 @@ spec:
       - hostssl oura,withings,hume health_ro 10.42.0.0/16 scram-sha-256
       - host all health_ro 0.0.0.0/0 reject
       - host all health_ro ::/0 reject
-      # 2) Tailnet relay (postgres-ro-tailnet, hostNetwork). Host-network traffic to pods
-      #    leaves a node from its flannel.1 (10.42.N.0) or cni0 (10.42.N.1) address; no
-      #    pod is ever given .0/.1. Only health_ro (matched above) may use that path, so
-      #    the superuser and every app role are rejected from it. One /31 per node
-      #    podCIDR. Add a line when a node joins.
-      - host all all 10.42.0.0/31 reject
-      - host all all 10.42.1.0/31 reject
-      - host all all 10.42.2.0/31 reject
-      - host all all 10.42.3.0/31 reject
-      - host all all 10.42.6.0/31 reject
-      - host all all 10.42.8.0/31 reject
+      # 2) Tailnet relay (postgres-ro-tailnet, #365) is PgBouncer, which authenticates
+      #    only health_ro itself; it arrives from its pod IP and matches rule 1.
       # 3) Superuser: in-cluster pods only (backup-schedule, database-init-job, keycloak/
       #    umami/wger init jobs). `host` + scram: these are psql/libpq with default
       #    sslmode=prefer, so they negotiate TLS, but a non-TLS client still works.
