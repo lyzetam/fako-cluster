@@ -1,8 +1,10 @@
 # Tailnet path to the READ-ONLY replica service, port 5432 only.
 # Pattern mirrors hume-collector: tailscale sidecar (userspace, tag:k8s) whose
 # serve config forwards to 127.0.0.1 (a userspace tailscale pod cannot dial a
-# ClusterIP directly). A socat container relays loopback:5432 ->
-# postgres-cluster-ro:5432. Tailnet device: `postgres-ro`. Access is decided by
+# ClusterIP directly). A PgBouncer container on loopback:5432 forwards to
+# postgres-cluster-ro:5432 and authenticates ONLY health_ro, ONLY for the
+# oura/withings/hume databases (any other user/db is refused by PgBouncer itself,
+# so the superuser/app roles cannot be reached over the tailnet). TLS both sides. Tailnet device: `postgres-ro`. Access is decided by
 # the Tailscale ACL (tcp:5432 to this device only) plus Postgres auth/pg_hba.
 # No operator is installed in this cluster, so no tailscale.com/expose.
 apiVersion: v1
@@ -43,9 +45,16 @@ spec:
         fsGroup: 1000
       containers:
       - name: relay
-        image: alpine/socat:1.8.0.1@sha256:87d88ff79bf42ca723fb360e9585c40e2923a2f4df9b9d148b127568ef6b99e7
-        args: ["TCP-LISTEN:5432,bind=127.0.0.1,fork,reuseaddr", "TCP:postgres-cluster-ro.postgres.svc.cluster.local:5432"]
-        securityContext: { runAsNonRoot: true, runAsUser: 1000, allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: ["ALL"] } }
+        # PgBouncer 1.25.2 (edoburu build), pinned by digest. Image user: postgres (uid 70).
+        image: edoburu/pgbouncer:v1.25.2-p0@sha256:7d7a27d9e90985cab5cf42256f5c13a3120baa4b055b69df37beb272b89b2340
+        # Bypass the image entrypoint (it writes a generated config); use ours read-only.
+        command: ["/usr/bin/pgbouncer", "/etc/pgbouncer/pgbouncer.ini"]
+        securityContext: { runAsNonRoot: true, runAsUser: 70, runAsGroup: 70, allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: ["ALL"] } }
+        volumeMounts:
+        - { name: pgbouncer-config, mountPath: /etc/pgbouncer, readOnly: true }
+        - { name: pgbouncer-userlist, mountPath: /etc/pgbouncer-auth, readOnly: true }
+        - { name: pgbouncer-client-tls, mountPath: /etc/pgbouncer-tls, readOnly: true }
+        - { name: postgres-ca, mountPath: /etc/postgres-ca, readOnly: true }
         resources:
           requests: { cpu: 10m, memory: 16Mi }
           limits: { cpu: 200m, memory: 64Mi }
@@ -71,6 +80,14 @@ spec:
           requests: { cpu: 20m, memory: 64Mi }
           limits: { cpu: 200m, memory: 128Mi }
       volumes:
+      - name: pgbouncer-config
+        configMap: { name: postgres-ro-pgbouncer }
+      - name: pgbouncer-userlist
+        secret: { secretName: postgres-ro-pgbouncer-userlist, defaultMode: 0440 }
+      - name: pgbouncer-client-tls
+        secret: { secretName: postgres-ro-pgbouncer-tls, defaultMode: 0440 }
+      - name: postgres-ca
+        secret: { secretName: postgres-cluster-ca, items: [{ key: ca.crt, path: ca.crt }] }
       - name: serve
         configMap: { name: postgres-ro-tailscale-serve }
       - name: tsstate
@@ -106,3 +123,87 @@ spec:
   - secretKey: authkey
     remoteRef: { key: tailscale/postgres-ro-authkey }
   refreshInterval: 1h
+---
+# PgBouncer config: only the three health DBs, only users in auth_file (health_ro).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-ro-pgbouncer
+  namespace: postgres
+data:
+  pgbouncer.ini: |
+    [databases]
+    oura     = host=postgres-cluster-ro.postgres.svc.cluster.local port=5432 dbname=oura
+    withings = host=postgres-cluster-ro.postgres.svc.cluster.local port=5432 dbname=withings
+    hume     = host=postgres-cluster-ro.postgres.svc.cluster.local port=5432 dbname=hume
+
+    [pgbouncer]
+    listen_addr = 127.0.0.1
+    listen_port = 5432
+    unix_socket_dir =
+    pidfile =
+    auth_type = scram-sha-256
+    auth_file = /etc/pgbouncer-auth/userlist.txt
+    ; no admin/stats users: the pgbouncer console is unreachable
+    admin_users =
+    stats_users =
+    pool_mode = session
+    max_client_conn = 10
+    default_pool_size = 3
+    ignore_startup_parameters = extra_float_digits,options
+    ; client side (tailnet client -> pgbouncer): TLS required
+    client_tls_sslmode = require
+    client_tls_cert_file = /etc/pgbouncer-tls/tls.crt
+    client_tls_key_file = /etc/pgbouncer-tls/tls.key
+    ; server side (pgbouncer -> replica): TLS, verified against the CNPG CA
+    server_tls_sslmode = verify-full
+    server_tls_ca_file = /etc/postgres-ca/ca.crt
+    log_connections = 1
+    log_disconnections = 1
+---
+# userlist.txt rendered from the existing AWS SM secret postgres/health-readonly
+# (keys username/password). PgBouncer uses the plaintext entry to do SCRAM both ways.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: postgres-ro-pgbouncer-userlist
+  namespace: postgres
+spec:
+  secretStoreRef: { name: aws-secrets-store, kind: SecretStore }
+  refreshInterval: 1h
+  target:
+    name: postgres-ro-pgbouncer-userlist
+    creationPolicy: Owner
+    template:
+      type: Opaque
+      data:
+        userlist.txt: |
+          "{{ .username }}" "{{ .password }}"
+  data:
+  - secretKey: username
+    remoteRef: { key: postgres/health-readonly, property: username }
+  - secretKey: password
+    remoteRef: { key: postgres/health-readonly, property: password }
+---
+# Client-facing TLS cert for PgBouncer: self-signed via cert-manager (namespaced issuer).
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: postgres-ro-selfsigned
+  namespace: postgres
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: postgres-ro-pgbouncer-tls
+  namespace: postgres
+spec:
+  secretName: postgres-ro-pgbouncer-tls
+  issuerRef: { name: postgres-ro-selfsigned, kind: Issuer }
+  commonName: postgres-ro
+  dnsNames: [postgres-ro, localhost]
+  duration: 8760h
+  renewBefore: 720h
+  privateKey: { algorithm: ECDSA, size: 256, rotationPolicy: Always }
