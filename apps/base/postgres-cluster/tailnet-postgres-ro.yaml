@@ -54,6 +54,8 @@ spec:
         - { name: TS_HOSTNAME, value: postgres-ro }
         - { name: TS_EXTRA_ARGS, value: "--advertise-tags=tag:k8s" }
         - { name: TS_USERSPACE, value: "true" }
+        # Empty = no kube Secret state (we use the PVC); same as hume. Without it containerboot needs an SA token.
+        - { name: TS_KUBE_SECRET, value: "" }
         - { name: TS_STATE_DIR, value: /tmp/tsstate }
         - { name: TS_SOCKET, value: /tmp/tsstate/tailscaled.sock }
         - { name: TS_SERVE_CONFIG, value: /etc/tailscale/serve.json }
