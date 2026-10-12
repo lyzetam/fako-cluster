@@ -218,7 +218,7 @@ spec:
             # other shape — multi-line, non-memory, decrease, multi-file — is
             # refused in code, so this is not a general merge grant.
             - name: ZI_AUTOMERGE_ENABLED
-              value: "true"
+              value: "false"
             - name: ZI_MERGE_MAX_RATIO
               value: "2.0"
           envFrom:
