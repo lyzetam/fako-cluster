@@ -36,6 +36,10 @@ spec:
   - ports: [{ port: 8000, protocol: TCP }, { port: 5432, protocol: TCP }]
     from:
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: cnpg-system } }
+  # CNPG instance-to-instance status API (liveness peer checks, failover)
+  - ports: [{ port: 8000, protocol: TCP }]
+    from:
+    - podSelector: { matchLabels: { cnpg.io/cluster: postgres-cluster } }
   # Metrics scrape
   - ports: [{ port: 9187, protocol: TCP }]
     from:
