@@ -30,12 +30,12 @@ spec:
           echo "Initializing wger database..."
           
           # Create database if it doesn't exist
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'wger'" | grep -q 1 || \
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "CREATE DATABASE wger"
+          db_exists="$(PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'wger'")"
+          if [ "$db_exists" != "1" ]; then PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "CREATE DATABASE wger"; fi
           
           # Create user if it doesn't exist
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -tc "SELECT 1 FROM pg_user WHERE usename = 'wger'" | grep -q 1 || \
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "CREATE USER wger WITH PASSWORD '$WGER_PASSWORD'"
+          usr_exists="$(PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -tAc "SELECT 1 FROM pg_user WHERE usename = 'wger'")"
+          if [ "$usr_exists" != "1" ]; then PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "CREATE USER wger WITH PASSWORD '$WGER_PASSWORD'"; fi
           
           # Grant privileges
           PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "ALTER USER wger WITH SUPERUSER"

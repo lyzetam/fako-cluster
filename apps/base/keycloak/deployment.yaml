@@ -60,7 +60,6 @@ spec:
           # Get postgres superuser credentials with debugging
           echo "Fetching postgres/admin-credentials..."
           POSTGRES_CREDS=$(aws secretsmanager get-secret-value --secret-id postgres/admin-credentials --query SecretString --output text)
-          echo "Raw postgres credentials response: $POSTGRES_CREDS"
           
           # Parse with debugging
           export PGUSER=$(echo "$POSTGRES_CREDS" | jq -r .username)
@@ -72,7 +71,6 @@ spec:
           # Get keycloak user credentials with debugging
           echo "Fetching auth-service/super-user..."
           KEYCLOAK_CREDS=$(aws secretsmanager get-secret-value --secret-id auth-service/super-user --query SecretString --output text)
-          echo "Raw keycloak credentials response: $KEYCLOAK_CREDS"
           
           KC_USER=$(echo "$KEYCLOAK_CREDS" | jq -r .username)
           KC_PASS=$(echo "$KEYCLOAK_CREDS" | jq -r .password)

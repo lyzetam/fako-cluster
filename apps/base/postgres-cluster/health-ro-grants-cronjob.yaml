@@ -88,14 +88,16 @@ spec:
               )
               psql -X -v ON_ERROR_STOP=1 -d oura -c "GRANT CONNECT ON DATABASE oura TO ${ro};"
               psql -X -v ON_ERROR_STOP=1 -d oura -c "GRANT USAGE ON SCHEMA public TO ${ro};"
-              psql -X -v ON_ERROR_STOP=1 -d oura -c "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${ro};"   # converge: drop stale grants first
+              # REVOKE + GRANTs in ONE transaction (psql -1): a mid-run failure keeps the previous grants.
+              oura_sql=(-c "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${ro};")   # converge: drop stale grants first
               for t in ${OURA_TABLES}; do
                 if [ "$(psql -X -d oura -Atc "SELECT to_regclass('public.${t}') IS NOT NULL")" = "t" ]; then
-                  psql -X -v ON_ERROR_STOP=1 -d oura -c "GRANT SELECT ON public.${t} TO ${ro};"
+                  oura_sql+=(-c "GRANT SELECT ON public.${t} TO ${ro};")
                 else
                   echo "WARN: oura.${t} does not exist (skipped)"
                 fi
               done
+              psql -X -v ON_ERROR_STOP=1 -1 -d oura "${oura_sql[@]}"
               # drift report: oura_* tables that exist but are neither allowlisted nor the PII table
               psql -X -d oura -Atc "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'oura\_%' AND tablename <> 'oura_personal_info'" \
                 | while read -r t; do case " ${OURA_TABLES} " in *" ${t} "*) ;; *) echo "WARN: NEW oura table not granted (review): ${t}";; esac; done
@@ -104,8 +106,8 @@ spec:
               # ---- withings: ONE table ----
               psql -X -v ON_ERROR_STOP=1 -d withings -c "GRANT CONNECT ON DATABASE withings TO ${ro};"
               psql -X -v ON_ERROR_STOP=1 -d withings -c "GRANT USAGE ON SCHEMA public TO ${ro};"
-              psql -X -v ON_ERROR_STOP=1 -d withings -c "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${ro};"
-              psql -X -v ON_ERROR_STOP=1 -d withings -c "GRANT SELECT ON public.withings_measures TO ${ro};"
+              # REVOKE + GRANT in one transaction (psql -1).
+              psql -X -v ON_ERROR_STOP=1 -1 -d withings -c "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${ro};" -c "GRANT SELECT ON public.withings_measures TO ${ro};"
               psql -X -d withings -c "REVOKE ALL ON public.withings_tokens FROM ${ro};" || true   # never granted; explicit for clarity
 
               # ---- hume: views only (schema `health`), explicit columns, `source` dropped ----

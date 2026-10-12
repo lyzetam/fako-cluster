@@ -5,6 +5,8 @@ metadata:
   namespace: postgres
 spec:
   ttlSecondsAfterFinished: 3600
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
   template:
     spec:
       restartPolicy: OnFailure
