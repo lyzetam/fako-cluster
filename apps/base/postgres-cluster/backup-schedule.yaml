@@ -43,7 +43,17 @@ spec:
             - /bin/bash
             - -c
             - |
-              set -e
+              set -euo pipefail
+              # Wait for Postgres (NetworkPolicy may lag a brand-new pod by ~1s): backoff 1,2,4,8,15s (~30s).
+              WAIT_HOST="${PGHOST:-postgres-cluster-rw.postgres.svc.cluster.local}"
+              pg_ok=0
+              for d in 1 2 4 8 15; do
+                if pg_isready -h "$WAIT_HOST" -p 5432 -t 3; then pg_ok=1; break; fi
+                echo "postgres not reachable yet, retrying in ${d}s"; sleep "$d"
+              done
+              if [ "$pg_ok" != 1 ]; then pg_isready -h "$WAIT_HOST" -p 5432 -t 3 || { echo "ERROR: postgres unreachable after ~30s" >&2; exit 1; }; fi
+              # Every psql call stops on the first SQL error and exits nonzero.
+              psql() { command psql -v ON_ERROR_STOP=1 "$@"; }
               
               TIMESTAMP=$(date +%Y%m%d_%H%M%S)
               BACKUP_PATH="${BACKUP_DIR}/${TIMESTAMP}"
