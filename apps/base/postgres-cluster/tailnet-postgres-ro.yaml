@@ -28,7 +28,7 @@ metadata:
   namespace: postgres
   labels: { app: postgres-ro-tailnet }
 spec:
-  replicas: 1
+  replicas: 0   # scaled down pending security review (Norbert REQUEST_CHANGES on #359)
   strategy: { type: Recreate }
   selector:
     matchLabels: { app: postgres-ro-tailnet }
