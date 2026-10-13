@@ -3,8 +3,11 @@ kind: Job
 metadata:
   name: umami-database-init
   namespace: umami
+  annotations:
+    # Create once; Flux never re-applies or recreates it while it exists.
+    # To rerun deliberately (e.g. after a spec change): delete the Job, Flux recreates it.
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 spec:
-  ttlSecondsAfterFinished: 300
   backoffLimit: 4
   template:
     spec:
