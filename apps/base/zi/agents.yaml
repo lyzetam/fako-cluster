@@ -712,14 +712,14 @@ spec:
           resources:
             requests:
               cpu: 50m
-              memory: 256Mi
+              # Request reflects the observed working peak (~2Gi reached in ~11 min
+              # per pulse-sweep cycle on Oct 14), not idle (~165Mi). thinkpad02
+              # was at ~47% of memory requests then; +768Mi is ~+2.4%.
+              memory: 1Gi
             limits:
               cpu: 500m
-              # 1Gi -> 2Gi. Sol sits at ~600Mi idle and OOMKilled five times in
-              # five hours: a remediation run holds the ReAct transcript plus a
-              # 64K-context model response, and the peak cleared 1Gi. Limit only
-              # — requests stay at 256Mi so this does not add scheduling
-              # pressure on a node already at 97% of memory requests.
+              # 2Gi -> 4Gi (#372) after 29 OOMKills in ~5.5h. Growth looks like a
+              # per-sweep leak (lyzetam/zi#74); this is a stopgap, not the fix.
               memory: 4Gi
           # Boot imports the full LangChain/deepagents tree before uvicorn
           # binds the port. A startupProbe gives that up to 300s WITHOUT the
