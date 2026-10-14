@@ -73,19 +73,35 @@ jobs:
 
           echo "Validated PR #$PR ($head) for verdict '$VERDICT'"
 
-          # Skip if github-actions[bot] already reviewed the current head SHA.
-          # Callers re-dispatch on a timer; without this an unchanged PR gets a
-          # fresh (and possibly flipped) verdict every run.
+          # Pin the commit being reviewed. The review is later submitted
+          # against this exact SHA, so a push that lands mid-run cannot pick
+          # up a verdict formed on an older head.
           sha=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
-          seen=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --paginate \
-            --jq "[.[] | select(.user.login == \"github-actions[bot]\" and .commit_id == \"$sha\")] | length" \
-            | awk '{s+=$1} END {print s+0}')
-          if [ "$seen" -gt 0 ]; then
-            echo "Head $sha already reviewed; skipping"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+          if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Unexpected head SHA '$sha'"; exit 1
           fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+          case "$VERDICT" in
+            approve) state=APPROVED ;;
+            request_changes) state=CHANGES_REQUESTED ;;
+            comment) state=COMMENTED ;;
+          esac
+
+          # Callers re-dispatch on a timer. Skip only an exact repeat: a
+          # non-dismissed github-actions[bot] review with the SAME state on
+          # the SAME commit. A REQUEST_CHANGES verdict is never skipped.
+          skip=false
+          if [ "$VERDICT" != "request_changes" ]; then
+            seen=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --paginate \
+              --jq "[.[] | select(.user.login == \"github-actions[bot]\" and .commit_id == \"$sha\" and .state == \"$state\")] | length" \
+              | awk '{s+=$1} END {print s+0}')
+            if [ "$seen" -gt 0 ]; then
+              echo "Head $sha already has a $state review from github-actions[bot]; skipping"
+              skip=true
+            fi
+          fi
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
 
       - name: Submit the review
         if: steps.validate.outputs.skip != 'true'
@@ -95,6 +111,7 @@ jobs:
           VERDICT: ${{ github.event.client_payload.verdict }}
           BODY: ${{ github.event.client_payload.body }}
           REVIEWER: ${{ github.event.client_payload.reviewer }}
+          SHA: ${{ steps.validate.outputs.sha }}
         run: |
           set -euo pipefail
           BODY="${BODY:-}"; VERDICT="${VERDICT:-}"; PR="${PR:-}"
@@ -108,9 +125,15 @@ jobs:
             "$BODY" "${REVIEWER:-the zi code-reviewer}" > /tmp/review-body.md
 
           case "$VERDICT" in
-            approve)         gh pr review "$PR" --repo "$GITHUB_REPOSITORY" --approve         --body-file /tmp/review-body.md ;;
-            request_changes) gh pr review "$PR" --repo "$GITHUB_REPOSITORY" --request-changes --body-file /tmp/review-body.md ;;
-            comment)         gh pr review "$PR" --repo "$GITHUB_REPOSITORY" --comment         --body-file /tmp/review-body.md ;;
+            approve)         EVENT=APPROVE ;;
+            request_changes) EVENT=REQUEST_CHANGES ;;
+            comment)         EVENT=COMMENT ;;
           esac
 
-          echo "Submitted $VERDICT on PR #$PR as github-actions[bot]"
+          # Submit via the reviews API pinned to the SHA validated above,
+          # rather than `gh pr review`, which attaches to whatever the head
+          # is at submit time.
+          gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
+            -f commit_id="$SHA" -f event="$EVENT" -F body=@/tmp/review-body.md > /dev/null
+
+          echo "Submitted $VERDICT on PR #$PR at $SHA as github-actions[bot]"
