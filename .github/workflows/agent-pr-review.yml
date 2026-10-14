@@ -73,7 +73,22 @@ jobs:
 
           echo "Validated PR #$PR ($head) for verdict '$VERDICT'"
 
+          # Skip if github-actions[bot] already reviewed the current head SHA.
+          # Callers re-dispatch on a timer; without this an unchanged PR gets a
+          # fresh (and possibly flipped) verdict every run.
+          sha=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
+          seen=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --paginate \
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\" and .commit_id == \"$sha\")] | length" \
+            | awk '{s+=$1} END {print s+0}')
+          if [ "$seen" -gt 0 ]; then
+            echo "Head $sha already reviewed; skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Submit the review
+        if: steps.validate.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.client_payload.pr }}
