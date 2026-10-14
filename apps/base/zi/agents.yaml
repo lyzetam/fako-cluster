@@ -720,7 +720,7 @@ spec:
               # 64K-context model response, and the peak cleared 1Gi. Limit only
               # — requests stay at 256Mi so this does not add scheduling
               # pressure on a node already at 97% of memory requests.
-              memory: 2Gi
+              memory: 4Gi
           # Boot imports the full LangChain/deepagents tree before uvicorn
           # binds the port. A startupProbe gives that up to 300s WITHOUT the
           # liveness probe running — previously liveness fired at 45s and
