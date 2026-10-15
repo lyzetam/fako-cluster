@@ -3,4 +3,5 @@ kind: Namespace
 metadata:
   name: selfheal-harness
   labels:
+    selfheal.zi/fixture: "true"
     pod-security.kubernetes.io/enforce: restricted
