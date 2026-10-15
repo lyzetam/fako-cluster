@@ -89,10 +89,10 @@ jobs:
           esac
 
           # Callers re-dispatch on a timer. Skip only when the NEWEST
-          # non-dismissed github-actions[bot] review on this exact commit
-          # already carries the same verdict (request_changes included).
-          # A different verdict, a dismissed latest review, or a new commit
-          # all post. All pages are collected first (jq -s) so "newest" is
+          # github-actions[bot] review on this exact commit already carries
+          # the same verdict (request_changes included). A dismissed newest
+          # review has state DISMISSED, which never equals $state, so it
+          # always posts; so do a different verdict and a new commit. All pages are collected first (jq -s) so "newest" is
           # global, not per page. Fail closed: if the lookup fails, the step
           # exits non-zero and nothing is submitted.
           if ! reviews=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --paginate); then
@@ -100,8 +100,7 @@ jobs:
           fi
           latest=$(printf '%s' "$reviews" | jq -s -r --arg sha "$sha" '
             [ .[][] | select(.user.login == "github-actions[bot]"
-                             and .commit_id == $sha
-                             and .state != "DISMISSED") ]
+                             and .commit_id == $sha) ]
             | sort_by(.submitted_at) | last | .state // ""')
           skip=false
           if [ "$latest" = "$state" ]; then
