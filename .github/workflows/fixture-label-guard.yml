@@ -30,7 +30,7 @@ jobs:
             echo "::error::selfheal.zi/fixture is only allowed under apps/base/selfheal-*:"
             echo "$hits"; fail=1
           fi
-          if hits=$(git grep -nE "^\s*\"?(name|namespace)\"?:\s*[\"']?selfheal-" -- "${scope[@]}"); then
+          if hits=$(git grep -nE "(name|namespace)[\"']?\s*:\s*[\"']?selfheal-" -- "${scope[@]}"); then
             echo "::error::selfheal-* namespaces (or objects in them) only under apps/base/selfheal-*:"
             echo "$hits"; fail=1
           fi
