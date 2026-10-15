@@ -92,7 +92,8 @@ jobs:
           # github-actions[bot] review on this exact commit already carries
           # the same verdict (request_changes included). A dismissed newest
           # review has state DISMISSED, which never equals $state, so it
-          # always posts; so do a different verdict and a new commit. All pages are collected first (jq -s) so "newest" is
+          # always posts; so do a different verdict and a new commit.
+          # All pages are collected first (jq -s) so "newest" is
           # global, not per page. Fail closed: if the lookup fails, the step
           # exits non-zero and nothing is submitted.
           if ! reviews=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --paginate); then
