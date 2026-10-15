@@ -1,11 +1,13 @@
-# Reject the `selfheal.zi/fixture` label anywhere outside apps/base/selfheal-*.
-# zi's self-heal agent skips objects carrying it (lyzetam/zi#76), so on a real
-# workload it would silently switch self-heal off.
+# Keep self-heal fixtures inside apps/base/selfheal-*:
+#  - the `selfheal.zi/fixture` label (zi skips labelled objects, lyzetam/zi#76),
+#  - any `selfheal-*` Namespace, and any object placed in one (zi skips every
+#    selfheal-* namespace, so a real workload there silently loses self-heal).
+# Advisory until main has a required status check (branch protection is off).
 name: Fixture label guard
 
 on:
   pull_request:
-    paths: ["**/*.yaml", "**/*.yml"]
+    paths: ["**/*.yaml", "**/*.yml", "**/*.json", "**/*.tpl"]
   push:
     branches: [main]
 
@@ -17,14 +19,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: selfheal.zi/fixture only under apps/base/selfheal-*
+      - name: Self-heal fixtures only under apps/base/selfheal-*
         run: |
           set -euo pipefail
-          hits=$(git grep -nE 'selfheal\.zi/fixture' -- '*.yaml' '*.yml' \
-            ':!apps/base/selfheal-*' ':!.github/workflows/fixture-label-guard.yml' || true)
-          if [ -n "$hits" ]; then
+          scope=('*.yaml' '*.yml' '*.json' '*.tpl'
+                 ':!apps/base/selfheal-*'
+                 ':!.github/workflows/fixture-label-guard.yml')
+          fail=0
+          if hits=$(git grep -nE 'selfheal\.zi/fixture' -- "${scope[@]}"); then
             echo "::error::selfheal.zi/fixture is only allowed under apps/base/selfheal-*:"
-            echo "$hits"
-            exit 1
+            echo "$hits"; fail=1
           fi
-          echo "OK: no fixture label outside apps/base/selfheal-*"
+          if hits=$(git grep -nE "^\s*\"?(name|namespace)\"?:\s*[\"']?selfheal-" -- "${scope[@]}"); then
+            echo "::error::selfheal-* namespaces (or objects in them) only under apps/base/selfheal-*:"
+            echo "$hits"; fail=1
+          fi
+          [ "$fail" -eq 0 ] && echo "OK: no self-heal fixture references outside apps/base/selfheal-*"
+          exit "$fail"
