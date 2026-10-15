@@ -124,6 +124,15 @@ spec:
               # Calculate backup size
               BACKUP_SIZE=$(du -sh "${BACKUP_PATH}" | cut -f1)
               echo "Backup completed. Size: ${BACKUP_SIZE}"
+              echo "=== Backup files (name size_bytes) ==="
+              TOTAL=0
+              for f in "${BACKUP_PATH}"/*; do
+                [ -f "$f" ] || continue
+                SZ=$(stat -c %s "$f")
+                TOTAL=$((TOTAL + SZ))
+                echo "  $(basename "$f") ${SZ}"
+              done
+              echo "Total: ${TOTAL} bytes (${BACKUP_SIZE})"
               
               # Cleanup old backups (older than RETENTION_DAYS)
               echo "Cleaning up backups older than ${RETENTION_DAYS} days..."
