@@ -88,18 +88,25 @@ jobs:
             comment) state=COMMENTED ;;
           esac
 
-          # Callers re-dispatch on a timer. Skip only an exact repeat: a
-          # non-dismissed github-actions[bot] review with the SAME state on
-          # the SAME commit. A REQUEST_CHANGES verdict is never skipped.
+          # Callers re-dispatch on a timer. Skip only when the NEWEST
+          # github-actions[bot] review on this exact commit already carries
+          # the same verdict (request_changes included). A dismissed newest
+          # review has state DISMISSED, which never equals $state, so it
+          # always posts; so do a different verdict and a new commit.
+          # All pages are collected first (jq -s) so "newest" is
+          # global, not per page. Fail closed: if the lookup fails, the step
+          # exits non-zero and nothing is submitted.
+          if ! reviews=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --paginate); then
+            echo "::error::Could not list reviews for PR #$PR; not submitting"; exit 1
+          fi
+          latest=$(printf '%s' "$reviews" | jq -s -r --arg sha "$sha" '
+            [ .[][] | select(.user.login == "github-actions[bot]"
+                             and .commit_id == $sha) ]
+            | sort_by(.submitted_at) | last | .state // ""')
           skip=false
-          if [ "$VERDICT" != "request_changes" ]; then
-            seen=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --paginate \
-              --jq "[.[] | select(.user.login == \"github-actions[bot]\" and .commit_id == \"$sha\" and .state == \"$state\")] | length" \
-              | awk '{s+=$1} END {print s+0}')
-            if [ "$seen" -gt 0 ]; then
-              echo "Head $sha already has a $state review from github-actions[bot]; skipping"
-              skip=true
-            fi
+          if [ "$latest" = "$state" ]; then
+            echo "Newest bot review on $sha is already $state; skipping"
+            skip=true
           fi
           echo "skip=$skip" >> "$GITHUB_OUTPUT"
 
