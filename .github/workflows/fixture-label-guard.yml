@@ -1,0 +1,30 @@
+# Reject the `selfheal.zi/fixture` label anywhere outside apps/base/selfheal-*.
+# zi's self-heal agent skips objects carrying it (lyzetam/zi#76), so on a real
+# workload it would silently switch self-heal off.
+name: Fixture label guard
+
+on:
+  pull_request:
+    paths: ["**/*.yaml", "**/*.yml"]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: selfheal.zi/fixture only under apps/base/selfheal-*
+        run: |
+          set -euo pipefail
+          hits=$(git grep -nE 'selfheal\.zi/fixture' -- '*.yaml' '*.yml' \
+            ':!apps/base/selfheal-*' ':!.github/workflows/fixture-label-guard.yml' || true)
+          if [ -n "$hits" ]; then
+            echo "::error::selfheal.zi/fixture is only allowed under apps/base/selfheal-*:"
+            echo "$hits"
+            exit 1
+          fi
+          echo "OK: no fixture label outside apps/base/selfheal-*"
