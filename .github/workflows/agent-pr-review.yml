@@ -1,4 +1,10 @@
-# Submit an agent's PR review under a DIFFERENT GitHub identity.
+# Record an agent's PR verdict under a DIFFERENT GitHub identity.
+#
+# Output: an `agent-review` check run on the PR head SHA (success = approve,
+# failure = request_changes, neutral = comment) plus the job summary. It used to
+# POST a PR review, which emailed the PR author (the owner's account, since Sol
+# opens PRs with the owner's PAT) on every verdict. A check run sends no
+# review notification. zi's merge_if_trivial keys on this check.
 #
 # Why this exists: Sol opens agent-proposed PRs with the same PAT that Vera
 # reviews with, and GitHub refuses APPROVE / REQUEST_CHANGES on a pull request
@@ -23,11 +29,12 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
+  pull-requests: read   # gh pr view only; nothing is posted to the PR
+  checks: write         # the agent-review check run
 
 jobs:
   submit-review:
-    name: Submit review as github-actions[bot]
+    name: Record agent-review check as github-actions[bot]
     runs-on: ubuntu-latest
     steps:
       - name: Validate the request
@@ -83,34 +90,35 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
           case "$VERDICT" in
-            approve) state=APPROVED ;;
-            request_changes) state=CHANGES_REQUESTED ;;
-            comment) state=COMMENTED ;;
+            approve) conclusion=success ;;
+            request_changes) conclusion=failure ;;
+            comment) conclusion=neutral ;;
           esac
+          echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
 
-          # Callers re-dispatch on a timer. Skip only when the NEWEST
-          # github-actions[bot] review on this exact commit already carries
-          # the same verdict (request_changes included). A dismissed newest
-          # review has state DISMISSED, which never equals $state, so it
-          # always posts; so do a different verdict and a new commit.
-          # All pages are collected first (jq -s) so "newest" is
-          # global, not per page. Fail closed: if the lookup fails, the step
-          # exits non-zero and nothing is submitted.
-          if ! reviews=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --paginate); then
-            echo "::error::Could not list reviews for PR #$PR; not submitting"; exit 1
+          # Callers re-dispatch on a timer. Skip only when the NEWEST completed
+          # `agent-review` check by github-actions on this exact commit already
+          # has the same conclusion (failure included). A different verdict or
+          # a new commit always records. "Newest" = highest id across all pages
+          # (jq -s). Fail closed: if the lookup fails, the step exits non-zero
+          # and nothing is recorded.
+          if ! runs=$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs?check_name=agent-review&filter=all&per_page=100" --paginate); then
+            echo "::error::Could not list agent-review checks on $sha; not recording"; exit 1
           fi
-          latest=$(printf '%s' "$reviews" | jq -s -r --arg sha "$sha" '
-            [ .[][] | select(.user.login == "github-actions[bot]"
-                             and .commit_id == $sha) ]
-            | sort_by(.submitted_at) | last | .state // ""')
+          latest=$(printf '%s' "$runs" | jq -s -r --arg sha "$sha" '
+            [ .[].check_runs[] | select(.name == "agent-review"
+                                        and .app.slug == "github-actions"
+                                        and .head_sha == $sha
+                                        and .status == "completed") ]
+            | sort_by(.id) | last | .conclusion // ""')
           skip=false
-          if [ "$latest" = "$state" ]; then
-            echo "Newest bot review on $sha is already $state; skipping"
+          if [ "$latest" = "$conclusion" ]; then
+            echo "Newest agent-review check on $sha is already $conclusion; skipping"
             skip=true
           fi
           echo "skip=$skip" >> "$GITHUB_OUTPUT"
 
-      - name: Submit the review
+      - name: Record the agent-review check
         if: steps.validate.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -119,6 +127,7 @@ jobs:
           BODY: ${{ github.event.client_payload.body }}
           REVIEWER: ${{ github.event.client_payload.reviewer }}
           SHA: ${{ steps.validate.outputs.sha }}
+          CONCLUSION: ${{ steps.validate.outputs.conclusion }}
         run: |
           set -euo pipefail
           BODY="${BODY:-}"; VERDICT="${VERDICT:-}"; PR="${PR:-}"
@@ -128,19 +137,18 @@ jobs:
 
           # Attribute the verdict to the agent that formed it — the API identity
           # is github-actions[bot], which says nothing about who reviewed.
-          printf '%s\n\n---\n_Reviewed by **%s** (zi code-reviewer). Submitted via Actions because GitHub does not allow the proposing account to record a verdict on its own PR. A human still merges._\n' \
-            "$BODY" "${REVIEWER:-the zi code-reviewer}" > /tmp/review-body.md
+          # Check-run summaries are capped at 65535 chars.
+          printf '%s\n\n---\n_Reviewed by **%s** (zi code-reviewer) for PR #%s. Recorded as a check run, not a PR review, so it sends no email. A human still merges._\n' \
+            "$BODY" "${REVIEWER:-the zi code-reviewer}" "$PR" | head -c 60000 > /tmp/review-body.md
 
-          case "$VERDICT" in
-            approve)         EVENT=APPROVE ;;
-            request_changes) EVENT=REQUEST_CHANGES ;;
-            comment)         EVENT=COMMENT ;;
-          esac
+          # Pinned to the SHA validated above; a push mid-run cannot pick up a
+          # verdict formed on an older head.
+          jq -n --arg sha "$SHA" --arg c "$CONCLUSION" --arg v "$VERDICT" \
+                --rawfile summary /tmp/review-body.md \
+            '{name: "agent-review", head_sha: $sha, status: "completed",
+              conclusion: $c,
+              output: {title: ("Agent review: " + $v), summary: $summary}}' \
+            | gh api --method POST "repos/$GITHUB_REPOSITORY/check-runs" --input - > /dev/null
 
-          # Submit via the reviews API pinned to the SHA validated above,
-          # rather than `gh pr review`, which attaches to whatever the head
-          # is at submit time.
-          gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
-            -f commit_id="$SHA" -f event="$EVENT" -F body=@/tmp/review-body.md > /dev/null
-
-          echo "Submitted $VERDICT on PR #$PR at $SHA as github-actions[bot]"
+          { echo "## Agent review: $VERDICT on PR #$PR at ${SHA:0:7}"; echo; cat /tmp/review-body.md; } >> "$GITHUB_STEP_SUMMARY"
+          echo "Recorded agent-review=$CONCLUSION on PR #$PR at $SHA as github-actions[bot]"
