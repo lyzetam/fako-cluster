@@ -146,7 +146,7 @@ spec:
   # Sol cannot merge, so without a reviewer those PRs sit open indefinitely —
   # five were open for up to three weeks before this. Vera cannot merge either;
   # her verdict is a recommendation and a human still merges.
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-code-reviewer
@@ -308,7 +308,7 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-devops-engineer
@@ -447,7 +447,7 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-k8s-engineer
@@ -603,7 +603,7 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-platform-sre
