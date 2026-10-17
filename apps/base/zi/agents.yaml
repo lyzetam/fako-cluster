@@ -25,6 +25,10 @@ spec:
         app.kubernetes.io/name: agent-backend-engineer
         app.kubernetes.io/component: agent
     spec:
+      # No in-cluster API token: agents run as zi:default, which has no
+      # RBAC in Git, and the file tools can read the token path (Norbert
+      # zi review, Oct 17). Retiring, not re-enabling.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -162,6 +166,10 @@ spec:
         app.kubernetes.io/name: agent-code-reviewer
         app.kubernetes.io/component: agent
     spec:
+      # No in-cluster API token: agents run as zi:default, which has no
+      # RBAC in Git, and the file tools can read the token path (Norbert
+      # zi review, Oct 17). Retiring, not re-enabling.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -324,6 +332,10 @@ spec:
         app.kubernetes.io/name: agent-devops-engineer
         app.kubernetes.io/component: agent
     spec:
+      # No in-cluster API token: agents run as zi:default, which has no
+      # RBAC in Git, and the file tools can read the token path (Norbert
+      # zi review, Oct 17). Retiring, not re-enabling.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -466,6 +478,10 @@ spec:
       # Sol is the cluster's remediation path — he must not lose a
       # scheduling race or get evicted first under node pressure.
       priorityClassName: zi-agent-remediator
+      # No in-cluster API token: agents run as zi:default, which has no
+      # RBAC in Git, and the file tools can read the token path (Norbert
+      # zi review, Oct 17). Retiring, not re-enabling.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -619,6 +635,10 @@ spec:
         app.kubernetes.io/name: agent-platform-sre
         app.kubernetes.io/component: agent
     spec:
+      # No in-cluster API token: agents run as zi:default, which has no
+      # RBAC in Git, and the file tools can read the token path (Norbert
+      # zi review, Oct 17). Retiring, not re-enabling.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
