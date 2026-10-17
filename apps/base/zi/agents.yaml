@@ -229,10 +229,9 @@ spec:
             # request" and the run dies before its first token.
             - secretRef:
                 name: apisix-gateway-key
-            # ZI_FAKO_GH_TOKEN — the same token Sol writes with. Vera only
-            # reads PRs and submits reviews; there is no merge tool in the image.
-            - secretRef:
-                name: fako-gh-token
+            # ZI_FAKO_GH_TOKEN (fako-gh-token) removed 2026-10-17: the shared
+            # Sol/Vera classic PAT is no longer synced into zi. Vera is at
+            # replicas 0 and being retired; do not re-add without a scoped token.
           volumeMounts:
             - name: agent-memory
               mountPath: /data
@@ -525,9 +524,9 @@ spec:
             # request" and the run dies before its first token.
             - secretRef:
                 name: apisix-gateway-key
-            # ZI_FAKO_GH_TOKEN — write token scoped to Sol only (external-secret-fako-gh.yaml).
-            - secretRef:
-                name: fako-gh-token
+            # ZI_FAKO_GH_TOKEN (fako-gh-token) removed 2026-10-17: the shared
+            # Sol/Vera classic PAT is no longer synced into zi. Sol is at
+            # replicas 0 and being retired; do not re-add without a scoped token.
           volumeMounts:
             - name: agent-memory
               mountPath: /data
