@@ -90,6 +90,11 @@ rules:
       - ocirepositories
       - buckets
     verbs: ["get", "list", "watch"]
+  # cert-manager Certificate status (Ready, notAfter) for the cluster-health job
+  - apiGroups: ["cert-manager.io"]
+    resources:
+      - certificates
+    verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
