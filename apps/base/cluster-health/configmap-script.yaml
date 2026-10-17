@@ -7,7 +7,7 @@ data:
   collect.sh: |
     #!/bin/bash
     # cluster-health collector. Runs with the cluster-health SA's projected token
-    # (view-only mel-readonly ClusterRole). It holds no AWS credentials.
+    # (job-only cluster-health-read ClusterRole). It holds no AWS credentials.
     #
     # CONTENT RULE: the summary carries status fields and object names only:
     # counts, Ready/phase/reason, timestamps. Never Secret data, env values,

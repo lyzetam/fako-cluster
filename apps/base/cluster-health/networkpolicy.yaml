@@ -1,7 +1,7 @@
-# cluster-health egress: DNS, the Kubernetes API (k3s server port 6443, no
-# address pinned so no LAN topology appears here), and public HTTPS for S3 and
-# hc-ping.com. Parameter Store is fetched by ESO in its own namespace, not by
-# this pod. No ingress is allowed.
+# cluster-health egress: DNS, the Kubernetes API (k3s server port 6443 within
+# 10.0.0.0/8; no host address pinned so no LAN topology appears here), and
+# public HTTPS for S3 and hc-ping.com. Parameter Store is fetched by ESO in
+# its own namespace, not by this pod. No ingress is allowed.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -26,7 +26,10 @@ spec:
           port: 53
     # Kubernetes API. The kubernetes Service (443) DNATs to the server's 6443;
     # both are listed because policy engines differ on pre/post-DNAT matching.
-    - ports:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/8
+      ports:
         - protocol: TCP
           port: 6443
     - to:
