@@ -3,27 +3,23 @@ kind: Kustomization
 
 namespace: family-manager
 
-# DISABLED (webhook 2026-08-27; whole app removed from apps/staging 2026-08-27).
-# The webhook, its Service, the Traefik Ingress and the dedicated cloudflared
-# tunnel are commented out below so that re-enabling `- family-manager` in
-# apps/staging/kustomization.yaml does NOT bring back the public webhook
-# (security review, Oct 2026: unauthenticated tool/SMS/post-call routes).
+# 2026-10-17 (N7): the public webhook is retired. Its Deployment
+# (lzetam/family-manager-webhook:latest), Service, Traefik Ingress
+# (landryzetam.net /voice, /webhook), the dedicated cloudflared tunnel and
+# its tunnel-credentials ExternalSecret were deleted, not just commented out.
+# The webhook code no longer exists (family-manager-bot e9338f2), so any
+# webhook image would be a stale build. Do not re-add; a replacement needs a
+# new reviewed manifest with a pinned image digest.
 # The bot is scaled to 0 and the email CronJob is suspended by the overlay in
-# apps/staging/family-manager/kustomization.yaml. Do not re-enable any of this
-# without the fixes in the security review (family-manager-bot repo).
-# The manifest files are kept in the tree and in git history.
+# apps/staging/family-manager/kustomization.yaml (#357).
 resources:
   - namespace.yaml
   - secretstore.yaml
   - external-secret.yaml
   - external-secret-dockerhub.yaml
   - redis.yaml
-  # - deployment.yaml   # family-manager-webhook (public): DISABLED
   - deployment-bot.yaml  # scaled to 0 by the staging overlay
   - cronjob-email.yaml   # suspended by the staging overlay
-  # - service.yaml      # webhook Service: DISABLED
-  # - ingress.yaml      # public /voice and /webhook on landryzetam.net: DISABLED
-  # - cloudflare.yaml   # dedicated cloudflared for family-webhook host: DISABLED
 
 labels:
   - pairs:

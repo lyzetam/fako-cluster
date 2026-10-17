@@ -1,0 +1,143 @@
+# Hourly cluster health summary -> S3, with a healthchecks.io dead-man's switch.
+#
+# Two containers, two privilege sets:
+#   collect (init): projected SA token (view-only, 10 min), NO AWS credentials.
+#   upload:         S3 PutObject key + ping URL, NO Kubernetes token.
+# They share only /out (the status-only summary JSON).
+#
+# suspend: true until the prerequisites are done (S3 prefix, IAM users,
+# parameters, SOPS aws-credentials, healthchecks.io check). The follow-up PR
+# that adds the SOPS Secret flips it to false.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cluster-health
+  namespace: cluster-health
+  labels:
+    app: cluster-health
+spec:
+  schedule: "7 * * * *"
+  timeZone: "America/New_York"
+  suspend: true
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 1800
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      # No retries: a failed run is reported by the dead-man's switch, and the
+      # next hourly run is the retry.
+      backoffLimit: 0
+      activeDeadlineSeconds: 600
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app: cluster-health
+        spec:
+          serviceAccountName: cluster-health
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          initContainers:
+            - name: collect
+              # alpine/k8s 1.36.2 (kubectl, jq, bash), same tag as gpustack-proxy,
+              # pinned by digest.
+              image: alpine/k8s:1.36.2@sha256:44ef4942e171939b9c665a4a84beb80e2dcdb9a24330d4651cfdfd2e9deecc47
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "/script/collect.sh"]
+              env:
+                - name: HOME
+                  value: /tmp
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: script
+                  mountPath: /script
+                  readOnly: true
+                - name: out
+                  mountPath: /out
+                - name: tmp
+                  mountPath: /tmp
+                - name: sa-token
+                  mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          containers:
+            - name: upload
+              image: alpine/k8s:1.36.2@sha256:44ef4942e171939b9c665a4a84beb80e2dcdb9a24330d4651cfdfd2e9deecc47
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "/script/upload.sh"]
+              envFrom:
+                - secretRef:
+                    name: cluster-health-uploader
+              env:
+                - name: HOME
+                  value: /tmp
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: script
+                  mountPath: /script
+                  readOnly: true
+                - name: out
+                  mountPath: /out
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+          volumes:
+            - name: script
+              configMap:
+                name: cluster-health-script
+                defaultMode: 0555
+            - name: out
+              emptyDir:
+                sizeLimit: 16Mi
+            - name: tmp
+              emptyDir:
+                sizeLimit: 64Mi
+            # Explicit short-lived token instead of the automounted default, so
+            # the kubelet's legacy 1-year token extension does not apply.
+            - name: sa-token
+              projected:
+                defaultMode: 0444
+                sources:
+                  - serviceAccountToken:
+                      path: token
+                      expirationSeconds: 600
+                  - configMap:
+                      name: kube-root-ca.crt
+                      items:
+                        - key: ca.crt
+                          path: ca.crt
+                  - downwardAPI:
+                      items:
+                        - path: namespace
+                          fieldRef:
+                            fieldPath: metadata.namespace

@@ -146,7 +146,7 @@ spec:
   # Sol cannot merge, so without a reviewer those PRs sit open indefinitely —
   # five were open for up to three weeks before this. Vera cannot merge either;
   # her verdict is a recommendation and a human still merges.
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-code-reviewer
@@ -218,7 +218,7 @@ spec:
             # other shape — multi-line, non-memory, decrease, multi-file — is
             # refused in code, so this is not a general merge grant.
             - name: ZI_AUTOMERGE_ENABLED
-              value: "true"
+              value: "false"
             - name: ZI_MERGE_MAX_RATIO
               value: "2.0"
           envFrom:
@@ -308,7 +308,7 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-devops-engineer
@@ -447,7 +447,7 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-k8s-engineer
@@ -603,7 +603,7 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-platform-sre
@@ -720,7 +720,7 @@ spec:
               # 64K-context model response, and the peak cleared 1Gi. Limit only
               # — requests stay at 256Mi so this does not add scheduling
               # pressure on a node already at 97% of memory requests.
-              memory: 2Gi
+              memory: 4Gi
           # Boot imports the full LangChain/deepagents tree before uvicorn
           # binds the port. A startupProbe gives that up to 300s WITHOUT the
           # liveness probe running — previously liveness fired at 45s and

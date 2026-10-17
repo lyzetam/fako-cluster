@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cluster-health
+  labels:
+    app.kubernetes.io/name: cluster-health
+    app.kubernetes.io/part-of: cluster-health
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

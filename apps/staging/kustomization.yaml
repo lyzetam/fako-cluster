@@ -39,6 +39,7 @@ resources:
   
   # Cluster Maintenance
   - housekeeping  # Cleanup completed/failed pods periodically
+  - cluster-health  # Hourly status-only summary -> S3 + healthchecks.io dead-man's switch (suspended until prereqs)
   
   # Dashboard
   - headlamp  # Kubernetes dashboard with Kubescape plugin
@@ -93,7 +94,8 @@ resources:
   # Manufacturing OEE Dashboard
   # - n3xis           # Manufacturing OEE Platform (commented - shopflor.n3xis.com not for public access)
 
-  # Shared Cloudflare tunnel — fronts n8n, family-manager webhook, market-replay
+  # Shared Cloudflare tunnel (fakocluster, remotely managed) — fronts mcp, n8n, market-replay
+  # and (live remote config only) content; the family-manager webhook route was removed 2026-10-17
   - cloudflare-tunnel
 
   # PV Browser — read-only web UI over every NFS-backed PV (LAN-only, authenticated)
