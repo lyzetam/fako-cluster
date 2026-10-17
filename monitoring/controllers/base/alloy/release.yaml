@@ -34,15 +34,38 @@ spec:
         name: alloy-config
         key: config.alloy
       
+      # Persist Alloy's data (file positions, WAL) on the node instead of the
+      # chart default /tmp/alloy, which is lost on every pod restart. Host
+      # /var/lib/alloy is mounted at /alloy-data via mounts.extra +
+      # controller.volumes.extra.
+      # Needed so the k3s audit file source resumes where it stopped after a
+      # restart instead of skipping (tail_from_end) or re-shipping the file.
+      storagePath: /alloy-data
+
       # Enable clustering
       clustering:
         enabled: true
       
       # Mount configuration - use the correct format
       mounts:
-        # Host filesystem mounts
-        varlog: true
-        dockercontainers: true
+        # Host filesystem mounts. Pod logs come from the Kubernetes API
+        # (loki.source.kubernetes), not files, so neither the full host /var/log
+        # nor /var/lib/docker/containers (unused on k3s/containerd) is needed.
+        # The only host file Alloy reads is the k3s audit log, mounted below
+        # (read-only, just its own directory). Matters because Alloy also runs
+        # on the k3s server node (control-plane toleration).
+        varlog: false
+        dockercontainers: false
+        # Chart 0.10.1 reads extra mounts from alloy.mounts.extra and extra
+        # volumes from controller.volumes.extra. (The extraVolumes /
+        # extraVolumeMounts lists below are NOT chart keys and render nothing;
+        # left untouched here, flagged for cleanup.)
+        extra:
+          - name: alloy-data
+            mountPath: /alloy-data
+          - name: k3s-audit
+            mountPath: /var/log/kubernetes/audit
+            readOnly: true
       
       # Extra volume mounts need to be in extraVolumes/extraVolumeMounts
       extraVolumes:
@@ -73,7 +96,36 @@ spec:
     # Controller configuration
     controller:
       type: daemonset
-      hostPID: true  # Required for some log collection
+      # No host PID namespace: nothing in alloy-config.yaml needs it (file
+      # tailing and loki.source.kubernetes don't; prometheus.exporter.unix
+      # collectors cpu/meminfo/filesystem/netdev/diskstats/loadavg are not
+      # process collectors). Keeps host process cmdlines out of a root pod on
+      # the k3s server node.
+      hostPID: false
+      # zz-macbookpro (the k3s server, where the audit log is written) carries
+      # node-role.kubernetes.io/control-plane:NoSchedule. Without this
+      # toleration the DaemonSet skips that node and the audit file is never
+      # shipped. Chart 0.10.1 reads tolerations from controller.tolerations
+      # (the top-level `tolerations` further down is not a chart key and
+      # renders nothing). Side effect: Alloy also ships the control-plane
+      # node's pod logs and metrics.
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      volumes:
+        extra:
+          - name: alloy-data
+            hostPath:
+              path: /var/lib/alloy
+              type: DirectoryOrCreate
+          # Only the audit log directory, read-only. DirectoryOrCreate so the
+          # pod starts on nodes without it (creates an empty root 0755 dir;
+          # the runbook's `install -d -m 0700` sets the real mode on the server).
+          - name: k3s-audit
+            hostPath:
+              path: /var/log/kubernetes/audit
+              type: DirectoryOrCreate
     
     # Resources
     resources:
