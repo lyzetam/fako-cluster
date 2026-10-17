@@ -201,7 +201,12 @@ spec:
 
     # Grafana configuration
     grafana:
-      adminPassword: "admin"
+      # Admin credentials come from Secret grafana-admin, synced by the
+      # ExternalSecret in grafana-admin-externalsecret.yaml from AWS SM key grafana/admin.
+      admin:
+        existingSecret: grafana-admin
+        userKey: admin-user
+        passwordKey: admin-password
       
       # Default datasources
       additionalDataSources:
@@ -275,7 +280,6 @@ spec:
 #           kind: PrometheusRule
 #   values:
 #     grafana:
-#       adminPassword: "admin"
 #       ingress:
 #         ## If true, Grafana Ingress will be created
 #         ##
