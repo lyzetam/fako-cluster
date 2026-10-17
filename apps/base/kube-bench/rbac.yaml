@@ -8,8 +8,10 @@ rules:
 # reads Secrets. The reporter gets obsidian-api via secretKeyRef, which the
 # kubelet resolves, so it needs no RBAC on Secrets either. CIS 5.1.2 itself
 # says to remove get/list/watch on Secrets where possible.
+# No "configmaps" either: no k3s-cis-1.7 check reads ConfigMaps through the API,
+# and the reporter's envFrom configMapRef is resolved by the kubelet.
 - apiGroups: [""]
-  resources: ["pods", "nodes", "services", "configmaps"]
+  resources: ["pods", "nodes", "services"]
   verbs: ["get", "list"]
 - apiGroups: ["apps"]
   resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
