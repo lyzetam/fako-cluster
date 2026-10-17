@@ -86,12 +86,10 @@ data:
         connectTimeout: 30s
         keepAliveTimeout: 90s
 
-    # Family Manager Webhook - ElevenLabs voice assistant
-    - hostname: family-webhook.landryzetam.net
-      service: http://family-manager-webhook.family-manager.svc.cluster.local:80
-      originRequest:
-        connectTimeout: 30s
-        keepAliveTimeout: 90s
+    # family-webhook.landryzetam.net removed 2026-10-17 (N7): family-manager
+    # webhook retired (disabled 2026-08-27, code removed in family-manager-bot
+    # e9338f2). fakocluster is remotely managed, so the live route must also be
+    # removed in the Cloudflare dashboard/API; this file only mirrors it.
 
     # Market Replay Gateway - Options data recording and replay
     - hostname: market-replay.landryzetam.net
