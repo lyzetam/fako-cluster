@@ -13,15 +13,17 @@
 #     Those resources are logged at Metadata (who, what, when, from where,
 #     response code) and never at Request/RequestResponse.
 #   - RequestResponse is not used anywhere.
-#   - Record the request body only for RBAC and admission-policy writes (small,
-#     rare, and exactly what an attacker changes to escalate), and for writes by
-#     the future bot-operator identity (Norbert's design §6/§10; matches nothing
-#     until that ServiceAccount exists).
+#   - Record the request body only for RBAC and admission-policy writes by
+#     humans and other identities (small, rare, and exactly what an attacker
+#     changes to escalate). Flux and the bot/ops identities stay at Metadata.
 #   - Workload writes (Deployments, Pods, ...) stay at Metadata: pod templates
 #     can carry inline env values, and this log is shipped to Loki.
 #   - Drop high-volume, low-value noise: health probes, leases, events, node
 #     status heartbeats, system-component reads, and Flux's per-minute
-#     server-side-apply dry runs (the content of every Flux apply is in Git).
+#     server-side-apply dry runs (exact controller usernames only; the content
+#     of every Flux apply is in Git).
+#   - Test harness and case list: policytest/ in this directory
+#     (cd policytest && go run . ../audit-policy.yaml).
 #   - Admin certificates (system:masters, the CN=landry login after Oct 24) and
 #     everything else fall through to Metadata, so every Secret read in
 #     flux-system, every exec/port-forward and every admin action is recorded.
@@ -67,17 +69,57 @@ rules:
       - group: ""
         resources: [nodes, nodes/status, pods/status]
 
-  # --- 2. Flux server-side-apply dry runs ----------------------------------
-  # kustomize-controller dry-run-applies every object of every Kustomization on
-  # every reconcile (apps: ~830 objects every 1m). Each is a PATCH. Logging them
-  # would be roughly 1.5 GB/day of identical events. What Flux applies is in Git
-  # and in Flux's own events. Flux create/update/delete, and every Flux read of
-  # a Secret, still fall through to the rules below and are recorded.
+  # --- 2. Sensitive resources: Metadata only, never a body -----------------
+  # FIRST, before any Flux or system drop, so no identity can read or write a
+  # Secret, ConfigMap or token unrecorded. Secret and ConfigMap bodies,
+  # ServiceAccount TokenRequest responses (the new token), TokenReview requests
+  # (the token being reviewed), access reviews and CSRs.
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: [secrets, configmaps, serviceaccounts/token]
+      - group: authentication.k8s.io
+        resources: [tokenreviews]
+      - group: authorization.k8s.io
+        resources: [subjectaccessreviews, selfsubjectaccessreviews, localsubjectaccessreviews, selfsubjectrulesreviews]
+      - group: certificates.k8s.io
+        resources: [certificatesigningrequests, certificatesigningrequests/approval, certificatesigningrequests/status]
+  # Log, exec, attach, port-forward, proxy and debug-container streams:
+  # recorded, contents never.
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: [pods/log, pods/exec, pods/attach, pods/portforward, pods/proxy, pods/ephemeralcontainers, services/proxy, nodes/proxy]
+
+  # --- 3. Flux --------------------------------------------------------------
+  # 3a. Flux writes to RBAC and admission policy: always recorded (Metadata;
+  #     the content is in Git). Exact controller usernames only.
+  - level: Metadata
+    users:
+      - system:serviceaccount:flux-system:kustomize-controller
+      - system:serviceaccount:flux-system:helm-controller
+    resources:
+      - group: rbac.authorization.k8s.io
+      - group: admissionregistration.k8s.io
+  # 3b. Flux server-side-apply dry runs. kustomize-controller dry-run-applies
+  #     every object of every Kustomization on every reconcile (apps: ~830
+  #     objects every 1m), each a PATCH; helm-controller patches/updates on
+  #     upgrade. Logging them would be roughly 1.5 GB/day of identical events,
+  #     and what Flux applies is in Git and in Flux's own events. Exact
+  #     usernames only: any OTHER flux-system ServiceAccount is still recorded.
+  #     Secrets/ConfigMaps never reach this rule (rule 2 is first).
   - level: None
-    userGroups: ["system:serviceaccounts:flux-system"]
-    verbs: [patch]
+    users:
+      - system:serviceaccount:flux-system:kustomize-controller
+      - system:serviceaccount:flux-system:helm-controller
+    verbs: [patch, update]
+  # 3c. Flux controllers' reads of non-sensitive objects. Exact usernames.
   - level: None
-    userGroups: ["system:serviceaccounts:flux-system"]
+    users:
+      - system:serviceaccount:flux-system:kustomize-controller
+      - system:serviceaccount:flux-system:helm-controller
+      - system:serviceaccount:flux-system:source-controller
+      - system:serviceaccount:flux-system:notification-controller
     verbs: [get, list, watch]
     resources:
       - group: ""
@@ -90,28 +132,23 @@ rules:
       - group: source.toolkit.fluxcd.io
       - group: notification.toolkit.fluxcd.io
 
-  # --- 3. Sensitive resources: Metadata only, never a body -----------------
-  # Secret and ConfigMap bodies, ServiceAccount TokenRequest responses (the
-  # new token), TokenReview requests (the token being reviewed), and CSRs.
+  # --- 4. Human and bot access identities: everything at Metadata -----------
+  # Placed BEFORE the system-read drops below, which would otherwise hide
+  # kube-system ServiceAccounts such as mel-readonly and headlamp-admin.
+  # bot-operator / bot-minter (Norbert's design §10) are recorded at Metadata,
+  # reads and writes alike; the restart-only VAP's validationActions
+  # [Deny, Audit] adds the policy decision to these events. These names match
+  # nothing until the accounts exist.
   - level: Metadata
-    resources:
-      - group: ""
-        resources: [secrets, configmaps, serviceaccounts/token]
-      - group: authentication.k8s.io
-        resources: [tokenreviews]
-      - group: authorization.k8s.io
-        resources: [subjectaccessreviews, selfsubjectaccessreviews, localsubjectaccessreviews, selfsubjectrulesreviews]
-      - group: certificates.k8s.io
-        resources: [certificatesigningrequests, certificatesigningrequests/approval, certificatesigningrequests/status]
-  # Log, exec, attach, port-forward and proxy streams: recorded, contents never.
-  - level: Metadata
-    resources:
-      - group: ""
-        resources: [pods/log, pods/exec, pods/attach, pods/portforward, pods/proxy, services/proxy, nodes/proxy]
+    users:
+      - system:serviceaccount:bot-ops:bot-operator
+      - system:serviceaccount:bot-ops:bot-minter
+      - system:serviceaccount:kube-system:mel-readonly
+      - system:serviceaccount:kube-system:headlamp-admin
+      - system:serviceaccount:kube-system:headlamp-admin-v2
 
-  # --- 4. Reads by system components ---------------------------------------
-  # (Placed after rule 3 on purpose: a system component reading a Secret is
-  # still recorded at Metadata.)
+  # --- 5. Reads by system components ---------------------------------------
+  # (After rule 2, so a system component reading a Secret is still recorded.)
   - level: None
     users:
       - system:kube-proxy
@@ -126,18 +163,15 @@ rules:
     userGroups: ["system:nodes", "system:serviceaccounts:kube-system"]
     verbs: [get, list, watch]
 
-  # --- 5. Bodies worth keeping ---------------------------------------------
-  # Future bot-operator identity (Norbert §10): keep the patch body of every
-  # write so a VAP bypass attempt is visible. Matches nothing until it exists.
-  - level: Request
-    users: ["system:serviceaccount:bot-ops:bot-operator"]
-    verbs: [create, patch, update, delete, deletecollection]
-  # RBAC and admission policy changes: who granted what to whom.
+  # --- 6. Bodies worth keeping ---------------------------------------------
+  # RBAC and admission policy changes by humans (admin certs) or any other
+  # identity: who granted what to whom. (Flux and the named identities above
+  # are already matched at Metadata.)
   - level: Request
     verbs: [create, patch, update, delete, deletecollection]
     resources:
       - group: rbac.authorization.k8s.io
       - group: admissionregistration.k8s.io
 
-  # --- 6. Everything else ---------------------------------------------------
+  # --- 7. Everything else ---------------------------------------------------
   - level: Metadata

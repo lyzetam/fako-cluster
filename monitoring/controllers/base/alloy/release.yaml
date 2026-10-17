@@ -34,6 +34,14 @@ spec:
         name: alloy-config
         key: config.alloy
       
+      # Persist Alloy's data (file positions, WAL) on the node instead of the
+      # chart default /tmp/alloy, which is lost on every pod restart. Host
+      # /var/lib/alloy is mounted at /alloy-data via mounts.extra +
+      # controller.volumes.extra.
+      # Needed so the k3s audit file source resumes where it stopped after a
+      # restart instead of skipping (tail_from_end) or re-shipping the file.
+      storagePath: /alloy-data
+
       # Enable clustering
       clustering:
         enabled: true
@@ -43,6 +51,13 @@ spec:
         # Host filesystem mounts
         varlog: true
         dockercontainers: true
+        # Chart 0.10.1 reads extra mounts from alloy.mounts.extra and extra
+        # volumes from controller.volumes.extra. (The extraVolumes /
+        # extraVolumeMounts lists below are NOT chart keys and render nothing;
+        # left untouched here, flagged for cleanup.)
+        extra:
+          - name: alloy-data
+            mountPath: /alloy-data
       
       # Extra volume mounts need to be in extraVolumes/extraVolumeMounts
       extraVolumes:
@@ -74,6 +89,12 @@ spec:
     controller:
       type: daemonset
       hostPID: true  # Required for some log collection
+      volumes:
+        extra:
+          - name: alloy-data
+            hostPath:
+              path: /var/lib/alloy
+              type: DirectoryOrCreate
     
     # Resources
     resources:

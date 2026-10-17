@@ -8,7 +8,7 @@ Status: draft for review (Norbert) and Landry's OK. Nothing here runs by itself.
 |---|---|---|
 | Audit policy | `docs/operations/k3s-audit/audit-policy.yaml` -> `/etc/rancher/k3s/audit-policy.yaml` on the server | **Host, by hand.** K3s server flags are not in this repo (no ansible, no config in system-upgrade-controller; SUC only swaps the binary). |
 | API server flags | `docs/operations/k3s-audit/50-audit.yaml` -> `/etc/rancher/k3s/config.yaml.d/50-audit.yaml` | **Host, by hand.** Needs `systemctl restart k3s` on the server. |
-| Shipping to Loki | `monitoring/controllers/base/alloy/alloy-config.yaml` (`local.file_match "k3s_audit"` + `loki.source.file`) | **Flux** (monitoring-controllers). Harmless before the host step: no file, no targets. |
+| Shipping to Loki | `monitoring/controllers/base/alloy/alloy-config.yaml` (`local.file_match "k3s_audit"` + `loki.source.file`), plus `alloy.storagePath: /alloy-data` in the Alloy HelmRelease so file positions survive restarts | **Flux** (monitoring-controllers). Harmless before the host step: no file, no targets. |
 
 Server node: zz-macbookpro, the only control-plane node. Agents need no change and no restart.
 
@@ -70,10 +70,13 @@ After ~1 hour, measure volume and project a day: `sudo du -h /var/log/kubernetes
 In Loki (Grafana Explore), once the Alloy change is merged:
 ```logql
 sum(count_over_time({job="k3s-audit"}[5m]))
-# Secret reads in flux-system by anyone except Flux itself (should be 0; any hit is an incident per Carl):
+# Secret reads in flux-system by anyone except the four Flux controllers (exact
+# usernames; LogQL regexes are fully anchored). Should be 0; any hit is an incident per Carl:
 {job="k3s-audit"} | json | objectRef_namespace="flux-system" | objectRef_resource="secrets"
-  | user_username!~"system:serviceaccount:flux-system:.*"
+  | user_username!~"system:serviceaccount:flux-system:(kustomize-controller|helm-controller|source-controller|notification-controller)"
 ```
+
+**The host file is the source of truth, not Loki.** Loki runs with `auth_enabled: false` and there are no NetworkPolicies in front of it, so anything in the cluster that can reach the Loki gateway can read (or push to) these streams. A follow-up Loki lockdown PR (auth/NetworkPolicy) comes **before** any alert depends on the `k3s-audit` stream. Also, Loki's compactor `retention_enabled` is not set, so the 30-day `retention_period` may not actually be enforced; that's for the same follow-up.
 
 ## Rollback
 ```bash
@@ -83,17 +86,19 @@ sudo systemctl restart k3s
 The policy file and the logs can stay; without the flags nothing reads or writes them.
 
 ## Sizing
-`audit-log-maxsize=100` (MB per file), `maxbackup=5`, `maxage=7` (days): at most ~600 MB on the server's disk. Loki keeps 30 days (`retention_period: 720h`, 100Gi PVC). The real event rate is unknown until measured; the policy drops the known high-volume sources (health probes, leases, events, node heartbeats, system-component reads, Flux's per-minute server-side-apply dry runs).
+`audit-log-maxsize=100` (MB per file), `maxbackup=5`, `maxage=7` (days): at most ~600 MB on the server's disk. Loki is configured for 30 days (`retention_period: 720h`, 100Gi PVC), but compactor retention is not enabled, so that may not be enforced (see above). The real event rate is unknown until measured; the policy drops the known high-volume sources (health probes, leases, events, node heartbeats, system-component reads, Flux's per-minute server-side-apply dry runs).
 
 ## What the policy records
-Rule-tested cases (all as intended):
+Rule-tested with `policytest/` in `docs/operations/k3s-audit/` (API server v0.34.1 loader and evaluator; Norbert's 34 cases plus Mel's 24): `cd docs/operations/k3s-audit/policytest && go run . ../audit-policy.yaml cases.yaml` prints `PASS 58/58`. Summary:
 - Admin get/list/create on Secrets, ConfigMaps (any namespace, including flux-system): **Metadata**.
 - TokenRequest, TokenReview, SubjectAccessReview, CSR: **Metadata** (bodies hold tokens/keys).
 - exec, attach, port-forward, proxy, pods/log: **Metadata** (stream contents never).
-- Admin or Flux create/patch/delete on RBAC or admission policies: **Request** (body kept).
-- Future `bot-ops:bot-operator` writes: **Request**; its reads: Metadata.
+- Admin (and any identity not named below) create/patch/update/delete on RBAC or admission policies: **Request** (body kept).
+- Flux kustomize-controller / helm-controller writes to RBAC or admission policies: **Metadata** (always recorded; content is in Git).
+- Named access identities, all verbs: **Metadata**: `bot-ops:bot-operator`, `bot-ops:bot-minter` (future; the VAP's `[Deny, Audit]` adds its decision), `kube-system:mel-readonly`, `kube-system:headlamp-admin(-v2)`.
 - Workload writes by humans or bots: **Metadata** (pod templates may carry inline env values).
-- Flux patch (SSA dry runs) and Flux reads of non-Secret objects: **None**. Flux reads of Secrets and Flux create/delete (prune): **Metadata**.
+- Secrets, ConfigMaps and tokens are matched **before** any Flux rule, so every Flux read or write of a Secret is **Metadata**.
+- patch/update by exactly `flux-system:kustomize-controller` and `flux-system:helm-controller` on anything else (SSA dry runs, helm upgrades): **None**. get/list/watch of non-sensitive objects by exactly those two plus source-controller and notification-controller: **None**. Flux create/delete (prune): **Metadata**. Any other flux-system ServiceAccount: recorded like everyone else.
 - Kubelet node/pod status, leases, events, health URLs, system-component reads of non-Secrets: **None**. System components reading Secrets: **Metadata**.
 
-Known gaps (accepted): Flux SSA patches are not audited, so a stolen Flux controller token used only for `patch` would not show up; reading the token itself (a Secret in flux-system) is recorded. Workload write bodies are not kept.
+Known gaps (accepted): patch/update by the kustomize-controller and helm-controller identities on non-sensitive, non-RBAC objects are not audited, so a stolen token for exactly those two used only for that would not show up; reading the token itself (a Secret in flux-system) is recorded, and so are their Secret, RBAC and admission writes. Workload write bodies are not kept.

@@ -101,8 +101,10 @@ data:
     loki.source.file "k3s_audit" {
       targets    = local.file_match.k3s_audit.targets
       forward_to = [loki.write.default.receiver]
-      // Storage is /tmp (not persistent), so positions reset on restart.
-      // Start at the end rather than re-ship the whole file each restart.
+      // Positions persist under --storage.path=/alloy-data (hostPath, see
+      // release.yaml), so a restart resumes from the saved offset.
+      // tail_from_end only applies when no position exists yet (first start),
+      // so the file's backlog isn't bulk-shipped on day one.
       tail_from_end = true
     }
 
