@@ -5,9 +5,10 @@
 #   upload:         S3 PutObject key + ping URL, NO Kubernetes token.
 # They share only /out (the status-only summary JSON).
 #
-# suspend: true until the prerequisites are done (S3 prefix, IAM users,
-# parameters, SOPS aws-credentials, healthchecks.io check). The follow-up PR
-# that adds the SOPS Secret flips it to false.
+# suspend: false. Enabled only together with the SOPS aws-credentials Secret
+# (apps/staging/cluster-health/aws-credentials-secret.yaml) and after the S3
+# prefix, IAM users, /health/* parameters and healthchecks.io check exist.
+# Quick stop: set suspend: true via a PR.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -18,7 +19,7 @@ metadata:
 spec:
   schedule: "7 * * * *"
   timeZone: "America/New_York"
-  suspend: true
+  suspend: false
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 1800
   successfulJobsHistoryLimit: 3
