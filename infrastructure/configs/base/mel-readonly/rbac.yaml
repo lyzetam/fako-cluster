@@ -35,7 +35,6 @@ rules:
       - nodes
       - namespaces
       - events
-      - configmaps
       - persistentvolumeclaims
       - persistentvolumes
       - replicationcontrollers
