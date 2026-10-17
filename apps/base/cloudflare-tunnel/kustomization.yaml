@@ -5,10 +5,13 @@ kind: Kustomization
 # other namespaces. Distinct from the per-app cloudflared deployments in
 # social-media, autobots, ginger-hoa, sports-bets and soccer-banter.
 #
-# Currently routes: MCP, n8n and market-replay. The family-manager webhook
-# route was removed 2026-10-17 (N7). The tunnel is remotely managed: the
-# Cloudflare dashboard config is what cloudflared actually serves, and the
-# ConfigMap in cloudflare.yaml is a mirror of it, not the source of truth.
+# The tunnel is remotely managed: the Cloudflare dashboard config is what
+# cloudflared actually serves, and the ConfigMap in cloudflare.yaml is a
+# mirror of it, not the source of truth. The Git mirror lists MCP,
+# mcp-stream, n8n and market-replay. The live remote config ALSO still serves
+# content.landryzetam.net (AI Content Studio), removed from Git on 2026-09-21
+# (e771f785) but never removed in the dashboard. The family-webhook route was
+# removed from Git 2026-10-17 (N7); its live removal is a dashboard step.
 # Previously lived in the `mcp-gateway` namespace; moved 2026-08-11 when the
 # MCP gateway was retired and the name stopped matching the contents.
 
