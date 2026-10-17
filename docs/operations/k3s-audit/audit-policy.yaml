@@ -23,7 +23,7 @@
 #     server-side-apply dry runs (exact controller usernames only; the content
 #     of every Flux apply is in Git).
 #   - Test harness and case list: policytest/ in this directory
-#     (cd policytest && go run . ../audit-policy.yaml).
+#     (cd policytest && go run . ../audit-policy.yaml cases.yaml).
 #   - Admin certificates (system:masters, the CN=landry login after Oct 24) and
 #     everything else fall through to Metadata, so every Secret read in
 #     flux-system, every exec/port-forward and every admin action is recorded.

@@ -5,7 +5,9 @@
 # /etc/rancher/k3s/config.yaml (without the "+", a drop-in replaces the list).
 #
 # Sizing for a homelab server disk: 100 MB per file, 5 rotated files kept for
-# at most 7 days -> at most ~600 MB on disk. Loki keeps the long copy (30 days).
+# at most 7 days -> at most ~600 MB on disk. Loki also gets a copy, but its
+# retention isn't enforced (compactor retention_enabled is unset), so don't
+# rely on Loki for a fixed retention window.
 # Shrink maxbackup to 2 if `df -h /var/log` shows less than 5 GB free.
 kube-apiserver-arg+:
   - audit-policy-file=/etc/rancher/k3s/audit-policy.yaml

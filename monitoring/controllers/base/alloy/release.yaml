@@ -89,6 +89,17 @@ spec:
     controller:
       type: daemonset
       hostPID: true  # Required for some log collection
+      # zz-macbookpro (the k3s server, where the audit log is written) carries
+      # node-role.kubernetes.io/control-plane:NoSchedule. Without this
+      # toleration the DaemonSet skips that node and the audit file is never
+      # shipped. Chart 0.10.1 reads tolerations from controller.tolerations
+      # (the top-level `tolerations` further down is not a chart key and
+      # renders nothing). Side effect: Alloy also ships the control-plane
+      # node's pod logs and metrics.
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
       volumes:
         extra:
           - name: alloy-data
