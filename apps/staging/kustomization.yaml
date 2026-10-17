@@ -39,6 +39,7 @@ resources:
   
   # Cluster Maintenance
   - housekeeping  # Cleanup completed/failed pods periodically
+  - cluster-health  # Hourly status-only summary -> S3 + healthchecks.io dead-man's switch (suspended until prereqs)
   
   # Dashboard
   - headlamp  # Kubernetes dashboard with Kubescape plugin
