@@ -39,6 +39,13 @@ spec:
               value: "100"
             - name: DT_REALTIME_CONNECTIONTIMEOUT
               value: "30"
+            # jwt.secret override (see configmap.yaml). Secret is synced by
+            # external-secret-jwt.yaml from AWS SM donetick/jwt-secret.
+            - name: DT_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: donetick-jwt
+                  key: DT_JWT_SECRET
           securityContext:
             allowPrivilegeEscalation: false
           volumeMounts:
