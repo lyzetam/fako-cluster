@@ -1,4 +1,4 @@
-# Per-namespace RoleBindings for the headlamp-admin ServiceAccount.
+# Per-namespace RoleBindings for the headlamp-admin-v2 ServiceAccount (kube-system).
 #
 # These replace the original cluster-wide ClusterRoleBinding for write
 # access. The admin token still has cluster-wide READ via the
@@ -46,7 +46,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -60,11 +60,11 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 # amig-erp paused 2026-05-13 (apps/staging/kustomization.yaml). When re-enabled,
-# uncomment this RoleBinding so headlamp-admin retains write access there.
+# uncomment this RoleBinding so headlamp-admin-v2 retains write access there.
 # apiVersion: rbac.authorization.k8s.io/v1
 # kind: RoleBinding
 # metadata:
@@ -76,7 +76,7 @@ subjects:
 #   name: headlamp-admin
 # subjects:
 # - kind: ServiceAccount
-#   name: headlamp-admin
+#   name: headlamp-admin-v2
 #   namespace: kube-system
 ---
 ---
@@ -91,7 +91,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -105,7 +105,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 # family-manager is commented out of apps/staging/kustomization.yaml, so its
@@ -113,7 +113,7 @@ subjects:
 # the WHOLE `apps` Kustomization, not just this object. It had been failing
 # since revision 42c5126e, silently queueing every other change to the cluster
 # behind it. Commented out to match the amig-erp precedent above; when
-# family-manager is re-enabled, uncomment this so headlamp-admin keeps write
+# family-manager is re-enabled, uncomment this so headlamp-admin-v2 keeps write
 # access there.
 # apiVersion: rbac.authorization.k8s.io/v1
 # kind: RoleBinding
@@ -126,7 +126,7 @@ subjects:
 #   name: headlamp-admin
 # subjects:
 # - kind: ServiceAccount
-#   name: headlamp-admin
+#   name: headlamp-admin-v2
 #   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -140,7 +140,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 # EXCLUDED — housekeeping SA has cluster-wide pods delete (DoS escalation)
@@ -157,7 +157,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -171,7 +171,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -185,7 +185,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -199,7 +199,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -213,7 +213,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -227,7 +227,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -241,7 +241,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -255,7 +255,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -269,7 +269,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -283,7 +283,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 ---
@@ -298,7 +298,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -312,7 +312,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 # EXCLUDED — quantum-trades/orchestrator-qt SA has cluster-wide secrets read
@@ -329,7 +329,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -343,7 +343,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -357,7 +357,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -371,7 +371,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -385,7 +385,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -399,7 +399,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -413,7 +413,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 # Disabled with whisper-cpu (namespace pruned). Re-enable alongside whisper-cpu.
@@ -428,7 +428,7 @@ subjects:
 #   name: headlamp-admin
 # subjects:
 # - kind: ServiceAccount
-#   name: headlamp-admin
+#   name: headlamp-admin-v2
 #   namespace: kube-system
 ---
 # Disabled with whisperx (namespace removed). Re-enable alongside whisperx.
@@ -443,7 +443,7 @@ subjects:
 #   name: headlamp-admin
 # subjects:
 # - kind: ServiceAccount
-#   name: headlamp-admin
+#   name: headlamp-admin-v2
 #   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -457,7 +457,7 @@ roleRef:
   name: headlamp-admin
 subjects:
 - kind: ServiceAccount
-  name: headlamp-admin
+  name: headlamp-admin-v2
   namespace: kube-system
 ---
 # EXCLUDED — zi/k8s-operator SA has cluster-wide pods delete + deployment
