@@ -78,14 +78,9 @@ data:
     no-autoupdate: true
 
     ingress:
-    - hostname: family-webhook.landryzetam.net
-      service: http://family-manager-webhook.family-manager.svc.cluster.local:80
-      originRequest:
-        connectTimeout: 30s
-        noTLSVerify: false
-        keepAliveTimeout: 90s
-        httpHostHeader: family-webhook.landryzetam.net
-        disableChunkedEncoding: true
+    # family-webhook.landryzetam.net removed 2026-10-17 (N7): the webhook is
+    # retired. Do not re-add it; a new public route needs its own hostname on
+    # the shared fakocluster tunnel and a review.
 
     # Catch-all returns 404 for unmatched requests
     - service: http_status:404
