@@ -98,13 +98,16 @@ spec:
               path: /var/log/kubernetes/audit
               type: DirectoryOrCreate
     
-    # Service account - let Helm create it
+    # ServiceAccount, ClusterRole and ClusterRoleBinding `alloy` are owned by
+    # Flux kustomize (rbac.yaml, narrow rules, helm.sh/resource-policy: keep).
+    # The chart must not render same-name objects: its ClusterRole grants
+    # cluster-wide secrets/configmaps and nodes/proxy, which this config
+    # doesn't use. Merge only after the keep annotation is live (PR A).
     serviceAccount:
-      create: true
-    
-    # RBAC - let Helm create it
+      create: false
+      name: alloy
     rbac:
-      create: true
+      create: false
     
     # ServiceMonitor for self-monitoring
     serviceMonitor:
