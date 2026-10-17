@@ -57,41 +57,13 @@ spec:
         varlog: false
         dockercontainers: false
         # Chart 0.10.1 reads extra mounts from alloy.mounts.extra and extra
-        # volumes from controller.volumes.extra. (The extraVolumes /
-        # extraVolumeMounts lists below are NOT chart keys and render nothing;
-        # left untouched here, flagged for cleanup.)
+        # volumes from controller.volumes.extra.
         extra:
           - name: alloy-data
             mountPath: /alloy-data
           - name: k3s-audit
             mountPath: /var/log/kubernetes/audit
             readOnly: true
-      
-      # Extra volume mounts need to be in extraVolumes/extraVolumeMounts
-      extraVolumes:
-        - name: pods
-          hostPath:
-            path: /var/log/pods
-            type: Directory
-        - name: journal
-          hostPath:
-            path: /var/log/journal
-            type: DirectoryOrCreate
-        - name: alloy-data
-          hostPath:
-            path: /var/lib/alloy
-            type: DirectoryOrCreate
-      
-      extraVolumeMounts:
-        - name: pods
-          mountPath: /var/log/pods
-          readOnly: true
-        - name: journal
-          mountPath: /var/log/journal
-          readOnly: true
-        - name: alloy-data
-          mountPath: /alloy-data
-          readOnly: false
     
     # Controller configuration
     controller:
@@ -127,15 +99,6 @@ spec:
               path: /var/log/kubernetes/audit
               type: DirectoryOrCreate
     
-    # Resources
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
-    
     # Service account - let Helm create it
     serviceAccount:
       create: true
@@ -143,11 +106,6 @@ spec:
     # RBAC - let Helm create it
     rbac:
       create: true
-    
-    # Security context - adjusted for log collection
-    securityContext:
-      privileged: true  # Required for accessing host logs
-      runAsUser: 0      # Run as root for log access
     
     # ServiceMonitor for self-monitoring
     serviceMonitor:
