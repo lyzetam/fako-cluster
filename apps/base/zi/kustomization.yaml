@@ -27,6 +27,8 @@ resources:
   # Redis (cache for agent knowledge sharing)
   - redis-deployment.yaml
   - redis-service.yaml
+  # Ingress lockdown (default deny + explicit allows)
+  - networkpolicy.yaml
   # Agent shared resources
   - zi-agents-memory-pvc.yaml
   - rbac-k8s-operator.yaml
