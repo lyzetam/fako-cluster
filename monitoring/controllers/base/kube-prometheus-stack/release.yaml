@@ -162,6 +162,14 @@ spec:
               receiver: 'default'
               continue: false
 
+            # Watchdog always fires (it proves the pipeline is alive) and
+            # InfoInhibitor only exists to mute info alerts. Neither should
+            # ever page or email anyone.
+            - matchers:
+                - alertname=~"Watchdog|InfoInhibitor"
+              receiver: 'null'
+              continue: false
+
             # Pod alerts with agent label go to zI for investigation
             - matchers:
                 - agent=~"k8s-engineer|platform-sre"
@@ -180,6 +188,38 @@ spec:
               repeat_interval: 30m
               continue: true
 
+            # Email to Landry (bot-operator design §6: alerts must reach a
+            # human). Last, so the zI routes above still see everything they
+            # saw before. Critical and warning only; info stays in `default`.
+            # The three *Down alerts are excluded because k3s runs the
+            # scheduler, controller-manager and proxy inside the k3s binary,
+            # where the chart's scrape targets don't exist, so they fire
+            # permanently (all three were firing on Oct 14). zI still gets them.
+            - matchers:
+                - severity=~"critical|warning"
+                - alertname!~"KubeSchedulerDown|KubeControllerManagerDown|KubeProxyDown"
+              receiver: 'landry-email'
+              continue: false
+              routes:
+                # Criticals: one email per alertname, quickly, resolved too.
+                - matchers:
+                    - severity="critical"
+                  receiver: 'landry-email'
+                  group_by: ['alertname']
+                  group_wait: 1m
+                  group_interval: 15m
+                  repeat_interval: 4h
+                # Warnings: ONE digest email for all of them (48 distinct
+                # warning groups were firing on Oct 14; one email each would
+                # be ~290 emails a day). Re-sent every 4h while anything fires.
+                - matchers:
+                    - severity="warning"
+                  receiver: 'landry-email-digest'
+                  group_by: ['severity']
+                  group_wait: 5m
+                  group_interval: 1h
+                  repeat_interval: 4h
+
         receivers:
           - name: 'default'
             # Default receiver - just logs (no external notification)
@@ -190,7 +230,58 @@ spec:
                 send_resolved: true
                 max_alerts: 10
 
+          - name: 'null'
+
+          # SMTP via AgentMail (smtp.agentmail.to:465, implicit TLS), $0 on
+          # the team's existing AgentMail plan. The password is an AgentMail
+          # API key scoped to the sender inbox with send-only permission. It
+          # comes from SSM Parameter Store /alertmanager/smtp through the
+          # ExternalSecret in monitoring/configs/base/alertmanager-email/ and
+          # is mounted below as a file. It is never in this config.
+          # If the Secret doesn't exist yet the volume is empty (optional:
+          # true): Alertmanager still starts and every other receiver works;
+          # only these two fail to send, logged as notify errors.
+          # PLACEHOLDERS to settle before merge: `to` (Landry's alert
+          # address) and the sender inbox (`from` and `auth_username` must be
+          # the same AgentMail inbox).
+          - name: 'landry-email'
+            email_configs:
+              - to: 'landry-alerts-placeholder@example.invalid'
+                from: 'Fako cluster alerts <cluster-alerts@agentmail.to>'
+                smarthost: 'smtp.agentmail.to:465'
+                auth_username: 'cluster-alerts@agentmail.to'
+                auth_password_file: /etc/alertmanager/smtp/password
+                require_tls: true
+                send_resolved: true
+                headers:
+                  Subject: '[fako {{ .Status | toUpper }}] {{ .CommonLabels.alertname }} ({{ .Alerts.Firing | len }} firing)'
+          - name: 'landry-email-digest'
+            email_configs:
+              - to: 'landry-alerts-placeholder@example.invalid'
+                from: 'Fako cluster alerts <cluster-alerts@agentmail.to>'
+                smarthost: 'smtp.agentmail.to:465'
+                auth_username: 'cluster-alerts@agentmail.to'
+                auth_password_file: /etc/alertmanager/smtp/password
+                require_tls: true
+                send_resolved: false
+                headers:
+                  Subject: '[fako] warning digest: {{ .Alerts.Firing | len }} firing'
+
       alertmanagerSpec:
+        # SMTP password file for the landry-email receivers. optional: true
+        # so a missing Secret never blocks the Alertmanager pod; the kubelet
+        # fills the volume once the ExternalSecret creates the Secret, and
+        # Alertmanager reads the file at send time (no restart needed).
+        volumes:
+          - name: smtp
+            secret:
+              secretName: alertmanager-smtp
+              optional: true
+              defaultMode: 0440
+        volumeMounts:
+          - name: smtp
+            mountPath: /etc/alertmanager/smtp
+            readOnly: true
         resources:
           requests:
             memory: 64Mi
