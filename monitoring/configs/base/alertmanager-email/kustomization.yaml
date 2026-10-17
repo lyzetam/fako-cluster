@@ -2,7 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: monitoring
 resources:
-  - secret-store.yaml
+  # Depends on SecretStore aws-secret-store from PR #386.
   - external-secret.yaml
-  # Follow-up PR, after the IAM user alertmanager-ssm-reader exists:
-  # - aws-credentials-secret.yaml   # SOPS: Secret alertmanager-ssm-credentials
+  - prometheus-rules.yaml
