@@ -82,6 +82,31 @@ data:
     }
     
     // ============================================
+    // K3s API server audit log (packet item 4)
+    // ============================================
+    // The k3s server writes /var/log/kubernetes/audit/audit.log on the host
+    // (docs/operations/k3s-audit-logging.md). This DaemonSet already mounts the
+    // host's /var/log read-only (alloy.mounts.varlog), so only the pod on the
+    // server node finds the file; on every other node this matches nothing.
+    // Rotated files (audit-<timestamp>.log) are not read; only the live file.
+    // Safe to merge before the host change: no file, no targets, no errors.
+    local.file_match "k3s_audit" {
+      path_targets = [{
+        "__path__" = "/var/log/kubernetes/audit/audit.log",
+        "job"      = "k3s-audit",
+        "node"     = env("HOSTNAME"),  // chart sets HOSTNAME = spec.nodeName
+      }]
+    }
+
+    loki.source.file "k3s_audit" {
+      targets    = local.file_match.k3s_audit.targets
+      forward_to = [loki.write.default.receiver]
+      // Storage is /tmp (not persistent), so positions reset on restart.
+      // Start at the end rather than re-ship the whole file each restart.
+      tail_from_end = true
+    }
+
+    // ============================================
     // Loki Write
     // ============================================
     

@@ -1,0 +1,143 @@
+# K3s API server audit policy (packet item 4).
+#
+# NOT delivered by Flux. Nothing under docs/ is in a Flux path. This file is
+# copied by hand to the server node (zz-macbookpro) as
+#   /etc/rancher/k3s/audit-policy.yaml   (root:root, 0600)
+# and enabled by config.yaml.d/50-audit.yaml in this directory. Steps:
+# docs/operations/k3s-audit-logging.md.
+#
+# Rules are evaluated top to bottom; the FIRST match wins.
+#
+# Design goals:
+#   - Never write a Secret, ConfigMap, token, TokenReview or log body to disk.
+#     Those resources are logged at Metadata (who, what, when, from where,
+#     response code) and never at Request/RequestResponse.
+#   - RequestResponse is not used anywhere.
+#   - Record the request body only for RBAC and admission-policy writes (small,
+#     rare, and exactly what an attacker changes to escalate), and for writes by
+#     the future bot-operator identity (Norbert's design §6/§10; matches nothing
+#     until that ServiceAccount exists).
+#   - Workload writes (Deployments, Pods, ...) stay at Metadata: pod templates
+#     can carry inline env values, and this log is shipped to Loki.
+#   - Drop high-volume, low-value noise: health probes, leases, events, node
+#     status heartbeats, system-component reads, and Flux's per-minute
+#     server-side-apply dry runs (the content of every Flux apply is in Git).
+#   - Admin certificates (system:masters, the CN=landry login after Oct 24) and
+#     everything else fall through to Metadata, so every Secret read in
+#     flux-system, every exec/port-forward and every admin action is recorded.
+apiVersion: audit.k8s.io/v1
+kind: Policy
+# One event per request (ResponseComplete / ResponseStarted for watches and
+# streams, Panic on failure). RequestReceived would double the volume.
+omitStages:
+  - RequestReceived
+rules:
+  # --- 1. Noise that carries no security value -----------------------------
+  - level: None
+    nonResourceURLs:
+      - /healthz*
+      - /livez*
+      - /readyz*
+      - /version
+      - /version/*
+      - /openapi*
+      - /metrics
+      - /api
+      - /api/*
+      - /apis
+      - /apis/*
+  # Leader election and node heartbeats: several writes per second cluster-wide.
+  - level: None
+    resources:
+      - group: coordination.k8s.io
+        resources: [leases]
+  # Events are written constantly by every controller and kubelet; they are
+  # their own record (kubectl get events) and auditing them adds bulk only.
+  - level: None
+    resources:
+      - group: ""
+        resources: [events]
+      - group: events.k8s.io
+        resources: [events]
+  # Kubelet status heartbeats (node and pod status), every node, every few s.
+  - level: None
+    userGroups: ["system:nodes"]
+    verbs: [get, list, watch, patch, update]
+    resources:
+      - group: ""
+        resources: [nodes, nodes/status, pods/status]
+
+  # --- 2. Flux server-side-apply dry runs ----------------------------------
+  # kustomize-controller dry-run-applies every object of every Kustomization on
+  # every reconcile (apps: ~830 objects every 1m). Each is a PATCH. Logging them
+  # would be roughly 1.5 GB/day of identical events. What Flux applies is in Git
+  # and in Flux's own events. Flux create/update/delete, and every Flux read of
+  # a Secret, still fall through to the rules below and are recorded.
+  - level: None
+    userGroups: ["system:serviceaccounts:flux-system"]
+    verbs: [patch]
+  - level: None
+    userGroups: ["system:serviceaccounts:flux-system"]
+    verbs: [get, list, watch]
+    resources:
+      - group: ""
+        resources: [configmaps, namespaces, serviceaccounts, services]
+      - group: apps
+      - group: batch
+      - group: networking.k8s.io
+      - group: kustomize.toolkit.fluxcd.io
+      - group: helm.toolkit.fluxcd.io
+      - group: source.toolkit.fluxcd.io
+      - group: notification.toolkit.fluxcd.io
+
+  # --- 3. Sensitive resources: Metadata only, never a body -----------------
+  # Secret and ConfigMap bodies, ServiceAccount TokenRequest responses (the
+  # new token), TokenReview requests (the token being reviewed), and CSRs.
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: [secrets, configmaps, serviceaccounts/token]
+      - group: authentication.k8s.io
+        resources: [tokenreviews]
+      - group: authorization.k8s.io
+        resources: [subjectaccessreviews, selfsubjectaccessreviews, localsubjectaccessreviews, selfsubjectrulesreviews]
+      - group: certificates.k8s.io
+        resources: [certificatesigningrequests, certificatesigningrequests/approval, certificatesigningrequests/status]
+  # Log, exec, attach, port-forward and proxy streams: recorded, contents never.
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: [pods/log, pods/exec, pods/attach, pods/portforward, pods/proxy, services/proxy, nodes/proxy]
+
+  # --- 4. Reads by system components ---------------------------------------
+  # (Placed after rule 3 on purpose: a system component reading a Secret is
+  # still recorded at Metadata.)
+  - level: None
+    users:
+      - system:kube-proxy
+      - system:kube-scheduler
+      - system:kube-controller-manager
+      - system:apiserver
+      - system:k3s-controller          # k3s embedded controllers
+      - system:k3s-supervisor          # k3s-specific; harmless if unused
+      - system:cloud-controller-manager
+    verbs: [get, list, watch]
+  - level: None
+    userGroups: ["system:nodes", "system:serviceaccounts:kube-system"]
+    verbs: [get, list, watch]
+
+  # --- 5. Bodies worth keeping ---------------------------------------------
+  # Future bot-operator identity (Norbert §10): keep the patch body of every
+  # write so a VAP bypass attempt is visible. Matches nothing until it exists.
+  - level: Request
+    users: ["system:serviceaccount:bot-ops:bot-operator"]
+    verbs: [create, patch, update, delete, deletecollection]
+  # RBAC and admission policy changes: who granted what to whom.
+  - level: Request
+    verbs: [create, patch, update, delete, deletecollection]
+    resources:
+      - group: rbac.authorization.k8s.io
+      - group: admissionregistration.k8s.io
+
+  # --- 6. Everything else ---------------------------------------------------
+  - level: Metadata
