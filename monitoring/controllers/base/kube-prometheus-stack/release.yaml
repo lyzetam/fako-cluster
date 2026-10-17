@@ -202,7 +202,7 @@ spec:
     # Grafana configuration
     grafana:
       # Admin credentials come from Secret grafana-admin, synced by the
-      # ExternalSecret in grafana-admin-externalsecret.yaml from AWS SM key grafana/admin.
+      # ExternalSecret in grafana-admin-externalsecret.yaml from SSM Parameter Store /grafana/admin.
       admin:
         existingSecret: grafana-admin
         userKey: admin-user
