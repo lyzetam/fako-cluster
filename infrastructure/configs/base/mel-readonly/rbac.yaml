@@ -1,0 +1,109 @@
+# Read-only identity for Mel (DevOps/SRE bot) cluster health checks.
+# Replaces routine use of the admin kubeconfig (flagged HIGH on 2026-10-14).
+#
+# Scope: get/list/watch only, on an explicit resource list.
+# Deliberately NOT granted: secrets, pods/exec, pods/attach, pods/portforward,
+# impersonate, any wildcard verb/resource, any write verb.
+#
+# No token is defined here. Token minting (short-lived vs. long-lived Secret)
+# is a separate, approved step after merge.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mel-readonly
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: mel-readonly
+    app.kubernetes.io/part-of: ops-access
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mel-readonly
+  labels:
+    app.kubernetes.io/name: mel-readonly
+    app.kubernetes.io/part-of: ops-access
+rules:
+  # Core workloads and cluster state. No secrets.
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - services
+      - endpoints
+      - nodes
+      - namespaces
+      - events
+      - configmaps
+      - persistentvolumeclaims
+      - persistentvolumes
+      - replicationcontrollers
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources:
+      - storageclasses
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources:
+      - leases
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["events.k8s.io"]
+    resources:
+      - events
+    verbs: ["get", "list", "watch"]
+  # kubectl top
+  - apiGroups: ["metrics.k8s.io"]
+    resources:
+      - pods
+      - nodes
+    verbs: ["get", "list", "watch"]
+  # Flux status (flux get ...), read-only
+  - apiGroups: ["kustomize.toolkit.fluxcd.io"]
+    resources:
+      - kustomizations
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["helm.toolkit.fluxcd.io"]
+    resources:
+      - helmreleases
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["source.toolkit.fluxcd.io"]
+    resources:
+      - gitrepositories
+      - helmrepositories
+      - helmcharts
+      - ocirepositories
+      - buckets
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mel-readonly
+  labels:
+    app.kubernetes.io/name: mel-readonly
+    app.kubernetes.io/part-of: ops-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mel-readonly
+subjects:
+  - kind: ServiceAccount
+    name: mel-readonly
+    namespace: kube-system
