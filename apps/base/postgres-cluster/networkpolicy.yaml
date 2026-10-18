@@ -16,7 +16,6 @@ spec:
   - ports: [{ port: 5432, protocol: TCP }]
     from:
     - podSelector: {}   # same namespace: replicas, backup/init/grants jobs, tailnet relay
-    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: fieldy-webhook } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: hume-collector } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: keycloak } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: langfuse } }
@@ -26,7 +25,6 @@ spec:
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: oura-agent } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: oura-collector } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: pgadmin } }
-    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: plaud-collector } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: quantum-trades } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: umami } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: withings-collector } }
