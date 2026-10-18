@@ -129,20 +129,6 @@ subjects:
 #   name: headlamp-admin
 #   namespace: kube-system
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: headlamp-admin
-  namespace: fieldy-webhook
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: headlamp-admin
-subjects:
-- kind: ServiceAccount
-  name: headlamp-admin
-  namespace: kube-system
----
 # EXCLUDED — housekeeping SA has cluster-wide pods delete (DoS escalation)
 # EXCLUDED — kube-bench SA has cluster-wide secrets get/list (exfil escalation)
 ---

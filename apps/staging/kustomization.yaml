@@ -141,12 +141,6 @@ resources:
   - meal-tracker    # Meal tracker Discord bot + dashboard
   - sermon-engine   # Weekly sermon generator (Sunday 6am ET)
 
-  # Wearable AI notetaker — Compass transcription webhook → Obsidian vault
-  - fieldy-webhook
-
-  # Wearable AI notetaker (Plaud) → Obsidian vault + Postgres
-  - plaud-collector
-
   # reMarkable handwritten notes → MyScript OCR → Obsidian vault (daily CronJob)
   - remarkable-ocr
 
