@@ -5,6 +5,18 @@ metadata:
   namespace: n8n
 spec:
   replicas: 1
+  # maxSurge 0: the old pod is deleted before the new one is created. n8n runs
+  # its schedulers in-process and migrates the shared DB on boot; the default
+  # (maxSurge rounds up to 1) kept the old pod fully live while the new one
+  # started. Close to Recreate but not identical: the terminating pod (<=30s
+  # grace, triggers already stopped on SIGTERM) can overlap the new pod's start.
+  # `type: Recreate` itself fails under Flux's server-side apply ("rollingUpdate:
+  # Forbidden": the defaulted block is unowned) and would stall all of `apps`.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: n8n
@@ -22,7 +34,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: n8n
-          image: n8nio/n8n:1.123.86
+          image: n8nio/n8n:2.44.6
           ports:
             - containerPort: 5678
               protocol: TCP
