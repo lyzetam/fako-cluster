@@ -53,7 +53,7 @@ spec:
       spec:
         containers:
           - name: runner
-            image: ghcr.io/actions/actions-runner:2.336.0
+            image: ghcr.io/actions/actions-runner:2.338.1
             command: ["/home/runner/run.sh"]
             # Root is required: test-marketing and the Fayson E2E job run
             # `npx playwright install --with-deps`, which apt-installs browser
