@@ -121,12 +121,10 @@ spec:
       
     # Node agent configuration
     nodeAgent:
-      # Pin past chart baseline v0.3.119 (buggy): fixes inspektor-gadget pubsub
-      # "concurrent map writes" data-race panic on high-churn nodes (e.g. aitower).
-      # Upstream: kubescape/node-agent#825, fixed in #826 (>= v0.3.128).
-      # Remove this override once the chart's default tag advances past the fix.
-      image:
-        tag: v0.3.147
+      # No image tag override: the chart's default node-agent tag must match the
+      # chart's RBAC. A v0.3.147 pin (for the pubsub data race, fixed >= v0.3.128)
+      # outlived chart 1.40.5, whose ClusterRole no longer grants `list
+      # applicationprofiles`; the pinned agent crashlooped ~4000x on 4 nodes.
       # Only deploy on x86_64 nodes (BTF support required, not available on ARM/Jetson)
       nodeSelector:
         kubernetes.io/os: linux
