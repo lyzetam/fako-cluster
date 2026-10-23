@@ -2,7 +2,10 @@
 # Replaces routine use of the admin kubeconfig (flagged HIGH on 2026-10-14).
 #
 # Scope: get/list/watch only, on an explicit resource list.
-# Deliberately NOT granted: secrets, pods/exec, pods/attach, pods/portforward,
+# pods/log removed 2026-10-19 per Norbert: cluster-wide log reads can expose
+# tokens and tenant PII. A namespaced logs Role, if health checks ever need it,
+# is a separate PR listing the namespaces.
+# Deliberately NOT granted: secrets, pods/log, pods/exec, pods/attach, pods/portforward,
 # impersonate, any wildcard verb/resource, any write verb.
 #
 # No token is defined here. Token minting (short-lived vs. long-lived Secret)
@@ -29,7 +32,6 @@ rules:
   - apiGroups: [""]
     resources:
       - pods
-      - pods/log
       - services
       - endpoints
       - nodes
