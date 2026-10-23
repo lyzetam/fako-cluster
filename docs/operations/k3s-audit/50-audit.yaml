@@ -1,0 +1,18 @@
+# /etc/rancher/k3s/config.yaml.d/50-audit.yaml on the k3s SERVER node only
+# (zz-macbookpro). root:root 0600. Not delivered by Flux.
+#
+# "kube-apiserver-arg+" APPENDS to any kube-apiserver-arg already set in
+# /etc/rancher/k3s/config.yaml (without the "+", a drop-in replaces the list).
+#
+# Sizing for a homelab server disk: 100 MB per file, 5 rotated files kept for
+# at most 7 days -> at most ~600 MB on disk. Loki also gets a copy, but its
+# retention isn't enforced (compactor retention_enabled is unset), so don't
+# rely on Loki for a fixed retention window.
+# Shrink maxbackup to 2 if `df -h /var/log` shows less than 5 GB free.
+kube-apiserver-arg+:
+  - audit-policy-file=/etc/rancher/k3s/audit-policy.yaml
+  - audit-log-path=/var/log/kubernetes/audit/audit.log
+  - audit-log-format=json
+  - audit-log-maxage=7
+  - audit-log-maxbackup=5
+  - audit-log-maxsize=100
