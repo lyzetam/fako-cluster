@@ -32,7 +32,7 @@ spec:
         app: quantum-trades
         component: signals
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-06-02T13:46:00Z"  # symmetry audit: ATR neutral + SI bearish dampener (PR #114)
+        kubectl.kubernetes.io/restartedAt: "2026-10-23T00:15:00Z"  # repull :latest rebuilt on fresh base image (2026-10-22 CVE sweep)
     spec:
       # Spread replicas across nodes. Without this the scheduler may stack
       # several onto one node, where they contend for the SAME cores — and CPU
