@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: cluster-health
 resources:
+  # Landry adds the next line in the same commit as his SOPS file
+  # (kept out until the file exists so `kustomize build` never breaks):
+  #   - aws-credentials-secret.yaml    # SOPS-encrypted, Secret aws-credentials
   - ../../base/cluster-health/
-  # Follow-up PR (after Landry creates the keys): add
-  #   - aws-credentials-secret.yaml    # SOPS-encrypted
-  # and set the CronJob's suspend: false.

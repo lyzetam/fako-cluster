@@ -90,7 +90,7 @@ rules:
       - ocirepositories
       - buckets
     verbs: ["get", "list", "watch"]
-  # cert-manager Certificate status (Ready, notAfter) for the cluster-health job
+  # cert-manager Certificate status (Ready, notAfter) for Mel's cert-expiry checks
   - apiGroups: ["cert-manager.io"]
     resources:
       - certificates
