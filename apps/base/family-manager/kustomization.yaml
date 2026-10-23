@@ -10,14 +10,16 @@ namespace: family-manager
 # The webhook code no longer exists (family-manager-bot e9338f2), so any
 # webhook image would be a stale build. Do not re-add; a replacement needs a
 # new reviewed manifest with a pinned image digest.
+# The bot is scaled to 0 and the email CronJob is suspended by the overlay in
+# apps/staging/family-manager/kustomization.yaml (#357).
 resources:
   - namespace.yaml
   - secretstore.yaml
   - external-secret.yaml
   - external-secret-dockerhub.yaml
   - redis.yaml
-  - deployment-bot.yaml
-  - cronjob-email.yaml
+  - deployment-bot.yaml  # scaled to 0 by the staging overlay
+  - cronjob-email.yaml   # suspended by the staging overlay
 
 labels:
   - pairs:
