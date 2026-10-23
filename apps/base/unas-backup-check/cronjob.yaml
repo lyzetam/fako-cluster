@@ -45,7 +45,7 @@ spec:
             - name: check
               # Same image the postgres S3 archive job runs on — proven pullable
               # on this cluster and carries bash + GNU date.
-              image: amazon/aws-cli:2.36.25
+              image: amazon/aws-cli:2.38.5
               imagePullPolicy: IfNotPresent
               command: ["/bin/bash", "/script/check.sh"]
               envFrom:
