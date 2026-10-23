@@ -1,0 +1,28 @@
+# nfs-postgres-v3: replacement for nfs-postgres-v2 for NEW CNPG volumes only.
+# StorageClass parameters are immutable, so this is a new class instead of an edit
+# to nfs-postgres-v2. Existing PVs/PVCs keep using nfs-postgres-v2.
+# Static manifest (not added to the create-nfs-storageclasses Job) because that Job
+# is immutable and already Failed; changing its template would block this Kustomization.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-postgres-v3
+  annotations:
+    storageclass.kubernetes.io/notes: "CNPG volumes (uid 26). Subdir chmod via mountPermissions; ownership comes from the NAS export squash rule."
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: "10.85.30.127"
+  share: "/volume1/k8s-pg"
+  # One subdirectory per PV, same layout as v2 (driver default), named explicitly.
+  subDir: "${pvc.metadata.namespace}-${pvc.metadata.name}-${pv.metadata.name}"
+  # Driver chmods the new subdir (default would be 0 = leave as created by the NAS).
+  mountPermissions: "0755"
+  onDelete: retain
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+mountOptions:
+  - nfsvers=3
+  - nolock
+  - hard
+  - rw
