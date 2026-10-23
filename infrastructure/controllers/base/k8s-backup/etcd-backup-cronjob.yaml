@@ -1,72 +1,63 @@
 # infrastructure/controllers/base/k8s-backup/etcd-backup-cronjob.yaml
+#
+# k3s datastore backup. This cluster is a single k3s server (zz-macbookpro)
+# running the embedded SQLite datastore (kine), NOT etcd. The previous job
+# looked for an etcd pod and failed every night. The CronJob keeps its old
+# name (etcd-backup), schedule and PVC so history/alerts keep working.
+#
+# What it does, on zz-macbookpro only:
+#   1. sqlite3 ".backup" of /var/lib/rancher/k3s/server/db/state.db (online,
+#      consistent copy; the host dir is mounted read-only) into a node-local
+#      emptyDir, then PRAGMA integrity_check must return "ok".
+#   2. Encrypts the snapshot AND the server token with age to the cluster's
+#      existing SOPS recipient (public key below; the private key is the
+#      existing flux-system/sops-age secret). Nothing plaintext lands on NFS.
+#      state.db contains every Kubernetes Secret, so it is treated like the token.
+#   3. Writes <PVC>/k3s/<UTC stamp>/{state.db.age,token.age,SHA256SUMS}.
+#   4. Retention: deletes k3s/ snapshot dirs older than RETENTION_DAYS.
+# The token is never echoed; only its byte count is logged.
+#
+# Restore (on the server, k3s stopped):
+#   age -d -i <sops-age key> state.db.age > /var/lib/rancher/k3s/server/db/state.db
+#   age -d -i <sops-age key> token.age    > /var/lib/rancher/k3s/server/token
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: etcd-backup-script
   namespace: backup-system
 data:
-  backup-etcd.sh: |
-    #!/bin/bash
-    set -e
-    
-    echo "=== ETCD Backup Script ==="
-    echo "Date: $(date)"
-    
-    BACKUP_DIR="/backups/etcd"
-    DATE=$(date +%Y%m%d-%H%M%S)
-    BACKUP_PATH="$BACKUP_DIR/$DATE"
-    
-    mkdir -p "$BACKUP_PATH"
-    
-    # Find etcd pod
-    ETCD_POD=$(kubectl get pods -n kube-system -l component=etcd -o jsonpath='{.items[0].metadata.name}')
-    
-    if [ -z "$ETCD_POD" ]; then
-      echo "ERROR: No etcd pod found!"
-      exit 1
-    fi
-    
-    echo "Found etcd pod: $ETCD_POD"
-    
-    # Backup etcd
-    echo "Creating etcd snapshot..."
-    kubectl exec -n kube-system "$ETCD_POD" -- etcdctl \
-      --endpoints=https://127.0.0.1:2379 \
-      --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-      --cert=/etc/kubernetes/pki/etcd/server.crt \
-      --key=/etc/kubernetes/pki/etcd/server.key \
-      snapshot save /tmp/etcd-snapshot.db
-    
-    # Copy snapshot from pod
-    kubectl cp -n kube-system "$ETCD_POD":/tmp/etcd-snapshot.db "$BACKUP_PATH/etcd-snapshot.db"
-    
-    # Verify snapshot
-    echo "Verifying snapshot..."
-    kubectl exec -n kube-system "$ETCD_POD" -- etcdctl \
-      --endpoints=https://127.0.0.1:2379 \
-      --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-      --cert=/etc/kubernetes/pki/etcd/server.crt \
-      --key=/etc/kubernetes/pki/etcd/server.key \
-      snapshot status /tmp/etcd-snapshot.db
-    
-    # Clean up
-    kubectl exec -n kube-system "$ETCD_POD" -- rm -f /tmp/etcd-snapshot.db
-    
-    # Create metadata
-    cat > "$BACKUP_PATH/backup-info.txt" <<EOF
-    ETCD Backup
-    Date: $DATE
-    Cluster: $(kubectl config current-context)
-    ETCD Pod: $ETCD_POD
-    Snapshot: etcd-snapshot.db
-    EOF
-    
-    # Cleanup old backups (keep 30 days)
-    find "$BACKUP_DIR" -maxdepth 1 -type d -mtime +30 -exec rm -rf {} \; 2>/dev/null || true
-    
-    echo "ETCD backup completed: $BACKUP_PATH"
-    ls -la "$BACKUP_PATH/"
+  backup-k3s.sh: |
+    #!/bin/sh
+    set -eu
+    umask 077
+    echo "=== k3s SQLite backup $(date -u +%FT%TZ) ==="
+    apk add --no-cache sqlite age >/dev/null
+    SRC=/host-k3s-server
+    WORK=/work
+    STAMP=$(date -u +%Y%m%d-%H%M%S)
+    DEST="/backups/k3s/${STAMP}"
 
+    [ -f "$SRC/db/state.db" ] || { echo "FATAL: $SRC/db/state.db not found"; exit 1; }
+    [ -s "$SRC/token" ]       || { echo "FATAL: $SRC/token missing/empty"; exit 1; }
+
+    sqlite3 "file:$SRC/db/state.db?mode=ro" ".backup $WORK/state.db"
+    RESULT=$(sqlite3 "$WORK/state.db" "PRAGMA integrity_check;")
+    if [ "$RESULT" != "ok" ]; then
+      echo "FATAL: integrity_check failed: $RESULT"; exit 1
+    fi
+    echo "integrity_check: ok, snapshot $(stat -c %s "$WORK/state.db") bytes"
+
+    mkdir -p "$DEST"
+    age -r "$AGE_RECIPIENT" -o "$DEST/state.db.age" "$WORK/state.db"
+    age -r "$AGE_RECIPIENT" -o "$DEST/token.age" "$SRC/token"
+    echo "token encrypted ($(stat -c %s "$SRC/token") bytes plaintext, not logged)"
+    rm -f "$WORK/state.db"
+    (cd "$DEST" && sha256sum state.db.age token.age > SHA256SUMS)
+    ls -l "$DEST"
+
+    echo "Retention: removing k3s snapshots older than ${RETENTION_DAYS} days"
+    find /backups/k3s -mindepth 1 -maxdepth 1 -type d -mtime +"${RETENTION_DAYS}" -print -exec rm -rf {} +
+    echo "=== done ==="
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -74,80 +65,73 @@ metadata:
   name: etcd-backup
   namespace: backup-system
 spec:
-  schedule: "30 2 * * *"  # 2:30 AM daily (after k8s backup)
+  schedule: "30 2 * * *"
+  concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 3600
   jobTemplate:
     spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      ttlSecondsAfterFinished: 86400
       template:
         spec:
-          serviceAccountName: etcd-backup-sa
-          hostNetwork: true  # Required to access etcd
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: zz-macbookpro
+          tolerations:
+          - key: node-role.kubernetes.io/control-plane
+            operator: Exists
+            effect: NoSchedule
+          automountServiceAccountToken: false
           containers:
-          - name: etcd-backup
-            image: rancher/kubectl:v1.28.2
-            command:
-            - /bin/sh
-            - /scripts/backup-etcd.sh
-            volumeMounts:
-            - name: backup-scripts
-              mountPath: /scripts
-            - name: backup-storage
-              mountPath: /backups
+          - name: k3s-backup
+            image: alpine:3.20
+            imagePullPolicy: IfNotPresent
+            command: ["/bin/sh", "/scripts/backup-k3s.sh"]
+            env:
+            - name: RETENTION_DAYS
+              value: "30"
+            # Public SOPS/age recipient already used in this repo (nfs-config,
+            # cert-manager secrets). Not a secret.
+            - name: AGE_RECIPIENT
+              value: age1wz30c9m30hshgx9tg5lylctp646hgu3p0v0sxjuy8xxz34exh4hstn9utd
+            securityContext:
+              runAsUser: 0          # server/db and token are root-only on the host
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+                add: ["DAC_READ_SEARCH", "CHOWN", "SETUID", "SETGID", "FOWNER"]
             resources:
               requests:
                 cpu: 100m
                 memory: 128Mi
               limits:
                 cpu: 500m
-                memory: 256Mi
-          restartPolicy: OnFailure
-          nodeSelector:
-            node-role.kubernetes.io/control-plane: "true"
-          tolerations:
-          - key: node-role.kubernetes.io/control-plane
-            operator: Exists
-            effect: NoSchedule
+                memory: 512Mi
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+            - name: backup-storage
+              mountPath: /backups
+            - name: k3s-server
+              mountPath: /host-k3s-server
+              readOnly: true
+            - name: work
+              mountPath: /work
           volumes:
           - name: backup-scripts
             configMap:
               name: etcd-backup-script
-              defaultMode: 0755
+              defaultMode: 0555
           - name: backup-storage
             persistentVolumeClaim:
               claimName: backup-storage
-
----
-# Additional RBAC for etcd access
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: etcd-backup-sa
-  namespace: backup-system
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: etcd-backup-role
-rules:
-- apiGroups: [""]
-  resources: ["pods", "pods/exec"]
-  verbs: ["get", "list", "create"]
-- apiGroups: [""]
-  resources: ["pods/log"]
-  verbs: ["get"]
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: etcd-backup-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: etcd-backup-role
-subjects:
-- kind: ServiceAccount
-  name: etcd-backup-sa
-  namespace: backup-system
+          - name: k3s-server
+            hostPath:
+              path: /var/lib/rancher/k3s/server
+              type: Directory
+          - name: work
+            emptyDir:
+              sizeLimit: 4Gi
