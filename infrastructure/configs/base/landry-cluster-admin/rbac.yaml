@@ -5,8 +5,10 @@
 # Exactly one subject: User "landry". No Group subjects, no ServiceAccounts,
 # no wildcards. A human user only; no bot or workload identity.
 #
-# Revoke the cert without a CA rotation: delete this binding (revert the PR).
-# Harmless until a CN=landry cert signed by the cluster client CA exists.
+# Revoke without a CA rotation: git revert this PR. A hand delete does not
+# revoke; Flux prune recreates the binding on the next sync.
+# Grants cluster-admin to any authenticator that yields username "landry"
+# (today only a CN=landry client cert signed by the cluster client CA).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
