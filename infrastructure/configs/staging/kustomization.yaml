@@ -7,3 +7,4 @@ resources:
   - control-plane-taint
   - unifi-data
   - mel-readonly
+  - landry-cluster-admin

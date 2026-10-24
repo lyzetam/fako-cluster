@@ -1,0 +1,24 @@
+# Cluster-admin for Landry's personal client certificate (CN=landry).
+# T-1 gate for the client CA rotation: the new CN=landry cert has no
+# organization/group, so this binding is its only source of rights.
+#
+# Exactly one subject: User "landry". No Group subjects, no ServiceAccounts,
+# no wildcards. A human user only; no bot or workload identity.
+#
+# Revoke the cert without a CA rotation: delete this binding (revert the PR).
+# Harmless until a CN=landry cert signed by the cluster client CA exists.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: landry-cluster-admin
+  labels:
+    app.kubernetes.io/name: landry-cluster-admin
+    app.kubernetes.io/part-of: ops-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: landry
