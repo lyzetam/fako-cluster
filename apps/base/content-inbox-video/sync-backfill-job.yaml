@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: sync
-          image: amazon/aws-cli:2.36.25
+          image: amazon/aws-cli:2.38.5
           imagePullPolicy: IfNotPresent
           command: ["/bin/bash", "/script/sync.sh"]
           envFrom:
