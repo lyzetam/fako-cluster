@@ -16,6 +16,9 @@ spec:
   - ports: [{ port: 5432, protocol: TCP }]
     from:
     - podSelector: {}   # same namespace: replicas, backup/init/grants jobs, tailnet relay
+    # discord-management is applied from its own repo, not this one, so the
+    # repo-based inventory in #364 missed it; its API uses the discord_bots DB.
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: discord-management } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: hume-collector } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: keycloak } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: langfuse } }
