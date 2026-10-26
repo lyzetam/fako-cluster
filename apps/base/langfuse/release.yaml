@@ -20,7 +20,8 @@ spec:
   chart:
     spec:
       chart: langfuse
-      version: "1.x"
+      # Exact pin while the sibling chart 2.x release (langfuse-v2) takes over.
+      version: "1.5.41"
       sourceRef:
         kind: HelmRepository
         name: langfuse
