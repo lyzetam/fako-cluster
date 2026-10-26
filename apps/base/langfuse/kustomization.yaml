@@ -10,3 +10,4 @@ resources:
   - external-secret-minio.yaml
   - release.yaml
   - ingress.yaml
+  - service-api.yaml
