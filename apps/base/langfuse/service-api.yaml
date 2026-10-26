@@ -15,7 +15,7 @@ spec:
   selector:
     app: web
     app.kubernetes.io/name: langfuse
-    app.kubernetes.io/instance: langfuse   # chart 1.x release; flip to langfuse-v2 at cutover
+    app.kubernetes.io/instance: langfuse-v2   # cutover 2026-10-26; rollback: langfuse (chart 1.x)
   ports:
     - name: http
       port: 3000

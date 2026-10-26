@@ -33,6 +33,11 @@ spec:
     # to 91% memory requested / 262% limits overcommitted. That overcommit
     # is what stalled systemd/dbus and wedged kubelet for ~32h on 2026-08-16.
     langfuse:
+      # FROZEN 2026-10-26: traffic moved to langfuse-v2 (release-v2.yaml). Chart
+      # renders `<component>.replicas | default langfuse.replicas` and `default`
+      # treats 0 as unset, so the global must be 0 too. Rollback: restore 1/1 here
+      # and set service-api.yaml back to instance=langfuse. Data volumes untouched.
+      replicas: 0
       # Pinned past the chart's appVersion (3.224.1, Node 24.18.0): 3.225.14 is
       # Langfuse's v3 security rebuild on Node 24.22.1 (CVE-2026-111497; upstream
       # langfuse/langfuse#19374). Applies to both web and worker. v3 gets security
@@ -59,7 +64,7 @@ spec:
             key: nextauth_secret
 
       web:
-        replicas: 1
+        replicas: 0
         resources:
           requests:
             memory: "768Mi"
@@ -77,7 +82,7 @@ spec:
               value: "--max-old-space-size=1536"
 
       worker:
-        replicas: 1
+        replicas: 0
         resources:
           requests:
             memory: "512Mi"
