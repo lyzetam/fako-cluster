@@ -9,5 +9,7 @@ resources:
   - external-secret-dockerhub.yaml
   - external-secret-minio.yaml
   - release.yaml
+  - external-secret-v2.yaml
+  - release-v2.yaml        # chart 2.x sibling; see header
   - ingress.yaml
   - service-api.yaml
