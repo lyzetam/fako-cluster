@@ -67,7 +67,7 @@ spec:
       web:
         image:
           repository: langfuse/langfuse      # docker.io, so dockerhub-registry applies
-        replicas: 1                          # phase A: runs the ClickHouse migrations
+        replicas: 1
         resources:
           requests: {memory: "768Mi", cpu: "200m"}
           limits: {memory: "2Gi", cpu: "1"}
@@ -78,7 +78,7 @@ spec:
       worker:
         image:
           repository: langfuse/langfuse-worker
-        # no replicas: global 0 until cutover; 1.x stays the only writer
+        replicas: 1                          # live since cutover 2026-10-26
         resources:
           requests: {memory: "512Mi", cpu: "200m"}
           limits: {memory: "1Gi", cpu: "1"}
