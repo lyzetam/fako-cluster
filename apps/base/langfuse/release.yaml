@@ -32,6 +32,12 @@ spec:
     # to 91% memory requested / 262% limits overcommitted. That overcommit
     # is what stalled systemd/dbus and wedged kubelet for ~32h on 2026-08-16.
     langfuse:
+      # Pinned past the chart's appVersion (3.224.1, Node 24.18.0): 3.225.14 is
+      # Langfuse's v3 security rebuild on Node 24.22.1 (CVE-2026-111497; upstream
+      # langfuse/langfuse#19374). Applies to both web and worker. v3 gets security
+      # patches until 2027-01; the chart 2.x / v4 move must use >= 4.70.1.
+      image:
+        tag: "3.225.14"
       nodeSelector:
         kubernetes.io/hostname: thinkpad02
       salt:
