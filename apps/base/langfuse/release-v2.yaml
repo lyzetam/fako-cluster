@@ -1,0 +1,169 @@
+# Langfuse on chart 2.x, installed as a SIBLING of the chart 1.x release
+# (release.yaml), per upstream examples/upgrade-v1-to-v2: chart 2.x refuses an
+# in-place upgrade over the Bitnami ClickHouse/MinIO. It replaces the frozen
+# bitnamilegacy minio/zookeeper/valkey/clickhouse images (196 critical CVEs) with
+# operator-managed ClickHouse + Keeper, valkey-io Valkey and SeaweedFS.
+#
+# Migration phases (each a Git commit):
+#   A. this release up with web=1/worker=0 so web creates the ClickHouse schema;
+#      app tag MUST equal the 1.x release's while data is copied.
+#   B. copy ClickHouse (remote()) + S3 (mc mirror) from 1.x, freeze 1.x, final
+#      copy, then flip service-api.yaml to instance=langfuse-v2 (rollback = flip back).
+#   C. later, separately: app v4 (>= 4.70.1 for patched Node). Has irreversible steps.
+# Postgres stays on the shared CNPG cluster; both releases use the same DB.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: langfuse-v2
+  namespace: langfuse
+spec:
+  interval: 30m
+  timeout: 15m
+  dependsOn:
+    - name: clickhouse-operator
+      namespace: clickhouse-operator
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  chart:
+    spec:
+      chart: langfuse
+      version: "2.1.6"
+      sourceRef:
+        kind: HelmRepository
+        name: langfuse
+        namespace: langfuse
+  values:
+    langfuse:
+      # The chart renders `<component>.replicas | default langfuse.replicas`, and
+      # Helm's `default` treats 0 as unset; a global 0 is the only way to get
+      # worker=0. Components that should run set their own count.
+      replicas: 0
+      nodeSelector:
+        kubernetes.io/hostname: thinkpad02   # same node as 1.x; see release.yaml
+      image:
+        tag: "3.225.14"                      # == release.yaml until cutover (upstream rule)
+        pullSecrets:
+          - name: dockerhub-registry
+      salt:
+        secretKeyRef:
+          name: langfuse-secrets
+          key: salt
+      encryptionKey:
+        secretKeyRef:
+          name: langfuse-secrets
+          key: encryption_key
+      nextauth:
+        url: "https://langfuse.fako.landryzetam.net"
+        secret:
+          secretKeyRef:
+            name: langfuse-secrets
+            key: nextauth_secret
+      ingress:
+        enabled: false                       # ingress.yaml -> service-api.yaml
+      web:
+        image:
+          repository: langfuse/langfuse      # docker.io, so dockerhub-registry applies
+        replicas: 1                          # phase A: runs the ClickHouse migrations
+        resources:
+          requests: {memory: "768Mi", cpu: "200m"}
+          limits: {memory: "2Gi", cpu: "1"}
+        pod:
+          additionalEnv:
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=1536"
+      worker:
+        image:
+          repository: langfuse/langfuse-worker
+        # no replicas: global 0 until cutover; 1.x stays the only writer
+        resources:
+          requests: {memory: "512Mi", cpu: "200m"}
+          limits: {memory: "1Gi", cpu: "1"}
+
+    postgresql:                              # shared CNPG cluster, no data move
+      deploy: false
+      host: "postgres-cluster-rw.postgres.svc.cluster.local"
+      port: 5432
+      auth:
+        username: "app"
+        existingSecret: "langfuse-secrets"
+        secretKeys:
+          userPasswordKey: postgres_password
+        database: "langfuse"
+      migration:
+        autoMigrate: true
+
+    clickhouse:
+      deploy: true
+      auth:
+        username: default                    # chart requires "default" with the operator
+        existingSecret: langfuse-secrets
+        existingSecretKey: clickhouse_password
+      migration:
+        autoMigrate: true
+      cluster:
+        replicas: 1
+        image:
+          tag: "26.4"
+          pullSecrets:
+            - name: dockerhub-registry
+        storage:
+          size: 20Gi                         # 2026-10-26: 145 MiB in 1.x ClickHouse
+          className: nfs-csi-v2              # never node-local (see kubescape release.yaml)
+        nodeSelector:
+          kubernetes.io/hostname: thinkpad02
+        resources:
+          requests: {cpu: 500m, memory: 2Gi}
+          limits: {cpu: "2", memory: 4Gi}
+      keeper:
+        enabled: true                        # required by the ClickHouseCluster CRD
+        replicas: 1                          # single node anyway; 3 buy no HA
+        image:
+          tag: "26.4"
+          pullSecrets:
+            - name: dockerhub-registry
+        storage:
+          size: 8Gi
+          className: nfs-csi-v2
+        nodeSelector:
+          kubernetes.io/hostname: thinkpad02
+
+    redis:
+      deploy: true
+      auth:
+        enabled: true
+        username: default
+        existingSecret: langfuse-v2-redis    # external-secret-v2.yaml
+        existingSecretPasswordKey: default
+        usersExistingSecret: langfuse-v2-redis
+      nodeSelector:
+        kubernetes.io/hostname: thinkpad02
+      dataStorage:
+        enabled: true
+        requestedSize: 8Gi
+        className: nfs-csi-v2
+      valkeyConfig: |
+        maxmemory-policy noeviction
+
+    s3:
+      deploy: true
+      bucket: langfuse                       # same single bucket as 1.x
+      forcePathStyle: true
+      auth:
+        existingSecret: langfuse-v2-s3       # external-secret-v2.yaml
+        rootUserSecretKey: accessKey
+        rootPasswordSecretKey: secretKey
+      allInOne:
+        nodeSelector: |
+          kubernetes.io/hostname: thinkpad02
+        s3:
+          existingConfigSecret: langfuse-v2-s3
+          createBuckets:
+            - name: langfuse
+        data:
+          type: persistentVolumeClaim
+          size: 20Gi                         # 2026-10-26: 2.0 GiB in 1.x MinIO
+          storageClass: nfs-csi-v2
