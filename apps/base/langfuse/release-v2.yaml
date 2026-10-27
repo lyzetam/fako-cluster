@@ -26,8 +26,53 @@ spec:
     remediation:
       retries: 3
   upgrade:
+    # SeaweedFS security (below) turns on gRPC mTLS + JWT, but the chart's
+    # post-upgrade bucket hook Job mounts neither security.toml nor client certs,
+    # so its `weed shell` / filer wget would fail and fail every upgrade. The
+    # `langfuse` bucket already exists (19,009 objects copied in phase B), so
+    # hooks are skipped on upgrade/rollback ONLY. A fresh install (or a DR
+    # reinstall) still runs the hook with security on, and it will fail; for DR,
+    # install with global.seaweedfs.enableSecurity=false first, let the hook
+    # create the bucket, then re-enable security.
+    disableHooks: true
     remediation:
       retries: 3
+  rollback:
+    disableHooks: true
+  # Mount security.toml (JWT signing keys) from an ESO-managed Secret instead of
+  # the chart's ConfigMap, whose keys are chart-generated (randAlphaNum 10) and
+  # stored unencrypted in a ConfigMap. The chart ConfigMap is dropped.
+  # Depends on ExternalSecret langfuse/langfuse-v2-s3-security (added by the
+  # netpol PR). Merge this only after that ExternalSecret is SecretSynced, or the
+  # SeaweedFS pod (strategy Recreate) won't start: volume secret not found.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: langfuse-v2-s3-all-in-one
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: langfuse-v2-s3-all-in-one
+              spec:
+                template:
+                  spec:
+                    volumes:
+                      - name: security-config
+                        configMap: null
+                        secret:
+                          secretName: langfuse-v2-s3-security   # external-secret-v2.yaml
+          - target:
+              kind: ConfigMap
+              name: langfuse-v2-s3-security-config
+            patch: |
+              $patch: delete
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: langfuse-v2-s3-security-config
   chart:
     spec:
       chart: langfuse
@@ -37,6 +82,21 @@ spec:
         name: langfuse
         namespace: langfuse
   values:
+    # SeaweedFS (subchart alias `s3`) security, follow-up to #444 / Norbert F6:
+    # JWT on volume read/write and filer read/write, plus gRPC mutual TLS between
+    # master/volume/filer/s3 (cert-manager self-signed CA + certs, chart-managed).
+    # Langfuse talks to the S3 gateway on 8333 with access keys only; the gateway
+    # runs in the same pod and signs its own filer/volume calls with these keys,
+    # so the Langfuse S3 client config is unchanged.
+    global:
+      seaweedfs:
+        enableSecurity: true
+        securityConfig:
+          jwtSigning:
+            volumeWrite: true
+            volumeRead: true
+            filerWrite: true
+            filerRead: true
     langfuse:
       # The chart renders `<component>.replicas | default langfuse.replicas`, and
       # Helm's `default` treats 0 as unset; a global 0 is the only way to get
