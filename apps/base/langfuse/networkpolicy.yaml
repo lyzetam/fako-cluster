@@ -1,0 +1,129 @@
+# Ingress NetworkPolicies for the langfuse namespace (follow-up to #444,
+# Norbert F6). Before this there was no policy here, and the SeaweedFS
+# all-in-one Service publishes master 9333, volume 8080 and filer 8888 (plus
+# gRPC 19333/18080/18888) unauthenticated, so any pod in the cluster could
+# bypass S3 auth on the Langfuse bucket.
+#
+# Ingress only. Egress is deliberately left open (DNS, CNPG postgres, AWS SM via
+# ESO, image pulls, LLM/webhook calls from the worker); an egress default-deny
+# is a separate, riskier change.
+#
+# Labels/ports are from `helm template` of langfuse 2.1.6 (seaweedfs 4.23.0)
+# with release-v2.yaml values:
+#   web     app=web,    app.kubernetes.io/name=langfuse, instance=langfuse-v2   :3000
+#   worker  app=worker, app.kubernetes.io/name=langfuse, instance=langfuse-v2   :3030
+#   seaweed app.kubernetes.io/name=s3, component=seaweedfs-all-in-one          :8333 s3,
+#           9333/19333 master, 8080/18080 volume, 8888/18888 filer, 9324 metrics
+#   bucket-hook Job (post-install/upgrade) app.kubernetes.io/managed-by=Helm,
+#           instance=langfuse-v2 -> master 9333 + filer 8888 (HTTP) and weed shell (gRPC)
+# The frozen chart 1.x stack (ClickHouse/MinIO/Valkey/ZooKeeper) and the v2
+# ClickHouse/Keeper/Valkey keep working through allow-same-namespace.
+# kubelet probes are not affected (node-local traffic; same as the CNPG
+# 8000/5432 probes behind postgres-cluster-ingress).
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: langfuse
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+# Everything except SeaweedFS accepts traffic from pods in this namespace:
+# web/worker -> ClickHouse 8123/9000 and Valkey 6379, ClickHouse <-> Keeper,
+# and the 1.x stack's own internal traffic (rollback path).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: langfuse
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app.kubernetes.io/component, operator: NotIn, values: [seaweedfs-all-in-one] }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}
+---
+# Langfuse web (1.x and v2, so the service-api.yaml rollback flip still works).
+# Open on :3000 to the whole cluster: Traefik (ingress.yaml) plus in-cluster SDK
+# clients that call langfuse-api (zi, ginger-hoa, possibly others). The app
+# enforces API-key / session auth on this port.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web-3000
+  namespace: langfuse
+spec:
+  podSelector:
+    matchLabels:
+      app: web
+      app.kubernetes.io/name: langfuse
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - { port: 3000, protocol: TCP }
+---
+# The ClickHouse operator (namespace clickhouse-operator, watchNamespaces
+# [langfuse]) talks to the ClickHouse/Keeper pods it manages.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-clickhouse-operator
+  namespace: langfuse
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app.kubernetes.io/component, operator: NotIn, values: [seaweedfs-all-in-one] }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: clickhouse-operator }
+---
+# SeaweedFS all-in-one: S3 (8333, access-key auth) only from langfuse-v2 web and
+# worker; master/volume/filer HTTP+gRPC only from the pod itself and from the
+# chart's bucket hook Job. Nothing outside the namespace reaches it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: seaweedfs-ingress
+  namespace: langfuse
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: s3
+      app.kubernetes.io/instance: langfuse-v2
+      app.kubernetes.io/component: seaweedfs-all-in-one
+  policyTypes: [Ingress]
+  ingress:
+    # Langfuse S3 client (event upload, batch export, media) -> S3 gateway
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: langfuse
+              app.kubernetes.io/instance: langfuse-v2
+      ports:
+        - { port: 8333, protocol: TCP }
+    # The SeaweedFS pod itself (all components share one pod), any port
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: s3
+              app.kubernetes.io/instance: langfuse-v2
+              app.kubernetes.io/component: seaweedfs-all-in-one
+    # Chart bucket hook (post-install/post-upgrade): wget master/filer, weed shell
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/managed-by: Helm
+              app.kubernetes.io/instance: langfuse-v2
+      ports:
+        - { port: 9333, protocol: TCP }
+        - { port: 19333, protocol: TCP }
+        - { port: 8888, protocol: TCP }
+        - { port: 18888, protocol: TCP }
+        - { port: 8080, protocol: TCP }
+        - { port: 18080, protocol: TCP }
