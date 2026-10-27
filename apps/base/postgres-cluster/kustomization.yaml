@@ -9,6 +9,7 @@ resources:
   - external-secret-app.yaml
   - external-secret-oura-readonly.yaml
   - external-secret-health-readonly.yaml
+  - external-secret-discord-bots.yaml
   - external-secret-s3-backup.yaml
   - aws-credentials-secret.yaml
   - postgres-cluster.yaml
