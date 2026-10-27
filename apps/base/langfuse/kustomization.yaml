@@ -13,3 +13,4 @@ resources:
   - release-v2.yaml        # chart 2.x sibling; see header
   - ingress.yaml
   - service-api.yaml
+  - networkpolicy.yaml       # ingress policies, follow-up to #444
