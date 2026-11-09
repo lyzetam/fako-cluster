@@ -30,6 +30,13 @@ spec:
     # Enable webhook for validation
     webhook:
       create: true
+
+    # Metrics for ExternalSecret sync alerts
+    # (monitoring/configs/base/alertmanager-email/prometheus-rules.yaml).
+    # Renders the metrics Service + ServiceMonitor; kube-prometheus-stack
+    # selects all ServiceMonitors in all namespaces.
+    serviceMonitor:
+      enabled: true
     
     # Resources
     resources:
