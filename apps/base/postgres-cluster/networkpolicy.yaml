@@ -16,7 +16,12 @@ spec:
   - ports: [{ port: 5432, protocol: TCP }]
     from:
     - podSelector: {}   # same namespace: replicas, backup/init/grants jobs, tailnet relay
-    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: fieldy-webhook } }
+    # discord-management is applied from its own repo, not this one, so the
+    # repo-based inventory in #364 missed it; its API uses the discord_bots DB.
+    # Only the API pods (label from lyzetam/discord-management k8s/deployment.yaml),
+    # not every pod in the namespace (Norbert F2 on #425).
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: discord-management } }
+      podSelector: { matchLabels: { app: discord-management-api } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: hume-collector } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: keycloak } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: langfuse } }
@@ -26,7 +31,6 @@ spec:
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: oura-agent } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: oura-collector } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: pgadmin } }
-    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: plaud-collector } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: quantum-trades } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: umami } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: withings-collector } }
@@ -36,6 +40,10 @@ spec:
   - ports: [{ port: 8000, protocol: TCP }, { port: 5432, protocol: TCP }]
     from:
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: cnpg-system } }
+  # CNPG instance-to-instance status API (liveness peer checks, failover)
+  - ports: [{ port: 8000, protocol: TCP }]
+    from:
+    - podSelector: { matchLabels: { cnpg.io/cluster: postgres-cluster } }
   # Metrics scrape
   - ports: [{ port: 9187, protocol: TCP }]
     from:

@@ -1,0 +1,131 @@
+# zi ingress lockdown (Norbert's zi security review 2026-10-19, fix 4; Carl's
+# scope: ingress only). zi is being retired, not hardened: egress stays open
+# here and is a separate decision.
+#
+# Before this file, zi had no NetworkPolicy, so every pod in the cluster could
+# reach the agents' unauthenticated /run and /invoke (8000), zi core's
+# unauthenticated Alertmanager webhook (8080) and password-less Redis (6379).
+#
+# Allowed after this file (everything else into zi is dropped):
+#   - Alertmanager (monitoring ns)  -> zi core :8080   (/webhooks/prometheus)
+#   - Traefik (kube-system)         -> zi core :8080   (Ingress /api, /health, /ready)
+#   - Traefik (kube-system)         -> zi-dashboard :3000 (Ingress /)
+#   - zi pods                       -> zi core :8080   (dashboard INTERNAL_API_URL, agents ZI_API_URL)
+#   - zi pods                       -> redis :6379
+#   - zi pods                       -> agents :8000    (zi core / a2a; agents are at replicas 0)
+# Kubelet probes come from the node and are allowed by the k3s policy
+# controller. There is no ServiceMonitor/PodMonitor or scrape annotation for
+# any zi pod, so there is no Prometheus scrape rule.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zi-default-deny-ingress
+  namespace: zi
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zi-core-ingress
+  namespace: zi
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: zi
+      app.kubernetes.io/component: orchestrator
+  policyTypes:
+    - Ingress
+  ingress:
+    # Alertmanager -> http://zi.zi.svc.cluster.local:8080/webhooks/prometheus
+    # (monitoring/controllers/base/kube-prometheus-stack/release.yaml). The
+    # prometheus-operator labels Alertmanager pods app.kubernetes.io/name=alertmanager.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: alertmanager
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Traefik (k3s bundled, kube-system) for the zi.landryzetam.net Ingress.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
+    # zi-dashboard (INTERNAL_API_URL http://zi:8080) and agents (ZI_API_URL).
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zi-dashboard-ingress
+  namespace: zi
+spec:
+  podSelector:
+    matchLabels:
+      app: zi-dashboard
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zi-redis-ingress
+  namespace: zi
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zi-agents-ingress
+  namespace: zi
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: agent
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8000

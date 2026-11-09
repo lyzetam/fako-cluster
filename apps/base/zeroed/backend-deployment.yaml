@@ -14,7 +14,7 @@ spec:
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-09-15T06:18:04Z"
+        kubectl.kubernetes.io/restartedAt: "2026-10-23T00:15:00Z"  # repull :latest rebuilt on fresh base image (2026-10-22 CVE sweep)
       labels:
         app: zeroed
         component: backend

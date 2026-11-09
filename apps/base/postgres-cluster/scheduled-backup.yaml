@@ -1,0 +1,15 @@
+# Weekly CNPG base backup to the barmanObjectStore (S3).
+# Sunday 05:00 UTC = 1:00 AM EDT / 12:00 AM EST, clear of the 3 AM / 5 AM ET dump windows.
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: postgres-cluster-weekly
+  namespace: postgres
+spec:
+  schedule: "0 0 5 * * 0"
+  backupOwnerReference: self
+  method: barmanObjectStore
+  target: prefer-standby
+  immediate: true
+  cluster:
+    name: postgres-cluster

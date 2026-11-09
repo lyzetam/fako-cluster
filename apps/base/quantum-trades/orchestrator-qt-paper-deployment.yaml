@@ -47,7 +47,7 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: orchestrator-qt-service-account
-      automountServiceAccountToken: true
+      automountServiceAccountToken: false  # no k8s API use; see the SA note in orchestrator-qt-deployment.yaml
       imagePullSecrets:
         - name: dockerhub-registry
 

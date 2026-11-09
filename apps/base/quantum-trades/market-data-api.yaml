@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/restartedAt: '2026-07-06T07:30:27-04:00'
+        kubectl.kubernetes.io/restartedAt: "2026-10-23T00:15:00Z"  # repull :latest rebuilt on fresh base image (2026-10-22 CVE sweep)
         prometheus.io/path: /metrics
         prometheus.io/port: '8007'
         prometheus.io/scrape: 'true'

@@ -22,6 +22,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: langfuse-web
+                name: langfuse-api   # stable Service (service-api.yaml), not a release's own
                 port:
                   number: 3000
