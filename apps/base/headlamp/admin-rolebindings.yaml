@@ -14,8 +14,9 @@
 #                      exec into its pod = read every cluster secret)
 #   - quantum-trades  (orchestrator-qt SA has cluster-wide secrets read;
 #                      same exfil path)
-#   - zi              (k8s-operator SA has cluster-wide pods delete +
-#                      deployment patch/scale; DoS / pod-restart abuse)
+#   - zi              (zi pods hold zi-secrets, incl. Postgres admin;
+#                      the k8s-operator SA was removed 2026-10-17, the
+#                      namespace stays excluded)
 #   - housekeeping    (housekeeping SA has cluster-wide pods delete;
 #                      DoS abuse)
 #   - kube-system, kube-public, kube-node-lease, default, flux-system,
@@ -446,6 +447,8 @@ subjects:
   name: headlamp-admin
   namespace: kube-system
 ---
-# EXCLUDED — zi/k8s-operator SA has cluster-wide pods delete + deployment
-# patch/scale (DoS + pod-restart abuse). zi/zi SA is read-only but bundled
-# in the same namespace, so the whole namespace is excluded for simplicity.
+# EXCLUDED — zi. The zi/k8s-operator SA (cluster-wide pods delete +
+# deployment patch/scale) was removed 2026-10-17, but zi pods still hold
+# zi-secrets (Postgres admin, Cloudflare, Supabase service key), so a
+# Headlamp write/exec grant here would still be a secret-read path. zi is
+# being retired; keep it excluded.

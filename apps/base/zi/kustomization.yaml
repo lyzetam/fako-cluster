@@ -29,7 +29,6 @@ resources:
   - redis-service.yaml
   # Agent shared resources
   - zi-agents-memory-pvc.yaml
-  - rbac-k8s-operator.yaml
   - configmap-generators.yaml
 
   # Agent deployments + services (5 active agents)
