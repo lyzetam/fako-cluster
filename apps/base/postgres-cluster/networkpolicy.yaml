@@ -18,7 +18,10 @@ spec:
     - podSelector: {}   # same namespace: replicas, backup/init/grants jobs, tailnet relay
     # discord-management is applied from its own repo, not this one, so the
     # repo-based inventory in #364 missed it; its API uses the discord_bots DB.
+    # Only the API pods (label from lyzetam/discord-management k8s/deployment.yaml),
+    # not every pod in the namespace (Norbert F2 on #425).
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: discord-management } }
+      podSelector: { matchLabels: { app: discord-management-api } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: hume-collector } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: keycloak } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: langfuse } }

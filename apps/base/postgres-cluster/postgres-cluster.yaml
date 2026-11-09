@@ -59,6 +59,12 @@ spec:
       - hostssl oura,withings,hume health_ro 10.42.0.0/16 scram-sha-256
       - host all health_ro 0.0.0.0/0 reject
       - host all health_ro ::/0 reject
+      # discord_bots (discord-management API, follow-up to #425) may reach ONLY
+      # its own database, and only from the k3s pod CIDR. Every other database
+      # is rejected for this role. Must stay ABOVE the generic `all all` lines.
+      - host discord_bots discord_bots 10.42.0.0/16 scram-sha-256
+      - host all discord_bots 0.0.0.0/0 reject
+      - host all discord_bots ::/0 reject
       # 2) Tailnet relay (postgres-ro-tailnet, #365) is PgBouncer, which authenticates
       #    only health_ro itself; it arrives from its pod IP and matches rule 1.
       # 3) Superuser: in-cluster pods only (backup-schedule, database-init-job, keycloak/
@@ -139,6 +145,22 @@ spec:
         connectionLimit: 5
         passwordSecret:
           name: health-readonly-secret
+      # Least-privilege login for the discord-management API (follow-up to #425,
+      # Norbert F1). Replaces its use of the CNPG superuser `postgres`. Attributes
+      # only: database ownership/CONNECT are a one-time manual SQL step (PR body),
+      # and pg_hba above confines the role to the discord_bots DB.
+      - name: discord_bots
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        inherit: false
+        replication: false
+        bypassrls: false
+        connectionLimit: 20
+        passwordSecret:
+          name: discord-bots-secret
       # NOLOGIN owner of the views in hume.health.*; can SELECT only the two hume base tables.
       - name: health_views_owner
         ensure: present
