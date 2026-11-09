@@ -13,7 +13,7 @@ spec:
       labels:
         app: oura-collector
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-09-23T15:45:00Z"  # repull :latest with 1200s briefing timeout (fakocluster-apps #40)
+        kubectl.kubernetes.io/restartedAt: "2026-10-23T00:15:00Z"  # repull :latest rebuilt on fresh base image (2026-10-22 CVE sweep)
     spec:
       serviceAccountName: oura-collector
       securityContext:

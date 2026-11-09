@@ -9,4 +9,3 @@ resources:
   - alloy  # Keeping enabled - Routes OTEL to Grafana (Tempo/Prometheus/Loki)
   - blackbox-exporter
   # - nrdot-collector  # DISABLED - New Relic collector - major source of data
-  # - newrelic-pixie  # DISABLED - Pixie eBPF data - HUGE data volume (main culprit)

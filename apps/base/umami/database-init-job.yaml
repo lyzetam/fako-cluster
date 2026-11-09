@@ -3,8 +3,12 @@ kind: Job
 metadata:
   name: umami-database-init
   namespace: umami
+  annotations:
+    # Create once; Flux never re-applies or recreates it while it exists.
+    # To rerun deliberately (e.g. after a spec change): delete the Job, Flux recreates it.
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 spec:
-  ttlSecondsAfterFinished: 300
+  backoffLimit: 4
   template:
     spec:
       restartPolicy: OnFailure
@@ -15,18 +19,31 @@ spec:
             - /bin/sh
             - -c
             - |
+              set -euo pipefail
+              # Wait for Postgres (NetworkPolicy may lag a brand-new pod by ~1s): backoff 1,2,4,8,15s (~30s).
+              WAIT_HOST="postgres-cluster-rw.postgres.svc.cluster.local"
+              pg_ok=0
+              for d in 1 2 4 8 15; do
+                if pg_isready -h "$WAIT_HOST" -p 5432 -t 3; then pg_ok=1; break; fi
+                echo "postgres not reachable yet, retrying in ${d}s"; sleep "$d"
+              done
+              if [ "$pg_ok" != 1 ]; then pg_isready -h "$WAIT_HOST" -p 5432 -t 3 || { echo "ERROR: postgres unreachable after ~30s" >&2; exit 1; }; fi
+              # Every psql call stops on the first SQL error and exits nonzero.
+              psql() { command psql -v ON_ERROR_STOP=1 "$@"; }
+              export PGHOST=postgres-cluster-rw.postgres.svc.cluster.local PGUSER=postgres PGPASSWORD="$POSTGRES_PASSWORD"
               echo "Checking if umami database exists..."
-              PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'umami'" | grep -q 1
-              if [ $? -eq 0 ]; then
+              exists="$(psql -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'umami'")"
+              if [ "$exists" = "1" ]; then
                 echo "Database 'umami' already exists"
               else
                 echo "Creating database 'umami'..."
-                PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -d postgres -c "CREATE DATABASE umami"
-                echo "Granting privileges to app user..."
-                PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -d umami -c "GRANT ALL PRIVILEGES ON DATABASE umami TO app"
-                PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -d umami -c "GRANT ALL ON SCHEMA public TO app"
-                echo "Database 'umami' created successfully"
+                psql -d postgres -c "CREATE DATABASE umami"
               fi
+              # Grants are idempotent; apply every run so a half-finished earlier run is repaired.
+              echo "Granting privileges to app user..."
+              psql -d umami -c "GRANT ALL PRIVILEGES ON DATABASE umami TO app"
+              psql -d umami -c "GRANT ALL ON SCHEMA public TO app"
+              echo "Database 'umami' ready"
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:

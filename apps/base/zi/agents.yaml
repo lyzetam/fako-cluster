@@ -25,6 +25,10 @@ spec:
         app.kubernetes.io/name: agent-backend-engineer
         app.kubernetes.io/component: agent
     spec:
+      # No in-cluster API token: agents run as zi:default, which has no
+      # RBAC in Git, and the file tools can read the token path (Norbert
+      # zi review, Oct 17). Retiring, not re-enabling.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -146,7 +150,7 @@ spec:
   # Sol cannot merge, so without a reviewer those PRs sit open indefinitely —
   # five were open for up to three weeks before this. Vera cannot merge either;
   # her verdict is a recommendation and a human still merges.
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-code-reviewer
@@ -162,6 +166,10 @@ spec:
         app.kubernetes.io/name: agent-code-reviewer
         app.kubernetes.io/component: agent
     spec:
+      # No in-cluster API token: agents run as zi:default, which has no
+      # RBAC in Git, and the file tools can read the token path (Norbert
+      # zi review, Oct 17). Retiring, not re-enabling.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -229,10 +237,9 @@ spec:
             # request" and the run dies before its first token.
             - secretRef:
                 name: apisix-gateway-key
-            # ZI_FAKO_GH_TOKEN — the same token Sol writes with. Vera only
-            # reads PRs and submits reviews; there is no merge tool in the image.
-            - secretRef:
-                name: fako-gh-token
+            # ZI_FAKO_GH_TOKEN (fako-gh-token) removed 2026-10-17: the shared
+            # Sol/Vera classic PAT is no longer synced into zi. Vera is at
+            # replicas 0 and being retired; do not re-add without a scoped token.
           volumeMounts:
             - name: agent-memory
               mountPath: /data
@@ -308,7 +315,7 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-devops-engineer
@@ -324,6 +331,10 @@ spec:
         app.kubernetes.io/name: agent-devops-engineer
         app.kubernetes.io/component: agent
     spec:
+      # No in-cluster API token: agents run as zi:default, which has no
+      # RBAC in Git, and the file tools can read the token path (Norbert
+      # zi review, Oct 17). Retiring, not re-enabling.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -447,7 +458,7 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-k8s-engineer
@@ -466,6 +477,10 @@ spec:
       # Sol is the cluster's remediation path — he must not lose a
       # scheduling race or get evicted first under node pressure.
       priorityClassName: zi-agent-remediator
+      # No in-cluster API token: agents run as zi:default, which has no
+      # RBAC in Git, and the file tools can read the token path (Norbert
+      # zi review, Oct 17). Retiring, not re-enabling.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -525,9 +540,9 @@ spec:
             # request" and the run dies before its first token.
             - secretRef:
                 name: apisix-gateway-key
-            # ZI_FAKO_GH_TOKEN — write token scoped to Sol only (external-secret-fako-gh.yaml).
-            - secretRef:
-                name: fako-gh-token
+            # ZI_FAKO_GH_TOKEN (fako-gh-token) removed 2026-10-17: the shared
+            # Sol/Vera classic PAT is no longer synced into zi. Sol is at
+            # replicas 0 and being retired; do not re-add without a scoped token.
           volumeMounts:
             - name: agent-memory
               mountPath: /data
@@ -603,7 +618,7 @@ metadata:
     app.kubernetes.io/component: agent
     app.kubernetes.io/part-of: zi-agents
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: agent-platform-sre
@@ -619,6 +634,10 @@ spec:
         app.kubernetes.io/name: agent-platform-sre
         app.kubernetes.io/component: agent
     spec:
+      # No in-cluster API token: agents run as zi:default, which has no
+      # RBAC in Git, and the file tools can read the token path (Norbert
+      # zi review, Oct 17). Retiring, not re-enabling.
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: dockerhub-registry
       securityContext:
@@ -712,15 +731,15 @@ spec:
           resources:
             requests:
               cpu: 50m
-              memory: 256Mi
+              # Request reflects the observed working peak (~2Gi reached in ~11 min
+              # per pulse-sweep cycle on Oct 14), not idle (~165Mi). thinkpad02
+              # was at ~47% of memory requests then; +768Mi is ~+2.4%.
+              memory: 1Gi
             limits:
               cpu: 500m
-              # 1Gi -> 2Gi. Sol sits at ~600Mi idle and OOMKilled five times in
-              # five hours: a remediation run holds the ReAct transcript plus a
-              # 64K-context model response, and the peak cleared 1Gi. Limit only
-              # — requests stay at 256Mi so this does not add scheduling
-              # pressure on a node already at 97% of memory requests.
-              memory: 2Gi
+              # 2Gi -> 4Gi (#372) after 29 OOMKills in ~5.5h. Growth looks like a
+              # per-sweep leak (lyzetam/zi#74); this is a stopgap, not the fix.
+              memory: 4Gi
           # Boot imports the full LangChain/deepagents tree before uvicorn
           # binds the port. A startupProbe gives that up to 300s WITHOUT the
           # liveness probe running — previously liveness fired at 45s and

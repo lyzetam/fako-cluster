@@ -14,9 +14,10 @@ rules:
 - apiGroups: ["*"]
   resources: ["*"]
   verbs: ["get", "list"]
-- apiGroups: [""]
-  resources: ["namespaces"]
-  verbs: ["create"]
+# namespaces:create removed (2026-10-15). Backup jobs only `kubectl get`/`list`
+# and write to filesystem paths named namespaces/; nothing creates a Namespace.
+# Leaving create would let backup-sa mint selfheal-* namespaces that zi then
+# silently skips (see lyzetam/zi#76 / fako-cluster#379).
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1

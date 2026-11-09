@@ -3,8 +3,15 @@ kind: ClusterRole
 metadata:
   name: kube-bench
 rules:
+# No "secrets" here on purpose. kube-bench's k3s-cis-1.7 checks read host files
+# (hostPath mounts) and call only /version and nodes list on the API; no check
+# reads Secrets. The reporter gets obsidian-api via secretKeyRef, which the
+# kubelet resolves, so it needs no RBAC on Secrets either. CIS 5.1.2 itself
+# says to remove get/list/watch on Secrets where possible.
+# No "configmaps" either: no k3s-cis-1.7 check reads ConfigMaps through the API,
+# and the reporter's envFrom configMapRef is resolved by the kubelet.
 - apiGroups: [""]
-  resources: ["pods", "nodes", "services", "configmaps", "secrets"]
+  resources: ["pods", "nodes", "services"]
   verbs: ["get", "list"]
 - apiGroups: ["apps"]
   resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]

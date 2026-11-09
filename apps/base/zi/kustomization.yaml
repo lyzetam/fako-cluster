@@ -13,6 +13,7 @@ resources:
   - pvc.yaml
   - zi-brain-storage.yaml
   - rbac.yaml
+  - serviceaccount-default.yaml
   # Dashboard (Next.js)
   - zi-dashboard-deployment.yaml
   - zi-dashboard-service.yaml
@@ -21,15 +22,15 @@ resources:
   - external-secret.yaml
   - external-secret-dockerhub.yaml
   - external-secret-langfuse.yaml
-  - external-secret-fako-gh.yaml
   - external-secret-apisix-key.yaml
   - priorityclass.yaml
   # Redis (cache for agent knowledge sharing)
   - redis-deployment.yaml
   - redis-service.yaml
+  # Ingress lockdown (default deny + explicit allows)
+  - networkpolicy.yaml
   # Agent shared resources
   - zi-agents-memory-pvc.yaml
-  - rbac-k8s-operator.yaml
   - configmap-generators.yaml
 
   # Agent deployments + services (5 active agents)

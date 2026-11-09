@@ -9,6 +9,7 @@ resources:
   - external-secret-app.yaml
   - external-secret-oura-readonly.yaml
   - external-secret-health-readonly.yaml
+  - external-secret-discord-bots.yaml
   - external-secret-s3-backup.yaml
   - aws-credentials-secret.yaml
   - postgres-cluster.yaml
@@ -16,9 +17,13 @@ resources:
   - oura-readonly-grants-job.yaml
   - health-ro-grants-cronjob.yaml
   - tailnet-postgres-ro.yaml
+  - donnie-health-feed-rbac.yaml
+  - networkpolicy.yaml
   - backup-pvc.yaml
   - backup-schedule.yaml
   - backup-s3-cronjob.yaml
+  - external-secret-health-export.yaml
+  - health-export-cronjob.yaml
 
   # - service.yaml
   # - pooler.yaml  # Uncomment if using PgBouncer

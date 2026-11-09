@@ -1,0 +1,38 @@
+# Keep self-heal fixtures inside apps/base/selfheal-*:
+#  - the `selfheal.zi/fixture` label (zi skips labelled objects, lyzetam/zi#76),
+#  - any `selfheal-*` Namespace, and any object placed in one (zi skips every
+#    selfheal-* namespace, so a real workload there silently loses self-heal).
+# Advisory until main has a required status check (branch protection is off).
+name: Fixture label guard
+
+on:
+  pull_request:
+    paths: ["**/*.yaml", "**/*.yml", "**/*.json", "**/*.tpl"]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Self-heal fixtures only under apps/base/selfheal-*
+        run: |
+          set -euo pipefail
+          scope=('*.yaml' '*.yml' '*.json' '*.tpl'
+                 ':!apps/base/selfheal-*'
+                 ':!.github/workflows/fixture-label-guard.yml')
+          fail=0
+          if hits=$(git grep -nE 'selfheal\.zi/fixture' -- "${scope[@]}"); then
+            echo "::error::selfheal.zi/fixture is only allowed under apps/base/selfheal-*:"
+            echo "$hits"; fail=1
+          fi
+          if hits=$(git grep -nE "(name|namespace)[\"']?\s*:\s*[\"']?selfheal-" -- "${scope[@]}"); then
+            echo "::error::selfheal-* namespaces (or objects in them) only under apps/base/selfheal-*:"
+            echo "$hits"; fail=1
+          fi
+          [ "$fail" -eq 0 ] && echo "OK: no self-heal fixture references outside apps/base/selfheal-*"
+          exit "$fail"

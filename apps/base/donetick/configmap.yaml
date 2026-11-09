@@ -24,9 +24,11 @@ data:
       # Session timeout in hours
       session_timeout: 24
     
-    # JWT configuration
-    jwt:
-      secret: "REDACTED_JWT_SECRET"
+    # JWT configuration (no jwt: block here)
+    # jwt.secret is NOT set here. It comes from the DT_JWT_SECRET env var
+    # (viper DT_ prefix, "." -> "_"), sourced from the donetick-jwt Secret,
+    # which ExternalSecrets syncs from AWS Secrets Manager key donetick/jwt-secret.
+    # donetick refuses to start if the secret is < 32 chars or a known weak value.
     
     # Feature flags
     features:
