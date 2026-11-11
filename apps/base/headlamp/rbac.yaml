@@ -12,7 +12,7 @@ rules:
 # Read-only across all standard resources.
 # NOTE: `secrets` is intentionally omitted — the dashboard's no-token
 # (default) view must not expose secret values. Users who need to view
-# secrets must paste the headlamp-admin token (which also excludes secrets
+# secrets must use a headlamp-admin-v2 login (which also excludes secrets
 # per admin-serviceaccount.yaml) or use kubectl.
 - apiGroups: [""]
   resources:
