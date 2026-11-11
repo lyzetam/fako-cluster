@@ -84,6 +84,11 @@ spec:
           - key: node-role.kubernetes.io/control-plane
             operator: Exists
             effect: NoSchedule
+          # Explicit, not omitted: dropping serviceAccountName leaves the deprecated
+          # `serviceAccount` field on the live object, which the API server copies
+          # back into serviceAccountName, so the pod kept referencing the deleted
+          # etcd-backup-sa and could not be created.
+          serviceAccountName: default
           automountServiceAccountToken: false
           containers:
           - name: k3s-backup
