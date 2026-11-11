@@ -5,6 +5,12 @@ kind: ServiceAccount
 metadata:
   name: alloy
   namespace: alloy
+  annotations:
+    # Helm must never delete this object. The alloy chart used to render an
+    # object with the same name (rbac.create/serviceAccount.create); Helm
+    # skips deleting a dropped resource whose LIVE object carries this
+    # annotation. This file (Flux kustomize) is the owner.
+    helm.sh/resource-policy: keep
 
 ---
 # ClusterRole with all required permissions
@@ -12,6 +18,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: alloy
+  annotations:
+    # See the ServiceAccount above.
+    helm.sh/resource-policy: keep
 rules:
 # Core discovery permissions
 - apiGroups: [""]
@@ -43,6 +52,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: alloy
+  annotations:
+    # See the ServiceAccount above.
+    helm.sh/resource-policy: keep
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
