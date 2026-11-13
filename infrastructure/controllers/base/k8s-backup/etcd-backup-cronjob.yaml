@@ -40,7 +40,12 @@ data:
     [ -f "$SRC/db/state.db" ] || { echo "FATAL: $SRC/db/state.db not found"; exit 1; }
     [ -s "$SRC/token" ]       || { echo "FATAL: $SRC/token missing/empty"; exit 1; }
 
-    sqlite3 "file:$SRC/db/state.db?mode=ro" ".backup $WORK/state.db"
+    # VACUUM INTO, not .backup: the online-backup API restarts whenever another
+    # connection writes to the source, and kine commits several times a second,
+    # so .backup never finished (reproduced: killed at 60s under a 2 ms writer).
+    # VACUUM INTO copies one consistent read snapshot (5s on the live 110 MB db).
+    rm -f "$WORK/state.db"
+    sqlite3 "file:$SRC/db/state.db?mode=ro" "VACUUM INTO '$WORK/state.db'"
     RESULT=$(sqlite3 "$WORK/state.db" "PRAGMA integrity_check;")
     if [ "$RESULT" != "ok" ]; then
       echo "FATAL: integrity_check failed: $RESULT"; exit 1
