@@ -67,6 +67,11 @@ data:
     loki.source.kubernetes "pods" {
       targets = discovery.relabel.pod_logs.output
       forward_to = [loki.process.pods.receiver]
+      // Shard targets across the Alloy cluster peers; without this every
+      // instance tails every pod and each line reaches Loki once per peer.
+      clustering {
+        enabled = true
+      }
     }
     
     loki.process "pods" {
@@ -181,6 +186,11 @@ data:
     loki.source.kubernetes "voice_pipeline" {
       targets = discovery.relabel.voice_pipeline_pod_logs.output
       forward_to = [loki.process.voice_pipeline.receiver]
+      // Shard targets across the Alloy cluster peers; without this every
+      // instance tails every pod and each line reaches Loki once per peer.
+      clustering {
+        enabled = true
+      }
     }
     
     loki.process "voice_pipeline" {
