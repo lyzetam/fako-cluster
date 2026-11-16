@@ -7,10 +7,9 @@ metadata:
     app.kubernetes.io/name: donetick
     app.kubernetes.io/component: task-management
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-staging
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    cert-manager.io/cluster-issuer: internal-selfsigned
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   tls:
   - hosts:
     - donetick.fako-cluster.local
