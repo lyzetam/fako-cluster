@@ -6,9 +6,9 @@
       "Effect": "Allow",
       "Action": "ssm:GetParameter",
       "Resource": [
-        "arn:aws:ssm:us-east-1:584144127892:parameter/grafana/admin",
-        "arn:aws:ssm:us-east-1:584144127892:parameter/alertmanager/smtp",
-        "arn:aws:ssm:us-east-1:584144127892:parameter/alertmanager/healthchecks"
+        "arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/grafana/admin",
+        "arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/alertmanager/smtp",
+        "arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/alertmanager/healthchecks"
       ]
     }
   ]
