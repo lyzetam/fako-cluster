@@ -1,0 +1,177 @@
+# K3s API server audit policy (packet item 4).
+#
+# NOT delivered by Flux. Nothing under docs/ is in a Flux path. This file is
+# copied by hand to the server node (zz-macbookpro) as
+#   /etc/rancher/k3s/audit-policy.yaml   (root:root, 0600)
+# and enabled by config.yaml.d/50-audit.yaml in this directory. Steps:
+# docs/operations/k3s-audit-logging.md.
+#
+# Rules are evaluated top to bottom; the FIRST match wins.
+#
+# Design goals:
+#   - Never write a Secret, ConfigMap, token, TokenReview or log body to disk.
+#     Those resources are logged at Metadata (who, what, when, from where,
+#     response code) and never at Request/RequestResponse.
+#   - RequestResponse is not used anywhere.
+#   - Record the request body only for RBAC and admission-policy writes by
+#     humans and other identities (small, rare, and exactly what an attacker
+#     changes to escalate). Flux and the bot/ops identities stay at Metadata.
+#   - Workload writes (Deployments, Pods, ...) stay at Metadata: pod templates
+#     can carry inline env values, and this log is shipped to Loki.
+#   - Drop high-volume, low-value noise: health probes, leases, events, node
+#     status heartbeats, system-component reads, and Flux's per-minute
+#     server-side-apply dry runs (exact controller usernames only; the content
+#     of every Flux apply is in Git).
+#   - Test harness and case list: policytest/ in this directory
+#     (cd policytest && go run . ../audit-policy.yaml cases.yaml).
+#   - Admin certificates (system:masters, the CN=landry login after Oct 24) and
+#     everything else fall through to Metadata, so every Secret read in
+#     flux-system, every exec/port-forward and every admin action is recorded.
+apiVersion: audit.k8s.io/v1
+kind: Policy
+# One event per request (ResponseComplete / ResponseStarted for watches and
+# streams, Panic on failure). RequestReceived would double the volume.
+omitStages:
+  - RequestReceived
+rules:
+  # --- 1. Noise that carries no security value -----------------------------
+  - level: None
+    nonResourceURLs:
+      - /healthz*
+      - /livez*
+      - /readyz*
+      - /version
+      - /version/*
+      - /openapi*
+      - /metrics
+      - /api
+      - /api/*
+      - /apis
+      - /apis/*
+  # Leader election and node heartbeats: several writes per second cluster-wide.
+  - level: None
+    resources:
+      - group: coordination.k8s.io
+        resources: [leases]
+  # Events are written constantly by every controller and kubelet; they are
+  # their own record (kubectl get events) and auditing them adds bulk only.
+  - level: None
+    resources:
+      - group: ""
+        resources: [events]
+      - group: events.k8s.io
+        resources: [events]
+  # Kubelet status heartbeats (node and pod status), every node, every few s.
+  - level: None
+    userGroups: ["system:nodes"]
+    verbs: [get, list, watch, patch, update]
+    resources:
+      - group: ""
+        resources: [nodes, nodes/status, pods/status]
+
+  # --- 2. Sensitive resources: Metadata only, never a body -----------------
+  # FIRST, before any Flux or system drop, so no identity can read or write a
+  # Secret, ConfigMap or token unrecorded. Secret and ConfigMap bodies,
+  # ServiceAccount TokenRequest responses (the new token), TokenReview requests
+  # (the token being reviewed), access reviews and CSRs.
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: [secrets, configmaps, serviceaccounts/token]
+      - group: authentication.k8s.io
+        resources: [tokenreviews]
+      - group: authorization.k8s.io
+        resources: [subjectaccessreviews, selfsubjectaccessreviews, localsubjectaccessreviews, selfsubjectrulesreviews]
+      - group: certificates.k8s.io
+        resources: [certificatesigningrequests, certificatesigningrequests/approval, certificatesigningrequests/status]
+  # Log, exec, attach, port-forward, proxy and debug-container streams:
+  # recorded, contents never.
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: [pods/log, pods/exec, pods/attach, pods/portforward, pods/proxy, pods/ephemeralcontainers, services/proxy, nodes/proxy]
+
+  # --- 3. Flux --------------------------------------------------------------
+  # 3a. Flux writes to RBAC and admission policy: always recorded (Metadata;
+  #     the content is in Git). Exact controller usernames only.
+  - level: Metadata
+    users:
+      - system:serviceaccount:flux-system:kustomize-controller
+      - system:serviceaccount:flux-system:helm-controller
+    resources:
+      - group: rbac.authorization.k8s.io
+      - group: admissionregistration.k8s.io
+  # 3b. Flux server-side-apply dry runs. kustomize-controller dry-run-applies
+  #     every object of every Kustomization on every reconcile (apps: ~830
+  #     objects every 1m), each a PATCH; helm-controller patches/updates on
+  #     upgrade. Logging them would be roughly 1.5 GB/day of identical events,
+  #     and what Flux applies is in Git and in Flux's own events. Exact
+  #     usernames only: any OTHER flux-system ServiceAccount is still recorded.
+  #     Secrets/ConfigMaps never reach this rule (rule 2 is first).
+  - level: None
+    users:
+      - system:serviceaccount:flux-system:kustomize-controller
+      - system:serviceaccount:flux-system:helm-controller
+    verbs: [patch, update]
+  # 3c. Flux controllers' reads of non-sensitive objects. Exact usernames.
+  - level: None
+    users:
+      - system:serviceaccount:flux-system:kustomize-controller
+      - system:serviceaccount:flux-system:helm-controller
+      - system:serviceaccount:flux-system:source-controller
+      - system:serviceaccount:flux-system:notification-controller
+    verbs: [get, list, watch]
+    resources:
+      - group: ""
+        resources: [configmaps, namespaces, serviceaccounts, services]
+      - group: apps
+      - group: batch
+      - group: networking.k8s.io
+      - group: kustomize.toolkit.fluxcd.io
+      - group: helm.toolkit.fluxcd.io
+      - group: source.toolkit.fluxcd.io
+      - group: notification.toolkit.fluxcd.io
+
+  # --- 4. Human and bot access identities: everything at Metadata -----------
+  # Placed BEFORE the system-read drops below, which would otherwise hide
+  # kube-system ServiceAccounts such as mel-readonly and headlamp-admin.
+  # bot-operator / bot-minter (Norbert's design §10) are recorded at Metadata,
+  # reads and writes alike; the restart-only VAP's validationActions
+  # [Deny, Audit] adds the policy decision to these events. These names match
+  # nothing until the accounts exist.
+  - level: Metadata
+    users:
+      - system:serviceaccount:bot-ops:bot-operator
+      - system:serviceaccount:bot-ops:bot-minter
+      - system:serviceaccount:kube-system:mel-readonly
+      - system:serviceaccount:kube-system:headlamp-admin
+      - system:serviceaccount:kube-system:headlamp-admin-v2
+
+  # --- 5. Reads by system components ---------------------------------------
+  # (After rule 2, so a system component reading a Secret is still recorded.)
+  - level: None
+    users:
+      - system:kube-proxy
+      - system:kube-scheduler
+      - system:kube-controller-manager
+      - system:apiserver
+      - system:k3s-controller          # k3s embedded controllers
+      - system:k3s-supervisor          # k3s-specific; harmless if unused
+      - system:cloud-controller-manager
+    verbs: [get, list, watch]
+  - level: None
+    userGroups: ["system:nodes", "system:serviceaccounts:kube-system"]
+    verbs: [get, list, watch]
+
+  # --- 6. Bodies worth keeping ---------------------------------------------
+  # RBAC and admission policy changes by humans (admin certs) or any other
+  # identity: who granted what to whom. (Flux and the named identities above
+  # are already matched at Metadata.)
+  - level: Request
+    verbs: [create, patch, update, delete, deletecollection]
+    resources:
+      - group: rbac.authorization.k8s.io
+      - group: admissionregistration.k8s.io
+
+  # --- 7. Everything else ---------------------------------------------------
+  - level: Metadata

@@ -1,0 +1,62 @@
+# Audit policy test cases. First match wins in the policy; these pin the
+# intended level per identity/verb/resource. "Metadata+" = Metadata or Request.
+# --- Norbert's 34 (team-landry/norbert/pr389-audit-test, Oct 17) ---
+- {source: norbert, name: flux kc patch Secret, sa: flux-system/kustomize-controller, verb: patch, ns: flux-system, res: secrets, want: Metadata}
+- {source: norbert, name: flux kc get Secret, sa: flux-system/kustomize-controller, verb: get, ns: flux-system, res: secrets, want: Metadata}
+- {source: norbert, name: flux kc delete Secret, sa: flux-system/kustomize-controller, verb: delete, ns: flux-system, res: secrets, want: Metadata}
+- {source: norbert, name: flux kc update Secret, sa: flux-system/kustomize-controller, verb: update, ns: apps, res: secrets, want: Metadata}
+- {source: norbert, name: flux hc patch Secret (helm storage), sa: flux-system/helm-controller, verb: patch, ns: monitoring, res: secrets, want: Metadata}
+- {source: norbert, name: flux kc patch ClusterRoleBinding, sa: flux-system/kustomize-controller, verb: patch, group: rbac.authorization.k8s.io, res: clusterrolebindings, want: Metadata+}
+- {source: norbert, name: flux kc patch ValidatingAdmissionPolicy, sa: flux-system/kustomize-controller, verb: patch, group: admissionregistration.k8s.io, res: validatingadmissionpolicies, want: Metadata+}
+- {source: norbert, name: flux kc patch Deployment (SSA), sa: flux-system/kustomize-controller, verb: patch, ns: apps, group: apps, res: deployments, want: None}
+- {source: norbert, name: flux kc delete Deployment (prune), sa: flux-system/kustomize-controller, verb: delete, ns: apps, group: apps, res: deployments, want: Metadata}
+- {source: norbert, name: flux kc create ClusterRoleBinding, sa: flux-system/kustomize-controller, verb: create, group: rbac.authorization.k8s.io, res: clusterrolebindings, want: Metadata+}
+- {source: norbert, name: rogue flux-system SA patch Secret, sa: flux-system/rogue, verb: patch, ns: flux-system, res: secrets, want: Metadata}
+- {source: norbert, name: rogue flux-system SA patch CRB, sa: flux-system/rogue, verb: patch, group: rbac.authorization.k8s.io, res: clusterrolebindings, want: Metadata+}
+- {source: norbert, name: admin get Secret flux-system, user: system:admin, groups: [system:masters, system:authenticated], verb: get, ns: flux-system, res: secrets, want: Metadata}
+- {source: norbert, name: admin create Secret, user: system:admin, groups: [system:masters, system:authenticated], verb: create, ns: default, res: secrets, want: Metadata}
+- {source: norbert, name: admin create CRB, user: system:admin, groups: [system:masters, system:authenticated], verb: create, group: rbac.authorization.k8s.io, res: clusterrolebindings, want: Request}
+- {source: norbert, name: admin exec, user: system:admin, groups: [system:masters, system:authenticated], verb: create, ns: apps, res: pods, sub: exec, want: Metadata}
+- {source: norbert, name: admin patch Deployment, user: system:admin, groups: [system:masters, system:authenticated], verb: patch, ns: apps, group: apps, res: deployments, want: Metadata}
+- {source: norbert, name: admin patch pods/ephemeralcontainers, user: system:admin, groups: [system:masters, system:authenticated], verb: patch, ns: apps, res: pods, sub: ephemeralcontainers, want: Metadata}
+- {source: norbert, name: bot-operator patch Deployment, sa: bot-ops/bot-operator, verb: patch, ns: apps, group: apps, res: deployments, want: Metadata}
+- {source: norbert, name: bot-operator patch deployments/scale, sa: bot-ops/bot-operator, verb: patch, ns: apps, group: apps, res: deployments, sub: scale, want: Metadata}
+- {source: norbert, name: bot-operator delete Pod, sa: bot-ops/bot-operator, verb: delete, ns: apps, res: pods, want: Metadata}
+- {source: norbert, name: bot-operator create Secret (denied), sa: bot-ops/bot-operator, verb: create, ns: apps, res: secrets, want: Metadata}
+- {source: norbert, name: bot-operator get pods/log, sa: bot-ops/bot-operator, verb: get, ns: apps, res: pods, sub: log, want: Metadata}
+- {source: norbert, name: bot-operator list pods, sa: bot-ops/bot-operator, verb: list, ns: apps, res: pods, want: Metadata}
+- {source: norbert, name: bot-minter create serviceaccounts/token, sa: bot-ops/bot-minter, verb: create, ns: bot-ops, res: serviceaccounts, sub: token, want: Metadata}
+- {source: norbert, name: bot-minter get Secret, sa: bot-ops/bot-minter, verb: get, ns: bot-ops, res: secrets, want: Metadata}
+- {source: norbert, name: bot-minter patch own Role, sa: bot-ops/bot-minter, verb: patch, ns: bot-ops, group: rbac.authorization.k8s.io, res: roles, want: Metadata+}
+- {source: norbert, name: tokenreview create, user: system:admin, groups: [system:masters, system:authenticated], verb: create, group: authentication.k8s.io, res: tokenreviews, want: Metadata}
+- {source: norbert, name: mel-readonly list pods, sa: kube-system/mel-readonly, verb: list, ns: apps, res: pods, want: Metadata}
+- {source: norbert, name: mel-readonly get nodes, sa: kube-system/mel-readonly, verb: get, res: nodes, want: Metadata}
+- {source: norbert, name: headlamp-admin list pods, sa: kube-system/headlamp-admin, verb: list, ns: apps, res: pods, want: Metadata}
+- {source: norbert, name: headlamp-admin get Secret, sa: kube-system/headlamp-admin, verb: get, ns: apps, res: secrets, want: Metadata}
+- {source: norbert, name: kubelet patch nodes/status, user: "system:node:x", groups: [system:nodes, system:authenticated], verb: patch, res: nodes, sub: status, want: None}
+- {source: norbert, name: node get Secret, user: "system:node:x", groups: [system:nodes, system:authenticated], verb: get, ns: apps, res: secrets, want: Metadata}
+# --- Mel's (PR #389 first draft, updated to the reordered policy) ---
+- {source: mel, name: admin list secrets, user: system:admin, groups: [system:masters, system:authenticated], verb: list, ns: x, res: secrets, want: Metadata}
+- {source: mel, name: flux kc delete (prune) deployment, sa: flux-system/kustomize-controller, verb: delete, ns: x, group: apps, res: deployments, want: Metadata}
+- {source: mel, name: flux kc create ClusterRoleBinding (recorded), sa: flux-system/kustomize-controller, verb: create, group: rbac.authorization.k8s.io, res: clusterrolebindings, want: Metadata}
+- {source: mel, name: flux hc update Deployment (helm upgrade), sa: flux-system/helm-controller, verb: update, ns: x, group: apps, res: deployments, want: None}
+- {source: mel, name: flux source-controller patch Deployment, sa: flux-system/source-controller, verb: patch, ns: x, group: apps, res: deployments, want: Metadata}
+- {source: mel, name: flux kc get Deployment, sa: flux-system/kustomize-controller, verb: get, ns: x, group: apps, res: deployments, want: None}
+- {source: mel, name: rogue flux-system SA list Deployments, sa: flux-system/rogue, verb: list, ns: x, group: apps, res: deployments, want: Metadata}
+- {source: mel, name: admin token request, user: system:admin, groups: [system:masters, system:authenticated], verb: create, ns: x, res: serviceaccounts, sub: token, want: Metadata}
+- {source: mel, name: in-cluster SA tokenreview, sa: monitoring/x, verb: create, group: authentication.k8s.io, res: tokenreviews, want: Metadata}
+- {source: mel, name: admin port-forward, user: system:admin, groups: [system:masters, system:authenticated], verb: create, ns: x, res: pods, sub: portforward, want: Metadata}
+- {source: mel, name: admin get configmap, user: system:admin, groups: [system:masters, system:authenticated], verb: get, ns: x, res: configmaps, want: Metadata}
+- {source: mel, name: admin delete VAP, user: system:admin, groups: [system:masters, system:authenticated], verb: delete, group: admissionregistration.k8s.io, res: validatingadmissionpolicies, want: Request}
+- {source: mel, name: bot-operator get pods, sa: bot-ops/bot-operator, verb: get, ns: x, res: pods, want: Metadata}
+- {source: mel, name: headlamp-admin-v2 list pods, sa: kube-system/headlamp-admin-v2, verb: list, ns: x, res: pods, want: Metadata}
+- {source: mel, name: kube-system SA get Secret, sa: kube-system/coredns, verb: get, ns: x, res: secrets, want: Metadata}
+- {source: mel, name: kube-system controller SA list pods, sa: kube-system/coredns, verb: list, ns: x, res: pods, want: None}
+- {source: mel, name: kubelet get Secret, user: "system:node:pgmac01", groups: [system:nodes], verb: get, ns: x, res: secrets, want: Metadata}
+- {source: mel, name: kubelet list pods, user: "system:node:pgmac01", groups: [system:nodes], verb: list, ns: x, res: pods, want: None}
+- {source: mel, name: controller-manager watch pods, user: system:kube-controller-manager, verb: watch, ns: x, res: pods, want: None}
+- {source: mel, name: controller-manager get Secret, user: system:kube-controller-manager, verb: get, ns: x, res: secrets, want: Metadata}
+- {source: mel, name: lease update, user: "system:node:pgmac01", groups: [system:nodes], verb: update, ns: x, group: coordination.k8s.io, res: leases, want: None}
+- {source: mel, name: healthz, user: system:anonymous, verb: get, path: /readyz, want: None}
+- {source: mel, name: other SA create RoleBinding, sa: apps/some-app, verb: create, ns: apps, group: rbac.authorization.k8s.io, res: rolebindings, want: Request}
+- {source: mel, name: app SA patch Deployment, sa: apps/some-app, verb: patch, ns: apps, group: apps, res: deployments, want: Metadata}
