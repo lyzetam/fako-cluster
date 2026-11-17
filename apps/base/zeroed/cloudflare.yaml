@@ -34,7 +34,7 @@ spec:
         runAsUser: 65532
       containers:
         - name: cloudflared
-          image: cloudflare/cloudflared:2026.9.1
+          image: cloudflare/cloudflared:2026.10.7
           args: ["tunnel", "--config", "/etc/cloudflared/config/config.yaml", "run"]
           livenessProbe:
             httpGet:

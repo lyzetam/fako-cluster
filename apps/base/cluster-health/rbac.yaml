@@ -1,0 +1,66 @@
+# Identity for the hourly cluster-health job.
+#
+# Job-only ClusterRole cluster-health-read: get/list on exactly the resources
+# collect.sh reads (nodes, pods, PVCs, cronjobs, Flux kustomizations and
+# helmreleases, cert-manager certificates). No watch, no pods/log, no secrets,
+# no configmaps. It does not use mel-readonly or its ServiceAccount.
+#
+# No token Secret is defined. The pod gets a projected, kubelet-rotated token
+# with expirationSeconds: 600 (see cronjob.yaml), mounted only into the
+# collector init container.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-health
+  namespace: cluster-health
+  labels:
+    app.kubernetes.io/name: cluster-health
+    app.kubernetes.io/part-of: cluster-health
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-health-read
+  labels:
+    app.kubernetes.io/name: cluster-health
+    app.kubernetes.io/part-of: cluster-health
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - pods
+      - persistentvolumeclaims
+    verbs: ["get", "list"]
+  - apiGroups: ["batch"]
+    resources:
+      - cronjobs
+    verbs: ["get", "list"]
+  - apiGroups: ["kustomize.toolkit.fluxcd.io"]
+    resources:
+      - kustomizations
+    verbs: ["get", "list"]
+  - apiGroups: ["helm.toolkit.fluxcd.io"]
+    resources:
+      - helmreleases
+    verbs: ["get", "list"]
+  - apiGroups: ["cert-manager.io"]
+    resources:
+      - certificates
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-health-read
+  labels:
+    app.kubernetes.io/name: cluster-health
+    app.kubernetes.io/part-of: cluster-health
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-health-read
+subjects:
+  - kind: ServiceAccount
+    name: cluster-health
+    namespace: cluster-health

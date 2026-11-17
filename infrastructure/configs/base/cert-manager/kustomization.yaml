@@ -4,5 +4,6 @@ resources:
   - letsencrypt-staging.yaml
   - letsencrypt-production.yaml
   - letsencrypt-dns01.yaml
+  - internal-selfsigned.yaml
   - aws-secret-store.yaml
   - external-secret-cloudflare.yaml

@@ -1,0 +1,23 @@
+# Stable front door for Langfuse, owned by fako-cluster rather than a Helm
+# release. The Ingress and every in-cluster client (zi, ginger-hoa) call this
+# instead of a release's own `<release>-web` Service, so moving to a new
+# sibling release (as for chart 1.x -> 2.x, `langfuse-v2`) cuts over by
+# changing the single `app.kubernetes.io/instance` value below.
+apiVersion: v1
+kind: Service
+metadata:
+  name: langfuse-api
+  namespace: langfuse
+  labels:
+    app.kubernetes.io/name: langfuse
+spec:
+  type: ClusterIP
+  selector:
+    app: web
+    app.kubernetes.io/name: langfuse
+    app.kubernetes.io/instance: langfuse-v2   # cutover 2026-10-26 (#444)
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+      protocol: TCP

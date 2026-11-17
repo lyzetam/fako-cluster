@@ -1,0 +1,74 @@
+# Donnie (health data bot on the shared Grok Bot box) daily read-only health pull.
+# Replaces the box's admin kubeconfig (CN=system:admin, O=system:masters) for this one
+# job; that cert dies in the Oct 24, 2026 client-CA rotation (phase B).
+#
+# What the job does (box: /workspace/health/daily_report.sh):
+#   kubectl -n postgres port-forward --address 127.0.0.1 svc/postgres-cluster-ro 15433:5432
+# then connects with the DB-level read-only roles oura_readonly / health_ro
+# (pg_hba allows health_ro from 127.0.0.1 inside the pod only for oura/withings/hume).
+#
+# Grants, in namespace postgres only:
+#   - get on the one Service (kubectl resolves svc -> pod)
+#   - get/list on pods (kubectl picks a Running pod by the Service selector; list can't
+#     be narrowed by name)
+#   - get+create on pods/portforward, pinned to the CNPG instance pods.
+#     create = SPDY and k8s >= 1.35 websocket check; get = websocket upgrade on 1.34.
+# NOT granted: secrets, configmaps, exec, attach, proxy, logs, any write, any other namespace.
+# Residual: port-forward to an instance pod opens any port on it (5432, 8000 status, 9187
+# metrics) and bypasses NetworkPolicy. Data access is still gated by Postgres auth.
+#
+# resourceNames: CNPG instance names change when an instance is recreated (serial goes up).
+# Names below are from the Oct 14, 2026 health pull (cnpg.txt / pvc.txt); CONFIRM LIVE before
+# merge: kubectl -n postgres get pods -l cnpg.io/cluster=postgres-cluster -o name
+# If an instance is replaced, port-forward fails closed (403) until this list is updated.
+#
+# No token here. Token is minted separately (kubectl create token, bounded duration),
+# with Landry's OK, and stored as SSM SecureString /k3s/donnie-health-feed-token.
+# Kill switch: delete the ServiceAccount (invalidates every token minted for it).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: donnie-health-feed
+  namespace: postgres
+  labels:
+    app.kubernetes.io/name: donnie-health-feed
+    app.kubernetes.io/part-of: ops-access
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: donnie-health-feed-portforward
+  namespace: postgres
+  labels:
+    app.kubernetes.io/name: donnie-health-feed
+    app.kubernetes.io/part-of: ops-access
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames: ["postgres-cluster-ro"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/portforward"]
+    resourceNames: ["postgres-cluster-4", "postgres-cluster-8", "postgres-cluster-9"]
+    verbs: ["get", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: donnie-health-feed-portforward
+  namespace: postgres
+  labels:
+    app.kubernetes.io/name: donnie-health-feed
+    app.kubernetes.io/part-of: ops-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: donnie-health-feed-portforward
+subjects:
+  - kind: ServiceAccount
+    name: donnie-health-feed
+    namespace: postgres

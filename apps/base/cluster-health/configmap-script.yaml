@@ -1,0 +1,144 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-health-script
+  namespace: cluster-health
+data:
+  collect.sh: |
+    #!/bin/bash
+    # cluster-health collector. Runs with the cluster-health SA's projected token
+    # (job-only cluster-health-read ClusterRole). It holds no AWS credentials.
+    #
+    # CONTENT RULE: the summary carries status fields and object names only:
+    # counts, Ready/phase/reason, timestamps. Never Secret data, env values,
+    # ConfigMap contents, condition messages, logs or annotations. Every field is
+    # picked explicitly with jq below; nothing is passed through wholesale.
+    set -uo pipefail
+    OUT=/out/summary.json
+    NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    NOW_EPOCH=$(date -u +%s)
+    ERRORS='[]'
+
+    # get <name> <kubectl args...>: writes $WORK/<name>.json, or {"items":null}
+    # on error. kubectl stderr is discarded (never copied into the summary); only
+    # the name of the source that failed is recorded. Files, not jq --argjson,
+    # because `pods -A` JSON is far larger than the 128 KiB argv limit.
+    WORK=$(mktemp -d)
+    get() {
+      local name=$1; shift
+      if ! kubectl get "$@" -o json --request-timeout=30s > "$WORK/$name.json" 2>/dev/null; then
+        ERRORS=$(jq -c --arg n "$name" '. + [$n]' <<<"$ERRORS")
+        printf '{"items":null}' > "$WORK/$name.json"
+      fi
+    }
+
+    get nodes nodes
+    get kustomizations kustomizations.kustomize.toolkit.fluxcd.io -A
+    get helmreleases helmreleases.helm.toolkit.fluxcd.io -A
+    get pods pods -A
+    get certificates certificates.cert-manager.io -A
+    get pvcs persistentvolumeclaims -A
+    get cronjobs cronjobs.batch -A
+
+    jq -n -c \
+      --arg now "$NOW" --argjson now_epoch "$NOW_EPOCH" \
+      --argjson errors "$ERRORS" \
+      --slurpfile n "$WORK/nodes.json" --slurpfile k "$WORK/kustomizations.json" \
+      --slurpfile h "$WORK/helmreleases.json" --slurpfile p "$WORK/pods.json" \
+      --slurpfile c "$WORK/certificates.json" --slurpfile v "$WORK/pvcs.json" \
+      --slurpfile j "$WORK/cronjobs.json" '
+      ($n[0]) as $nodes | ($k[0]) as $ks | ($h[0]) as $hr | ($p[0]) as $pods |
+      ($c[0]) as $certs | ($v[0]) as $pvcs | ($j[0]) as $cjs |
+      def ready: ((.status.conditions // []) | map(select(.type=="Ready")) | .[0]);
+      def nsname: "\(.metadata.namespace)/\(.metadata.name)";
+      def flux($l):
+        if $l.items == null then null else
+        ($l.items) as $i |
+        { total: ($i|length),
+          ready: ([$i[] | select(ready.status=="True")] | length),
+          suspended: ([$i[] | select(.spec.suspend==true)] | length),
+          not_ready: [ $i[] | select(.spec.suspend!=true and ready.status!="True")
+                       | {name: nsname, status: (ready.status // "Unknown"),
+                          reason: (ready.reason // null)} ] } end;
+      {
+        schema: "cluster-health/v1",
+        generated_at: $now,
+        sources_failed: $errors,
+        nodes: (if $nodes.items == null then null else
+          ($nodes.items) as $i |
+          { total: ($i|length),
+            ready: ([$i[] | select(ready.status=="True")] | length),
+            not_ready: [ $i[] | select(ready.status!="True")
+                         | {name: .metadata.name, status: (ready.status // "Unknown")} ],
+            unschedulable: [ $i[] | select(.spec.unschedulable==true) | .metadata.name ] } end),
+        flux_kustomizations: flux($ks),
+        flux_helmreleases: flux($hr),
+        pods: (if $pods.items == null then null else
+          ($pods.items) as $i |
+          { total: ($i|length),
+            by_phase: ($i | group_by(.status.phase // "Unknown")
+                           | map({key: (.[0].status.phase // "Unknown"), value: length})
+                           | from_entries),
+            problems: [ $i[]
+              | {name: nsname, phase: (.status.phase // "Unknown"),
+                 reasons: ([ (.status.containerStatuses // [])[], (.status.initContainerStatuses // [])[]
+                             | (.state.waiting.reason // .state.terminated.reason // empty)
+                             | select(. != "Completed" and . != "PodInitializing" and . != "ContainerCreating") ] | unique),
+                 restarts: ([ (.status.containerStatuses // [])[] | .restartCount ] | add // 0)}
+              | select(.phase=="Failed" or .phase=="Pending" or .phase=="Unknown" or (.reasons|length) > 0) ] } end),
+        certificates: (if $certs.items == null then null else
+          ($certs.items) as $i |
+          { total: ($i|length),
+            ready: ([$i[] | select(ready.status=="True")] | length),
+            not_ready: [ $i[] | select(ready.status!="True")
+                         | {name: nsname, status: (ready.status // "Unknown"), reason: (ready.reason // null)} ],
+            expiring_within_14d: [ $i[] | select(.status.notAfter != null)
+                         | select((.status.notAfter | fromdateiso8601) - $now_epoch < 1209600)
+                         | {name: nsname, not_after: .status.notAfter} ] } end),
+        pvcs: (if $pvcs.items == null then null else
+          ($pvcs.items) as $i |
+          { total: ($i|length),
+            by_phase: ($i | group_by(.status.phase // "Unknown")
+                           | map({key: (.[0].status.phase // "Unknown"), value: length})
+                           | from_entries),
+            not_bound: [ $i[] | select(.status.phase!="Bound")
+                         | {name: nsname, phase: (.status.phase // "Unknown")} ] } end),
+        cronjobs: (if $cjs.items == null then null else
+          [ $cjs.items[]
+            | {name: nsname, suspended: (.spec.suspend == true),
+               last_schedule: (.status.lastScheduleTime // null),
+               last_success: (.status.lastSuccessfulTime // null),
+               active: ((.status.active // []) | length)} ] end)
+      }' > "$OUT" || { echo "summary build failed" >&2; exit 1; }
+
+    # API unreachable or the job's own identity broken: fail the pod so the
+    # uploader never runs and the dead-man's switch alerts. Partial failures of
+    # other sources are reported in sources_failed and still uploaded.
+    if jq -e 'index("nodes")' <<<"$ERRORS" > /dev/null; then
+      echo "nodes source failed; not uploading" >&2
+      exit 1
+    fi
+    echo "summary written: $(wc -c < "$OUT") bytes, sources_failed=$ERRORS"
+  upload.sh: |
+    #!/bin/bash
+    # cluster-health uploader. Holds the S3 writer key (PutObject on the
+    # cluster-health/ prefix only) and the healthchecks ping URL. It has no
+    # Kubernetes token. It never prints either credential.
+    set -euo pipefail
+    IN=/out/summary.json
+    jq -e '.schema == "cluster-health/v1"' "$IN" > /dev/null
+
+    HIST="cluster-health/history/$(jq -r '.generated_at | strptime("%Y-%m-%dT%H:%M:%SZ") | strftime("%Y/%m/%d/%H%MZ")' "$IN").json"
+
+    # Single small PutObject each; `aws s3 cp` of a <8 MB file does not need
+    # ListBucket, GetObject or multipart permissions.
+    aws s3 cp "$IN" "s3://${S3_BUCKET}/${HIST}" --only-show-errors \
+      --content-type application/json
+    aws s3 cp "$IN" "s3://${S3_BUCKET}/cluster-health/latest.json" --only-show-errors \
+      --content-type application/json
+
+    # Dead-man's switch: success ping only after both writes. If anything above
+    # failed, set -e exits first and no ping goes out, so healthchecks.io alerts
+    # after its grace period.
+    curl -fsS -m 10 --retry 3 -o /dev/null "$HC_PING_URL"
+    echo "uploaded latest.json and ${HIST}; pinged"
