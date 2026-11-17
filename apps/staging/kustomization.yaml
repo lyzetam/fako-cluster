@@ -14,8 +14,6 @@ resources:
   - ai-content-studio # read-only S3 content-inbox browser
   - content-inbox-video # S3 coverage repair; Twelve Labs backfill remains gated
   - social-media       # versitygw S3 gateway over the SocialMedia UNAS drive (IG pipeline storage)
-  - selfheal-test     # PERMANENT self-heal fixture — 7 deliberately-broken workloads. DO NOT RETIRE.
-  - selfheal-harness  # Self-heal OOM harness (was "feed-cache") — deliberately broken, DO NOT FIX
   - schwab-callback   # Static OAuth callback page for the Schwab developer app (decisions.landryzetam.net)
   # - oura-dashboard  # Deactivated - not in use
   # - wger
@@ -49,7 +47,6 @@ resources:
 
   # Observability
   - langfuse      # LLM observability (Langfuse self-hosted)
-  # - pixie     # Now deployed via New Relic in monitoring/controllers
   
   # AI/ML stack with GPU support
   # Retired 2026-08-11 with the loss of aitower — the cluster has no GPU node.
@@ -94,7 +91,8 @@ resources:
   # Manufacturing OEE Dashboard
   # - n3xis           # Manufacturing OEE Platform (commented - shopflor.n3xis.com not for public access)
 
-  # Shared Cloudflare tunnel — fronts n8n, family-manager webhook, market-replay
+  # Shared Cloudflare tunnel (fakocluster, remotely managed) — fronts mcp, n8n, market-replay
+  # and (live remote config only) content; the family-manager webhook route was removed 2026-10-17
   - cloudflare-tunnel
 
   # PV Browser — read-only web UI over every NFS-backed PV (LAN-only, authenticated)
@@ -139,12 +137,6 @@ resources:
   # - family-manager  # Family Manager webhook for Discord bot, Twilio voice, Nylas email
   - meal-tracker    # Meal tracker Discord bot + dashboard
   - sermon-engine   # Weekly sermon generator (Sunday 6am ET)
-
-  # Wearable AI notetaker — Compass transcription webhook → Obsidian vault
-  - fieldy-webhook
-
-  # Wearable AI notetaker (Plaud) → Obsidian vault + Postgres
-  - plaud-collector
 
   # reMarkable handwritten notes → MyScript OCR → Obsidian vault (daily CronJob)
   - remarkable-ocr

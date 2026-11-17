@@ -11,6 +11,7 @@ resources:
   - k8s-backup
   - system-tuning
   - cloudnative-pg
+  - clickhouse-operator  # langfuse chart 2.x ClickHouse/Keeper CRs
   - unifi-data
   # - argo-workflows  # Deactivated 2026-08-11 - audio-workflows was its only consumer (sole source of
   #                   # Workflow/CronWorkflow/WorkflowTemplate CRs cluster-wide) and is now retired.

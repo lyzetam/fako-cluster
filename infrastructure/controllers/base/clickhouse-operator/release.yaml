@@ -1,0 +1,39 @@
+# ClickHouse operator: required by the langfuse chart 2.x, which runs ClickHouse
+# and Keeper as ClickHouseCluster/KeeperCluster CRs instead of the frozen
+# bitnamilegacy subcharts of chart 1.x. Upstream calls the operator alpha, so
+# the chart is pinned exactly; bump deliberately, not by range.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: clickhouse-operator
+  namespace: clickhouse-operator
+spec:
+  interval: 30m
+  timeout: 10m
+  chart:
+    spec:
+      chart: clickhouse-operator-helm
+      version: "0.0.8"
+      sourceRef:
+        kind: HelmRepository
+        name: clickhouse
+        namespace: clickhouse-operator
+  install:
+    crds: Create
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    controller:
+      # Only Langfuse uses it; don't reconcile CRs anywhere else.
+      watchNamespaces: ["langfuse"]
+    crd:
+      enabled: true
+      keep: true          # uninstalling the operator must not delete the CRs (and data)
+    certManager:
+      enabled: true       # webhook + metrics certs (cert-manager v1.21 is installed)
+    webhook:
+      enabled: true
