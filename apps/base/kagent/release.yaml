@@ -25,6 +25,13 @@ spec:
   upgrade:
     remediation:
       retries: 3
+  # kagent's Ollama client sends no API key; the gateway key has to travel as a
+  # literal header on the ModelConfig. Injected here from the ExternalSecret.
+  valuesFrom:
+    - kind: Secret
+      name: apisix-gateway-key
+      valuesKey: apikey
+      targetPath: providers.ollama.defaultHeaders.apikey
   values:
     # Controller acts on the kagent namespace only. The UI can create agents
     # (including BYO images), so scoping keeps that to one namespace.
@@ -49,7 +56,7 @@ spec:
           readOnly: true
 
     # Mac Studio Ollama fleet through the APISIX gateway's Ollama-native route
-    # (/api/*: least_conn across ms1-3, health checks, no key).
+    # (/api/*: least_conn across ms1-3, health checks, key-auth via valuesFrom).
     providers:
       default: ollama
       ollama:
