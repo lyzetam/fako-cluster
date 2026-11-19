@@ -1,0 +1,10 @@
+# Both charts (kagent-crds and kagent) are published to the same OCI path.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: kagent
+  namespace: kagent
+spec:
+  type: oci
+  interval: 1h
+  url: oci://ghcr.io/kagent-dev/kagent/helm

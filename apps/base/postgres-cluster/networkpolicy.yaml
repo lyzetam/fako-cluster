@@ -23,6 +23,9 @@ spec:
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: discord-management } }
       podSelector: { matchLabels: { app: discord-management-api } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: hume-collector } }
+    # kagent: only the controller holds the DB connection (agents talk to it over HTTP).
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kagent } }
+      podSelector: { matchLabels: { app.kubernetes.io/name: kagent, app.kubernetes.io/component: controller } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: keycloak } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: langfuse } }
     - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: market-replay } }
