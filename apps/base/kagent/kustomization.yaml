@@ -9,4 +9,5 @@ resources:
   - aws-secret-store.yaml
   - external-secret-db.yaml
   - external-secret-ui-auth.yaml
+  - external-secret-gateway.yaml
   - ingress.yaml
