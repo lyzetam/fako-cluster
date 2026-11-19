@@ -1,0 +1,16 @@
+# Database for the kagent controller, owned by the managed `kagent` role.
+# Declarative (CNPG Database CR) instead of another line in
+# database-init-job.yaml: editing that Job's template blocks the whole apps
+# Kustomization (immutable field). `retain` keeps the data if this CR is removed.
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: kagent
+  namespace: postgres
+spec:
+  cluster:
+    name: postgres-cluster
+  name: kagent
+  owner: kagent
+  ensure: present
+  databaseReclaimPolicy: retain

@@ -101,6 +101,9 @@ resources:
   # AI Gateway — APISIX OpenAI-compatible front door load-balancing the Mac Studio Ollama fleet
   - apisix
 
+  # kagent — Kubernetes AI agents (0.10.x), LAN-only UI, read-only tools, models via apisix
+  - kagent
+
   # Document Management
   # - paperless-ngx # Deactivated 2026-08-11 - not in use. 56MB of docs; all 5 PVs are Retain so data survives on the NAS.
 

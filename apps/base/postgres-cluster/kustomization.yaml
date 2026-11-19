@@ -10,9 +10,11 @@ resources:
   - external-secret-oura-readonly.yaml
   - external-secret-health-readonly.yaml
   - external-secret-discord-bots.yaml
+  - external-secret-kagent.yaml
   - external-secret-s3-backup.yaml
   - aws-credentials-secret.yaml
   - postgres-cluster.yaml
+  - database-kagent.yaml
   - database-init-job.yaml
   - oura-readonly-grants-job.yaml
   - health-ro-grants-cronjob.yaml

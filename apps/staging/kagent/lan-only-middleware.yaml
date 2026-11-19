@@ -1,0 +1,32 @@
+# Access control for the kagent UI. Same trusted source ranges as pv-browser,
+# SOPS-encrypted because they map the private network; see private/pv-browser.md
+# for the plaintext reference and rationale.
+#   sops -d apps/staging/kagent/lan-only-middleware.yaml   # view
+#   sops    apps/staging/kagent/lan-only-middleware.yaml   # edit in place
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+    name: lan-only
+    namespace: kagent
+spec:
+    ipAllowList:
+        sourceRange:
+            - ENC[AES256_GCM,data:ZlG4916RmqsZH2X6,iv:8yFfb8/FBKeckvs+VBG4/9yojgQe4uY9AuzmqIuO+UQ=,tag:a9zTPFTuM+sL4yfh03ibMg==,type:str]
+            - ENC[AES256_GCM,data:JqxJXIpg+WsB8S5b,iv:xPO1fcOpN7ZytMsdx4qiAHOoeQHkcg9Q4K/n8YjIumU=,tag:2ymeeANxq4JIxnwzBe+J/g==,type:str]
+            - ENC[AES256_GCM,data:D/GBgTBvAo+t3WTB,iv:aIMa/pwqCxbNFgDyUsTJEKlGt1QL3k3F157BjnLU2Yk=,tag:ZChIGocIDbVUWrd8HSRLCA==,type:str]
+            - ENC[AES256_GCM,data:Uii6rfjIZky25lWzfeg=,iv:pNqilzu+5vpU0i9obJzXjKXgqcddZfGFCI/3tvMzsF4=,tag:QvjbZBidRshviS1Bm6HXbg==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBlK0NlY1RjcE9pTUhUaEpn
+            dEpialZZcEVpMUtJNXdwWmI0c1J0UjdlcjNNClZEZExLRk0walgycXlObTUzbjgz
+            TXVYYlI1TXE1TEY4Qkc5MUVrUU9keVkKLS0tIHh3Q2NtNVAzNU84bnJiMTRrTWpo
+            VE05SFZQczFvNDNWWERLeUMyM1p4c28KmEvre/VqoJds6iAFmy1HYXWJQta3awtQ
+            f7dc3+jmKvy+BLuN2t07Qfuzx8gs1euvT8R54Q82ahqUqDh/MUR5bw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1wz30c9m30hshgx9tg5lylctp646hgu3p0v0sxjuy8xxz34exh4hstn9utd
+    encrypted_regex: ^(sourceRange)$
+    lastmodified: "2026-11-19T16:48:39Z"
+    mac: ENC[AES256_GCM,data:RyhJ2tOimdKgwEogF/cnARI7HyMra01LlZlDw5FDbpRMr4mWRrvIYqSiixMfFVSvY6mjFntDwRrDObJHKULx7ZkDH0qK19cTrSSgUchkkJ7xNIkQmpYPszmSn7wbYYPFU7fKpXj5imti8sf/jfV47EaGzrn7EWPio8Fne5G1MCA=,iv:cZvUNNrueCZ1rJzIA0oZ+GQj/VAhy8S0BxgWuE7XRoQ=,tag:dVo01yZVZJ/AVWFRjOKPlw==,type:str]
+    version: 3.13.3
