@@ -25,13 +25,6 @@ spec:
   upgrade:
     remediation:
       retries: 3
-  # kagent's Ollama client sends no API key; the gateway key has to travel as a
-  # literal header on the ModelConfig. Injected here from the ExternalSecret.
-  valuesFrom:
-    - kind: Secret
-      name: apisix-gateway-key
-      valuesKey: apikey
-      targetPath: providers.ollama.defaultHeaders.apikey
   values:
     # Controller acts on the kagent namespace only. The UI can create agents
     # (including BYO images), so scoping keeps that to one namespace.
@@ -55,9 +48,10 @@ spec:
           mountPath: /etc/kagent-db
           readOnly: true
 
-    # Default model: Claude via the Anthropic API (key: AWS SM kagent/anthropic,
-    # synced by external-secret-anthropic.yaml). glm-4.7-flash on the Mac fleet
-    # answered 1 of 5 "how many pods in kagent?" probes correctly (2026-11-19).
+    # Default model: Claude Haiku 5.5 via the Anthropic API (key: AWS SM
+    # kagent/anthropic, synced by external-secret-anthropic.yaml). Probe
+    # "how many pods in kagent?": Haiku 5.5 15/15 correct in 2-3s;
+    # glm-4.7-flash on the Mac fleet 1/5 (2026-11-19/20).
     # No temperature/topP/topK: kagent only sends them when set, and current
     # Claude models reject non-default sampling values.
     providers:
@@ -67,25 +61,33 @@ spec:
         model: "claude-haiku-5-5"
         apiKeySecretRef: kagent-anthropic
         apiKeySecretKey: ANTHROPIC_API_KEY
-      # Mac Studio Ollama fleet through the APISIX gateway's Ollama-native route
-      # (/api/*: least_conn across ms1-3, health checks, key-auth via valuesFrom).
-      # Not rendered while default is anthropic; kept until Claude is settled.
-      ollama:
-        provider: Ollama
-        model: "glm-4.7-flash:latest"
-        config:
-          host: "http://apisix.apisix.svc.cluster.local:9080"
-          options:
-            # The fleet keeps glm-4.7-flash loaded at ctx 202752. Sending the
-            # chart's num_ctx 64000 would make Ollama reload the model on every
-            # node, stalling every other caller.
-            num_ctx: null
 
     # Built-in tool server: read-only cluster access (get/list/watch, no
     # Secrets). Changes to the cluster still go through Git.
     kagent-tools:
       rbac:
         readOnly: true
+        # The chart's read role covers core workloads only. Add what questions
+        # about this cluster need; none of these kinds carry secret values.
+        additionalRules:
+          - apiGroups: [""]
+            resources: ["nodes", "persistentvolumes"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["storage.k8s.io"]
+            resources: ["storageclasses"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["helm.toolkit.fluxcd.io", "kustomize.toolkit.fluxcd.io", "source.toolkit.fluxcd.io"]
+            resources: ["*"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["external-secrets.io"]
+            resources: ["externalsecrets", "secretstores", "clustersecretstores"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["cert-manager.io"]
+            resources: ["certificates", "certificaterequests", "issuers", "clusterissuers"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["postgresql.cnpg.io"]
+            resources: ["clusters", "databases", "backups", "scheduledbackups", "poolers"]
+            verbs: ["get", "list", "watch"]
       tools:
         enabledTools:
           - k8s
@@ -98,8 +100,11 @@ spec:
     # Built-in agents: keep what matches this cluster.
     k8s-agent:
       enabled: true
+    # Off: Helm stores releases as Secrets and the tools may not read Secrets
+    # (RBAC cannot narrow that to Helm's own). Every helm_* call is forbidden.
+    # Flux HelmRelease status is readable through k8s-agent instead.
     helm-agent:
-      enabled: true
+      enabled: false
     promql-agent:
       enabled: true
     observability-agent:
