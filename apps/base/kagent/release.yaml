@@ -55,10 +55,21 @@ spec:
           mountPath: /etc/kagent-db
           readOnly: true
 
-    # Mac Studio Ollama fleet through the APISIX gateway's Ollama-native route
-    # (/api/*: least_conn across ms1-3, health checks, key-auth via valuesFrom).
+    # Default model: Claude via the Anthropic API (key: AWS SM kagent/anthropic,
+    # synced by external-secret-anthropic.yaml). glm-4.7-flash on the Mac fleet
+    # answered 1 of 5 "how many pods in kagent?" probes correctly (2026-11-19).
+    # No temperature/topP/topK: kagent only sends them when set, and current
+    # Claude models reject non-default sampling values.
     providers:
-      default: ollama
+      default: anthropic
+      anthropic:
+        provider: Anthropic
+        model: "claude-haiku-5-5"
+        apiKeySecretRef: kagent-anthropic
+        apiKeySecretKey: ANTHROPIC_API_KEY
+      # Mac Studio Ollama fleet through the APISIX gateway's Ollama-native route
+      # (/api/*: least_conn across ms1-3, health checks, key-auth via valuesFrom).
+      # Not rendered while default is anthropic; kept until Claude is settled.
       ollama:
         provider: Ollama
         model: "glm-4.7-flash:latest"
