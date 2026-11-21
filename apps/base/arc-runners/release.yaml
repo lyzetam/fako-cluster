@@ -5,9 +5,16 @@
 # A measured run is 18.2 job-minutes across 15 jobs. Self-hosted runners are
 # not metered for private repos, so migrating the test jobs removes that spend.
 #
-# SCOPE: test jobs only. "Build & Push Docker Images" is 1.6m of the 18.2
-# (9%) and stays on GitHub-hosted, which is why containerMode is left off —
-# no Docker-in-Docker, so no privileged pods on this cluster.
+# SCOPE: every aeonhq CI job that needs no Docker daemon. Four stay on
+# GitHub-hosted, which is why containerMode is left off (no Docker-in-Docker,
+# so no privileged pods on this cluster): "Build & Push Docker Images" (about
+# 2 of 37 billed minutes, main pushes only), the post-merge Fayson smoke, and
+# the two jobs that start a postgres:17 service container.
+#
+# Nov 2026: with only two jobs moved in the August pilot, aeonhq billed
+# 52,998 minutes ($299.75 net) in Nov 1-21, against 15,004 in all of October.
+# A sampled PR run bills 37 minutes on GitHub-hosted; moving the rest of the
+# test jobs takes that to about 2.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -43,14 +50,18 @@ spec:
     # Scale to zero when idle — runners cost cluster capacity, not GitHub
     # minutes, so there is no reason to keep warm pods.
     minRunners: 0
-    # aeonhq bursts 15 parallel jobs. The cluster has 44 vCPU across 6 nodes
-    # already running at 25-78%, so jobs queue past 6 rather than starving
-    # existing workloads. A 7-minute wall clock becomes roughly 20 — which is
-    # irrelevant for a nightly scheduled run and acceptable on push.
-    maxRunners: 6
+    # One aeonhq CI run starts 15 jobs here at once, and agents open dozens
+    # of PRs a day (433 runs on 2026-11-19), so jobs past 10 queue. Sized
+    # from measured use: runner pods peaked at 2.0 GiB and 1.4 cores over
+    # 7 days, and the five schedulable workers had about 31 GiB of memory
+    # requests free. 10 x 2 GiB fits with room left for everything else.
+    # The low priority class below keeps runners from ever displacing a real
+    # workload: a runner that does not fit waits as Pending instead.
+    maxRunners: 10
 
     template:
       spec:
+        priorityClassName: ci-runner
         containers:
           - name: runner
             image: ghcr.io/actions/actions-runner:2.338.2
@@ -72,7 +83,9 @@ spec:
             resources:
               requests:
                 cpu: 500m
-                memory: 1Gi
+                # 2Gi, not 1Gi: measured peak is 2.0 GiB, and a request below
+                # real use lets the scheduler pack too many onto an 8 GiB node.
+                memory: 2Gi
               limits:
                 cpu: "2"
                 memory: 4Gi
