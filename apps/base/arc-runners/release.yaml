@@ -50,14 +50,12 @@ spec:
     # Scale to zero when idle — runners cost cluster capacity, not GitHub
     # minutes, so there is no reason to keep warm pods.
     minRunners: 0
-    # One aeonhq CI run starts 15 jobs here at once, and agents open dozens
-    # of PRs a day (433 runs on 2026-11-19), so jobs past 10 queue. Sized
-    # from measured use: runner pods peaked at 2.0 GiB and 1.4 cores over
-    # 7 days, and the five schedulable workers had about 31 GiB of memory
-    # requests free. 10 x 2 GiB fits with room left for everything else.
-    # The low priority class below keeps runners from ever displacing a real
-    # workload: a runner that does not fit waits as Pending instead.
-    maxRunners: 10
+    # One aeonhq CI run starts 15 jobs here at once, so 15 lets a whole run
+    # start without queueing. Measured on the first full run (aeonhq #1365,
+    # 2026-11-21): peak 1.8 GiB per pod, nodes kept 2.7+ GiB available.
+    # Runners that do not fit wait as Pending (see the priority class) rather
+    # than displacing a real workload, so 15 is a ceiling, not a guarantee.
+    maxRunners: 15
 
     template:
       spec:
@@ -85,11 +83,16 @@ spec:
               - name: RUNNER_ALLOW_RUNASROOT
                 value: "1"
             resources:
+              # CPU sized from the same run: pods averaged ~1.7 cores and were
+              # throttled ~50% of the time at a 2-core limit (Test Backend took
+              # 9.5 min vs ~4 on GitHub-hosted). A 500m request let the
+              # scheduler stack 6 runners on thinkpad02 (85% busy) while both
+              # pglenovos idled near 20%; 1 core spreads them out.
               requests:
-                cpu: 500m
+                cpu: "1"
                 # 2Gi, not 1Gi: measured peak is 2.0 GiB, and a request below
                 # real use lets the scheduler pack too many onto an 8 GiB node.
                 memory: 2Gi
               limits:
-                cpu: "2"
+                cpu: "3"
                 memory: 4Gi
