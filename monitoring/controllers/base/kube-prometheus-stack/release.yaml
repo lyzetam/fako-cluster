@@ -162,6 +162,27 @@ spec:
               receiver: 'default'
               continue: false
 
+            # Watchdog always fires. It pings an OUTSIDE dead-man's switch
+            # (healthchecks.io check "fako-alertmanager-watchdog", separate
+            # from item 6's cluster-health check) every 5 minutes. If
+            # Prometheus, Alertmanager or the network path dies, the pings stop
+            # and healthchecks.io emails Landry from its own infrastructure.
+            # Never emailed or sent to zI.
+            - matchers:
+                - alertname="Watchdog"
+              receiver: 'hc-watchdog'
+              group_by: ['alertname']
+              group_wait: 0s
+              group_interval: 1m
+              repeat_interval: 5m
+              continue: false
+
+            # InfoInhibitor only exists to mute info alerts.
+            - matchers:
+                - alertname="InfoInhibitor"
+              receiver: 'null'
+              continue: false
+
             # Pod alerts with agent label go to zI for investigation
             - matchers:
                 - agent=~"k8s-engineer|platform-sre"
@@ -180,6 +201,65 @@ spec:
               repeat_interval: 30m
               continue: true
 
+            # Email-path failures must not be reported BY email. Alertmanager's
+            # own send-failure alerts for the email integration, and config
+            # reload failures (a broken config can silently stop email), go to
+            # a second, separate healthchecks.io check via its /fail endpoint:
+            # the check goes down at once and healthchecks.io emails Landry
+            # through its own mail path. zI still saw the criticals above
+            # (those routes continue). send_resolved is off because a resolved
+            # notice would hit the same /fail URL; reset the check by pinging
+            # its success URL after the email path is fixed.
+            - matchers:
+                - alertname=~"AlertmanagerFailedToSendAlerts|AlertmanagerClusterFailedToSendAlerts"
+                - integration="email"
+              receiver: 'hc-email-fail'
+              group_by: ['alertname']
+              group_wait: 1m
+              group_interval: 15m
+              repeat_interval: 4h
+              continue: false
+            - matchers:
+                - alertname="AlertmanagerFailedReload"
+              receiver: 'hc-email-fail'
+              group_by: ['alertname']
+              group_wait: 1m
+              group_interval: 15m
+              repeat_interval: 4h
+              continue: false
+
+            # Email to Landry (bot-operator design §6: alerts must reach a
+            # human). Last, so the zI routes above still see everything they
+            # saw before. Critical and warning only; info stays in `default`.
+            # The three *Down alerts are excluded because k3s runs the
+            # scheduler, controller-manager and proxy inside the k3s binary,
+            # where the chart's scrape targets don't exist, so they fire
+            # permanently (all three were firing on Oct 14). zI still gets them.
+            - matchers:
+                - severity=~"critical|warning"
+                - alertname!~"KubeSchedulerDown|KubeControllerManagerDown|KubeProxyDown"
+              receiver: 'landry-email'
+              continue: false
+              routes:
+                # Criticals: one email per alertname, quickly, resolved too.
+                - matchers:
+                    - severity="critical"
+                  receiver: 'landry-email'
+                  group_by: ['alertname']
+                  group_wait: 1m
+                  group_interval: 15m
+                  repeat_interval: 4h
+                # Warnings: ONE digest email for all of them (48 distinct
+                # warning groups were firing on Oct 14; one email each would
+                # be ~290 emails a day). Re-sent every 4h while anything fires.
+                - matchers:
+                    - severity="warning"
+                  receiver: 'landry-email-digest'
+                  group_by: ['severity']
+                  group_wait: 5m
+                  group_interval: 1h
+                  repeat_interval: 4h
+
         receivers:
           - name: 'default'
             # Default receiver - just logs (no external notification)
@@ -190,7 +270,82 @@ spec:
                 send_resolved: true
                 max_alerts: 10
 
+          - name: 'null'
+
+          # healthchecks.io ping URLs come from SSM /alertmanager/healthchecks
+          # (JSON) via the ExternalSecret in
+          # monitoring/configs/base/alertmanager-email/, mounted as files.
+          # Never inline: a ping URL lets anyone ping or fail the check.
+          - name: 'hc-watchdog'
+            webhook_configs:
+              - url_file: /etc/alertmanager/notifiers/hc-watchdog-url
+                send_resolved: false
+                max_alerts: 1
+          - name: 'hc-email-fail'
+            webhook_configs:
+              - url_file: /etc/alertmanager/notifiers/hc-email-fail-url
+                send_resolved: false
+                max_alerts: 5
+
+          # SMTP via AgentMail (smtp.agentmail.to:465, implicit TLS) on the
+          # team's existing AgentMail account. The password is an AgentMail
+          # API key scoped to the sender inbox with send-only permission and
+          # an expiry. It comes from SSM Parameter Store /alertmanager/smtp
+          # through the ExternalSecret in
+          # monitoring/configs/base/alertmanager-email/ and is mounted below
+          # as a file. It is never in this config.
+          #
+          # ######## PLACEHOLDER: `to` stays a placeholder until Landry picks
+          # ######## his alert address (Mel has asked him). Do not merge with
+          # ######## example.invalid. The sender inbox cluster-alerts@agentmail.to
+          # ######## must exist before merge (`from` and `auth_username` must be
+          # ######## that same AgentMail inbox).
+          #
+          # Alert annotations must never template log lines or other free
+          # text from workloads: whatever an annotation renders is mailed out.
+          - name: 'landry-email'
+            email_configs:
+              - to: 'landry-alerts-placeholder@example.invalid'  # PLACEHOLDER (Landry to pick)
+                from: 'Fako cluster alerts <cluster-alerts@agentmail.to>'
+                smarthost: 'smtp.agentmail.to:465'
+                auth_username: 'cluster-alerts@agentmail.to'
+                auth_password_file: /etc/alertmanager/notifiers/smtp-password
+                require_tls: true
+                send_resolved: true
+                headers:
+                  Subject: '[fako {{ .Status | toUpper }}] {{ .CommonLabels.alertname }} ({{ .Alerts.Firing | len }} firing)'
+          - name: 'landry-email-digest'
+            email_configs:
+              - to: 'landry-alerts-placeholder@example.invalid'  # PLACEHOLDER (Landry to pick)
+                from: 'Fako cluster alerts <cluster-alerts@agentmail.to>'
+                smarthost: 'smtp.agentmail.to:465'
+                auth_username: 'cluster-alerts@agentmail.to'
+                auth_password_file: /etc/alertmanager/notifiers/smtp-password
+                require_tls: true
+                send_resolved: false
+                headers:
+                  Subject: '[fako] warning digest: {{ .Alerts.Firing | len }} firing'
+
       alertmanagerSpec:
+        # Notifier credentials (SMTP password, healthchecks.io ping URLs) as
+        # files. optional: true so a missing Secret never blocks the
+        # Alertmanager pod; the kubelet fills the volume once the
+        # ExternalSecret creates the Secret, and Alertmanager reads the files
+        # at send time (no restart needed).
+        # BUT: without the Secret the Watchdog ping can't be sent, so once the
+        # healthchecks.io check exists it goes down and stays down, and the
+        # email receivers fail (AlertmanagerFailedToSendAlerts). Don't merge
+        # before the Secret is synced (see PR #390 merge order).
+        volumes:
+          - name: notifiers
+            secret:
+              secretName: alertmanager-notifiers
+              optional: true
+              defaultMode: 0440
+        volumeMounts:
+          - name: notifiers
+            mountPath: /etc/alertmanager/notifiers
+            readOnly: true
         resources:
           requests:
             memory: 64Mi

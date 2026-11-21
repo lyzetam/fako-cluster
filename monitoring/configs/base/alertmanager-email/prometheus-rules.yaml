@@ -1,0 +1,28 @@
+# ExternalSecret sync failures (none existed in the repo). Needs ESO metrics,
+# enabled in this PR via serviceMonitor.enabled in
+# infrastructure/controllers/base/external-secrets/release.yaml.
+# Annotations use labels only; never template log lines or values.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: external-secrets-sync
+  namespace: monitoring
+spec:
+  groups:
+    - name: external-secrets
+      rules:
+        - alert: ExternalSecretNotReady
+          expr: max by (namespace, name) (externalsecret_status_condition{condition="Ready", status="False"}) == 1
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "ExternalSecret {{ $labels.namespace }}/{{ $labels.name }} has not synced for 30m"
+            description: "Check the SecretStore credentials and the remote parameter name. ESO keeps the last synced Secret, so apps may still run on stale values."
+        - alert: ExternalSecretsMetricsMissing
+          expr: absent(externalsecret_status_condition)
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "No ESO metrics: ExternalSecretNotReady can't fire"
