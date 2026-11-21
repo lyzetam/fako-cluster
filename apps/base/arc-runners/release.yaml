@@ -66,10 +66,14 @@ spec:
           - name: runner
             image: ghcr.io/actions/actions-runner:2.338.2
             command: ["/home/runner/run.sh"]
-            # Root is required: test-marketing and the Fayson E2E job run
-            # `npx playwright install --with-deps`, which apt-installs browser
-            # libraries. The stock runner image has no sudo. These are the
-            # org's own private repos on the org's own hardware.
+            # Root, because jobs apt-install packages directly: the Playwright
+            # jobs run `npx playwright install --with-deps` and
+            # check-verified-facts installs python3-yaml. The image does ship
+            # sudo, but its sudoers grants it only to the `sudo` group (the
+            # `runner` user, uid 1001), not to root; running as root avoids
+            # sprinkling sudo through every job. Workflows that must also run on
+            # GitHub-hosted pick sudo by uid: $([ "$(id -u)" -eq 0 ] || echo sudo).
+            # What root can reach is limited by networkpolicy.yaml.
             #
             # RUNNER_ALLOW_RUNASROOT is NOT optional alongside runAsUser: 0.
             # run.sh refuses to start as uid 0 without it, exiting with
