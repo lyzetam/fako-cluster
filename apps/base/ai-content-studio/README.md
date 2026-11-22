@@ -22,3 +22,11 @@ Deployment sequence:
 The image is intentionally pinned instead of using `latest`. Roll back by
 reverting the image-tag Git change; S3 sidecars are durable and are not
 deleted by this workload.
+
+## Live handoff — 2026-09-28
+
+The dashboard rollout is healthy and currently runs app commit `96dcebe`. The S3 catalog snapshot
+is 736 source videos, 15 complete analyses, 721 pending, 104 scene segments, 14 embeddings, and 0
+transcripts; the count may grow while the separate NAS→S3 sync Job is running. This workload only
+reads persisted sidecars. A separate four-shard Twelve Labs backfill failed and is intentionally
+not being retried until it is diagnosed and approved.

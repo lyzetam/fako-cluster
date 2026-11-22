@@ -60,34 +60,6 @@ spec:
     template:
       spec:
         priorityClassName: ci-runner
-        # TEMPORARY (thinkpad02 down since 2026-11-22 07:58 ET): let runners use
-        # the control-plane node zz-macbookpro as overflow capacity.
-        # REVERT when thinkpad02 is Ready again: delete the three blocks below
-        # (tolerations, affinity, topologySpreadConstraints) in one PR.
-        tolerations:
-          - key: node-role.kubernetes.io/control-plane
-            operator: Exists
-            effect: NoSchedule
-        # Prefer every other node; the control plane is the last resort.
-        affinity:
-          nodeAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-              - weight: 100
-                preference:
-                  matchExpressions:
-                    - key: node-role.kubernetes.io/control-plane
-                      operator: DoesNotExist
-        # Cap runners per node: no node may hold more than 2 more runners than
-        # the emptiest node. thinkpad02 (down, untolerated, 0 runners) counts
-        # as the emptiest, so zz-macbookpro holds at most 2 runners while it is
-        # down. The other nodes are already request-full at 1 runner each.
-        topologySpreadConstraints:
-          - maxSkew: 2
-            topologyKey: kubernetes.io/hostname
-            whenUnsatisfiable: DoNotSchedule
-            labelSelector:
-              matchLabels:
-                actions.github.com/scale-set-name: fako
         containers:
           - name: runner
             image: ghcr.io/actions/actions-runner:2.338.2
