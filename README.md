@@ -326,6 +326,32 @@ Voice Input → OpenWakeWord → Whisper (STT) → LLM → Piper (TTS) → Audio
     - **No alert covers this.** A node that is `Ready` but unreachable at its own
       `InternalIP` fires nothing today. The cheap detector is metrics-server's
       `no route to host`, or alerting on any node absent from `kubectl top nodes`.
+  - **Second outright failure, 2026-11-22 — and this time the node went `NotReady`.**
+    The receive path died around 12:58:44–13:00:11 UTC (last node lease renew / last
+    successful node-exporter scrape). No warning: 0 rx_errors, 0 counter resets and 0
+    carrier flaps in the prior 7 days, ~10k rx packets/s right up to the end, and **no
+    kernel message at all** — no `cdc_ncm`, no xhci, nothing in `journalctl -k` until
+    the hung-task traces from NFS writes at 13:01:13.
+    - **Why WiFi did not save it:** unlike 09-05, networkd never logged `DHCP lease lost`
+      on `enx9c69d3bdbfe6`, so the wired address and its metric-100 default route stayed.
+      All traffic, including the k3s tunnel, kept going to the deaf adapter; the WiFi
+      route (metric 600) was never used. Pinging the WiFi address `.8` fails too — the
+      reply is routed out the wired side. Fallback only happens once the lease expires.
+    - **Remote signature (no host access needed):** the switch port stays up at
+      1000/full and keeps receiving from the laptop, but **every frame is a 64-byte
+      broadcast** — 332 of 332 in 45 s (UniFi `stat/device` port 4: `rx_packets` delta
+      equals `rx_broadcast` delta). That is the host ARPing for neighbours it can never
+      hear back from. UniFi still lists both clients as connected.
+    - **Recovery:** physical unplug/replug of the adapter at 18:47 UTC (fresh USB
+      enumeration as device 4-1) brought `.80` back with no DHCP or route work. flannel
+      did **not** recover — `flannel.1` was gone and k3s logged `external interface  not
+      found, retrying in 30s` — so `systemd-run --no-block systemctl restart k3s-agent`
+      was still required, same as 09-05. Verified by ping from ms1 and a pod on
+      thinkpad02 reaching Prometheus on thinkpad01. The arc-runner downsizing done while
+      it was down (#488) was reverted in #489.
+    - **Slow follow-on:** `langfuse-v2-clickhouse` sits in `ContainerCreating` after any
+      reschedule because kubelet re-chowns the whole NFS volume (~240 files/min, 17k+
+      files) — the pod has no `fsGroupChangePolicy: OnRootMismatch`.
 
 - **Power:** originally run from a 60W USB-C PD adapter (`20V x 3A`, drawing its full
   3A ceiling) while `BAT0` reported `power_now=0` — a healthy 99% / 87%-health battery
