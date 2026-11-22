@@ -70,6 +70,32 @@ spec:
               kind: ConfigMap
               metadata:
                 name: langfuse-v2-s3-security-config
+          # The chart has no web startupProbe, so liveness (20s delay, 3 x 10s)
+          # kills web ~50s after start. On 2026-11-22, after thinkpad02's
+          # network outage, 8 CI runners (1 CPU request each) shared the node at
+          # 87% CPU; web (200m request) got ~0.16 cores, booted too slowly and
+          # restarted 13+ times. A startupProbe gives it up to 5 min to boot and
+          # holds off liveness until then; steady-state checks are unchanged.
+          - target:
+              kind: Deployment
+              name: langfuse-v2-web
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: langfuse-v2-web
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: langfuse-web
+                        startupProbe:
+                          httpGet:
+                            path: /api/public/health
+                            port: http
+                          periodSeconds: 10
+                          timeoutSeconds: 5
+                          failureThreshold: 30
   chart:
     spec:
       chart: langfuse
