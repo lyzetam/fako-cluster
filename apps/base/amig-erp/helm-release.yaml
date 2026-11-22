@@ -8,7 +8,7 @@ spec:
   chart:
     spec:
       chart: erpnext
-      version: "8.0.65"
+      version: "8.0.89"
       sourceRef:
         kind: HelmRepository
         name: frappe
@@ -22,7 +22,7 @@ spec:
   values:
     image:
       repository: frappe/erpnext
-      tag: v16.26.2
+      tag: v16.52.1
       pullPolicy: IfNotPresent
 
     persistence:

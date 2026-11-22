@@ -43,7 +43,7 @@ data:
     
     # Get etcd endpoint info (but not the actual backup)
     echo "Getting etcd information..."
-    kubectl get pods -n kube-system -l component=etcd -o yaml > "$BACKUP_PATH/etcd-info/etcd-pods.yaml"
+    kubectl get pods -n kube-system -l component=etcd -o yaml > "$BACKUP_PATH/etcd-info/etcd-pods.yaml" 2>/dev/null || true
     
     # Get certificate expiration info
     echo "Getting certificate information..."

@@ -1,0 +1,125 @@
+# kagent 0.10.x: agents run as ordinary Deployments. 1.0 moved every agent into
+# Substrate sandboxes (gVisor/microVM runtime on each node, RustFS, pod
+# certificates) — a separate infra project, so this stays on the 0.10 line.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kagent
+  namespace: kagent
+spec:
+  interval: 1h
+  timeout: 10m
+  dependsOn:
+    - name: kagent-crds
+  chart:
+    spec:
+      chart: kagent
+      # Keep in lockstep with release-crds.yaml.
+      version: "0.10.6"
+      sourceRef:
+        kind: HelmRepository
+        name: kagent
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    # Controller acts on the kagent namespace only. The UI can create agents
+    # (including BYO images), so scoping keeps that to one namespace.
+    rbac:
+      namespaces:
+        - kagent
+
+    # Shared CNPG cluster instead of the chart's bundled dev Postgres.
+    database:
+      postgres:
+        urlFile: /etc/kagent-db/url
+        bundled:
+          enabled: false
+    controller:
+      volumes:
+        - name: kagent-db
+          secret:
+            secretName: kagent-db
+      volumeMounts:
+        - name: kagent-db
+          mountPath: /etc/kagent-db
+          readOnly: true
+
+    # Default model: Claude Haiku 5.5 via the Anthropic API (key: AWS SM
+    # kagent/anthropic, synced by external-secret-anthropic.yaml). Probe
+    # "how many pods in kagent?": Haiku 5.5 15/15 correct in 2-3s;
+    # glm-4.7-flash on the Mac fleet 1/5 (2026-11-19/20).
+    # No temperature/topP/topK: kagent only sends them when set, and current
+    # Claude models reject non-default sampling values.
+    providers:
+      default: anthropic
+      anthropic:
+        provider: Anthropic
+        model: "claude-haiku-5-5"
+        apiKeySecretRef: kagent-anthropic
+        apiKeySecretKey: ANTHROPIC_API_KEY
+
+    # Built-in tool server: read-only cluster access (get/list/watch, no
+    # Secrets). Changes to the cluster still go through Git.
+    kagent-tools:
+      rbac:
+        readOnly: true
+        # The chart's read role covers core workloads only. Add what questions
+        # about this cluster need; none of these kinds carry secret values.
+        additionalRules:
+          - apiGroups: [""]
+            resources: ["nodes", "persistentvolumes"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["storage.k8s.io"]
+            resources: ["storageclasses"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["helm.toolkit.fluxcd.io", "kustomize.toolkit.fluxcd.io", "source.toolkit.fluxcd.io"]
+            resources: ["*"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["external-secrets.io"]
+            resources: ["externalsecrets", "secretstores", "clustersecretstores"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["cert-manager.io"]
+            resources: ["certificates", "certificaterequests", "issuers", "clusterissuers"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["postgresql.cnpg.io"]
+            resources: ["clusters", "databases", "backups", "scheduledbackups", "poolers"]
+            verbs: ["get", "list", "watch"]
+      tools:
+        enabledTools:
+          - k8s
+          - helm
+          - prometheus
+          - utils
+        prometheus:
+          url: "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
+
+    # Built-in agents: keep what matches this cluster.
+    k8s-agent:
+      enabled: true
+    # Off: Helm stores releases as Secrets and the tools may not read Secrets
+    # (RBAC cannot narrow that to Helm's own). Every helm_* call is forbidden.
+    # Flux HelmRelease status is readable through k8s-agent instead.
+    helm-agent:
+      enabled: false
+    promql-agent:
+      enabled: true
+    observability-agent:
+      enabled: false
+    grafana-mcp:
+      enabled: false
+    kgateway-agent:
+      enabled: false
+    istio-agent:
+      enabled: false
+    argo-rollouts-agent:
+      enabled: false
+    cilium-policy-agent:
+      enabled: false
+    cilium-manager-agent:
+      enabled: false
+    cilium-debug-agent:
+      enabled: false

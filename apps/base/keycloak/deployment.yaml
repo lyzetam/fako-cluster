@@ -60,7 +60,6 @@ spec:
           # Get postgres superuser credentials with debugging
           echo "Fetching postgres/admin-credentials..."
           POSTGRES_CREDS=$(aws secretsmanager get-secret-value --secret-id postgres/admin-credentials --query SecretString --output text)
-          echo "Raw postgres credentials response: $POSTGRES_CREDS"
           
           # Parse with debugging
           export PGUSER=$(echo "$POSTGRES_CREDS" | jq -r .username)
@@ -72,7 +71,6 @@ spec:
           # Get keycloak user credentials with debugging
           echo "Fetching auth-service/super-user..."
           KEYCLOAK_CREDS=$(aws secretsmanager get-secret-value --secret-id auth-service/super-user --query SecretString --output text)
-          echo "Raw keycloak credentials response: $KEYCLOAK_CREDS"
           
           KC_USER=$(echo "$KEYCLOAK_CREDS" | jq -r .username)
           KC_PASS=$(echo "$KEYCLOAK_CREDS" | jq -r .password)
@@ -94,6 +92,16 @@ spec:
           fi
           
           echo "Checking database setup..."
+          # Wait for Postgres (NetworkPolicy may lag a brand-new pod by ~1s): backoff 1,2,4,8,15s (~30s).
+          WAIT_HOST="${PGHOST:-postgres-cluster-rw.postgres.svc.cluster.local}"
+          pg_ok=0
+          for d in 1 2 4 8 15; do
+            if pg_isready -h "$WAIT_HOST" -p 5432 -t 3; then pg_ok=1; break; fi
+            echo "postgres not reachable yet, retrying in ${d}s"; sleep "$d"
+          done
+          if [ "$pg_ok" != 1 ]; then pg_isready -h "$WAIT_HOST" -p 5432 -t 3 || { echo "ERROR: postgres unreachable after ~30s" >&2; exit 1; }; fi
+          # Every psql call stops on the first SQL error and exits nonzero.
+          psql() { command psql -v ON_ERROR_STOP=1 "$@"; }
           
           # Check if database exists
           DB_EXISTS=$(psql -tAc "SELECT 1 FROM pg_database WHERE datname='keycloak'" 2>/dev/null || echo "")

@@ -7,10 +7,9 @@ metadata:
     app.kubernetes.io/name: hugo-blog
     app.kubernetes.io/component: blog
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-staging
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    cert-manager.io/cluster-issuer: internal-selfsigned
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   tls:
   - hosts:
     - blog.fako-cluster.local

@@ -1,0 +1,39 @@
+# LAN-only: kagent.landryzetam.net resolves to the LAN Traefik and is not in
+# the Cloudflare tunnel. The lan-only middleware (SOPS, staging overlay) drops
+# anything outside the trusted ranges; basic-auth gates the rest.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: basic-auth
+  namespace: kagent
+spec:
+  basicAuth:
+    secret: kagent-ui-auth
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kagent
+  namespace: kagent
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-dns01"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: kagent-lan-only@kubernetescrd,kagent-basic-auth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - kagent.landryzetam.net
+      secretName: kagent-tls
+  rules:
+    - host: kagent.landryzetam.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kagent-ui
+                port:
+                  number: 8080

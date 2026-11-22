@@ -3,4 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - repository.yaml
+  - aws-credentials-secret.yaml   # SOPS-encrypted key for IAM user svc/monitoring-eso
+  - grafana-admin-secret-store.yaml
+  - grafana-admin-externalsecret.yaml
   - release.yaml

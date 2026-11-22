@@ -5,9 +5,16 @@
 # A measured run is 18.2 job-minutes across 15 jobs. Self-hosted runners are
 # not metered for private repos, so migrating the test jobs removes that spend.
 #
-# SCOPE: test jobs only. "Build & Push Docker Images" is 1.6m of the 18.2
-# (9%) and stays on GitHub-hosted, which is why containerMode is left off —
-# no Docker-in-Docker, so no privileged pods on this cluster.
+# SCOPE: every aeonhq CI job that needs no Docker daemon. Four stay on
+# GitHub-hosted, which is why containerMode is left off (no Docker-in-Docker,
+# so no privileged pods on this cluster): "Build & Push Docker Images" (about
+# 2 of 37 billed minutes, main pushes only), the post-merge Fayson smoke, and
+# the two jobs that start a postgres:17 service container.
+#
+# Nov 2026: with only two jobs moved in the August pilot, aeonhq billed
+# 52,998 minutes ($299.75 net) in Nov 1-21, against 15,004 in all of October.
+# A sampled PR run bills 37 minutes on GitHub-hosted; moving the rest of the
+# test jobs takes that to about 2.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -22,7 +29,7 @@ spec:
   chart:
     spec:
       chart: gha-runner-scale-set
-      version: "0.14.2"
+      version: "0.15.1"
       sourceRef:
         kind: HelmRepository
         name: actions-runner-controller
@@ -43,22 +50,56 @@ spec:
     # Scale to zero when idle — runners cost cluster capacity, not GitHub
     # minutes, so there is no reason to keep warm pods.
     minRunners: 0
-    # aeonhq bursts 15 parallel jobs. The cluster has 44 vCPU across 6 nodes
-    # already running at 25-78%, so jobs queue past 6 rather than starving
-    # existing workloads. A 7-minute wall clock becomes roughly 20 — which is
-    # irrelevant for a nightly scheduled run and acceptable on push.
-    maxRunners: 6
+    # One aeonhq CI run starts 15 jobs here at once, so 15 lets a whole run
+    # start without queueing. Measured on the first full run (aeonhq #1365,
+    # 2026-11-21): peak 1.8 GiB per pod, nodes kept 2.7+ GiB available.
+    # Runners that do not fit wait as Pending (see the priority class) rather
+    # than displacing a real workload, so 15 is a ceiling, not a guarantee.
+    maxRunners: 15
 
     template:
       spec:
+        priorityClassName: ci-runner
+        # TEMPORARY (thinkpad02 down since 2026-11-22 07:58 ET): let runners use
+        # the control-plane node zz-macbookpro as overflow capacity.
+        # REVERT when thinkpad02 is Ready again: delete the three blocks below
+        # (tolerations, affinity, topologySpreadConstraints) in one PR.
+        tolerations:
+          - key: node-role.kubernetes.io/control-plane
+            operator: Exists
+            effect: NoSchedule
+        # Prefer every other node; the control plane is the last resort.
+        affinity:
+          nodeAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                preference:
+                  matchExpressions:
+                    - key: node-role.kubernetes.io/control-plane
+                      operator: DoesNotExist
+        # Cap runners per node: no node may hold more than 2 more runners than
+        # the emptiest node. thinkpad02 (down, untolerated, 0 runners) counts
+        # as the emptiest, so zz-macbookpro holds at most 2 runners while it is
+        # down. The other nodes are already request-full at 1 runner each.
+        topologySpreadConstraints:
+          - maxSkew: 2
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: DoNotSchedule
+            labelSelector:
+              matchLabels:
+                actions.github.com/scale-set-name: fako
         containers:
           - name: runner
-            image: ghcr.io/actions/actions-runner:2.336.0
+            image: ghcr.io/actions/actions-runner:2.338.2
             command: ["/home/runner/run.sh"]
-            # Root is required: test-marketing and the Fayson E2E job run
-            # `npx playwright install --with-deps`, which apt-installs browser
-            # libraries. The stock runner image has no sudo. These are the
-            # org's own private repos on the org's own hardware.
+            # Root, because jobs apt-install packages directly: the Playwright
+            # jobs run `npx playwright install --with-deps` and
+            # check-verified-facts installs python3-yaml. The image does ship
+            # sudo, but its sudoers grants it only to the `sudo` group (the
+            # `runner` user, uid 1001), not to root; running as root avoids
+            # sprinkling sudo through every job. Workflows that must also run on
+            # GitHub-hosted pick sudo by uid: $([ "$(id -u)" -eq 0 ] || echo sudo).
+            # What root can reach is limited by networkpolicy.yaml.
             #
             # RUNNER_ALLOW_RUNASROOT is NOT optional alongside runAsUser: 0.
             # run.sh refuses to start as uid 0 without it, exiting with
@@ -70,9 +111,16 @@ spec:
               - name: RUNNER_ALLOW_RUNASROOT
                 value: "1"
             resources:
+              # CPU sized from the same run: pods averaged ~1.7 cores and were
+              # throttled ~50% of the time at a 2-core limit (Test Backend took
+              # 9.5 min vs ~4 on GitHub-hosted). A 500m request let the
+              # scheduler stack 6 runners on thinkpad02 (85% busy) while both
+              # pglenovos idled near 20%; 1 core spreads them out.
               requests:
-                cpu: 500m
-                memory: 1Gi
+                cpu: "1"
+                # 2Gi, not 1Gi: measured peak is 2.0 GiB, and a request below
+                # real use lets the scheduler pack too many onto an 8 GiB node.
+                memory: 2Gi
               limits:
-                cpu: "2"
+                cpu: "3"
                 memory: 4Gi

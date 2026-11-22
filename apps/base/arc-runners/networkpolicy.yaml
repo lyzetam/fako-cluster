@@ -1,0 +1,48 @@
+# Runner pods execute third-party install-time code as root: npm install
+# scripts, PyPI packages and Playwright's apt installs, for every aeonhq PR.
+# On GitHub-hosted that code lands on a throwaway VM; here it would land inside
+# the homelab. This policy keeps the blast radius the same as a hosted runner:
+# public internet on 80/443 only (80 is for the Ubuntu apt mirrors), cluster
+# DNS, and nothing else. Every private range is excluded, which covers the pod
+# and service networks, the LAN and the tailnet (100.64.0.0/10), so a
+# compromised dependency cannot reach Postgres, the NAS or any other service.
+#
+# No ingress rules: nothing ever connects into a runner pod. The ARC listener
+# and controller run in arc-systems and talk only to GitHub and the API server.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: runner-internet-only
+  namespace: arc-runners
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80

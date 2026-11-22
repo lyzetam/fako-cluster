@@ -15,21 +15,27 @@ spec:
         - /bin/sh
         - -c
         - |
-          echo "Waiting for PostgreSQL to be ready..."
-          until PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c '\q' 2>/dev/null; do
-            echo "Waiting for database connection..."
-            sleep 2
+          set -euo pipefail
+          # Wait for Postgres (NetworkPolicy may lag a brand-new pod by ~1s): backoff 1,2,4,8,15s (~30s).
+          WAIT_HOST="postgres-cluster-rw.postgres.svc.cluster.local"
+          pg_ok=0
+          for d in 1 2 4 8 15; do
+            if pg_isready -h "$WAIT_HOST" -p 5432 -t 3; then pg_ok=1; break; fi
+            echo "postgres not reachable yet, retrying in ${d}s"; sleep "$d"
           done
-          
+          if [ "$pg_ok" != 1 ]; then pg_isready -h "$WAIT_HOST" -p 5432 -t 3 || { echo "ERROR: postgres unreachable after ~30s" >&2; exit 1; }; fi
+          # Every psql call stops on the first SQL error and exits nonzero.
+          psql() { command psql -v ON_ERROR_STOP=1 "$@"; }
+
           echo "Initializing wger database..."
           
           # Create database if it doesn't exist
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'wger'" | grep -q 1 || \
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "CREATE DATABASE wger"
+          db_exists="$(PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'wger'")"
+          if [ "$db_exists" != "1" ]; then PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "CREATE DATABASE wger"; fi
           
           # Create user if it doesn't exist
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -tc "SELECT 1 FROM pg_user WHERE usename = 'wger'" | grep -q 1 || \
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "CREATE USER wger WITH PASSWORD '$WGER_PASSWORD'"
+          usr_exists="$(PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -tAc "SELECT 1 FROM pg_user WHERE usename = 'wger'")"
+          if [ "$usr_exists" != "1" ]; then PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "CREATE USER wger WITH PASSWORD '$WGER_PASSWORD'"; fi
           
           # Grant privileges
           PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres-cluster-rw.postgres.svc.cluster.local -U postgres -c "ALTER USER wger WITH SUPERUSER"

@@ -20,11 +20,7 @@ data:
       {"area": "Health/Withings Daily",        "owner": "withings-collector",   "max_age_days": 3},
       {"area": "Health/Hume Daily",            "owner": "hume-collector",       "max_age_days": 4},
       {"area": "Cluster/Security",             "owner": "kube-bench/kubescape", "max_age_days": 3},
-      {"area": "fieldy/conversations",         "owner": "fieldy-webhook",       "max_age_days": 3},
-      {"area": "fieldy/transcriptions",        "owner": "fieldy-webhook",       "max_age_days": 3},
-      {"area": "fieldy/enriched-conversations","owner": "fieldy-webhook",       "max_age_days": 4},
       {"area": "Reading/TLDR",                 "owner": "tldr-pipeline",        "max_age_days": 4},
-      {"area": "Plaud/recordings",             "owner": "plaud-collector",      "max_age_days": 4},
       {"area": "trading",                      "owner": "quantum-trades",       "max_age_days": 5}
     ]
 
