@@ -55,7 +55,13 @@ spec:
     # 2026-11-21): peak 1.8 GiB per pod, nodes kept 2.7+ GiB available.
     # Runners that do not fit wait as Pending (see the priority class) rather
     # than displacing a real workload, so 15 is a ceiling, not a guarantee.
-    maxRunners: 15
+    maxRunners: 5
+    # Nov 22 2026: thinkpad02 is NotReady (kubelet silent since 07:57 ET), so
+    # the 4 Ready workers hold the whole load. Their MEMORY REQUESTS are 81-98%
+    # allocated (real use 57-72%), so 15 pods at 2Gi can never schedule and 12
+    # sat Pending. 5 runners at 1Gi/500m request fit the free request headroom;
+    # real peak is ~2Gi each (10Gi) against ~14Gi actually free. Raise back to
+    # 15 and 1 CPU / 2Gi once thinkpad02 is Ready again.
 
     template:
       spec:
@@ -89,10 +95,11 @@ spec:
               # scheduler stack 6 runners on thinkpad02 (85% busy) while both
               # pglenovos idled near 20%; 1 core spreads them out.
               requests:
-                cpu: "1"
-                # 2Gi, not 1Gi: measured peak is 2.0 GiB, and a request below
-                # real use lets the scheduler pack too many onto an 8 GiB node.
-                memory: 2Gi
+                cpu: 500m
+                # Temporarily 1Gi (was 2Gi, measured peak 2.0 GiB): the 4
+                # workers have almost no unrequested memory while thinkpad02
+                # is down. maxRunners 5 bounds the packing risk.
+                memory: 1Gi
               limits:
                 cpu: "3"
                 memory: 4Gi
